@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
         : Object.fromEntries(proxied.map((path) => [path, { target: backend, changeOrigin: false }])),
     },
     preview: { port },
+    // Never inline a small asset as a data: URL: the Content-Security-Policy (server/server.ts) blocks them.
+    build: { assetsInlineLimit: 0 },
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],

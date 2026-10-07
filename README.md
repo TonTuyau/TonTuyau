@@ -281,7 +281,7 @@ The commands that run a sync show their progress while they run, then the report
 
 TonTuyau is designed for the LAN. Before exposing it to the internet: add authentication, run the planned RCE / path-traversal audit, and regenerate the TubeArchivist API token.
 
-Already done, as if it were public (QA14-3): the front server sends a strict **Content-Security-Policy** on every answer (`default-src 'self'`, no inline script or style, `object-src 'none'`, `frame-ancestors 'self'`: the full policy is in `frontend/server/server.ts`), with `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `X-Frame-Options: SAMEORIGIN`. `check.sh` fails if the built page gets anything the policy would block.
+Already done, as if it were public (QA14-3): the front server sends a strict **Content-Security-Policy** on every answer (`default-src 'self'`, images from the site only with `img-src 'self'` (no `data:` URLs), no inline script or style, `object-src 'none'`, `frame-ancestors 'self'`: the full policy is in `frontend/server/server.ts`), with `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `X-Frame-Options: SAMEORIGIN`. `check.sh` fails if the built page or its stylesheets get anything the policy would block (an inline script or style, a `data:` URL).
 
 ## License
 
