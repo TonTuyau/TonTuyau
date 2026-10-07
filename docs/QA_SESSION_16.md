@@ -33,7 +33,7 @@ Default: a)
   a) yes, at the next full sync
   b) not needed
 Default: a)
-**Answer:** Done: the VM's full sync log was sent (27 min 22 s, about 165 progress lines).
+**Answer:** Done: the VM's full sync log was sent (27 min 22 s, 177 lines in all).
 
 **Q16-6. How many columns on very wide screens.** The video grids now stop at 6 columns and the shorts grids at 10; past that the cards grow (at 3840 px: video cards about 600 px wide, short cards about 360 px wide and 640 px tall). Below about 2,000 px nothing changed.
   a) 6 and 10
