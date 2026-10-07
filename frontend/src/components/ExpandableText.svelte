@@ -1,9 +1,9 @@
 <script lang="ts">
   // Text clamped to a few lines with "…more" / "Show less". `extra` is shown only when expanded
   // (tags, file details on the watch page). The toggle appears when the text overflows or there is extra.
-  // http(s) URLs in the text are links (QA06, M5a-7).
+  // http(s) URLs in the text are links (QA06, M5a-7); its timecodes too, given `timecodes` (1.1.0).
   import type { Snippet } from 'svelte'
-  import LinkifiedText from './LinkifiedText.svelte'
+  import LinkifiedText, { type Timecodes } from './LinkifiedText.svelte'
 
   let {
     text,
@@ -12,7 +12,16 @@
     less,
     header,
     extra,
-  }: { text: string; lines?: number; more: string; less: string; header?: Snippet; extra?: Snippet } = $props()
+    timecodes,
+  }: {
+    text: string
+    lines?: number
+    more: string
+    less: string
+    header?: Snippet
+    extra?: Snippet
+    timecodes?: Timecodes
+  } = $props()
 
   let expanded = $state(false)
   let body: HTMLElement | undefined = $state()
@@ -34,7 +43,7 @@
 
 <div class="expandable" class:expanded>
   {#if header}{@render header()}{/if}
-  <p class="body" bind:this={body} style:--lines={lines}><LinkifiedText {text} /></p>
+  <p class="body" bind:this={body} style:--lines={lines}><LinkifiedText {text} {timecodes} /></p>
   {#if expanded && extra}{@render extra()}{/if}
   {#if toggle}
     <button type="button" class="toggle" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>

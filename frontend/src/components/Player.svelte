@@ -5,6 +5,7 @@
   // the download (under the player on the watch page, over the top of the video in the shorts player).
   // The box takes the video's own shape (lib/videoRatio.ts), so no black bars; on the watch page a button on the
   // player switches between the small and the large player (lib/playerSize.svelte.ts).
+  // `start` (the watch page's `t`) is where the video starts; seek() moves to a time and plays (a timecode's click).
   import type { VideoDetail } from '../lib/api/types'
   import { playability, type Playability } from '../lib/codec'
   import { codecName } from '../lib/format'
@@ -22,6 +23,7 @@
     size = 'small',
     onsizechange,
     onunavailable,
+    start = null,
     // eslint-disable-next-line no-useless-assignment -- a bindable prop, written by the $effect below
     ratio = $bindable(),
   }: {
@@ -33,6 +35,8 @@
     onsizechange?: (size: PlayerSize) => void
     /** The file turned out to be missing on the share (404 when played): the page hides its download links. */
     onunavailable?: () => void
+    /** Where to start, in seconds (a link to a time); ignored past the video's duration. */
+    start?: number | null
     /** Out: the shape the box uses (API, then the loaded file, then a placeholder), for a page that frames it. */
     ratio?: Ratio
   } = $props()
@@ -68,8 +72,34 @@
   })
   const fitted = $derived(variant === 'watch' && mode === 'play')
 
+  let element: HTMLVideoElement | undefined = $state()
+
+  // A start time within the video (the API's duration): applied once the file's metadata is in, and again when the
+  // link changes to another time of the same video.
+  const startAt = $derived(start !== null && start > 0 && start <= video.durationSeconds ? start : null)
+  $effect(() => {
+    const at = startAt
+    if (at !== null && element && element.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      element.currentTime = at
+    }
+  })
+
   function onloadedmetadata(event: Event & { currentTarget: HTMLVideoElement }) {
     loadedRatio = ratioFromElement(event.currentTarget)
+    if (startAt !== null) {
+      event.currentTarget.currentTime = startAt
+    }
+  }
+
+  /** Moves to `seconds` and plays (YouTube's timecode click). False when there's no video to seek (a message). */
+  export function seek(seconds: number): boolean {
+    if (!element) {
+      return false
+    }
+    element.currentTime = seconds
+    // A refused play() (autoplay rules) leaves the video paused at that time, which is fine.
+    element.play()?.catch(() => {})
+    return true
   }
 
   // A decode error and a missing file look the same to the media element: ask the server about the file.
@@ -112,6 +142,7 @@
   {#if mode === 'play'}
     <!-- svelte-ignore a11y_media_has_caption (subtitles are out of v1, R2-12) -->
     <video
+      bind:this={element}
       src={video.mediaUrl}
       poster={video.thumbnailUrl ?? undefined}
       controls

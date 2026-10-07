@@ -137,6 +137,7 @@ export const fr: Dictionary = {
   'watch.file': 'Fichier',
   'watch.downloaded': 'Archivée le {date}',
   'watch.noDescription': 'Aucune description',
+  'watch.playFrom': 'Lire à partir de {time}',
   'watch.moreFrom': 'Plus de {channel}',
   'watch.player': 'Lecteur vidéo',
   'watch.missingHint': 'Le fichier vidéo est introuvable sur le partage pour le moment.',

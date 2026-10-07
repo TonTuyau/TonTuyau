@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte'
+import { tick } from 'svelte'
 import type { Playability } from '../lib/codec'
 import { i18n } from '../lib/i18n/i18n.svelte'
 import { PLAYER_SIZE_STORAGE_KEY, playerSize } from '../lib/playerSize.svelte'
+import { router } from '../lib/router/router.svelte'
 import { page, videoCard, videoDetail } from '../test/data'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 import WatchPage from './WatchPage.svelte'
@@ -298,5 +300,99 @@ describe('WatchPage', () => {
 
     expect(await screen.findByText('File unavailable')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Download/ })).not.toBeInTheDocument()
+  })
+
+  describe('timecodes in the description (1.1.0)', () => {
+    const description = 'Chapters:\n0:00 Intro\n1:23 The custard\n31:54 The end\n31:55 past the end'
+    const backend = () =>
+      fakeApi({
+        '/api/videos/vid00000001': videoDetail({ description, durationSeconds: 1914 }),
+        '/api/channels/UCtest/videos': page([]),
+      })
+    const media = () => document.querySelector('video') as HTMLVideoElement
+    // jsdom has no scrollIntoView: a test that needs it adds one.
+    afterEach(() => {
+      delete (Element.prototype as Partial<Element>).scrollIntoView
+    })
+
+    it('links them to their time of the video, up to its duration from the API', async () => {
+      backend()
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      expect(await screen.findByRole('link', { name: '1:23' })).toHaveAttribute('href', '/watch?v=vid00000001&t=83')
+      expect(screen.getByRole('link', { name: '31:54' })).toHaveAttribute('href', '/watch?v=vid00000001&t=1914')
+      expect(screen.queryByRole('link', { name: '31:55' })).not.toBeInTheDocument()
+    })
+
+    it('a click seeks the player there and plays, without leaving the page', async () => {
+      const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+      backend()
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      await fireEvent.click(await screen.findByRole('link', { name: '1:23' }))
+
+      expect(media().currentTime).toBe(83)
+      expect(play).toHaveBeenCalledTimes(1)
+      expect(location.search).toBe('?v=vid00000001')
+    })
+
+    it('brings the player back into view when the page was scrolled away from it', async () => {
+      vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+      const scrollIntoView = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoView
+      backend()
+      goTo('/watch?v=vid00000001')
+      const { container } = render(WatchPage, { probe: probably })
+      const link = await screen.findByRole('link', { name: '1:23' })
+      const stage = container.querySelector('.stage') as HTMLElement
+      const at = (top: number) =>
+        vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, top, 800, 450))
+
+      at(100)
+      await fireEvent.click(link)
+      expect(scrollIntoView).not.toHaveBeenCalled()
+
+      at(-300)
+      await fireEvent.click(link)
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      expect(scrollIntoView.mock.contexts[0]).toBe(stage)
+    })
+
+    it("starts the video at the link's t= once its metadata is in, and ignores a time past the end", async () => {
+      vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(HTMLMediaElement.HAVE_NOTHING)
+      backend()
+      goTo('/watch?v=vid00000001&t=1m23s')
+      render(WatchPage, { probe: probably })
+      await screen.findByRole('heading', { level: 1 })
+
+      expect(media().currentTime).toBe(0)
+      await fireEvent(media(), new Event('loadedmetadata'))
+      expect(media().currentTime).toBe(83)
+    })
+
+    it('ignores a t= past the end of the video', async () => {
+      backend()
+      goTo('/watch?v=vid00000001&t=5000')
+      render(WatchPage, { probe: probably })
+      await screen.findByRole('heading', { level: 1 })
+
+      await fireEvent(media(), new Event('loadedmetadata'))
+      expect(media().currentTime).toBe(0)
+    })
+
+    it('moves to the new time when the link changes on the same video', async () => {
+      vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(HTMLMediaElement.HAVE_METADATA)
+      backend()
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+      await screen.findByRole('heading', { level: 1 })
+
+      router.navigate('/watch?v=vid00000001&t=600')
+      await tick()
+
+      expect(media().currentTime).toBe(600)
+    })
   })
 })
