@@ -1,0 +1,10 @@
+{
+  "request": "/api/ping/",
+  "authenticated": false,
+  "status": 403,
+  "contentType": "application/json",
+  "json": {
+    "detail": "Authentication credentials were not provided."
+  },
+  "text": null
+}

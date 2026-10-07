@@ -1,0 +1,79 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": "@analysis"
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id": { "type": "keyword" },
+      "channel_id": { "type": "keyword" },
+      "channel_name": {
+        "type": "text",
+        "analyzer": "tontuyau_french",
+        "fields": {
+          "en": { "type": "text", "analyzer": "tontuyau_english" },
+          "autocomplete": { "type": "text", "analyzer": "tontuyau_autocomplete", "search_analyzer": "tontuyau_folded" },
+          "sort": { "type": "keyword", "normalizer": "tontuyau_sort" }
+        }
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "tontuyau_french",
+        "fields": {
+          "en": { "type": "text", "analyzer": "tontuyau_english" },
+          "autocomplete": { "type": "text", "analyzer": "tontuyau_autocomplete", "search_analyzer": "tontuyau_folded" }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "tontuyau_french",
+        "fields": {
+          "en": { "type": "text", "analyzer": "tontuyau_english" },
+          "prefix": {
+            "type": "text",
+            "analyzer": "tontuyau_folded",
+            "index_options": "docs",
+            "norms": false,
+            "index_prefixes": { "min_chars": 1, "max_chars": 5 }
+          }
+        }
+      },
+      "tags": {
+        "type": "text",
+        "analyzer": "tontuyau_folded",
+        "index_prefixes": { "min_chars": 1, "max_chars": 5 },
+        "fields": { "keyword": { "type": "keyword" } }
+      },
+      "categories": { "type": "keyword" },
+      "playlist_ids": { "type": "keyword" },
+      "type": { "type": "keyword" },
+      "active": { "type": "boolean" },
+      "published": { "type": "date" },
+      "downloaded": { "type": "date" },
+      "last_refreshed": { "type": "date" },
+      "duration_seconds": { "type": "double" },
+      "media_size": { "type": "long" },
+      "media_path": { "type": "keyword", "index": false, "doc_values": false },
+      "media_path_corrected": { "type": "boolean" },
+      "thumbnail_path": { "type": "keyword", "index": false, "doc_values": false },
+      "thumbnail_art": { "type": "object", "enabled": false },
+      "views": { "type": "long" },
+      "likes": { "type": "long" },
+      "dislikes": { "type": "long" },
+      "tracks": {
+        "properties": {
+          "kind": { "type": "keyword" },
+          "codec": { "type": "keyword" },
+          "bitrate": { "type": "long" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" }
+        }
+      },
+      "seen_in_run": { "type": "keyword" },
+      "media_missing": { "type": "boolean" },
+      "content_hash": { "type": "keyword", "index": false, "doc_values": false }
+    }
+  }
+}

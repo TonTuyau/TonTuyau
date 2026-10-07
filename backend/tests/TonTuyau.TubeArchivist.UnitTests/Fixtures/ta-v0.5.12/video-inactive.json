@@ -1,0 +1,83 @@
+{
+  "request": "/api/video/roQGZL2ulJO/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "active": false,
+    "category": [
+      "Gaming"
+    ],
+    "channel": {
+      "channel_id": "UCes4peFQJWrdvhbOETBqKAF",
+      "channel_active": true,
+      "channel_banner_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_banner.jpg",
+      "channel_thumb_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_thumb.jpg",
+      "channel_tvart_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_tvart.jpg",
+      "channel_description": "zèbre tête rêve mère xénon noël alpha noël vidéo wagon hôtel vidéo forêt déjà noël noël écho alpha xénon forêt lune live piñata rêve épisode partie jeu forêt quai piñata œuvre short piñata lune wagon stream stream piñata quai noël tuto partie vidéo crème test quai quai quai œuvre review jeu œuvre wa",
+      "channel_last_refresh": "2026-06-21T17:53:10+00:00",
+      "channel_name": "déjà xénon",
+      "channel_subs": 2020000,
+      "channel_subscribed": true,
+      "channel_tags": [
+        "tuto w",
+        "hôtel",
+        "déjà",
+        "short hô",
+        "strea",
+        "for",
+        "alph",
+        "écho"
+      ],
+      "channel_tabs": [
+        "videos",
+        "shorts"
+      ]
+    },
+    "comment_count": null,
+    "date_downloaded": 1754523206,
+    "description": "bravo xénon tête zèbre épisode piñata yaourt déjà hôtel stream lune live déjà yaourt al",
+    "media_size": 162685,
+    "media_url": "/youtube/UCes4peFQJWrdvhbOETBqKAF/roQGZL2ulJO.mp4",
+    "player": {
+      "watched": false,
+      "duration": 3,
+      "duration_str": "3s"
+    },
+    "playlist": [],
+    "published": "2022-12-06T15:00:14+00:00",
+    "sponsorblock": null,
+    "stats": {
+      "like_count": 5268,
+      "average_rating": 0.0,
+      "view_count": 84311,
+      "dislike_count": 0
+    },
+    "streams": [
+      {
+        "bitrate": 312824,
+        "codec": "h264",
+        "height": 1080,
+        "index": 0,
+        "type": "video",
+        "width": 1920
+      },
+      {
+        "bitrate": 106972,
+        "codec": "opus",
+        "index": 1,
+        "type": "audio"
+      }
+    ],
+    "subtitles": [],
+    "tags": [],
+    "title": "quai test",
+    "vid_last_refresh": "2025-11-09T17:38:40+00:00",
+    "vid_thumb_url": "/cache/videos/r/roQGZL2ulJO.jpg",
+    "vid_type": "videos",
+    "youtube_id": "roQGZL2ulJO",
+    "_index": "ta_video",
+    "_score": 0.0
+  },
+  "text": null
+}

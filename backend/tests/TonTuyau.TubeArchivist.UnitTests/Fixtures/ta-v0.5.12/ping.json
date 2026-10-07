@@ -1,0 +1,13 @@
+{
+  "request": "/api/ping/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "response": "pong",
+    "user": 1,
+    "version": "v0.5.12",
+    "ta_update": null
+  },
+  "text": null
+}

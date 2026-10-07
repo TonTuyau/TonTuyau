@@ -1,0 +1,2562 @@
+{
+  "request": "/api/channel/?page=0",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "data": [
+      {
+        "channel_id": "UCsoUKnRG92SyyxOqPo_wh61",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCsoUKnRG92SyyxOqPo_wh61_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCsoUKnRG92SyyxOqPo_wh61_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCsoUKnRG92SyyxOqPo_wh61_tvart.jpg",
+        "channel_description": "mère garçon hôtel hôtel écho crème soleil jeu alpha über hôtel tuto zèbre live test œuvre noël garç",
+        "channel_last_refresh": "2026-09-03T17:16:59+00:00",
+        "channel_name": "crème soleil wag",
+        "channel_subs": 453000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "crème soleil wag",
+          "quai lu",
+          "rêve pi",
+          "tuto",
+          "mère",
+          "wagon",
+          "hôt",
+          "mère"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC_IjaFpGx5C7oQJZwNExcL3",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC_IjaFpGx5C7oQJZwNExcL3_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC_IjaFpGx5C7oQJZwNExcL3_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC_IjaFpGx5C7oQJZwNExcL3_tvart.jpg",
+        "channel_description": "alpha café mère hôtel garçon kilo île test œuvre review stream lune garçon hôtel bravo café quai review lune rêve m",
+        "channel_last_refresh": "2026-06-14T17:57:59+00:00",
+        "channel_name": "noël zèbre",
+        "channel_subs": 311000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "xénon",
+          "quai no",
+          "wagon xéno",
+          "lune hôtel lu",
+          "jeu test lun",
+          "xéno",
+          "crème",
+          "œuvre café"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC9JyA4SGIU2xnlQrg0LZzEE",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC9JyA4SGIU2xnlQrg0LZzEE_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC9JyA4SGIU2xnlQrg0LZzEE_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC9JyA4SGIU2xnlQrg0LZzEE_tvart.jpg",
+        "channel_description": "tuto mère short short hôtel live noël partie live vidéo écho soleil partie crème review wagon vidéo live œuvre partie partie stream quai lune stream garçon garçon épisode tuto île partie kilo déjà écho garçon alpha écho tête über tête test île épisode œuvre review café tuto vidéo œuvre live tête vid",
+        "channel_last_refresh": "2026-08-26T17:19:34+00:00",
+        "channel_name": "alpha kilo",
+        "channel_subs": 8560000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "piñata garç"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCf6_5A_u3y0ApVEoKbS-m5R",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCf6_5A_u3y0ApVEoKbS-m5R_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCf6_5A_u3y0ApVEoKbS-m5R_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCf6_5A_u3y0ApVEoKbS-m5R_tvart.jpg",
+        "channel_description": "île crème über mère yaourt stream île forêt hôtel soleil wagon tête tête écho yaou",
+        "channel_last_refresh": "2026-08-03T17:55:31+00:00",
+        "channel_name": "garçon yaourt r",
+        "channel_subs": 373000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "zèbre lun",
+          "tête liv",
+          "vidéo î",
+          "forêt",
+          "garçon"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCzOOK7X4WKPp8CcffDqoLKo",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCzOOK7X4WKPp8CcffDqoLKo_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCzOOK7X4WKPp8CcffDqoLKo_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCzOOK7X4WKPp8CcffDqoLKo_tvart.jpg",
+        "channel_description": "yaourt bravo zèbre épisode œuvre lune partie alpha yaourt épisode short partie écho café vidéo œuvre über œuvre wagon vidéo yaourt review soleil déjà mère lune rêve quai live noël yaourt quai tuto partie noël test short café île œuvre yaourt crème garçon live piñata zèbre review live écho live short",
+        "channel_last_refresh": "2026-08-04T17:29:09+00:00",
+        "channel_name": "soleil xéno",
+        "channel_subs": 33800000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "île œu",
+          "jeu",
+          "short yao",
+          "mère",
+          "jeu",
+          "tuto w",
+          "live mère"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCf1UPGNhpXprEfTQ-O-kg8h",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCf1UPGNhpXprEfTQ-O-kg8h_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCf1UPGNhpXprEfTQ-O-kg8h_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCf1UPGNhpXprEfTQ-O-kg8h_tvart.jpg",
+        "channel_description": "noël lune écho tête partie soleil œuvre partie noël",
+        "channel_last_refresh": "2026-06-22T17:56:14+00:00",
+        "channel_name": "partie tuto piña",
+        "channel_subs": 1090000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "épisode",
+          "wagon",
+          "piñat",
+          "stream p",
+          "rêve pi",
+          "xénon lune f",
+          "tuto",
+          "quai li"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCfbK7jEblH5Lux31A_duGzP",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCfbK7jEblH5Lux31A_duGzP_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCfbK7jEblH5Lux31A_duGzP_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCfbK7jEblH5Lux31A_duGzP_tvart.jpg",
+        "channel_description": "tuto jeu forêt forêt île jeu wagon lune short quai live stream wagon forêt tuto œuvre yaourt soleil short live île écho lune short vidéo test écho épisode über jeu épisode kilo œuvre épisode bravo hôtel forêt test garçon hôtel tuto bravo mère épisode review vidéo vidéo quai écho test review über yao",
+        "channel_last_refresh": "2026-08-01T17:50:12+00:00",
+        "channel_name": "garçon l",
+        "channel_subs": 509000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "review a",
+          "wagon st",
+          "rêve quai d"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCvEY-zWgFcLW9EzYxMhEuiT",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCvEY-zWgFcLW9EzYxMhEuiT_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCvEY-zWgFcLW9EzYxMhEuiT_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCvEY-zWgFcLW9EzYxMhEuiT_tvart.jpg",
+        "channel_description": "alpha über alpha rêve review mère œuvre vidéo über piñata garçon review piñata live lune noël alpha tuto garçon œuvre épisode café tête rêve kilo vidéo tuto forêt épisode noël live wagon crème xénon wagon mère live mère tête garçon écho stream tuto alpha stream île über bravo review tête tuto bravo",
+        "channel_last_refresh": "2026-08-23T17:18:02+00:00",
+        "channel_name": "forêt mère tuto t",
+        "channel_subs": 102000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère part",
+          "zèbre œuvr",
+          "mèr",
+          "noël alph",
+          "review",
+          "alph",
+          "piñata tuto",
+          "piñata xénon"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCvz2fO0PoY-MmHkmknLWm_g",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCvz2fO0PoY-MmHkmknLWm_g_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCvz2fO0PoY-MmHkmknLWm_g_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCvz2fO0PoY-MmHkmknLWm_g_tvart.jpg",
+        "channel_description": "jeu zèbre soleil über rêve über bravo lune alpha yaourt test wagon déjà piñata alpha crème hôtel île kilo stream œuvre tête hôtel tuto jeu forêt forêt île quai mère vidéo forêt île île stream bravo review stream zèbre déjà stream review xénon rêve café forêt short quai forêt vidéo écho xénon piñata",
+        "channel_last_refresh": "2026-06-18T17:58:34+00:00",
+        "channel_name": "hôte",
+        "channel_subs": 4910000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "jeu",
+          "café kilo hôtel é",
+          "stream xénon über vi",
+          "café lune piñata île",
+          "wagon stream soleil",
+          "épisode île short a",
+          "déjà xénon quai écho hôte",
+          "quai œuvre j"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCzoRjgYFpR5PZwh-Xk-Eec6",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCzoRjgYFpR5PZwh-Xk-Eec6_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCzoRjgYFpR5PZwh-Xk-Eec6_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCzoRjgYFpR5PZwh-Xk-Eec6_tvart.jpg",
+        "channel_description": "zèbre piñata stream live short écho tête kilo kilo kilo hôtel über yaourt déjà piñata forêt épisode jeu épisode œuvre café quai short œuvre soleil vidéo zèbre épisode lune kilo écho quai jeu short café jeu hôtel crème jeu noël soleil quai short piñata île épisode crème stream île île jeu lune garçon",
+        "channel_last_refresh": "2026-08-20T17:02:19+00:00",
+        "channel_name": "rêve crèm",
+        "channel_subs": 21700,
+        "channel_subscribed": false,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCbOqcaN4_z3s2DGEQiL_t8F",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCbOqcaN4_z3s2DGEQiL_t8F_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCbOqcaN4_z3s2DGEQiL_t8F_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCbOqcaN4_z3s2DGEQiL_t8F_tvart.jpg",
+        "channel_description": "bravo über écho café œuvre alpha yaourt rêve jeu stream yaourt stream quai café review partie short piñata short bravo xénon über mère jeu bravo alpha crème noël stream café garçon piñata vidéo lune xénon épisode wagon review noël",
+        "channel_last_refresh": "2026-06-19T17:57:57+00:00",
+        "channel_name": "jeu yaour",
+        "channel_subs": 1910000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "piña",
+          "jeu yaour",
+          "wagon noël",
+          "zèbre tête tê",
+          "déjà crème ca",
+          "jeu alpha xénon",
+          "épisode bravo v",
+          "alpha test"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCOqaGqzW1DYwc4CHjJs2TgU",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCOqaGqzW1DYwc4CHjJs2TgU_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCOqaGqzW1DYwc4CHjJs2TgU_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCOqaGqzW1DYwc4CHjJs2TgU_tvart.jpg",
+        "channel_description": "déjà forêt bravo xénon crème lune vidéo wagon déjà vidéo partie jeu épisod",
+        "channel_last_refresh": "2026-08-11T17:27:10+00:00",
+        "channel_name": "tuto hôte",
+        "channel_subs": 144000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCK_-pIWl-_24JFOaKRUMmyt",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCK_-pIWl-_24JFOaKRUMmyt_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCK_-pIWl-_24JFOaKRUMmyt_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCK_-pIWl-_24JFOaKRUMmyt_tvart.jpg",
+        "channel_description": "xénon œuvre forêt test tuto épisode live quai xén",
+        "channel_last_refresh": "2026-08-11T17:27:29+00:00",
+        "channel_name": "alpha",
+        "channel_subs": 660000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "soleil",
+          "vidéo î",
+          "épisode dé",
+          "short s",
+          "yaourt z",
+          "soleil üb",
+          "wagon part",
+          "hôtel yaourt"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCTgD5Jkztxw2eFY3paU298z",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCTgD5Jkztxw2eFY3paU298z_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCTgD5Jkztxw2eFY3paU298z_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCTgD5Jkztxw2eFY3paU298z_tvart.jpg",
+        "channel_description": "déjà café île stream tuto garçon zèbre vidéo rêve vidéo rêve noël jeu déjà noël tuto alpha piña",
+        "channel_last_refresh": "2026-08-12T17:26:48+00:00",
+        "channel_name": "yaourt café tête",
+        "channel_subs": 2060000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "œuvre",
+          "br",
+          "über ga",
+          "vidéo vidéo kilo"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCes4peFQJWrdvhbOETBqKAF",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCes4peFQJWrdvhbOETBqKAF_tvart.jpg",
+        "channel_description": "zèbre tête rêve mère xénon noël alpha noël vidéo wagon hôtel vidéo forêt déjà noël noël écho alpha xénon forêt lune live piñata rêve épisode partie jeu forêt quai piñata œuvre short piñata lune wagon stream stream piñata quai noël tuto partie vidéo crème test quai quai quai œuvre review jeu œuvre wa",
+        "channel_last_refresh": "2026-06-21T17:53:10+00:00",
+        "channel_name": "déjà xénon",
+        "channel_subs": 2020000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "tuto w",
+          "hôtel",
+          "déjà",
+          "short hô",
+          "strea",
+          "for",
+          "alph",
+          "écho"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCxHaIiWaQ-x3NELp9XPwe6X",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCxHaIiWaQ-x3NELp9XPwe6X_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCxHaIiWaQ-x3NELp9XPwe6X_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCxHaIiWaQ-x3NELp9XPwe6X_tvart.jpg",
+        "channel_description": "café bravo piñata garçon review crème écho lune zèbre garçon partie écho partie live noël tuto wagon piñata épisode écho noël île crème quai crème wagon île œuvre mère café tête hôtel live zèbre vidéo quai écho noël yaourt soleil xénon tête hôtel test alpha yaourt soleil review partie œuvre kilo œuv",
+        "channel_last_refresh": "2026-08-04T17:29:28+00:00",
+        "channel_name": "œuvre xé",
+        "channel_subs": 1940000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "noël hôt",
+          "wagon",
+          "hôtel",
+          "forêt s",
+          "zèbre hô",
+          "épis",
+          "crème épiso",
+          "jeu têt"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCg-QfDxowCpmeCxFeXwf1Wn",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCg-QfDxowCpmeCxFeXwf1Wn_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCg-QfDxowCpmeCxFeXwf1Wn_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCg-QfDxowCpmeCxFeXwf1Wn_tvart.jpg",
+        "channel_description": "déjà review wagon jeu live tuto bravo wagon lune tuto live café œuvre bravo tuto wagon xénon crème mère tuto café test déjà crème mère wagon garçon mère xénon hôtel über kilo short île piñata kilo wagon écho tuto déjà quai vidéo live garçon jeu crème kilo piñata écho live stream alpha live rêve crèm",
+        "channel_last_refresh": "2026-06-20T17:58:05+00:00",
+        "channel_name": "café épisode s",
+        "channel_subs": 500000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "kilo noë",
+          "piña",
+          "mère",
+          "rêve so",
+          "tête mè",
+          "dé"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC0JDlGSqz7HxsIoA2SBa0PV",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC0JDlGSqz7HxsIoA2SBa0PV_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC0JDlGSqz7HxsIoA2SBa0PV_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC0JDlGSqz7HxsIoA2SBa0PV_tvart.jpg",
+        "channel_description": "écho live bravo lune café noël über café café jeu noël xénon soleil xénon yaourt soleil lune kilo forêt test yaourt île live über lune écho épisode soleil tête œuvre tête quai piñata piñata hôtel quai soleil test soleil épisode épisode alpha café rêve hôtel live lune café épisode forêt café alpha re",
+        "channel_last_refresh": "2026-06-16T17:54:33+00:00",
+        "channel_name": "live review",
+        "channel_subs": 64000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "kilo m",
+          "tes",
+          "quai",
+          "hôtel tuto über h",
+          "über xénon lune y",
+          "forêt",
+          "café xénon zèbre partie m",
+          "alpha forêt tuto"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCjopGFBa6pdbCDU8Glnib9O",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCjopGFBa6pdbCDU8Glnib9O_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCjopGFBa6pdbCDU8Glnib9O_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCjopGFBa6pdbCDU8Glnib9O_tvart.jpg",
+        "channel_description": "soleil review épisode vidéo soleil œuvre short écho tête forêt soleil review œuvre wagon garçon café œuvre live review live garçon hôtel yaourt île mère tuto garçon",
+        "channel_last_refresh": "2026-06-19T17:57:29+00:00",
+        "channel_name": "zèbre partie short n",
+        "channel_subs": 522000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCHId8p3UCAK4N_wiY_x73rk",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCHId8p3UCAK4N_wiY_x73rk_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCHId8p3UCAK4N_wiY_x73rk_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCHId8p3UCAK4N_wiY_x73rk_tvart.jpg",
+        "channel_description": "solei",
+        "channel_last_refresh": "2026-09-29T09:22:10+00:00",
+        "channel_name": "yaour",
+        "channel_subs": 742000,
+        "channel_subscribed": false,
+        "channel_tags": [
+          "yaour",
+          "wagon pa",
+          "épisod",
+          "jeu",
+          "écho bravo z"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCT4oQ1MjNUnX_C5qcxvp90A",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCT4oQ1MjNUnX_C5qcxvp90A_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCT4oQ1MjNUnX_C5qcxvp90A_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCT4oQ1MjNUnX_C5qcxvp90A_tvart.jpg",
+        "channel_description": "über",
+        "channel_last_refresh": "2026-09-02T17:19:05+00:00",
+        "channel_name": "tête yaou",
+        "channel_subs": 1750000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "yaour",
+          "liv",
+          "épisod",
+          "écho bravo z",
+          "short yao",
+          "œuvre",
+          "yaourt z",
+          "sho"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCZ3urInAf1PXSiAGIXxl_hP",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCZ3urInAf1PXSiAGIXxl_hP_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCZ3urInAf1PXSiAGIXxl_hP_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCZ3urInAf1PXSiAGIXxl_hP_tvart.jpg",
+        "channel_description": "soleil quai wagon review déjà écho œuvre forêt kilo zèbre garçon stream review lune hôtel déjà live œuvre alpha kilo über jeu œuvre mère écho bravo rêve noël über café hôtel mère live écho épisode live œuvre live lune lune rêve jeu test alpha xénon jeu piñata forêt piñata über garçon test œuvre piña",
+        "channel_last_refresh": "2026-09-03T17:16:41+00:00",
+        "channel_name": "live écho yaourt zè",
+        "channel_subs": 200000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "déjà jeu",
+          "zèbre l",
+          "part",
+          "hôtel",
+          "review"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCjdwRChSzw0nru7MwEwfQ9_",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCjdwRChSzw0nru7MwEwfQ9__banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCjdwRChSzw0nru7MwEwfQ9__thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCjdwRChSzw0nru7MwEwfQ9__tvart.jpg",
+        "channel_description": "piñata garçon café partie forêt café crème bravo tuto île œuvre œuvre alpha écho tête noël jeu piñata forêt review noël déjà épisode lune short crème review rêve review tête über vidéo review yaourt piñata quai piñata partie tuto écho quai short über review zèbre piñata xénon zèbre rêve alpha test v",
+        "channel_last_refresh": "2026-08-05T17:34:21+00:00",
+        "channel_name": "tête lune test œuvre w",
+        "channel_subs": 191000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "wagon st",
+          "wagon",
+          "quai lu",
+          "soleil üb",
+          "tête mère"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCF31Q_mWyseBDaWugbaItLE",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCF31Q_mWyseBDaWugbaItLE_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCF31Q_mWyseBDaWugbaItLE_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCF31Q_mWyseBDaWugbaItLE_tvart.jpg",
+        "channel_description": "vidéo épisode live île épisode forêt soleil wagon t",
+        "channel_last_refresh": "2026-08-19T17:24:51+00:00",
+        "channel_name": "stream lune review soleil r",
+        "channel_subs": 326000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "hôtel déjà",
+          "mère cr",
+          "xénon îl",
+          "wagon",
+          "alp",
+          "déjà hôtel"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCqNuoY5ej_PgvCy0fVkPuSe",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCqNuoY5ej_PgvCy0fVkPuSe_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCqNuoY5ej_PgvCy0fVkPuSe_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCqNuoY5ej_PgvCy0fVkPuSe_tvart.jpg",
+        "channel_description": "œuvre alpha test kilo zèbre über quai épisode live short test café alpha mère café noël forêt partie lune live über vidéo über piñata xénon tuto alpha vidéo piñata alpha über déjà review review test déjà forêt kilo stream live kilo garçon œuvre lune jeu yaourt zèbre live crème garçon partie wagon al",
+        "channel_last_refresh": "2026-06-20T17:58:24+00:00",
+        "channel_name": "bravo île",
+        "channel_subs": 342000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "alpha",
+          "vidéo",
+          "xénon",
+          "bravo sho",
+          "stream îl",
+          "stream tête tut",
+          "alpha par",
+          "lune quai xén"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCVC6FtHAm63uLiTOohds-Du",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCVC6FtHAm63uLiTOohds-Du_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCVC6FtHAm63uLiTOohds-Du_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCVC6FtHAm63uLiTOohds-Du_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-08-29T17:18:21+00:00",
+        "channel_name": "tête",
+        "channel_subs": 1250000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "hôte",
+          "déjà tuto alpha s",
+          "lune mèr",
+          "yaourt z",
+          "bravo île ya",
+          "test short",
+          "tête mèr",
+          "mère café"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCmzkP2ArEQCZglqgmoopVmh",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-08-12T17:27:38+00:00",
+        "channel_name": "partie xénon rev",
+        "channel_subs": 116000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCau1GWhwju0tlExkAKWcL3e",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCau1GWhwju0tlExkAKWcL3e_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCau1GWhwju0tlExkAKWcL3e_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCau1GWhwju0tlExkAKWcL3e_tvart.jpg",
+        "channel_description": "kilo live café vidéo short kilo wagon noël short noël tuto alpha yaourt live über vidéo garçon stream über review tête mère déjà hôtel kilo crème hôtel tête live yaourt jeu xénon forêt review review crème tuto café soleil café œuvre zèbre tête forêt wagon hôtel crème short short partie kilo wagon li",
+        "channel_last_refresh": "2026-06-07T17:51:37+00:00",
+        "channel_name": "café ya",
+        "channel_subs": 15300000,
+        "channel_subscribed": false,
+        "channel_tags": [
+          "jeu œuvre li",
+          "wagon lun",
+          "wagon",
+          "wagon a",
+          "stream",
+          "île œu",
+          "hôte",
+          "crème live"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCp2MnzlovF8zE4uqPevnzB4",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCp2MnzlovF8zE4uqPevnzB4_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCp2MnzlovF8zE4uqPevnzB4_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCp2MnzlovF8zE4uqPevnzB4_tvart.jpg",
+        "channel_description": "review œuvre tête crème garçon déjà déjà short test tête vidéo déjà tuto test xénon épisode zèbre tête forêt über mère review tuto alpha partie forêt jeu kilo quai jeu écho yaourt crème tête jeu déjà soleil épisode tête bravo crème quai c",
+        "channel_last_refresh": "2026-08-10T17:28:53+00:00",
+        "channel_name": "quai île kil",
+        "channel_subs": 1140000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC2gH3kSBuajZ612BAilaWsO",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC2gH3kSBuajZ612BAilaWsO_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC2gH3kSBuajZ612BAilaWsO_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC2gH3kSBuajZ612BAilaWsO_tvart.jpg",
+        "channel_description": "vidéo xénon écho déjà xénon short tête déjà tête garçon short soleil lune rêve rêve noël lune tête bravo short tête bravo crème lune rêve tuto quai œuvr",
+        "channel_last_refresh": "2026-06-12T18:00:43+00:00",
+        "channel_name": "café",
+        "channel_subs": 199000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "yaour",
+          "déjà mère tut",
+          "wago",
+          "café",
+          "œuvre ga",
+          "über s"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCj_7LrmZ7pcdBTppL3piU1B",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCj_7LrmZ7pcdBTppL3piU1B_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCj_7LrmZ7pcdBTppL3piU1B_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCj_7LrmZ7pcdBTppL3piU1B_tvart.jpg",
+        "channel_description": "partie zèbre lune hôtel stream zèbre partie test xénon tête café kilo café alpha soleil partie tête rêve garçon live garçon forêt œuvre soleil mère rêve jeu déjà kilo kilo live écho œuvre œuvre forêt bravo xénon kilo crème zèbre mère écho œuvre tête tuto café forêt bravo œuvre soleil piñata quai caf",
+        "channel_last_refresh": "2026-08-24T17:21:14+00:00",
+        "channel_name": "écho stream",
+        "channel_subs": 8770000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "vidéo œuvre",
+          "lune piñata",
+          "café mère s",
+          "forêt n",
+          "strea",
+          "stream ki",
+          "bravo",
+          "test cr"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCs8bSrAGV0p03rBNH3Tew3i",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCs8bSrAGV0p03rBNH3Tew3i_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCs8bSrAGV0p03rBNH3Tew3i_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCs8bSrAGV0p03rBNH3Tew3i_tvart.jpg",
+        "channel_description": "île jeu jeu mère tête xénon œuvre bravo xénon live café live forêt tuto jeu forêt crème rêve zèbre test jeu hôtel garço",
+        "channel_last_refresh": "2026-06-10T17:55:55+00:00",
+        "channel_name": "alpha short noë",
+        "channel_subs": 244000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "île g",
+          "rêv",
+          "über",
+          "forê",
+          "déjà live noël"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCKw2Kqp-V2oMw207_6JaZwm",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCKw2Kqp-V2oMw207_6JaZwm_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCKw2Kqp-V2oMw207_6JaZwm_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCKw2Kqp-V2oMw207_6JaZwm_tvart.jpg",
+        "channel_description": "soleil partie café noël garçon tête tête partie jeu mère épisode tuto piñata piñata wagon rêve stream œuvre épisode noël hôtel île test déjà test short vidéo yaourt rê",
+        "channel_last_refresh": "2026-06-08T17:54:24+00:00",
+        "channel_name": "xénon ki",
+        "channel_subs": 751,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "xénon ki",
+          "rêve",
+          "zèbre lun",
+          "yaourt",
+          "écho mère"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC7WklQKvNQ_8qoQUnDS967-",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC7WklQKvNQ_8qoQUnDS967-_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC7WklQKvNQ_8qoQUnDS967-_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC7WklQKvNQ_8qoQUnDS967-_tvart.jpg",
+        "channel_description": "hôtel épisode jeu live über épisode forêt live déjà xénon piñata vidéo über stream vidéo jeu garçon jeu rêve jeu noël vidéo rêve forêt xénon tuto piñata partie soleil crème test quai stream garçon yaourt live jeu quai live test xénon rêve café test hôtel stream review bravo île noël déjà hôtel île œ",
+        "channel_last_refresh": "2026-08-08T17:32:08+00:00",
+        "channel_name": "déj",
+        "channel_subs": 15100000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère",
+          "rêve",
+          "caf",
+          "noël so",
+          "œu",
+          "café liv",
+          "mère ya",
+          "test"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCeA-53R90XcSb2CeNcI_BgV",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCeA-53R90XcSb2CeNcI_BgV_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCeA-53R90XcSb2CeNcI_BgV_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCeA-53R90XcSb2CeNcI_BgV_tvart.jpg",
+        "channel_description": "soleil über short jeu vidéo café xénon short déjà épisode yaourt œuvre mère bravo xénon œuvre écho lune écho déjà soleil épisode café écho yaourt hôtel hôtel noël forêt forêt vidéo soleil piñata xénon piñata soleil quai forêt alpha test garçon île crème écho tête live tête mère forêt partie mère tut",
+        "channel_last_refresh": "2026-08-24T17:20:53+00:00",
+        "channel_name": "île kilo partie",
+        "channel_subs": 465000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère part",
+          "vidéo î",
+          "kilo rêve j",
+          "œuvre pi",
+          "noël",
+          "œuv",
+          "épisode li"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCCG4X84mHTmn__Mo_UB93lY",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCCG4X84mHTmn__Mo_UB93lY_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCCG4X84mHTmn__Mo_UB93lY_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCCG4X84mHTmn__Mo_UB93lY_tvart.jpg",
+        "channel_description": "déjà review mère épisode live noël épisode soleil épisode tuto garçon wagon quai stream kilo jeu crème test noël partie café yaourt rêve partie alpha zèbre mère noël short jeu zèbre wagon écho crème xénon tuto xénon œuvre review crème jeu jeu piña",
+        "channel_last_refresh": "2026-08-23T17:18:19+00:00",
+        "channel_name": "wagon café part",
+        "channel_subs": 247000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère part",
+          "vidéo î",
+          "kilo rêve j",
+          "œuvre pi",
+          "noël",
+          "œuv",
+          "épisode li"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCmViDyv45S2Bqxnd-dmP20h",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCmViDyv45S2Bqxnd-dmP20h_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCmViDyv45S2Bqxnd-dmP20h_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCmViDyv45S2Bqxnd-dmP20h_tvart.jpg",
+        "channel_description": "wagon alpha quai short œuvre alpha hôtel bravo short garçon écho partie partie épisode mère île zèbre kilo review live test über écho zèbre tête alpha mère stream yaourt crème café île mère garçon review test bravo stream hôtel tuto jeu épisode soleil écho mère vidéo live short forêt tête île écho r",
+        "channel_last_refresh": "2026-06-06T17:49:44+00:00",
+        "channel_name": "piñata",
+        "channel_subs": 2980000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCvIYbhWOZ5aQJoxocmTt_gf",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCvIYbhWOZ5aQJoxocmTt_gf_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCvIYbhWOZ5aQJoxocmTt_gf_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCvIYbhWOZ5aQJoxocmTt_gf_tvart.jpg",
+        "channel_description": "lune rêve garçon yaourt tête île kilo île jeu über piñata live lune noël tête quai garçon bravo live xénon déjà vidéo épisode tête crème rêve quai déjà œuvre soleil île short kilo café rêve forêt café xénon œuvre crème garçon tuto kilo rêve partie lune café garçon wagon déjà alpha über lune bravo ya",
+        "channel_last_refresh": "2026-08-19T17:25:26+00:00",
+        "channel_name": "review rêv",
+        "channel_subs": 162000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCJq5t6iTfpBZmFmVDOmPg4T",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCJq5t6iTfpBZmFmVDOmPg4T_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCJq5t6iTfpBZmFmVDOmPg4T_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCJq5t6iTfpBZmFmVDOmPg4T_tvart.jpg",
+        "channel_description": "test stream über short écho alpha xénon quai tê",
+        "channel_last_refresh": "2026-08-28T17:20:00+00:00",
+        "channel_name": "île œu",
+        "channel_subs": 1930000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "short xé",
+          "lune b",
+          "lune mè",
+          "partie",
+          "kilo über r",
+          "forê",
+          "lun"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UClGjuOyxEZgQwOcawUbEcoP",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UClGjuOyxEZgQwOcawUbEcoP_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UClGjuOyxEZgQwOcawUbEcoP_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UClGjuOyxEZgQwOcawUbEcoP_tvart.jpg",
+        "channel_description": "garçon jeu noël zèbre soleil œuvre noël café garçon soleil noël tuto mère kilo xénon garçon île zèbre écho wagon",
+        "channel_last_refresh": "2026-06-24T17:55:58+00:00",
+        "channel_name": "garçon st",
+        "channel_subs": 300000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "garçon îl",
+          "alpha par",
+          "tête île",
+          "live épiso",
+          "tête shor",
+          "wagon alp",
+          "œuvre",
+          "île tuto g"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCsb0cmyECxTHGVIuXo_CaGs",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCsb0cmyECxTHGVIuXo_CaGs_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCsb0cmyECxTHGVIuXo_CaGs_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCsb0cmyECxTHGVIuXo_CaGs_tvart.jpg",
+        "channel_description": "œuvre café déjà tête bravo test zèbre piñata forêt tuto review test café stream zèbre lune jeu crème",
+        "channel_last_refresh": "2026-06-18T17:58:06+00:00",
+        "channel_name": "review",
+        "channel_subs": 21600000,
+        "channel_subscribed": false,
+        "channel_tags": [
+          "île crème",
+          "tuto bravo",
+          "mère for",
+          "crème têt",
+          "über forêt mère tu",
+          "café",
+          "yaourt kilo",
+          "café garçon yao"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC0s8FS24uYby1ljTaG-O2z0",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC0s8FS24uYby1ljTaG-O2z0_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC0s8FS24uYby1ljTaG-O2z0_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC0s8FS24uYby1ljTaG-O2z0_tvart.jpg",
+        "channel_description": "piñata alpha forêt œuvre écho tête hôtel",
+        "channel_last_refresh": "2026-09-01T17:17:52+00:00",
+        "channel_name": "tête garçon quai",
+        "channel_subs": 838000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "shor",
+          "wagon",
+          "île cr",
+          "mère p",
+          "rêve",
+          "rêve",
+          "shor",
+          "live"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCn17iI5o7aNTMkbvpJtXHfr",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCn17iI5o7aNTMkbvpJtXHfr_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCn17iI5o7aNTMkbvpJtXHfr_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCn17iI5o7aNTMkbvpJtXHfr_tvart.jpg",
+        "channel_description": "stream épisode short crème quai jeu mère jeu",
+        "channel_last_refresh": "2026-06-11T17:56:59+00:00",
+        "channel_name": "noël zèbr",
+        "channel_subs": 77400,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "soleil xé",
+          "rêv",
+          "île g",
+          "test stream te"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCarIsRPaRlWO8J0hiIV3BVC",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCarIsRPaRlWO8J0hiIV3BVC_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCarIsRPaRlWO8J0hiIV3BVC_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCarIsRPaRlWO8J0hiIV3BVC_tvart.jpg",
+        "channel_description": "hôtel hôtel garçon test über crème écho soleil über übe",
+        "channel_last_refresh": "2026-08-06T17:29:49+00:00",
+        "channel_name": "review tes",
+        "channel_subs": 1880000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "noël",
+          "review tes"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCiIIEwe98fnvjHQPaDJA1w5",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCiIIEwe98fnvjHQPaDJA1w5_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCiIIEwe98fnvjHQPaDJA1w5_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCiIIEwe98fnvjHQPaDJA1w5_tvart.jpg",
+        "channel_description": "live yaourt tuto œuvre bravo lune tuto alpha noël épisode lune jeu kilo bravo wagon tuto live vidéo xénon café tuto écho test tuto lune kilo épisode live mère bravo short tête alpha partie jeu garçon écho rêve xénon café zèbre forêt zèbre tête zèbre wagon alpha crème partie live noël noël tête solei",
+        "channel_last_refresh": "2026-06-08T17:54:09+00:00",
+        "channel_name": "tête sho",
+        "channel_subs": 451000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "tête sho",
+          "yaourt",
+          "live piñ",
+          "über p",
+          "über no",
+          "œuvre wa",
+          "tuto vidéo zèbre alph",
+          "île alpha review test"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCZK8lWGfR_veB0rz0nvVxfn",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCZK8lWGfR_veB0rz0nvVxfn_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCZK8lWGfR_veB0rz0nvVxfn_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCZK8lWGfR_veB0rz0nvVxfn_tvart.jpg",
+        "channel_description": "île île déjà tuto vidéo café rêve îl",
+        "channel_last_refresh": "2026-08-25T17:19:19+00:00",
+        "channel_name": "vidéo café vi",
+        "channel_subs": 5650000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "vidéo café vi",
+          "soleil kilo s",
+          "jeu tête al",
+          "œuv",
+          "test mèr",
+          "tuto rê"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC_AwP_E3wjGvi92NVJLLiiL",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC_AwP_E3wjGvi92NVJLLiiL_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC_AwP_E3wjGvi92NVJLLiiL_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC_AwP_E3wjGvi92NVJLLiiL_tvart.jpg",
+        "channel_description": "quai hôtel quai quai vidéo lune stream wagon hôtel stream wagon review soleil île review stream crème partie partie soleil yaourt part",
+        "channel_last_refresh": "2026-08-31T17:21:34+00:00",
+        "channel_name": "café garço",
+        "channel_subs": 131000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "live mère",
+          "tuto w"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCFEy2hGDuSIUUv1cubBKlq1",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCFEy2hGDuSIUUv1cubBKlq1_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCFEy2hGDuSIUUv1cubBKlq1_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCFEy2hGDuSIUUv1cubBKlq1_tvart.jpg",
+        "channel_description": "test piñata stream partie forêt live alpha jeu île bravo über garçon œuvre rêve vidéo tuto vidéo",
+        "channel_last_refresh": "2026-08-06T17:30:03+00:00",
+        "channel_name": "écho par",
+        "channel_subs": 1240000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "wagon cr",
+          "épisod",
+          "œu",
+          "xénon b",
+          "forêt",
+          "übe",
+          "tête kilo",
+          "vidéo"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC2IETV01uDWiA8cvJslzuxj",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC2IETV01uDWiA8cvJslzuxj_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC2IETV01uDWiA8cvJslzuxj_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC2IETV01uDWiA8cvJslzuxj_tvart.jpg",
+        "channel_description": "épisode xénon café review quai déjà noël jeu café épisode bravo île test lune rêve short rêve wagon vidéo soleil soleil partie wagon écho déjà œuvre île live forêt yaourt œuvre crème tête forêt wagon bravo wagon bravo über forêt live café yaourt café stream zèbre test partie œuvre noël île tuto revi",
+        "channel_last_refresh": "2026-08-28T17:18:48+00:00",
+        "channel_name": "lune zèbre xénon tuto noël écho garçon review s",
+        "channel_subs": 80100,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère",
+          "part",
+          "rêve d",
+          "écho vidé",
+          "déjà zèbre fo",
+          "bravo je",
+          "review w"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCAcsaCSG5N4NG6yqmVS2FOq",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCAcsaCSG5N4NG6yqmVS2FOq_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCAcsaCSG5N4NG6yqmVS2FOq_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCAcsaCSG5N4NG6yqmVS2FOq_tvart.jpg",
+        "channel_description": "piñata lune œuvre garçon pa",
+        "channel_last_refresh": "2026-06-25T18:00:54+00:00",
+        "channel_name": "île gar",
+        "channel_subs": 1830000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "hôt",
+          "bravo œ",
+          "lune al",
+          "tête xénon"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCMVVW_8EabD4Nd34dqclC2Q",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCMVVW_8EabD4Nd34dqclC2Q_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCMVVW_8EabD4Nd34dqclC2Q_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCMVVW_8EabD4Nd34dqclC2Q_tvart.jpg",
+        "channel_description": "garçon wagon yaourt café hôtel jeu review yaourt xénon zèbre crème partie lune tuto jeu bravo tête jeu vidéo jeu bravo xénon xénon crème short hôtel live café vidéo écho alpha forêt jeu bravo partie café mère vidéo bravo noël stream stream forêt kilo live île crème soleil short épisode stream déjà d",
+        "channel_last_refresh": "2026-06-09T17:54:28+00:00",
+        "channel_name": "yaourt soleil über br",
+        "channel_subs": 450000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "île kilo",
+          "xénon piñ",
+          "wagon",
+          "garçon q",
+          "stre",
+          "live piñ",
+          "piñata",
+          "lune"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCc3exe1xKLhDvDmQ2LW-PC0",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCc3exe1xKLhDvDmQ2LW-PC0_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCc3exe1xKLhDvDmQ2LW-PC0_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCc3exe1xKLhDvDmQ2LW-PC0_tvart.jpg",
+        "channel_description": "tuto mère xénon partie",
+        "channel_last_refresh": "2026-08-01T17:49:50+00:00",
+        "channel_name": "live garçon parti",
+        "channel_subs": 3870000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "piñata",
+          "br",
+          "über ga",
+          "kilo",
+          "for",
+          "lune",
+          "écho garç",
+          "alpha ya"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCCTAHe-UhR0Bp_gvqmjbELG",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCCTAHe-UhR0Bp_gvqmjbELG_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCCTAHe-UhR0Bp_gvqmjbELG_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCCTAHe-UhR0Bp_gvqmjbELG_tvart.jpg",
+        "channel_description": "wagon zèbre garçon xénon yaourt bravo kilo jeu quai café épisode wagon piñata vidéo crème déjà vidéo mère lune test hôtel vidéo garçon short jeu wagon rêve œuvre déjà test forêt review stream wagon jeu tuto noël live zèbre xénon test live crème vidéo bravo bravo œuvre stream kilo île forêt soleil wa",
+        "channel_last_refresh": "2026-06-23T17:53:35+00:00",
+        "channel_name": "mère quai revi",
+        "channel_subs": 300000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "quai",
+          "vidéo br",
+          "hôtel s",
+          "épisode piñat",
+          "île kilo",
+          "jeu lu",
+          "mère z",
+          "alph"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCfDwI6TdVNK8zRUMlGTfFBp",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCfDwI6TdVNK8zRUMlGTfFBp_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCfDwI6TdVNK8zRUMlGTfFBp_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCfDwI6TdVNK8zRUMlGTfFBp_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-08-31T17:22:00+00:00",
+        "channel_name": "alpha",
+        "channel_subs": 233000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "lune mè",
+          "écho hôt",
+          "écho c",
+          "kilo lune",
+          "über g",
+          "part",
+          "noël r",
+          "stre"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCop-m93YNS2JxDy766lBabO",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCop-m93YNS2JxDy766lBabO_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCop-m93YNS2JxDy766lBabO_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCop-m93YNS2JxDy766lBabO_tvart.jpg",
+        "channel_description": "live review épisode quai hôtel stream mère short live mère zèbre écho alpha tuto stream yaourt piñata partie rêve kilo tuto piñata œuvre wagon alpha bravo mère quai quai hôtel lune mère mère kilo stream quai jeu piñata tuto tuto tuto bravo über mère café über café café short wagon vidéo œuvre tête w",
+        "channel_last_refresh": "2026-06-09T17:54:06+00:00",
+        "channel_name": "œuvre stream live hôtel rê",
+        "channel_subs": 25300000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "lune al",
+          "zèbre fo",
+          "quai",
+          "rêve garço",
+          "live",
+          "rêve",
+          "lune wa",
+          "noël wa"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCVDQyMh4kso4Bet5q_U_yxI",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCVDQyMh4kso4Bet5q_U_yxI_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCVDQyMh4kso4Bet5q_U_yxI_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCVDQyMh4kso4Bet5q_U_yxI_tvart.jpg",
+        "channel_description": "hôtel forêt vidéo crème quai piñata tuto über déjà rêve île bravo bravo lune test über yaourt live zèbre short xénon épisode kilo garçon alpha soleil crème crème test œuvre écho hôtel tête alpha épisode xénon bravo yaourt review œuvre wagon garçon xénon île stream yaourt kilo œuvre tête wagon mère c",
+        "channel_last_refresh": "2026-10-01T21:37:35+00:00",
+        "channel_name": "œuvre tuto café î",
+        "channel_subs": 651000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCdJKHhhcrIyZ9ZGtwEd08uq",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCdJKHhhcrIyZ9ZGtwEd08uq_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCdJKHhhcrIyZ9ZGtwEd08uq_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCdJKHhhcrIyZ9ZGtwEd08uq_tvart.jpg",
+        "channel_description": "alpha île garçon quai wagon café vidéo crème déjà mère xénon île crème soleil kilo kilo bravo rêve soleil écho",
+        "channel_last_refresh": "2026-08-27T17:20:34+00:00",
+        "channel_name": "café test écho tête t",
+        "channel_subs": 47300,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "kilo tête partie",
+          "zèbre bravo crème",
+          "mère vidéo",
+          "hôtel yaourt",
+          "über quai œuvre ki"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCOsmF9k8e6s67fNP_n1eSUS",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCOsmF9k8e6s67fNP_n1eSUS_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCOsmF9k8e6s67fNP_n1eSUS_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCOsmF9k8e6s67fNP_n1eSUS_tvart.jpg",
+        "channel_description": "café wagon short garçon noël über yaourt lune short rêve déjà stream écho café œuvre piñata über piñata stream œuvre wagon über test rêve œuvre tuto hôtel déjà partie vidéo wagon garçon écho live hôtel île yaourt café live test épisode déjà vidéo yaourt tuto île déjà review yaourt quai über soleil v",
+        "channel_last_refresh": "2026-08-02T17:29:50+00:00",
+        "channel_name": "rêve lune partie",
+        "channel_subs": 58500,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "rêve lune partie",
+          "bravo yaourt",
+          "kilo quai a",
+          "stream mèr",
+          "soleil",
+          "live pi",
+          "hôtel",
+          "œuvre vi"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCnIRb85JcHv8R0XFzkiTou_",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCnIRb85JcHv8R0XFzkiTou__banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCnIRb85JcHv8R0XFzkiTou__thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCnIRb85JcHv8R0XFzkiTou__tvart.jpg",
+        "channel_description": "review forêt tête œuvre lune stream œuvre écho review œuvre test stream crème épisode vidéo vidéo lune tête xénon short xénon écho épisode short xénon jeu stream piñata yaourt yaourt kilo quai mère île lune short vidéo noël partie p",
+        "channel_last_refresh": "2026-06-26T18:12:29+00:00",
+        "channel_name": "bravo ya",
+        "channel_subs": 74400,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCtCWOMntCPd98lrwGytjjc_",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCtCWOMntCPd98lrwGytjjc__banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCtCWOMntCPd98lrwGytjjc__thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCtCWOMntCPd98lrwGytjjc__tvart.jpg",
+        "channel_description": "review déjà bravo épisode alpha partie quai île",
+        "channel_last_refresh": "2026-06-21T17:55:29+00:00",
+        "channel_name": "jeu épisode tuto déjà caf",
+        "channel_subs": 451000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "lune crème éc",
+          "tête déjà review t",
+          "rêv",
+          "tuto ya",
+          "über cr",
+          "zèbre s"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC613XJfB1Wb9ediNcjqYV4D",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC613XJfB1Wb9ediNcjqYV4D_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC613XJfB1Wb9ediNcjqYV4D_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC613XJfB1Wb9ediNcjqYV4D_tvart.jpg",
+        "channel_description": "wagon partie partie déjà café œuvre ga",
+        "channel_last_refresh": "2026-06-05T17:50:05+00:00",
+        "channel_name": "île partie",
+        "channel_subs": 105000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "test xén",
+          "jeu rêve",
+          "mè",
+          "solei",
+          "bravo",
+          "alpha",
+          "dé",
+          "tête"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCJjrA3c-cW9CvddiimQTku0",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCJjrA3c-cW9CvddiimQTku0_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCJjrA3c-cW9CvddiimQTku0_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCJjrA3c-cW9CvddiimQTku0_tvart.jpg",
+        "channel_description": "forêt soleil soleil déjà lune hôtel vidéo wagon jeu short live mère vidéo crème lune quai yaourt piñata über live garçon test kilo bravo stream soleil yaourt quai stream short short review short piñata tête wagon piñata partie kilo déjà piñata hôtel piñata test tuto lune zèbre alpha live zèbre yaour",
+        "channel_last_refresh": "2026-06-06T17:50:06+00:00",
+        "channel_name": "test review vidéo",
+        "channel_subs": 169000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "œuvre café",
+          "vidéo î",
+          "œuvre écho lu",
+          "crème"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC-wNjboSIUZ0afEq8CZVIN2",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC-wNjboSIUZ0afEq8CZVIN2_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC-wNjboSIUZ0afEq8CZVIN2_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC-wNjboSIUZ0afEq8CZVIN2_tvart.jpg",
+        "channel_description": "écho vidéo yaourt lune île jeu café live écho stream crème kilo über piñata lune forêt test île épisode rêve café rêve stream zèbre kilo short piñata kilo noël partie café œuvre œuvre jeu jeu tuto short rêve jeu forêt œuvre rêve tête rêve tête alpha bravo café hôtel piñata yaourt forêt forêt partie",
+        "channel_last_refresh": "2026-06-14T17:57:37+00:00",
+        "channel_name": "alpha tête",
+        "channel_subs": 223000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "zè",
+          "déjà tu",
+          "live g",
+          "soleil t",
+          "mère rev",
+          "xénon f",
+          "test vi",
+          "épisode"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCMyJNFWSWO1ZK-Yy05IxSPc",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCMyJNFWSWO1ZK-Yy05IxSPc_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCMyJNFWSWO1ZK-Yy05IxSPc_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCMyJNFWSWO1ZK-Yy05IxSPc_tvart.jpg",
+        "channel_description": "épisode soleil jeu noël île forêt épisode yaourt café t",
+        "channel_last_refresh": "2026-08-09T17:29:25+00:00",
+        "channel_name": "œuvre x",
+        "channel_subs": 5910000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "zèbre yaour",
+          "hôtel écho vi",
+          "piñata pa",
+          "soleil écho re",
+          "tuto test partie l",
+          "tuto über g",
+          "vidéo î",
+          "noël wa"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC1Rjj0u-gUBvUKIGpwTrzL6",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC1Rjj0u-gUBvUKIGpwTrzL6_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC1Rjj0u-gUBvUKIGpwTrzL6_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC1Rjj0u-gUBvUKIGpwTrzL6_tvart.jpg",
+        "channel_description": "stream partie stream wagon tuto short tuto zèbre café hôtel vidéo déjà jeu xénon crème über short crème test écho alpha alpha live tête zèbre forêt mère jeu mère short vidéo kilo forêt écho review tuto zèbre tuto über soleil short forêt noël rêve piñata quai noël jeu lune live tête jeu bravo île übe",
+        "channel_last_refresh": "2026-06-13T18:03:42+00:00",
+        "channel_name": "kilo review",
+        "channel_subs": 458000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "tuto bravo g",
+          "rêve œuvre",
+          "jeu noël rê",
+          "yaourt kilo œuvre w",
+          "hôtel yaourt",
+          "alpha crè",
+          "alp",
+          "sho"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCap4pkw6AQMFel7hWfOxk2d",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCap4pkw6AQMFel7hWfOxk2d_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCap4pkw6AQMFel7hWfOxk2d_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCap4pkw6AQMFel7hWfOxk2d_tvart.jpg",
+        "channel_description": "crème piñata île yaourt noël soleil écho wagon live crème tuto œuvre vidéo mère lune noël über mère forêt île bravo crème xénon live live bravo quai rêve vidéo déjà über quai vidéo jeu noël jeu œuvre review forêt bravo hôtel partie lune tuto jeu piñata review tuto vidéo short test partie île piñata",
+        "channel_last_refresh": "2026-09-01T17:18:22+00:00",
+        "channel_name": "noël dé",
+        "channel_subs": 89600,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "noël dé",
+          "über noël écho re",
+          "über tête kilo for"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCJjrS50X97ZgnMuw0FuCOIy",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCJjrS50X97ZgnMuw0FuCOIy_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCJjrS50X97ZgnMuw0FuCOIy_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCJjrS50X97ZgnMuw0FuCOIy_tvart.jpg",
+        "channel_description": "mère kilo tuto bravo short vidéo hôtel île quai tête partie short déjà alpha tête live noël kilo zèbre y",
+        "channel_last_refresh": "2026-08-27T17:20:15+00:00",
+        "channel_name": "piñata hôte",
+        "channel_subs": 166000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "écho vidéo m",
+          "wagon déjà review parti",
+          "écho t",
+          "jeu piña",
+          "mère tête",
+          "tête vidé",
+          "review stre",
+          "wagon tête"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCqwqGGCTrVnzwFTQpiV90a3",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCqwqGGCTrVnzwFTQpiV90a3_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCqwqGGCTrVnzwFTQpiV90a3_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCqwqGGCTrVnzwFTQpiV90a3_tvart.jpg",
+        "channel_description": "forêt lune alpha review yaourt épisode partie wagon forêt tête piñata review tête live épisode déjà kilo test lune noël œuvre alpha jeu",
+        "channel_last_refresh": "2026-08-18T17:25:51+00:00",
+        "channel_name": "hôtel œuv",
+        "channel_subs": 212000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "crème vidéo",
+          "mère z",
+          "île kilo",
+          "review br",
+          "xénon",
+          "stre"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCZ13TrZXwauRQmVUpwIwDPQ",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCZ13TrZXwauRQmVUpwIwDPQ_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCZ13TrZXwauRQmVUpwIwDPQ_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCZ13TrZXwauRQmVUpwIwDPQ_tvart.jpg",
+        "channel_description": "mère vidéo garçon quai garçon zèbre crème soleil quai live kilo épisode wagon tuto yaourt xénon forêt über review soleil piñata xénon xénon café tête yaourt tuto café live hôtel über xénon tête",
+        "channel_last_refresh": "2026-08-29T17:17:58+00:00",
+        "channel_name": "yaourt test übe",
+        "channel_subs": 2820000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCnBvEqJsNFywxduAcIVCZ3k",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCnBvEqJsNFywxduAcIVCZ3k_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCnBvEqJsNFywxduAcIVCZ3k_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCnBvEqJsNFywxduAcIVCZ3k_tvart.jpg",
+        "channel_description": "wagon île tuto live hôtel rêve partie kilo alph",
+        "channel_last_refresh": "2026-08-17T17:21:44+00:00",
+        "channel_name": "épis",
+        "channel_subs": 1920000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "test alp",
+          "noël al",
+          "mère",
+          "so",
+          "café",
+          "œuv",
+          "über",
+          "crème écho partie"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UChkOJCvnHr3iXUvJlBaTzhQ",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UChkOJCvnHr3iXUvJlBaTzhQ_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UChkOJCvnHr3iXUvJlBaTzhQ_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UChkOJCvnHr3iXUvJlBaTzhQ_tvart.jpg",
+        "channel_description": "crème tête zèbre écho xénon noël yaourt kilo noël lune zèbre rêve lune mère garçon test œuvr",
+        "channel_last_refresh": "2026-08-17T17:21:21+00:00",
+        "channel_name": "déjà alpha qua",
+        "channel_subs": 1490000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "piñata wagon x",
+          "wagon",
+          "stream",
+          "rêve partie par",
+          "str",
+          "mère z",
+          "garçon l",
+          "stream noël"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC-r5UiAEK1GbK4JH8wElhmM",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC-r5UiAEK1GbK4JH8wElhmM_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC-r5UiAEK1GbK4JH8wElhmM_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC-r5UiAEK1GbK4JH8wElhmM_tvart.jpg",
+        "channel_description": "garçon partie test œuvre œuvre alpha review crème vidéo garçon stream île stream noël jeu xénon soleil quai mère mère review forêt tête test rêve kilo über lune îl",
+        "channel_last_refresh": "2026-08-16T17:25:01+00:00",
+        "channel_name": "épisode",
+        "channel_subs": 626000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "île kilo",
+          "île review",
+          "quai"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCgSZjLPcuIXL0TkxFEgPKif",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCgSZjLPcuIXL0TkxFEgPKif_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCgSZjLPcuIXL0TkxFEgPKif_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCgSZjLPcuIXL0TkxFEgPKif_tvart.jpg",
+        "channel_description": "mère jeu mère review jeu garçon short café zèbre café short review review live mère kilo crème wagon review xénon tuto garçon xénon piñata soleil quai live déjà xénon garçon über café tuto forêt test jeu alpha garçon soleil live partie tuto déjà kilo déjà hôtel rêve œuvre short piñata crème café mèr",
+        "channel_last_refresh": "2026-06-26T18:12:44+00:00",
+        "channel_name": "review têt",
+        "channel_subs": 456000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "tuto",
+          "œuvre vidéo",
+          "stream live",
+          "déjà noël",
+          "live épisod",
+          "mèr",
+          "partie test",
+          "tuto garçon"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCP8Ut_mj2I2JP39H-RxFVEf",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCP8Ut_mj2I2JP39H-RxFVEf_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCP8Ut_mj2I2JP39H-RxFVEf_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCP8Ut_mj2I2JP39H-RxFVEf_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-08-20T17:23:18+00:00",
+        "channel_name": "tuto revie",
+        "channel_subs": 186000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCF2TgAjVtUzHAcFy1VlwPuK",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCF2TgAjVtUzHAcFy1VlwPuK_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCF2TgAjVtUzHAcFy1VlwPuK_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCF2TgAjVtUzHAcFy1VlwPuK_tvart.jpg",
+        "channel_description": "déjà bravo jeu jeu noël mère zèbre short live alpha mère live zèbre épisode déjà forêt alpha noël crème éc",
+        "channel_last_refresh": "2026-08-20T17:22:47+00:00",
+        "channel_name": "test bravo te",
+        "channel_subs": 3480000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCRV63h7OICyRWkYQU2gXxjo",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCRV63h7OICyRWkYQU2gXxjo_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCRV63h7OICyRWkYQU2gXxjo_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCRV63h7OICyRWkYQU2gXxjo_tvart.jpg",
+        "channel_description": "hôtel review rêve vidéo xénon yaourt tête île tuto noël déjà jeu tuto short hôtel yaourt garçon piñata piñata über café revie",
+        "channel_last_refresh": "2026-08-15T17:25:58+00:00",
+        "channel_name": "île über c",
+        "channel_subs": 839000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "île über c",
+          "xénon",
+          "écho",
+          "épisode",
+          "soleil"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCBRsLTKd3TjxQnidzGVtNBf",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCBRsLTKd3TjxQnidzGVtNBf_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCBRsLTKd3TjxQnidzGVtNBf_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCBRsLTKd3TjxQnidzGVtNBf_tvart.jpg",
+        "channel_description": "kilo quai partie review crème rêve jeu zèbre épisode écho stream test über tuto kilo noël über forêt tuto épisode zèbre short alpha xénon déjà café rêve jeu quai garçon jeu ü",
+        "channel_last_refresh": "2026-06-15T17:58:54+00:00",
+        "channel_name": "café soleil über r",
+        "channel_subs": 335000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "garçon br",
+          "alpha",
+          "mèr",
+          "forêt sol",
+          "alpha",
+          "short tuto xénon œuvr",
+          "test île",
+          "hôtel yaourt"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCimK7PaUBECcsTZn371WvS7",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCimK7PaUBECcsTZn371WvS7_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCimK7PaUBECcsTZn371WvS7_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCimK7PaUBECcsTZn371WvS7_tvart.jpg",
+        "channel_description": "piñata vidéo vidéo hôtel lune review vidéo noël café short vidéo review café écho piñata noël piñata lune short quai test noël review bravo forêt café zèbre bravo île tuto xénon épisode zèbre short tête garçon quai jeu déjà alpha forêt rêve lune île test crème review über wagon jeu tête quai noël re",
+        "channel_last_refresh": "2026-06-12T18:00:20+00:00",
+        "channel_name": "tête partie",
+        "channel_subs": 409000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "short live",
+          "vidéo î",
+          "hôtel yaourt",
+          "forêt n",
+          "yaourt z",
+          "café al",
+          "yaourt",
+          "xénon piñ"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCPBKpakVIZvwi398Uae8czp",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCPBKpakVIZvwi398Uae8czp_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCPBKpakVIZvwi398Uae8czp_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCPBKpakVIZvwi398Uae8czp_tvart.jpg",
+        "channel_description": "alpha œuvre rêve déjà garçon forêt xénon short live garçon stream déjà œuvre review rêve review tête tuto kilo wagon vidéo yaourt short tête jeu piñata mère partie test short déjà review review soleil quai piñata mère rêve yaourt café yaourt mère jeu xénon kilo tuto noël tuto épisode hôtel bravo éch",
+        "channel_last_refresh": "2026-06-22T17:56:31+00:00",
+        "channel_name": "yaourt zèbre pa",
+        "channel_subs": 2800000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "wagon",
+          "mère z",
+          "piñata",
+          "test sh",
+          "garçon f",
+          "tut",
+          "tuto",
+          "par"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC3OzMina8MZK8NX-SrQcfPH",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC3OzMina8MZK8NX-SrQcfPH_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC3OzMina8MZK8NX-SrQcfPH_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC3OzMina8MZK8NX-SrQcfPH_tvart.jpg",
+        "channel_description": "review quai écho écho épisode crème bravo noël œuvre forêt live crème short test yaourt noël short île lune vidéo garçon stream wagon jeu œuvre v",
+        "channel_last_refresh": "2026-06-15T17:58:27+00:00",
+        "channel_name": "kilo lun",
+        "channel_subs": 277000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "live",
+          "éc",
+          "wagon",
+          "mère quai mère",
+          "alpha déj",
+          "écho live écho",
+          "yaourt re",
+          "zèbre"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC-zLPcs43EGOG7BtsVWUf55",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC-zLPcs43EGOG7BtsVWUf55_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC-zLPcs43EGOG7BtsVWUf55_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC-zLPcs43EGOG7BtsVWUf55_tvart.jpg",
+        "channel_description": "review œuvre lune café tête île œuvre wagon wagon wagon jeu épisode hôtel bravo mère",
+        "channel_last_refresh": "2026-08-22T17:20:14+00:00",
+        "channel_name": "live éch",
+        "channel_subs": 3570000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère part",
+          "vidéo î"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC132Lf9T7IPX7vJGhJxKF61",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC132Lf9T7IPX7vJGhJxKF61_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC132Lf9T7IPX7vJGhJxKF61_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC132Lf9T7IPX7vJGhJxKF61_tvart.jpg",
+        "channel_description": "piñata zèbre wagon wagon crème quai alpha écho tête épisode île épisode œuvre garçon stream mère yaourt déjà noël forêt île zèbre mère stream partie partie alpha bravo tête garçon quai live review île noël tuto épisode short crème test rêve tête wagon alpha île mère café über short tête live quai üb",
+        "channel_last_refresh": "2026-08-22T17:20:31+00:00",
+        "channel_name": "garçon",
+        "channel_subs": 10900000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "mère part",
+          "vidéo î"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCvoJEKsdsaGxPvfdYzwMDbg",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCvoJEKsdsaGxPvfdYzwMDbg_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCvoJEKsdsaGxPvfdYzwMDbg_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCvoJEKsdsaGxPvfdYzwMDbg_tvart.jpg",
+        "channel_description": "écho tuto garçon über forêt écho tuto noël xénon île piñata crème jeu test live kilo quai lune forêt wagon q",
+        "channel_last_refresh": "2026-06-11T17:57:15+00:00",
+        "channel_name": "café lune mère",
+        "channel_subs": 106000,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCFTrZMZjVK9TSixt31L_JZ_",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCFTrZMZjVK9TSixt31L_JZ__banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCFTrZMZjVK9TSixt31L_JZ__thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCFTrZMZjVK9TSixt31L_JZ__tvart.jpg",
+        "channel_description": "tuto île crème piñata yaourt hôtel quai zèbre review soleil review déjà stream noël épisode soleil forêt forêt noël crème zèbre piñata short épisode lune tête déjà garçon garçon forêt lune garçon soleil review tête vidéo épisode hôtel noël café déjà tête stream test écho mère jeu crème zèbre œuvre y",
+        "channel_last_refresh": "2026-06-07T17:53:36+00:00",
+        "channel_name": "hôtel lune ü",
+        "channel_subs": 20000000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "live lune so",
+          "yaourt",
+          "soleil s",
+          "forêt g",
+          "partie",
+          "short br",
+          "épisode w",
+          "écho zèb"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCc6_uWiePOGOs-AaVMrqiyJ",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCc6_uWiePOGOs-AaVMrqiyJ_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCc6_uWiePOGOs-AaVMrqiyJ_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCc6_uWiePOGOs-AaVMrqiyJ_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-08-15T17:25:33+00:00",
+        "channel_name": "tête live",
+        "channel_subs": 4020000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "bravo têt",
+          "kilo alpha jeu h",
+          "rêve pi",
+          "tuto",
+          "stream",
+          "vidéo",
+          "îl"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCJJTJzUddCR6QiISuiaACAA",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCJJTJzUddCR6QiISuiaACAA_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCJJTJzUddCR6QiISuiaACAA_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCJJTJzUddCR6QiISuiaACAA_tvart.jpg",
+        "channel_description": "short soleil bravo garçon vidéo wagon hôtel soleil lune alpha œuvre mère île review café vidéo short mère jeu épisode short yaourt jeu tête piñata über test zèbre déjà île forêt hôtel crème",
+        "channel_last_refresh": "2026-06-23T17:53:56+00:00",
+        "channel_name": "œuvre œuvre é",
+        "channel_subs": 107000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "shor",
+          "wagon"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCFec9Cc4-o9dafbU0-Q8sfs",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCFec9Cc4-o9dafbU0-Q8sfs_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCFec9Cc4-o9dafbU0-Q8sfs_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCFec9Cc4-o9dafbU0-Q8sfs_tvart.jpg",
+        "channel_description": "île écho café mère yaourt forêt hôtel quai short partie kilo île soleil kilo écho über yaourt île stream tuto partie café île partie noël lune œuvre xénon quai kilo vidéo test déjà quai mère vidéo bravo xénon noël écho stream garçon kilo soleil hôtel partie alpha test alpha stream épisode test über",
+        "channel_last_refresh": "2026-08-16T17:24:39+00:00",
+        "channel_name": "yaourt œuvre a",
+        "channel_subs": 3510000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "quai",
+          "vidéo î",
+          "review strea",
+          "quai crèm",
+          "écho",
+          "garçon",
+          "déjà zèbre",
+          "rêve k"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCzww2Eog62cQEBaJdxJ6cA6",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCzww2Eog62cQEBaJdxJ6cA6_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCzww2Eog62cQEBaJdxJ6cA6_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCzww2Eog62cQEBaJdxJ6cA6_tvart.jpg",
+        "channel_description": "piñata bravo tuto alpha tuto noël déjà über piñata noël bravo crème hôtel kilo yaourt rêve œuvre alpha live xénon test épisode café vidéo forêt écho crème écho forêt xénon crème garçon café soleil forêt noël test épisode live déjà kilo rêve stream mère test test soleil garçon garçon tuto café mère j",
+        "channel_last_refresh": "2026-06-17T17:58:20+00:00",
+        "channel_name": "écho vidéo alpha",
+        "channel_subs": 623000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "rêve über",
+          "tes",
+          "déjà quai œ",
+          "alph",
+          "live tê"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCI6o2sJfLY-cHJMLCEkU6f-",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCI6o2sJfLY-cHJMLCEkU6f-_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCI6o2sJfLY-cHJMLCEkU6f-_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCI6o2sJfLY-cHJMLCEkU6f-_tvart.jpg",
+        "channel_description": "noël hôtel live wagon rêve piñata kilo forêt review xénon piñata kilo bravo bravo noël piñata épisode vidéo bravo déjà stream review hôtel short mère review wagon bravo forêt soleil hôtel piñata kilo review kilo xénon review lune yaourt über live crème île hôtel review déjà déjà déjà stream garçon é",
+        "channel_last_refresh": "2026-06-10T17:55:30+00:00",
+        "channel_name": "garçon liv",
+        "channel_subs": 4610000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "garçon liv",
+          "île crème",
+          "wagon d",
+          "xénon",
+          "test kilo lune rev",
+          "wagon lu"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCBPOV_8AGBJM7R3AxT6Szeo",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCBPOV_8AGBJM7R3AxT6Szeo_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCBPOV_8AGBJM7R3AxT6Szeo_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCBPOV_8AGBJM7R3AxT6Szeo_tvart.jpg",
+        "channel_description": "piñata alpha piñata jeu hôtel piñata vidéo forêt zèbre œuvre forêt jeu tête piñata écho wagon écho alpha hôtel alpha épisode déjà piñata garçon live quai live café test écho short lune live short île short jeu noël forêt alpha short rêve hôtel mère lune mère mère über garçon épisode bravo über épiso",
+        "channel_last_refresh": "2026-08-21T17:19:33+00:00",
+        "channel_name": "short xénon so",
+        "channel_subs": 1150000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "stream tête",
+          "rêve test sole",
+          "déjà stream tut",
+          "short",
+          "partie hô",
+          "rêve île üb",
+          "über déjà",
+          "stream"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UChQDBidWs1BD7SPfiJ15H8f",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UChQDBidWs1BD7SPfiJ15H8f_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UChQDBidWs1BD7SPfiJ15H8f_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UChQDBidWs1BD7SPfiJ15H8f_tvart.jpg",
+        "channel_description": "xénon hôtel yaourt wagon tête xénon alpha über écho bravo kilo garçon noël stream vidéo île vidéo œuvre piñata wagon noël garçon piñata hôtel vidéo épisode yaourt déjà partie yaourt garçon yaourt île bravo test test stream piñata xénon alpha noël test stream île café short zèbre garçon yaourt hôtel",
+        "channel_last_refresh": "2026-08-30T17:18:57+00:00",
+        "channel_name": "alpha short short",
+        "channel_subs": 161000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "rêve s",
+          "hôtel yaourt",
+          "live st",
+          "vidéo fo",
+          "crème alp",
+          "crème live liv",
+          "kilo m",
+          "xén"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UC2mt1DrgF_EC-tCuaPpwzrl",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UC2mt1DrgF_EC-tCuaPpwzrl_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UC2mt1DrgF_EC-tCuaPpwzrl_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UC2mt1DrgF_EC-tCuaPpwzrl_tvart.jpg",
+        "channel_description": null,
+        "channel_last_refresh": "2026-06-05T17:50:41+00:00",
+        "channel_name": "lune forêt éc",
+        "channel_subs": 39300,
+        "channel_subscribed": true,
+        "channel_tags": [],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCFqpFbO5_FZrnKFZ6r4s4Ba",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCFqpFbO5_FZrnKFZ6r4s4Ba_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCFqpFbO5_FZrnKFZ6r4s4Ba_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCFqpFbO5_FZrnKFZ6r4s4Ba_tvart.jpg",
+        "channel_description": "œuvre stream île déjà über piñata île déjà xénon live tuto piñata zèbre yaourt zèbre tête rêve wagon île yaourt noël test yaourt quai forêt œuvre jeu piñata écho partie review tête piñata xénon hôtel xénon piñata tuto écho hôtel alpha épisode über île bravo île wagon île live forêt short forêt",
+        "channel_last_refresh": "2026-06-25T18:01:18+00:00",
+        "channel_name": "rêve",
+        "channel_subs": 530000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "strea",
+          "kilo",
+          "for",
+          "lune",
+          "übe",
+          "éc",
+          "partie",
+          "hôtel"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCKICtHVje24Py_ZWofr-sV4",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCKICtHVje24Py_ZWofr-sV4_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCKICtHVje24Py_ZWofr-sV4_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCKICtHVje24Py_ZWofr-sV4_tvart.jpg",
+        "channel_description": "déjà café café test tête rêve tuto short écho noël über xénon soleil quai kilo lune bravo wagon rêve lune piñata vidéo hôtel noël kilo quai test wagon rêve forêt vidéo œuvre kilo rêve épisode mère bravo review tuto xénon île wagon stream alpha xénon garçon wagon alpha wagon yaourt lune bravo déjà vi",
+        "channel_last_refresh": "2026-08-14T17:26:35+00:00",
+        "channel_name": "hôtel solei",
+        "channel_subs": 252000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "kilo über wag",
+          "lune al",
+          "xénon cr",
+          "lune hôtel lu",
+          "île xénon",
+          "partie pi"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCq_Sener7wTvNjWl7KCJl0a",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCq_Sener7wTvNjWl7KCJl0a_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCq_Sener7wTvNjWl7KCJl0a_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCq_Sener7wTvNjWl7KCJl0a_tvart.jpg",
+        "channel_description": "café short yaourt alpha alpha jeu jeu île test test wagon jeu crème jeu kilo tête partie tête quai xénon vidéo lune hôtel garçon épisode crème stream tuto garçon noël short garçon forêt stream review quai écho garçon hôtel live tuto review jeu tuto noël stream alpha jeu stream tuto crème tuto forêt",
+        "channel_last_refresh": "2026-08-26T17:19:54+00:00",
+        "channel_name": "tête bravo",
+        "channel_subs": 517000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "vidéo î",
+          "tête",
+          "short li",
+          "soleil",
+          "œuvre café"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCcud9a2oVDn356ifOeWFl48",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCcud9a2oVDn356ifOeWFl48_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCcud9a2oVDn356ifOeWFl48_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCcud9a2oVDn356ifOeWFl48_tvart.jpg",
+        "channel_description": "vidéo lune crème déjà short déjà café bravo zèbre quai rêve alpha épisode soleil hôtel tête partie lune bravo noël soleil short café wagon wagon xénon short wagon yaourt soleil xénon œuvre review écho écho noël crème écho piñata île alpha vidéo œuvre œuvre lune café bravo partie test alpha xénon caf",
+        "channel_last_refresh": "2026-08-14T17:26:17+00:00",
+        "channel_name": "forêt bravo œuvr",
+        "channel_subs": 1510000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "lune al",
+          "xénon cr",
+          "kilo über wag",
+          "déjà yao",
+          "wagon hôtel crème"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCWrGJ1iBQ3AX17_YC2KAViS",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCWrGJ1iBQ3AX17_YC2KAViS_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCWrGJ1iBQ3AX17_YC2KAViS_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCWrGJ1iBQ3AX17_YC2KAViS_tvart.jpg",
+        "channel_description": "île short forêt tête noël bravo test île yaourt alpha quai review forêt mère yaourt garçon kilo partie xénon partie review yaourt wagon stream œuvre déjà hôtel île jeu épisode xénon bravo mère short piñata stream rêve yaourt live jeu über test yaourt short quai über lune über crème rêve wagon test a",
+        "channel_last_refresh": "2026-08-02T17:29:28+00:00",
+        "channel_name": "zèbre tuto",
+        "channel_subs": 1240000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "zèbre tuto",
+          "kilo",
+          "tuto w",
+          "rêve parti",
+          "café",
+          "hôt",
+          "mère z",
+          "mère"
+        ],
+        "channel_tabs": [
+          "videos",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCe3Ncq6luftclsHgbVX2uJx",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCe3Ncq6luftclsHgbVX2uJx_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCe3Ncq6luftclsHgbVX2uJx_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCe3Ncq6luftclsHgbVX2uJx_tvart.jpg",
+        "channel_description": "zèbre île crème test garçon lune bravo yaourt rêve déjà forêt forêt xénon partie partie test jeu mè",
+        "channel_last_refresh": "2026-08-07T17:30:22+00:00",
+        "channel_name": "écho wagon garç",
+        "channel_subs": 2690000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "tête liv",
+          "crème",
+          "wagon zè",
+          "île épisod",
+          "tuto w"
+        ],
+        "channel_tabs": [
+          "videos",
+          "streams",
+          "shorts"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCyBs5fVoHvlTIE7IpI49Xep",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCyBs5fVoHvlTIE7IpI49Xep_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCyBs5fVoHvlTIE7IpI49Xep_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCyBs5fVoHvlTIE7IpI49Xep_tvart.jpg",
+        "channel_description": "café über garçon bravo stream déjà mère hôtel b",
+        "channel_last_refresh": "2026-06-24T17:56:20+00:00",
+        "channel_name": "kilo mère tu",
+        "channel_subs": 1970000,
+        "channel_subscribed": true,
+        "channel_tags": [
+          "crème xéno",
+          "hôt",
+          "crème live liv",
+          "bra",
+          "wagon",
+          "île forêt te",
+          "café",
+          "forêt kilo a"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      },
+      {
+        "channel_id": "UCvMWWGmNi_Dma6WpIdCv7m9",
+        "channel_active": true,
+        "channel_banner_url": "/cache/channels/UCvMWWGmNi_Dma6WpIdCv7m9_banner.jpg",
+        "channel_thumb_url": "/cache/channels/UCvMWWGmNi_Dma6WpIdCv7m9_thumb.jpg",
+        "channel_tvart_url": "/cache/channels/UCvMWWGmNi_Dma6WpIdCv7m9_tvart.jpg",
+        "channel_description": "xénon stream île déjà stream mère hôtel garçon déjà garçon noël kilo",
+        "channel_last_refresh": "2026-06-17T17:58:40+00:00",
+        "channel_name": "noël île stream wagon jeu qua",
+        "channel_subs": 356000,
+        "channel_subscribed": false,
+        "channel_tags": [
+          "kilo mère tu",
+          "wago",
+          "île piñata",
+          "garçon",
+          "café f",
+          "partie bravo l",
+          "forêt kilo a",
+          "über test zèbre têt"
+        ],
+        "channel_tabs": [
+          "videos"
+        ],
+        "_index": "ta_channel",
+        "_score": 0
+      }
+    ],
+    "paginate": {
+      "page_size": 100,
+      "page_from": 0,
+      "prev_pages": null,
+      "current_page": 0,
+      "max_hits": false,
+      "params": "",
+      "last_page": 2,
+      "next_pages": [],
+      "total_hits": 116
+    }
+  },
+  "text": null
+}

@@ -1,0 +1,19 @@
+{
+  "request": "/api/channel/UCmzkP2ArEQCZglqgmoopVmh/aggs/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "total_items": {
+      "value": 3
+    },
+    "total_size": {
+      "value": 338156968
+    },
+    "total_duration": {
+      "value": 2631,
+      "value_str": "43m 51s"
+    }
+  },
+  "text": null
+}

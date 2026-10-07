@@ -1,0 +1,19 @@
+{
+  "request": "/api/channel/UCaaaaaaaaaaaaaaaaaaaaaa/aggs/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "total_items": {
+      "value": 0
+    },
+    "total_size": {
+      "value": 0
+    },
+    "total_duration": {
+      "value": 0,
+      "value_str": "NA"
+    }
+  },
+  "text": null
+}

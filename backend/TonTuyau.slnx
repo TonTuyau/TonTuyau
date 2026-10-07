@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TonTuyau.Api/TonTuyau.Api.csproj" />
+    <Project Path="src/TonTuyau.Application/TonTuyau.Application.csproj" />
+    <Project Path="src/TonTuyau.Infrastructure/TonTuyau.Infrastructure.csproj" />
+    <Project Path="src/TonTuyau.TubeArchivist/TonTuyau.TubeArchivist.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TonTuyau.Api.UnitTests/TonTuyau.Api.UnitTests.csproj" />
+    <Project Path="tests/TonTuyau.Application.UnitTests/TonTuyau.Application.UnitTests.csproj" />
+    <Project Path="tests/TonTuyau.FixtureRecorder.UnitTests/TonTuyau.FixtureRecorder.UnitTests.csproj" />
+    <Project Path="tests/TonTuyau.Infrastructure.UnitTests/TonTuyau.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/TonTuyau.IntegrationTests/TonTuyau.IntegrationTests.csproj" />
+    <Project Path="tests/TonTuyau.TubeArchivist.UnitTests/TonTuyau.TubeArchivist.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/TonTuyau.FixtureRecorder/TonTuyau.FixtureRecorder.csproj" />
+  </Folder>
+</Solution>

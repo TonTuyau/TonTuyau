@@ -1,0 +1,25 @@
+{
+  "request": "/api/channel/UCmzkP2ArEQCZglqgmoopVmh/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "channel_id": "UCmzkP2ArEQCZglqgmoopVmh",
+    "channel_active": true,
+    "channel_banner_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_banner.jpg",
+    "channel_thumb_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_thumb.jpg",
+    "channel_tvart_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_tvart.jpg",
+    "channel_description": null,
+    "channel_last_refresh": "2026-08-12T17:27:38+00:00",
+    "channel_name": "partie xénon rev",
+    "channel_subs": 116000,
+    "channel_subscribed": true,
+    "channel_tags": [],
+    "channel_tabs": [
+      "videos"
+    ],
+    "_index": "ta_channel",
+    "_score": 0
+  },
+  "text": null
+}

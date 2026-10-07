@@ -1,0 +1,10 @@
+{
+  "request": "/api/channel/UCaaaaaaaaaaaaaaaaaaaaaa/",
+  "authenticated": true,
+  "status": 404,
+  "contentType": "application/json",
+  "json": {
+    "error": "channel not found"
+  },
+  "text": null
+}

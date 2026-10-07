@@ -1,0 +1,168 @@
+/*
+ * The YouTube-like theme: every colour, font, radius, spacing and layout size the components use.
+ * Components only read var(--…); to swap the look, write another file with the same tokens and import it
+ * from theme.css instead of this one (build-time choice, R2-16).
+ *
+ * Breakpoints can't be custom properties (media queries don't read them). Components use these widths:
+ *   600px  phone (one column, compact top bar, bottom navigation bar instead of the mini rail)
+ *   1024px sidebar becomes an overlay drawer
+ *   1312px watch page puts the side column under the player
+ *
+ * Light / dark (R2-16, review item #4): "device theme" follows prefers-color-scheme through
+ * `color-scheme: light dark`; the settings menu forces one by setting data-theme on <html>.
+ */
+
+:root {
+  /* Light and dark: every colour is light-dark(<light>, <dark>), resolved by color-scheme. */
+  color-scheme: light dark;
+
+  /* Colours */
+  --color-bg: light-dark(#ffffff, #0f0f0f);
+  --color-bg-elevated: light-dark(#ffffff, #212121);
+  --color-surface: light-dark(#f2f2f2, #272727);
+  --color-surface-hover: light-dark(#e5e5e5, #3f3f3f);
+  --color-surface-selected: light-dark(#0f0f0f, #f1f1f1);
+  --color-on-surface-selected: light-dark(#ffffff, #0f0f0f);
+  --color-text: light-dark(#0f0f0f, #f1f1f1);
+  --color-text-secondary: light-dark(#606060, #aaaaaa);
+  --color-border: light-dark(#d3d3d3, #303030);
+  --color-divider: light-dark(#e5e5e5, #3f3f3f);
+  --color-input-bg: light-dark(#ffffff, #121212);
+  --color-brand: #0f8b8d; /* TonTuyau teal: not YouTube red */
+  --color-on-brand: #ffffff;
+  --color-link: light-dark(#065fd4, #3ea6ff);
+  --color-focus: light-dark(#1c62b9, #3ea6ff);
+  --color-overlay: rgb(0 0 0 / 80%);
+  --color-on-overlay: #ffffff;
+  --color-scrim: rgb(0 0 0 / 50%);
+  --color-skeleton: light-dark(#e5e5e5, #272727);
+  --color-button: light-dark(#0f0f0f, #f1f1f1);
+  --color-on-button: light-dark(#ffffff, #0f0f0f);
+  --color-warning-bg: light-dark(#fff3d6, #3d2e00);
+  --color-on-warning: light-dark(#7a4f00, #ffd36a);
+  --color-error: light-dark(#cc0000, #ff6b6b);
+  --color-player-bg: #000000;
+  --color-on-player: #ffffff;
+  --color-tag: light-dark(#065fd4, #3ea6ff);
+
+  /* Typography */
+  --font-family: Roboto, Arial, system-ui, sans-serif;
+  --font-size-xxs: 0.625rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-xxl: 2.25rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.45;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Borders and focus */
+  --border-width: 1px;
+  --focus-ring: 2px solid var(--color-focus);
+  --focus-offset: 2px;
+
+  /* Layout sizes */
+  --topbar-height: 56px;
+  --sidebar-width: 240px;
+  --sidebar-mini-width: 72px;
+  --search-max-width: 640px;
+  --search-height: 40px;
+  --button-height: 36px;
+  --chip-height: 32px;
+  --icon-size: 24px;
+  --icon-button-size: 40px;
+  --card-min-width: 300px;
+  --short-card-width: 200px;
+  /* The listing grids (home sections, feeds, a channel's videos): as many columns of at least the card's width as
+     fit, up to a cap; past the cap, the cards grow (like YouTube's home on very wide screens). Below the cap the
+     columns are exactly the plain auto-fill ones; phones keep one column (two for shorts). srcset.ts follows these
+     numbers for `sizes`. */
+  --grid-max-columns: 6;
+  --grid-gap-x: var(--space-4);
+  --grid-columns: repeat(
+    auto-fill,
+    minmax(
+      min(
+        100%,
+        max(var(--card-min-width), (100% - (var(--grid-max-columns) - 1) * var(--grid-gap-x)) / var(--grid-max-columns))
+      ),
+      1fr
+    )
+  );
+  --shorts-max-columns: 10;
+  --shorts-gap-x: var(--space-2);
+  --shorts-columns: repeat(
+    auto-fill,
+    minmax(
+      min(
+        45%,
+        max(
+          var(--short-card-width),
+          (100% - (var(--shorts-max-columns) - 1) * var(--shorts-gap-x)) / var(--shorts-max-columns)
+        )
+      ),
+      1fr
+    )
+  );
+  --compact-thumb-width: 168px;
+  --row-thumb-width: 500px;
+  --avatar-xs: 24px;
+  --avatar-sm: 36px;
+  --avatar-md: 88px;
+  --avatar-lg: 160px;
+  --banner-aspect: 6.2;
+  --page-max-width: 1284px;
+  --watch-max-width: 1754px;
+  --watch-side-width: 402px;
+  /* Player box height caps: the small (default) view leaves room for the title under it; the large (theater)
+     view takes the viewport. A box is never taller than its cap, so a vertical video gets narrower instead. */
+  --player-max-height-small: calc(100vh - var(--topbar-height) - 160px);
+  --player-max-height-large: calc(100vh - var(--topbar-height) - 48px);
+  --player-min-height: 240px;
+  --menu-width: 280px;
+  --badge-height: 20px;
+  --shorts-action-size: 48px;
+  /* Room left under the shorts overlay for the video's native controls. */
+  --shorts-controls-clearance: 48px;
+  --bottom-nav-height: 48px;
+  /* Height of what covers the bottom of the viewport (the phone bottom bar); the shell sets it. */
+  --bottom-inset: 0px;
+
+  /* Elevation and motion */
+  --shadow-menu: 0 4px 32px light-dark(rgb(0 0 0 / 10%), rgb(0 0 0 / 60%));
+  --transition-fast: 120ms ease-out;
+  --z-topbar: 20;
+  --z-menu: 30;
+  --z-drawer: 40;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

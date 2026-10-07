@@ -1,0 +1,9 @@
+node_modules/
+dist/
+bin/
+obj/
+.env
+*.local
+/dev-data/
+TestResults/
+*.feature.cs

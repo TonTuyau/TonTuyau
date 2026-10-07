@@ -1,0 +1,19 @@
+# Build context for docker/backend.Dockerfile and docker/frontend.Dockerfile (both built from the repo's root).
+# Allow-list: everything is left out unless named below, so .env, dev-data/, docs/ and .git never reach a build.
+*
+!.editorconfig
+!backend/global.json
+!backend/Directory.Build.props
+!backend/Directory.Packages.props
+!backend/src/
+!frontend/
+
+# Build outputs and local files inside the allowed folders.
+**/bin/
+**/obj/
+**/TestResults/
+**/node_modules/
+frontend/dist/
+**/.env
+**/.env.*
+**/*.local

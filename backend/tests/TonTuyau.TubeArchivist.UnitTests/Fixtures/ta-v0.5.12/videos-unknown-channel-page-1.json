@@ -1,0 +1,21 @@
+{
+  "request": "/api/video/?sort=published&order=desc&channel=UCaaaaaaaaaaaaaaaaaaaaaa&page=1",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "data": [],
+    "paginate": {
+      "page_size": 100,
+      "page_from": 0,
+      "prev_pages": null,
+      "current_page": 1,
+      "max_hits": false,
+      "params": "sort=published&order=desc&channel=UCaaaaaaaaaaaaaaaaaaaaaa",
+      "last_page": 0,
+      "next_pages": [],
+      "total_hits": 0
+    }
+  },
+  "text": null
+}

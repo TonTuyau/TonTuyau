@@ -1,0 +1,74 @@
+using System.Globalization;
+
+namespace TonTuyau.Application.Sync;
+
+/// <summary>
+/// A progress line, e.g. <c>[06:10] videos        37 / 120 channels · 12,000 videos · art 2,300 copied, 6,100
+/// resized</c>. A total ("x / y") is shown only when it's exactly known: TubeArchivist's page counts and hit totals
+/// aren't (last_page is wrong, total_hits stops at 10,000), and an incremental run can't know its end.
+/// </summary>
+public static class SyncProgressText
+{
+    /// <summary>The phase column's width (the longest label).</summary>
+    public const int LabelWidth = 13;
+
+    public static string Line(SyncProgress progress, TimeSpan elapsed)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return $"[{Elapsed(elapsed)}] {Label(progress.Phase).PadRight(LabelWidth)} {Detail(progress)}";
+    }
+
+    /// <summary><c>mm:ss</c>, or <c>h:mm:ss</c> from an hour on.</summary>
+    public static string Elapsed(TimeSpan elapsed)
+    {
+        TimeSpan time = elapsed < TimeSpan.Zero ? TimeSpan.Zero : elapsed;
+        int hours = (int)time.TotalHours;
+        return hours > 0
+            ? string.Create(CultureInfo.InvariantCulture, $"{hours}:{time.Minutes:00}:{time.Seconds:00}")
+            : string.Create(CultureInfo.InvariantCulture, $"{time.Minutes:00}:{time.Seconds:00}");
+    }
+
+    /// <summary>
+    /// "x / y" when the total is known and possible, else "x": an unknown total is never guessed, and a total smaller
+    /// than what's already done is wrong, so it isn't shown either.
+    /// </summary>
+    public static string OutOf(int done, int? total) =>
+        total is { } end && done <= end ? $"{Number(done)} / {Number(end)}" : Number(done);
+
+    public static string Label(SyncPhase phase) => phase switch
+    {
+        SyncPhase.Channels => "channels",
+        SyncPhase.ChannelVideos => "videos",
+        SyncPhase.NewVideos => "new videos",
+        SyncPhase.MediaCheck => "media check",
+        SyncPhase.DeletionList => "deletion list",
+        SyncPhase.Deletions or SyncPhase.DeletionsOverLimit => "deletions",
+        SyncPhase.ArtRetry => "art retry",
+        SyncPhase.IndexSwitch => "index switch",
+        _ => phase.ToString(),
+    };
+
+    private static string Detail(SyncProgress p) => p.Phase switch
+    {
+        SyncPhase.Channels => $"{OutOf(p.Done, p.Total)} read" + Art(p.Counts),
+        SyncPhase.ChannelVideos =>
+            $"{OutOf(p.Done, p.Total)} channels · {Number(p.Counts.VideosRead)} videos" + Art(p.Counts),
+        SyncPhase.NewVideos => $"{Number(p.Done)} pages · {Number(p.Counts.VideosRead)} videos" + Art(p.Counts),
+        SyncPhase.MediaCheck => $"{Number(p.FilesChecked)} files checked · {Number(p.FilesMissing)} missing",
+        SyncPhase.DeletionList => $"{OutOf(p.Done, p.Total)} entries looked up",
+        SyncPhase.Deletions when p.Total == 0 => "nothing to delete",
+        SyncPhase.Deletions => $"{OutOf(p.Done, p.Total)} confirmed with TubeArchivist",
+        SyncPhase.DeletionsOverLimit => $"{Number(p.Total ?? 0)} planned, over the limit: none made",
+        SyncPhase.ArtRetry => $"{OutOf(p.Done, p.Total)} images retried",
+        SyncPhase.IndexSwitch => "switching to the new indices",
+        _ => Number(p.Done),
+    };
+
+    /// <summary>The art made so far, once there's some (later full runs mostly have none).</summary>
+    private static string Art(SyncCounts counts) =>
+        counts.ArtCopied == 0 && counts.ArtResized == 0
+            ? ""
+            : $" · art {Number(counts.ArtCopied)} copied, {Number(counts.ArtResized)} resized";
+
+    private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+}

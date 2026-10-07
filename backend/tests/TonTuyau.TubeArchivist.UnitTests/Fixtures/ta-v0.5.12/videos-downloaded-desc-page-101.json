@@ -1,0 +1,8 @@
+{
+  "request": "/api/video/?sort=downloaded&order=desc&page=101",
+  "authenticated": true,
+  "status": 500,
+  "contentType": "text/html",
+  "json": null,
+  "text": "\n<!doctype html>\n<html lang=\"en\">\n<head>\n  <title>Server Error (500)</title>\n</head>\n<body>\n  <h1>Server Error (500)</h1><p></p>\n</body>\n</html>\n"
+}

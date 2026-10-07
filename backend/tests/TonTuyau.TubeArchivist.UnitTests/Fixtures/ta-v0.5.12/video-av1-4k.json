@@ -1,0 +1,92 @@
+{
+  "request": "/api/video/UVC1FGQ5Fp3/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "active": true,
+    "category": [
+      "Howto & Style"
+    ],
+    "channel": {
+      "channel_id": "UCOKF6MYYK0xw928r8fg1Hmw",
+      "channel_active": true,
+      "channel_banner_url": "/cache/channels/UCOKF6MYYK0xw928r8fg1Hmw_banner.jpg",
+      "channel_thumb_url": "/cache/channels/UCOKF6MYYK0xw928r8fg1Hmw_thumb.jpg",
+      "channel_tvart_url": "/cache/channels/UCOKF6MYYK0xw928r8fg1Hmw_tvart.jpg",
+      "channel_description": "vidéo short tête short jeu jeu wagon café bravo lune vidéo wagon île jeu test forêt crème vidéo mère tuto café café kilo kilo épisode zèbre vidéo tête tuto kilo zèbre œuvre île piñat",
+      "channel_last_refresh": "2026-10-01T07:17:07+00:00",
+      "channel_name": "épisode s",
+      "channel_subs": 224000,
+      "channel_subscribed": true,
+      "channel_tags": [
+        "tuto îl",
+        "caf",
+        "partie",
+        "str",
+        "tête",
+        "épisode s",
+        "test",
+        "rêve live rev"
+      ],
+      "channel_tabs": [
+        "videos",
+        "shorts"
+      ]
+    },
+    "comment_count": null,
+    "date_downloaded": 1790867581,
+    "description": "œuvre tête garçon piñata mère piñata hôtel épisode short déjà yaourt café kilo garçon soleil jeu épisode café café stream lune test test piñata soleil forêt vidéo déjà tuto bravo crème über stream yaourt bravo lune café piñata partie déjà épisode mère vidéo yaourt piñata écho mère piñata crème yaour",
+    "media_size": 1313668754,
+    "media_url": "/youtube/UCOKF6MYYK0xw928r8fg1Hmw/UVC1FGQ5Fp3.mp4",
+    "player": {
+      "watched": false,
+      "duration": 1914,
+      "duration_str": "31m 54s"
+    },
+    "playlist": [],
+    "published": "2026-04-24T15:01:48+00:00",
+    "sponsorblock": null,
+    "stats": {
+      "like_count": 3166,
+      "average_rating": 0.0,
+      "view_count": 74198,
+      "dislike_count": 0
+    },
+    "streams": [
+      {
+        "bitrate": 5370710,
+        "codec": "av1",
+        "height": 2160,
+        "index": 0,
+        "type": "video",
+        "width": 3840
+      },
+      {
+        "bitrate": 110978,
+        "codec": "opus",
+        "index": 1,
+        "type": "audio"
+      }
+    ],
+    "subtitles": [],
+    "tags": [
+      "short hô",
+      "écho tu",
+      "quai str",
+      "forêt",
+      "kil",
+      "épiso",
+      "forêt noë",
+      "forêt"
+    ],
+    "title": "tuto xénon île écho déjà café xénon vidéo île piñata jeu crème kilo écho soleil w",
+    "vid_last_refresh": "2026-10-01T15:13:01+00:00",
+    "vid_thumb_url": "/cache/videos/u/UVC1FGQ5Fp3.jpg",
+    "vid_type": "videos",
+    "youtube_id": "UVC1FGQ5Fp3",
+    "_index": "ta_video",
+    "_score": 0.0
+  },
+  "text": null
+}

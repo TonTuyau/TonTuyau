@@ -1,0 +1,464 @@
+[
+  {
+    "id": "UCmock-cuisine-margaux0",
+    "name": "Cuisine de Margaux",
+    "subscribers": 224000,
+    "thumbnailUrl": "/art/channels/UCmock-cuisine-margaux0/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-cuisine-margaux0/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-cuisine-margaux0/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-cuisine-margaux0/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-cuisine-margaux0/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-cuisine-margaux0/thumb"
+      }
+    ],
+    "description": "Recettes de saison, techniques de base et grands classiques de la cuisine française.\nUne nouvelle vidéo chaque vendredi, un short le mardi.\n\nToutes les recettes : https://example.org/margaux/recettes\nContact : voir la page « À propos ».",
+    "bannerUrl": "/art/channels/UCmock-cuisine-margaux0/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-cuisine-margaux0/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-cuisine-margaux0/banner"
+      }
+    ],
+    "tags": ["Cuisine", "Recettes", "Pâtisserie"],
+    "active": true
+  },
+  {
+    "id": "UCmock-atelier-bois-fer",
+    "name": "Atelier Bois & Fer",
+    "subscribers": 58300,
+    "thumbnailUrl": "/art/channels/UCmock-atelier-bois-fer/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-atelier-bois-fer/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-atelier-bois-fer/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-atelier-bois-fer/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-atelier-bois-fer/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-atelier-bois-fer/thumb"
+      }
+    ],
+    "description": "Menuiserie, soudure et restauration d'outils anciens dans un petit atelier de campagne.",
+    "bannerUrl": "/art/channels/UCmock-atelier-bois-fer/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-atelier-bois-fer/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-atelier-bois-fer/banner"
+      }
+    ],
+    "tags": ["Bricolage", "Menuiserie"],
+    "active": true
+  },
+  {
+    "id": "UCmock-orbital-mechanics",
+    "name": "Orbital Mechanics Lab",
+    "subscribers": 1310000,
+    "thumbnailUrl": "/art/channels/UCmock-orbital-mechanics/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-orbital-mechanics/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-orbital-mechanics/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-orbital-mechanics/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-orbital-mechanics/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-orbital-mechanics/thumb"
+      }
+    ],
+    "description": "Rockets, orbits and the maths behind spaceflight, explained with simulations.\nLive launch coverage on Sundays.",
+    "bannerUrl": "/art/channels/UCmock-orbital-mechanics/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-orbital-mechanics/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-orbital-mechanics/banner"
+      }
+    ],
+    "tags": ["Science", "Space"],
+    "active": true
+  },
+  {
+    "id": "UCmock-chroniques-eleonore",
+    "name": "Les Chroniques d'Éléonore",
+    "subscribers": 412000,
+    "thumbnailUrl": "/art/channels/UCmock-chroniques-eleonore/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-chroniques-eleonore/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-chroniques-eleonore/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-chroniques-eleonore/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-chroniques-eleonore/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-chroniques-eleonore/thumb"
+      }
+    ],
+    "description": "Histoire de France et d'Europe, racontée sans raccourcis. Sources en description de chaque épisode.",
+    "bannerUrl": "/art/channels/UCmock-chroniques-eleonore/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-chroniques-eleonore/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-chroniques-eleonore/banner"
+      }
+    ],
+    "tags": ["Histoire", "Documentaire"],
+    "active": true
+  },
+  {
+    "id": "UCmock-pixelforge-gaming",
+    "name": "PixelForge Gaming",
+    "subscribers": 3870000,
+    "thumbnailUrl": "/art/channels/UCmock-pixelforge-gaming/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-pixelforge-gaming/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-pixelforge-gaming/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-pixelforge-gaming/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-pixelforge-gaming/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-pixelforge-gaming/thumb"
+      }
+    ],
+    "description": "Speedruns, retro games and long Friday-night streams. Be nice in chat!",
+    "bannerUrl": "/art/channels/UCmock-pixelforge-gaming/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-pixelforge-gaming/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-pixelforge-gaming/banner"
+      }
+    ],
+    "tags": ["Gaming", "Speedrun"],
+    "active": true
+  },
+  {
+    "id": "UCmock-minute-meca000000",
+    "name": "Minute Méca",
+    "subscribers": 96500,
+    "thumbnailUrl": "/art/channels/UCmock-minute-meca000000/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-minute-meca000000/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-minute-meca000000/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-minute-meca000000/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-minute-meca000000/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-minute-meca000000/thumb"
+      }
+    ],
+    "description": "Une astuce de mécanique en moins d’une minute. Que des shorts.",
+    "bannerUrl": "/art/channels/UCmock-minute-meca000000/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-minute-meca000000/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-minute-meca000000/banner"
+      }
+    ],
+    "tags": ["Auto", "Mécanique"],
+    "active": true
+  },
+  {
+    "id": "UCmock-quiet-trails00000",
+    "name": "Quiet Trails",
+    "subscribers": 12400,
+    "thumbnailUrl": "/art/channels/UCmock-quiet-trails00000/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-quiet-trails00000/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-quiet-trails00000/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-quiet-trails00000/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-quiet-trails00000/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-quiet-trails00000/thumb"
+      }
+    ],
+    "description": "Long, slow hiking films with no music. YouTube can no longer be reached for this channel since 2025; the archive stays.",
+    "bannerUrl": null,
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-quiet-trails00000/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-quiet-trails00000/banner"
+      }
+    ],
+    "tags": ["Outdoors", "Hiking"],
+    "active": false
+  },
+  {
+    "id": "UCmock-direct-dimanche00",
+    "name": "Le Direct du Dimanche",
+    "subscribers": 31700,
+    "thumbnailUrl": "/art/channels/UCmock-direct-dimanche00/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-direct-dimanche00/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-direct-dimanche00/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-direct-dimanche00/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-direct-dimanche00/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-direct-dimanche00/thumb"
+      }
+    ],
+    "description": "L'émission en direct chaque dimanche soir : actualité tech, questions du chat, invités.",
+    "bannerUrl": "/art/channels/UCmock-direct-dimanche00/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-direct-dimanche00/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-direct-dimanche00/banner"
+      }
+    ],
+    "tags": ["Talk-show", "Tech"],
+    "active": true
+  },
+  {
+    "id": "UCmock-code-et-cafe00000",
+    "name": "Code & Café",
+    "subscribers": 189000,
+    "thumbnailUrl": null,
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-code-et-cafe00000/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-code-et-cafe00000/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-code-et-cafe00000/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-code-et-cafe00000/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-code-et-cafe00000/thumb"
+      }
+    ],
+    "description": "Programmation web et systèmes, en français et parfois in English. Live coding le mercredi.",
+    "bannerUrl": "/art/channels/UCmock-code-et-cafe00000/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-code-et-cafe00000/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-code-et-cafe00000/banner"
+      }
+    ],
+    "tags": ["Programmation", "Tech"],
+    "active": true
+  },
+  {
+    "id": "UCmock-megastar-hits0000",
+    "name": "Mégastar Hits Officiel",
+    "subscribers": 98500000,
+    "thumbnailUrl": "/art/channels/UCmock-megastar-hits0000/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-megastar-hits0000/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-megastar-hits0000/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-megastar-hits0000/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-megastar-hits0000/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-megastar-hits0000/thumb"
+      }
+    ],
+    "description": "Chaîne officielle. Clips, coulisses et performances live.",
+    "bannerUrl": "/art/channels/UCmock-megastar-hits0000/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-megastar-hits0000/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-megastar-hits0000/banner"
+      }
+    ],
+    "tags": ["Musique", "Pop"],
+    "active": true
+  },
+  {
+    "id": "UCmock-archives-attente0",
+    "name": "Archives en attente",
+    "subscribers": 320,
+    "thumbnailUrl": "/art/channels/UCmock-archives-attente0/thumb",
+    "thumbnails": [
+      {
+        "width": 48,
+        "url": "/art/channels/UCmock-archives-attente0/thumb/48"
+      },
+      {
+        "width": 96,
+        "url": "/art/channels/UCmock-archives-attente0/thumb/96"
+      },
+      {
+        "width": 176,
+        "url": "/art/channels/UCmock-archives-attente0/thumb/176"
+      },
+      {
+        "width": 320,
+        "url": "/art/channels/UCmock-archives-attente0/thumb/320"
+      },
+      {
+        "width": 512,
+        "url": "/art/channels/UCmock-archives-attente0/thumb"
+      }
+    ],
+    "description": "Chaîne abonnée dont aucune vidéo n’a encore été téléchargée.",
+    "bannerUrl": "/art/channels/UCmock-archives-attente0/banner",
+    "banners": [
+      {
+        "width": 1280,
+        "url": "/art/channels/UCmock-archives-attente0/banner/1280"
+      },
+      {
+        "width": 2560,
+        "url": "/art/channels/UCmock-archives-attente0/banner"
+      }
+    ],
+    "tags": [],
+    "active": true
+  }
+]

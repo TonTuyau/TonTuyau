@@ -1,0 +1,21 @@
+{
+  "request": "/api/video/?sort=published&order=desc&channel=UCmzkP2ArEQCZglqgmoopVmh&page=2",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "data": [],
+    "paginate": {
+      "page_size": 100,
+      "page_from": 100,
+      "prev_pages": [],
+      "current_page": 2,
+      "max_hits": false,
+      "params": "sort=published&order=desc&channel=UCmzkP2ArEQCZglqgmoopVmh",
+      "last_page": 0,
+      "next_pages": [],
+      "total_hits": 3
+    }
+  },
+  "text": null
+}

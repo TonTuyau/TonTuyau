@@ -1,0 +1,137 @@
+using TonTuyau.Application.Library;
+using TonTuyau.Application.Store;
+
+namespace TonTuyau.Application.Browse;
+
+public enum SearchKind
+{
+    All,
+    Videos,
+    Channels,
+}
+
+public enum ChannelArtKind
+{
+    Thumb,
+    Banner,
+}
+
+/// <summary>
+/// The values the API accepts in its parameters (API_CONTRACT.md), and what they mean. Validators check against
+/// these tables, services read them once the request is valid: one place for both.
+/// </summary>
+public static class ApiValues
+{
+    public const int DefaultPageSize = 24;
+    public const int MaxPageSize = 100;
+    public const int DefaultSuggestSize = 8;
+    public const int MaxSuggestSize = 20;
+    public const int MaxSearchLength = 200;
+    public const int MaxSuggestLength = 100;
+    public const int MaxChannelFilterLength = 100;
+
+    /// <summary>How far back a <c>published</c> period reaches from now.</summary>
+    public static TimeSpan LengthOf(PublishedPeriod period) => period switch
+    {
+        PublishedPeriod.Today => TimeSpan.FromHours(24),
+        PublishedPeriod.Week => TimeSpan.FromDays(7),
+        PublishedPeriod.Month => TimeSpan.FromDays(30),
+        PublishedPeriod.Year => TimeSpan.FromDays(365),
+        _ => throw new ArgumentOutOfRangeException(nameof(period)),
+    };
+
+    /// <summary>How many channels <c>kind=all</c> shows above the videos.</summary>
+    public const int TopChannels = 3;
+
+    /// <summary>At most this many channels open the suggestions; video titles fill the rest (M4-Q2).</summary>
+    public const int SuggestedChannels = 3;
+
+    public static readonly Table<VideoType> Types = new()
+    {
+        ["video"] = VideoType.Video,
+        ["short"] = VideoType.Short,
+        ["stream"] = VideoType.Stream,
+    };
+
+    public static readonly Table<VideoListSort> VideoSorts = new()
+    {
+        ["latest"] = VideoListSort.Latest,
+        ["popular"] = VideoListSort.Popular,
+        ["oldest"] = VideoListSort.Oldest,
+    };
+
+    public static readonly Table<VideoListSort> SearchSorts = new()
+    {
+        ["relevance"] = VideoListSort.Relevance,
+        ["latest"] = VideoListSort.Latest,
+        ["popular"] = VideoListSort.Popular,
+    };
+
+    public static readonly Table<ChannelListSort> ChannelSorts = new()
+    {
+        ["name"] = ChannelListSort.Name,
+        ["subscribers"] = ChannelListSort.Subscribers,
+    };
+
+    public static readonly Table<SearchKind> Kinds = new()
+    {
+        ["all"] = SearchKind.All,
+        ["videos"] = SearchKind.Videos,
+        ["channels"] = SearchKind.Channels,
+    };
+
+    public static readonly Table<PublishedPeriod> Periods = new()
+    {
+        ["today"] = PublishedPeriod.Today,
+        ["week"] = PublishedPeriod.Week,
+        ["month"] = PublishedPeriod.Month,
+        ["year"] = PublishedPeriod.Year,
+    };
+
+    public static readonly Table<DurationRange> Durations = new()
+    {
+        ["short"] = DurationRange.Short,
+        ["medium"] = DurationRange.Medium,
+        ["long"] = DurationRange.Long,
+    };
+
+    public static readonly Table<ChannelArtKind> ArtKinds = new()
+    {
+        ["thumb"] = ChannelArtKind.Thumb,
+        ["banner"] = ChannelArtKind.Banner,
+    };
+
+    /// <summary>Parameter value → meaning, in the order the contract lists them (used in error messages).</summary>
+    public sealed class Table<T>
+        where T : struct, Enum
+    {
+        private readonly List<KeyValuePair<string, T>> _entries = [];
+
+        public string Choices => string.Join(", ", _entries.Select(e => e.Key));
+
+        public IReadOnlyList<string> Names => [.. _entries.Select(e => e.Key)];
+
+        public T this[string name]
+        {
+            get => TryGet(name, out T value) ? value : throw new KeyNotFoundException(name);
+            init => _entries.Add(new(name, value));
+        }
+
+        public bool TryGet(string? name, out T value)
+        {
+            foreach (KeyValuePair<string, T> entry in _entries)
+            {
+                if (string.Equals(entry.Key, name, StringComparison.Ordinal))
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
+        public string NameOf(T value) => _entries.First(e => EqualityComparer<T>.Default.Equals(e.Value, value)).Key;
+    }
+}

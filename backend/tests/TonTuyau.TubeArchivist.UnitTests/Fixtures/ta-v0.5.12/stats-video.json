@@ -1,0 +1,43 @@
+{
+  "request": "/api/stats/video/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "doc_count": 44978,
+    "media_size": 21184377389710,
+    "duration": 71026904,
+    "duration_str": "2y 92d 01h 41m 44s",
+    "type_videos": {
+      "doc_count": 38060,
+      "media_size": 18294406606993,
+      "duration": 62111398,
+      "duration_str": "1y 353d 21h 09m 58s"
+    },
+    "type_shorts": {
+      "doc_count": 5951,
+      "media_size": 95950360701,
+      "duration": 415809,
+      "duration_str": "4d 19h 30m 09s"
+    },
+    "type_streams": {
+      "doc_count": 967,
+      "media_size": 2794020422016,
+      "duration": 8499697,
+      "duration_str": "98d 09h 01m 37s"
+    },
+    "active_true": {
+      "doc_count": 30768,
+      "media_size": 14213273919792,
+      "duration": 47960109,
+      "duration_str": "1y 190d 02h 15m 09s"
+    },
+    "active_false": {
+      "doc_count": 14210,
+      "media_size": 6971103469918,
+      "duration": 23066795,
+      "duration_str": "266d 23h 26m 35s"
+    }
+  },
+  "text": null
+}

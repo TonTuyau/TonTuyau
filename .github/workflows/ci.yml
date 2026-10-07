@@ -1,0 +1,129 @@
+# TonTuyau CI (QA13-1, QA13-2). Runs only on pull requests to main and on version tags, to
+# save GitHub Actions minutes: pushing a branch runs nothing, opening or updating its pull request does. Each run does
+# the same checks as scripts/check.sh, then builds both images. Images are pushed to GHCR only from a version tag
+# vX.Y.Z, when everything passed: tags `X.Y.Z`, `X.Y` and `latest` (the tag must match the version in the code).
+# A pull request builds the images and never pushes them.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A newer push to an open pull request replaces its running check; a tag's run always finishes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  check:
+    name: Checks (scripts/check.sh)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version tag matches the code
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: ./scripts/check-version.sh "$GITHUB_REF_NAME"
+
+      # The SDK backend/global.json pins (10.0.401, latest feature band allowed).
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: backend/global.json
+
+      - name: NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # pnpm at the version frontend/package.json pins ("packageManager").
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # Format, build, backend unit + Reqnroll tests (Testcontainers starts Elasticsearch on the runner's Docker),
+      # front lint, typecheck, tests (including the front server's) and build.
+      - name: scripts/check.sh
+        run: ./scripts/check.sh
+
+  images:
+    name: Image ${{ matrix.image }}
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [backend, frontend]
+    env:
+      PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version
+        id: version
+        run: echo "version=$(./scripts/check-version.sh)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/eclegv/tontuyau-${{ matrix.image }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=ref,event=pr
+          # Written out rather than taken from the repository (its name and description), so the images say
+          # TonTuyau and point at github.com/Eclegv/TonTuyau whatever the repository is called when CI runs.
+          labels: |
+            org.opencontainers.image.title=TonTuyau ${{ matrix.image }}
+            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a read-only, YouTube-like UI over a TubeArchivist library
+            org.opencontainers.image.source=https://github.com/Eclegv/TonTuyau
+            org.opencontainers.image.url=https://github.com/Eclegv/TonTuyau
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.licenses=MIT
+
+      - uses: docker/login-action@v3
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/${{ matrix.image }}.Dockerfile
+          platforms: linux/amd64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

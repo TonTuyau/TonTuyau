@@ -1,0 +1,10 @@
+{
+  "request": "/api/video/aaaaaaaaaaa/",
+  "authenticated": true,
+  "status": 404,
+  "contentType": "application/json",
+  "json": {
+    "error": "video not found"
+  },
+  "text": null
+}

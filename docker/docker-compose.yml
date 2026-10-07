@@ -1,0 +1,111 @@
+# TonTuyau stack (M7): Elasticsearch, the backend (API + sync + `tontuyau` CLI) and the front (the web app + a small
+# server forwarding /api, /media, /art to the backend). Only the front is reachable from the LAN.
+#
+# On the VM (README, "Install with Docker"): this file and `.env` side by side, then
+#   docker compose pull && docker compose up -d
+# From the repository: docker compose --env-file .env -f docker/docker-compose.yml up -d
+#
+# Everything comes from `.env` (see .env.example). The videos: the folder TONTUYAU_MEDIA_PATH on the VM (a local
+# folder, or a share you mounted there), bind-mounted read-only.
+name: tontuyau
+
+services:
+  tontuyau-es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4
+    container_name: tontuyau-es
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
+      ES_JAVA_OPTS: -Xms${TONTUYAU_ES_HEAP:-4g} -Xmx${TONTUYAU_ES_HEAP:-4g}
+      path.repo: /usr/share/elasticsearch/snapshots
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    volumes:
+      - tontuyau-es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsu elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 20
+
+  tontuyau-backend:
+    image: ghcr.io/eclegv/tontuyau-backend:${TONTUYAU_VERSION:-latest}
+    container_name: tontuyau-backend
+    restart: unless-stopped
+    depends_on:
+      tontuyau-es: { condition: service_healthy }
+    environment:
+      # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art, logs /data/logs/sync).
+      TONTUYAU_ES_URL: http://tontuyau-es:9200
+      TONTUYAU_ES_USERNAME: elastic
+      TONTUYAU_ES_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
+      TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:?set TONTUYAU_TA_URL in .env}
+      TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:?set TONTUYAU_TA_TOKEN in .env}
+      # Optional: empty means the backend's default (README, "Configuration").
+      TONTUYAU_ES_INDEX_PREFIX: ${TONTUYAU_ES_INDEX_PREFIX:-}
+      TONTUYAU_SYNC_INCREMENTAL_CRON: ${TONTUYAU_SYNC_INCREMENTAL_CRON:-}
+      TONTUYAU_SYNC_FULL_CRON: ${TONTUYAU_SYNC_FULL_CRON:-}
+      TONTUYAU_TZ: ${TONTUYAU_TZ:-}
+      TONTUYAU_SYNC_SCHEDULER_ENABLED: ${TONTUYAU_SYNC_SCHEDULER_ENABLED:-}
+      TONTUYAU_SYNC_MAX_DELETIONS: ${TONTUYAU_SYNC_MAX_DELETIONS:-}
+      TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS: ${TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS:-}
+      TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS: ${TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS:-}
+      TONTUYAU_SYNC_REJECT_GUARD_PERCENT: ${TONTUYAU_SYNC_REJECT_GUARD_PERCENT:-}
+      TONTUYAU_TA_RESULT_WINDOW: ${TONTUYAU_TA_RESULT_WINDOW:-}
+      TONTUYAU_ART_RESIZE_PARALLELISM: ${TONTUYAU_ART_RESIZE_PARALLELISM:-}
+      # The container's clock for log timestamps; the sync schedule uses TONTUYAU_TZ.
+      TZ: ${TONTUYAU_TZ:-Europe/Paris}
+    volumes:
+      # Your videos, read-only. A missing folder stops `up` with an error instead of mounting an empty one.
+      - type: bind
+        source: ${TONTUYAU_MEDIA_PATH:?set TONTUYAU_MEDIA_PATH in .env (the videos folder on the VM)}
+        target: /youtube
+        read_only: true
+        bind:
+          create_host_path: false
+      - tontuyau-art:/data/art
+      - tontuyau-sync-logs:/data/logs/sync
+    healthcheck:
+      # The generic /health (QA14-5): the process answers, nothing more. Other clients may use this API, so the
+      # container's health doesn't depend on Elasticsearch; /health/ready (Elasticsearch usable, TonTuyau's indices
+      # there) stays available for whoever wants it. The image has no curl: bash's /dev/tcp asks.
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 && head -n 1 <&3 | grep -q ' 200 '
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+
+  tontuyau-frontend:
+    image: ghcr.io/eclegv/tontuyau-frontend:${TONTUYAU_VERSION:-latest}
+    container_name: tontuyau-frontend
+    restart: unless-stopped
+    # The backend's process answers (not necessarily Elasticsearch): in the first seconds, or while Elasticsearch is
+    # down, the API answers errors that the app shows with a Retry button.
+    depends_on:
+      tontuyau-backend: { condition: service_healthy }
+    environment:
+      TONTUYAU_BACKEND_URL: http://tontuyau-backend:8080
+    ports:
+      - "${TONTUYAU_HTTP_PORT:-80}:8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  # Local disk on the VM. Backups: README, "Backups".
+  tontuyau-es-data:
+  tontuyau-art:
+  tontuyau-sync-logs:

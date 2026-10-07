@@ -1,0 +1,23 @@
+{
+  "request": "/api/channel/?page=3",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "data": [],
+    "paginate": {
+      "page_size": 100,
+      "page_from": 200,
+      "prev_pages": [
+        2
+      ],
+      "current_page": 3,
+      "max_hits": false,
+      "params": "",
+      "last_page": 0,
+      "next_pages": [],
+      "total_hits": 116
+    }
+  },
+  "text": null
+}

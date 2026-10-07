@@ -1,0 +1,220 @@
+{
+  "request": "/api/video/?sort=published&order=desc&channel=UCmzkP2ArEQCZglqgmoopVmh&page=1",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "data": [
+      {
+        "active": true,
+        "category": [
+          "People & Blogs"
+        ],
+        "channel": {
+          "channel_id": "UCmzkP2ArEQCZglqgmoopVmh",
+          "channel_active": true,
+          "channel_banner_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_banner.jpg",
+          "channel_thumb_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_thumb.jpg",
+          "channel_tvart_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_tvart.jpg",
+          "channel_description": null,
+          "channel_last_refresh": "2026-08-12T17:27:38+00:00",
+          "channel_name": "partie xénon rev",
+          "channel_subs": 116000,
+          "channel_subscribed": true,
+          "channel_tags": [],
+          "channel_tabs": [
+            "videos"
+          ]
+        },
+        "comment_count": null,
+        "date_downloaded": 1788997270,
+        "description": "xénon garçon garçon vidéo über live short tête crème über épisode vidéo zèbre xénon xénon garçon île jeu über tête garçon tête écho rêve déjà café noël œuvre stream quai café über yaourt live live yaourt déjà short piñata soleil vidéo xénon test stream lune kilo yaourt live xénon partie mère rêve hô",
+        "media_size": 241860621,
+        "media_url": "/youtube/UCmzkP2ArEQCZglqgmoopVmh/qZpY1kltbA2.mp4",
+        "player": {
+          "watched": false,
+          "duration": 1199,
+          "duration_str": "19m 59s"
+        },
+        "playlist": [],
+        "published": "2026-08-21T16:21:41+00:00",
+        "sponsorblock": null,
+        "stats": {
+          "like_count": 18978,
+          "average_rating": 0.0,
+          "view_count": 657427,
+          "dislike_count": 0
+        },
+        "streams": [
+          {
+            "bitrate": 1492619,
+            "codec": "vp9",
+            "height": 1080,
+            "index": 0,
+            "type": "video",
+            "width": 1920
+          },
+          {
+            "bitrate": 115518,
+            "codec": "opus",
+            "index": 1,
+            "type": "audio"
+          }
+        ],
+        "subtitles": [],
+        "tags": [],
+        "title": "test alpha soleil y",
+        "vid_last_refresh": "2026-09-09T23:41:10+00:00",
+        "vid_thumb_url": "/cache/videos/q/qZpY1kltbA2.jpg",
+        "vid_type": "videos",
+        "youtube_id": "qZpY1kltbA2",
+        "_index": "ta_video",
+        "_score": 0.0
+      },
+      {
+        "active": true,
+        "category": [
+          "People & Blogs"
+        ],
+        "channel": {
+          "channel_id": "UCmzkP2ArEQCZglqgmoopVmh",
+          "channel_active": true,
+          "channel_banner_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_banner.jpg",
+          "channel_thumb_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_thumb.jpg",
+          "channel_tvart_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_tvart.jpg",
+          "channel_description": null,
+          "channel_last_refresh": "2026-08-12T17:27:38+00:00",
+          "channel_name": "partie xénon rev",
+          "channel_subs": 116000,
+          "channel_subscribed": true,
+          "channel_tags": [],
+          "channel_tabs": [
+            "videos"
+          ]
+        },
+        "comment_count": null,
+        "date_downloaded": 1778095010,
+        "description": "test short xénon test garçon garçon noël review kilo quai café yaourt hôtel tuto garçon zèbre test forêt über partie épisode forêt île hôtel über wagon alpha café short garçon kilo quai bravo xénon vidéo garçon review live mère über écho rêve über live review kilo hôtel über partie zèbre bravo café",
+        "media_size": 55495105,
+        "media_url": "/youtube/UCmzkP2ArEQCZglqgmoopVmh/jKtwu6fSJpX.mp4",
+        "player": {
+          "watched": false,
+          "duration": 1108,
+          "duration_str": "18m 28s"
+        },
+        "playlist": [],
+        "published": "2026-04-20T20:25:55+00:00",
+        "sponsorblock": null,
+        "stats": {
+          "like_count": 77395,
+          "average_rating": 0.0,
+          "view_count": 1214648,
+          "dislike_count": 0
+        },
+        "streams": [
+          {
+            "bitrate": 285867,
+            "codec": "av1",
+            "height": 1080,
+            "index": 0,
+            "type": "video",
+            "width": 1920
+          },
+          {
+            "bitrate": 110314,
+            "codec": "opus",
+            "index": 1,
+            "type": "audio"
+          }
+        ],
+        "subtitles": [],
+        "tags": [],
+        "title": "alpha île review t",
+        "vid_last_refresh": "2026-05-11T21:56:46+00:00",
+        "vid_thumb_url": "/cache/videos/j/jKtwu6fSJpX.jpg",
+        "vid_type": "videos",
+        "youtube_id": "jKtwu6fSJpX",
+        "_index": "ta_video",
+        "_score": 0.0
+      },
+      {
+        "active": true,
+        "category": [
+          "People & Blogs"
+        ],
+        "channel": {
+          "channel_id": "UCmzkP2ArEQCZglqgmoopVmh",
+          "channel_active": true,
+          "channel_banner_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_banner.jpg",
+          "channel_thumb_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_thumb.jpg",
+          "channel_tvart_url": "/cache/channels/UCmzkP2ArEQCZglqgmoopVmh_tvart.jpg",
+          "channel_description": null,
+          "channel_last_refresh": "2026-08-12T17:27:38+00:00",
+          "channel_name": "partie xénon rev",
+          "channel_subs": 116000,
+          "channel_subscribed": true,
+          "channel_tags": [],
+          "channel_tabs": [
+            "videos"
+          ]
+        },
+        "comment_count": null,
+        "date_downloaded": 1778536703,
+        "description": "rêve piñata zèbre œuvre test tuto piñata xénon yaourt alpha xénon tête short écho tuto forêt tête alpha tête s",
+        "media_size": 40801242,
+        "media_url": "/youtube/UCmzkP2ArEQCZglqgmoopVmh/DAauVYV17aS.mp4",
+        "player": {
+          "watched": false,
+          "duration": 324,
+          "duration_str": "5m 24s"
+        },
+        "playlist": [],
+        "published": "2026-03-03T18:02:05+00:00",
+        "sponsorblock": null,
+        "stats": {
+          "like_count": 32511,
+          "average_rating": 0.0,
+          "view_count": 452367,
+          "dislike_count": 0
+        },
+        "streams": [
+          {
+            "bitrate": 888425,
+            "codec": "av1",
+            "height": 1080,
+            "index": 0,
+            "type": "video",
+            "width": 1920
+          },
+          {
+            "bitrate": 109505,
+            "codec": "opus",
+            "index": 1,
+            "type": "audio"
+          }
+        ],
+        "subtitles": [],
+        "tags": [],
+        "title": "épisode forêt île soleil mère lune alpha café tête über crème partie z",
+        "vid_last_refresh": "2026-05-11T22:00:05+00:00",
+        "vid_thumb_url": "/cache/videos/d/DAauVYV17aS.jpg",
+        "vid_type": "videos",
+        "youtube_id": "DAauVYV17aS",
+        "_index": "ta_video",
+        "_score": 0.0
+      }
+    ],
+    "paginate": {
+      "page_size": 100,
+      "page_from": 0,
+      "prev_pages": null,
+      "current_page": 1,
+      "max_hits": false,
+      "params": "sort=published&order=desc&channel=UCmzkP2ArEQCZglqgmoopVmh",
+      "last_page": 0,
+      "next_pages": [],
+      "total_hits": 3
+    }
+  },
+  "text": null
+}

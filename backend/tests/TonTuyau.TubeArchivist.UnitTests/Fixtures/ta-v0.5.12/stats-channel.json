@@ -1,0 +1,14 @@
+{
+  "request": "/api/stats/channel/",
+  "authenticated": true,
+  "status": 200,
+  "contentType": "application/json",
+  "json": {
+    "doc_count": 116,
+    "active_true": 116,
+    "active_false": null,
+    "subscribed_true": 110,
+    "subscribed_false": 6
+  },
+  "text": null
+}

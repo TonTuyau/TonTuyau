@@ -1,0 +1,13 @@
+# Real videos from TubeArchivist used by the local dev stack (R2-5, R3-2). One youtube_id per line.
+# Smallest file per type / video codec / audio codec / active combination, plus one 4K AV1.
+F_61JlzUoZI
+aWDiP-ZaCfI
+dZqjMzlXXmI
+mSoPTxdVTnw
+QF4xxljhWIA
+CGN06utNWMA
+c5MEzCXA2sI
+WkMFCS0IUf0
+dp1thcnPbiM
+NsQQOtJ2iaA
+y07hZ0XvwUg
