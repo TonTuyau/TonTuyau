@@ -1,7 +1,8 @@
 <script lang="ts">
   // /watch?v=<id>: player (or the unavailable / unsupported message), title, channel + subscribers, views, date, likes,
   // download, expandable description with tags and file details, and the channel's latest uploads beside it (or below
-  // it with the large player), scrolling on page after page.
+  // it with the large player), scrolling on page after page. `&t=` (front-only routing) starts the video at that time;
+  // the description's timecodes are links to their time, and a plain click seeks the player there and plays (1.1.0).
   import { api } from '../lib/api/client'
   import type { Playability } from '../lib/codec'
   import type { VideoCard as Video, VideoDetail } from '../lib/api/types'
@@ -11,7 +12,7 @@
   import { playerSize } from '../lib/playerSize.svelte'
   import { Pager, Remote } from '../lib/remote.svelte'
   import { router } from '../lib/router/router.svelte'
-  import { href } from '../lib/router/routes'
+  import { href, startTime } from '../lib/router/routes'
   import { pageTitle } from '../lib/title.svelte'
   import Avatar from '../components/Avatar.svelte'
   import Badge from '../components/Badge.svelte'
@@ -29,6 +30,7 @@
   let { probe }: { probe?: (mimeType: string) => Playability } = $props()
 
   const id = $derived(router.query.get('v'))
+  const start = $derived(startTime(router.query.get('t')))
   const remote = new Remote<VideoDetail>()
   const more = new Pager<Video>()
 
@@ -67,6 +69,22 @@
   pageTitle(() => video?.title ?? (missing ? t(missing.title) : null))
 
   const lang = $derived(i18n.lang)
+
+  let player: Player | undefined = $state()
+  let stage: HTMLElement | undefined = $state()
+
+  // A timecode's click: seek and play, and bring the player back into view if the page was scrolled away from it.
+  function seek(seconds: number) {
+    if (!player?.seek(seconds) || !stage) {
+      return
+    }
+    const box = stage.getBoundingClientRect()
+    const top = Number.parseFloat(getComputedStyle(stage).scrollMarginTop) || 0
+    if (box.top < top || box.bottom > window.innerHeight) {
+      const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      stage.scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' })
+    }
+  }
 </script>
 
 {#if !id}
@@ -81,10 +99,12 @@
   <div class="watch"><div class="primary"><Skeleton layout="page" /></div></div>
 {:else}
   <div class="watch" class:large={playerSize.size === 'large'} data-player-size={playerSize.size}>
-    <div class="stage">
+    <div class="stage" bind:this={stage}>
       <Player
+        bind:this={player}
         {video}
         {probe}
+        {start}
         size={playerSize.size}
         onsizechange={(size) => playerSize.set(size)}
         onunavailable={() => (fileMissing = true)}
@@ -130,6 +150,13 @@
           text={video.description || t('watch.noDescription')}
           more={t('watch.more')}
           less={t('watch.less')}
+          timecodes={video.description
+            ? {
+                duration: video.durationSeconds,
+                href: (seconds) => href.watch(video.id, seconds),
+                onseek: seek,
+              }
+            : undefined}
         >
           {#snippet header()}
             <p class="stats">
@@ -218,6 +245,8 @@
 
   .stage {
     grid-area: stage;
+    /* Below the sticky top bar when a timecode brings the player back into view. */
+    scroll-margin-top: calc(var(--topbar-height) + var(--space-3));
     display: flex;
     flex-direction: column;
     gap: var(--space-3);

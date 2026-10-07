@@ -96,7 +96,26 @@ export const href = {
   channels: (query: { q?: string | null; sort?: string | null } = {}): string => withQuery('/channels', query),
   channel: (id: string, tab?: ChannelTab | null, sort?: string | null): string =>
     withQuery(`/channel/${encodeURIComponent(id)}${tab ? `/${tab}` : ''}`, { sort }),
-  watch: (id: string): string => withQuery('/watch', { v: id }),
+  /** `start`: where the watch page starts the video, in seconds (`&t=`, front-only routing). */
+  watch: (id: string, start?: number | null): string =>
+    withQuery('/watch', { v: id, t: start ? String(Math.floor(start)) : null }),
   short: (id: string): string => `/shorts/${encodeURIComponent(id)}`,
   results: (query: Record<string, string | null | undefined>): string => withQuery('/results', query),
+}
+
+/**
+ * The watch page's `t` parameter (a link to a time: `?v=<id>&t=83`), in seconds; null when absent or not a time.
+ * Also reads YouTube's forms, so a pasted YouTube time works: `83s`, `1m23s`, `1h2m3s`.
+ */
+export function startTime(value: string | null): number | null {
+  if (value === null) {
+    return null
+  }
+  const text = value.trim()
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/.exec(text)
+  if (!match || text === '') {
+    return null
+  }
+  const [, hours, minutes, seconds] = match
+  return Number(hours ?? 0) * 3600 + Number(minutes ?? 0) * 60 + Number(seconds ?? 0)
 }

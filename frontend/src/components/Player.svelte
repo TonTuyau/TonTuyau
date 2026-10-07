@@ -5,6 +5,9 @@
   // the download (under the player on the watch page, over the top of the video in the shorts player).
   // The box takes the video's own shape (lib/videoRatio.ts), so no black bars; on the watch page a button on the
   // player switches between the small and the large player (lib/playerSize.svelte.ts).
+  // `start` (the watch page's `t`) is where the video starts; seek() moves to a time and plays (a timecode's click).
+  // Leaving a video (the next short, another page, a message in its place) empties its <video> at once, so its download
+  // stops (1.1.0, the Firefox shorts fix): see release() below.
   import type { VideoDetail } from '../lib/api/types'
   import { playability, type Playability } from '../lib/codec'
   import { codecName } from '../lib/format'
@@ -22,6 +25,7 @@
     size = 'small',
     onsizechange,
     onunavailable,
+    start = null,
     // eslint-disable-next-line no-useless-assignment -- a bindable prop, written by the $effect below
     ratio = $bindable(),
   }: {
@@ -33,6 +37,8 @@
     onsizechange?: (size: PlayerSize) => void
     /** The file turned out to be missing on the share (404 when played): the page hides its download links. */
     onunavailable?: () => void
+    /** Where to start, in seconds (a link to a time); ignored past the video's duration. */
+    start?: number | null
     /** Out: the shape the box uses (API, then the loaded file, then a placeholder), for a page that frames it. */
     ratio?: Ratio
   } = $props()
@@ -68,9 +74,54 @@
   })
   const fitted = $derived(variant === 'watch' && mode === 'play')
 
+  let element: HTMLVideoElement | undefined = $state()
+
+  // A <video> taken out of the page keeps downloading, and keeps its connection, until the garbage collector frees
+  // it. Scrolling through shorts in Firefox, the old ones piled up (9 open downloads for 1 video on screen) and took
+  // every HTTP/1.1 connection to the server: the next short's file then waited forever, with no error. Emptying it
+  // (no src, then load()) cancels its download right away.
+  $effect(() => {
+    const media = element
+    if (media) {
+      return () => release(media)
+    }
+  })
+
+  function release(media: HTMLVideoElement) {
+    media.pause()
+    media.removeAttribute('src')
+    media.load()
+  }
+
+  // A start time within the video (the API's duration): applied once the file's metadata is in, and again when the
+  // link changes to another time of the same video.
+  const startAt = $derived(start !== null && start > 0 && start <= video.durationSeconds ? start : null)
+  $effect(() => {
+    const at = startAt
+    if (at !== null && element && element.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      element.currentTime = at
+    }
+  })
+
   function onloadedmetadata(event: Event & { currentTarget: HTMLVideoElement }) {
     loadedRatio = ratioFromElement(event.currentTarget)
+    if (startAt !== null) {
+      event.currentTarget.currentTime = startAt
+    }
   }
+
+  /** Moves to `seconds` and plays (YouTube's timecode click). False when there's no video to seek (a message). */
+  export function seek(seconds: number): boolean {
+    if (!element) {
+      return false
+    }
+    element.currentTime = seconds
+    // A refused play() (autoplay rules) leaves the video paused at that time, which is fine.
+    element.play()?.catch(() => {})
+    return true
+  }
+
+  const HEAD_TIMEOUT_MS = 10_000
 
   // A decode error and a missing file look the same to the media element: ask the server about the file.
   async function onerror() {
@@ -81,7 +132,9 @@
     failure = 'checking'
     let missing: boolean
     try {
-      missing = (await fetch(video.mediaUrl, { method: 'HEAD' })).status === 404
+      // Bounded: a question that never gets an answer mustn't leave the player waiting with no message.
+      missing =
+        (await fetch(video.mediaUrl, { method: 'HEAD', signal: AbortSignal.timeout(HEAD_TIMEOUT_MS) })).status === 404
     } catch {
       missing = false
     }
@@ -112,6 +165,7 @@
   {#if mode === 'play'}
     <!-- svelte-ignore a11y_media_has_caption (subtitles are out of v1, R2-12) -->
     <video
+      bind:this={element}
       src={video.mediaUrl}
       poster={video.thumbnailUrl ?? undefined}
       controls

@@ -10,9 +10,7 @@ namespace TonTuyau.Api.Cli;
 /// Exit codes: 0 done, 1 the run failed, 2 usage error, 3 another sync is running, 4 refused.
 /// The commands that run a sync print its progress while it runs (see <see cref="CliProgress"/>), then the report.
 /// </summary>
-/// <param name="terminal">The output is a terminal: the progress is one line updated in place.</param>
-/// <param name="width">The terminal's width, when known (0 otherwise).</param>
-internal sealed class CliRunner(IServiceProvider services, TextWriter output, bool terminal = false, int width = 0)
+internal sealed class CliRunner(IServiceProvider services, TextWriter output)
 {
     public const int Ok = 0;
     public const int RunFailed = 1;
@@ -86,7 +84,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, bo
     /// <summary>Runs a sync with its progress shown, and ends the progress (even on an error) before the report.</summary>
     private async Task<SyncRun> WithProgressAsync(Func<ISyncProgressReporter, Task<SyncRun>> sync)
     {
-        CliProgress progress = new(output, terminal, services.GetService<TimeProvider>() ?? TimeProvider.System, width);
+        using CliProgress progress = new(output, services.GetService<TimeProvider>() ?? TimeProvider.System);
         try
         {
             return await sync(progress);

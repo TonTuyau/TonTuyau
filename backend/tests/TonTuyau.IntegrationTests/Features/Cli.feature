@@ -16,7 +16,7 @@ Feature: Command line
     And the output mentions "  deletions 0 deleted, 0 kept (still in TubeArchivist)"
     And TonTuyau has 5 videos and 1 channel
 
-  # Through the tests the output isn't a terminal: one plain line per update (on a terminal it's one line, rewritten).
+  # One plain line per update, terminal or not (QA16-1).
   Scenario: A sync from the command line prints its progress, then the report
     Given the media share has every video's file except "alpha-03"
     When I run "tontuyau sync full"

@@ -89,6 +89,19 @@ describe('ShortsPage (/shorts/<id>)', () => {
     expect(router.path).toBe('/shorts/s1')
   })
 
+  it('moves one short for one Firefox wheel notch (3 lines, DOM_DELTA_LINE)', async () => {
+    shortsBackend()
+    goTo('/shorts/s1')
+    render(App)
+    await heading()
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Next short' })).toBeEnabled())
+    const stage = document.querySelector('.shorts-page') as HTMLElement
+
+    await fireEvent.wheel(stage, { deltaY: 3, deltaMode: WheelEvent.DOM_DELTA_LINE })
+
+    expect(router.path).toBe('/shorts/s2')
+  })
+
   it('moves one short per wheel gesture', async () => {
     shortsBackend()
     goTo('/shorts/s1')
@@ -97,10 +110,48 @@ describe('ShortsPage (/shorts/<id>)', () => {
     await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Next short' })).toBeEnabled())
     const stage = document.querySelector('.shorts-page') as HTMLElement
 
-    await fireEvent.wheel(stage, { deltaY: 120 })
-    await fireEvent.wheel(stage, { deltaY: 120 })
+    for (let event = 0; event < 20; event++) {
+      await fireEvent.wheel(stage, { deltaY: 30 })
+    }
 
     expect(router.path).toBe('/shorts/s2')
+  })
+
+  // 1.1.0, the Firefox stall: the shorts left behind must not keep downloading (and holding connections).
+  it('keeps one <video> alive while scrolling through many shorts, each one left emptied', async () => {
+    const ids = Array.from({ length: 12 }, (_, index) => `s${String(index + 1).padStart(2, '0')}`)
+    fakeApi({
+      ...Object.fromEntries(ids.map((id) => [`/api/videos/${id}`, videoDetail({ id, type: 'short', title: id })])),
+      '/api/videos': page(
+        ids.slice(1).map((id) => videoCard({ id, type: 'short' })),
+        ids.length - 1,
+      ),
+    })
+    vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably')
+    const load = vi.spyOn(HTMLMediaElement.prototype, 'load')
+    goTo(`/shorts/${ids[0]}`)
+    const user = userEvent.setup()
+    render(App)
+    const seen = new Set<HTMLVideoElement>()
+
+    for (const id of ids) {
+      expect(await heading()).toHaveTextContent(id)
+      const alive = document.querySelectorAll('video')
+      expect(alive).toHaveLength(1)
+      seen.add(alive[0] as HTMLVideoElement)
+      if (id !== ids.at(-1)) {
+        await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Next short' })).toBeEnabled())
+        await user.keyboard('{ArrowDown}')
+      }
+    }
+
+    const left = [...seen].filter((media) => !media.isConnected)
+    expect(seen.size).toBe(ids.length)
+    expect(left).toHaveLength(ids.length - 1)
+    for (const media of left) {
+      expect(media).not.toHaveAttribute('src')
+      expect(load.mock.contexts).toContain(media)
+    }
   })
 
   it('loads the next page of the sequence before reaching its end', async () => {
@@ -178,5 +229,56 @@ describe('ShortsPage (/shorts/<id>)', () => {
     await heading()
     const frame = document.querySelector('div.frame') as HTMLElement
     await vi.waitFor(() => expect(frame.style.getPropertyValue('--video-ratio')).toBe('2160 / 2160'))
+  })
+
+  // 1.1.0: the frame is the short's exact shape (no black bars), so the title overlay sits on the picture's bottom
+  // edge, where the browser's controls are drawn too: it steps aside while they may be showing.
+  describe('the title overlay', () => {
+    async function open() {
+      vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably')
+      fakeApi({
+        '/api/videos/sq000000001': videoDetail({
+          id: 'sq000000001',
+          type: 'short',
+          tracks: [{ kind: 'video', codec: 'h264', width: 1080, height: 1350, bitrate: 1 }],
+        }),
+        '/api/videos': page([]),
+      })
+      goTo('/shorts/sq000000001')
+      render(App)
+      await heading()
+      return document.querySelector('div.frame') as HTMLElement
+    }
+
+    it("gives the frame the short's ratio as a number too, to size it within the page", async () => {
+      const frame = await open()
+
+      await vi.waitFor(() => expect(frame.style.getPropertyValue('--video-ratio-value')).toBe('0.8'))
+      expect(frame.style.getPropertyValue('--video-ratio')).toBe('1080 / 1350')
+    })
+
+    it('steps aside while the video is paused (its controls show), and comes back when it plays', async () => {
+      const frame = await open()
+      const media = frame.querySelector('video') as HTMLVideoElement
+
+      await fireEvent.pause(media)
+      expect(frame).toHaveClass('controls')
+      await fireEvent.play(media)
+      expect(frame).not.toHaveClass('controls')
+    })
+
+    it('steps aside for a few seconds after a touch (touch screens show the controls on a tap)', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        const frame = await open()
+
+        await fireEvent.touchStart(frame, { touches: [{ clientY: 300 }] })
+        expect(frame).toHaveClass('controls')
+        await vi.advanceTimersByTimeAsync(3000)
+        expect(frame).not.toHaveClass('controls')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 })

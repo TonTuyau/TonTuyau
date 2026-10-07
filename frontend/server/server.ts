@@ -34,17 +34,18 @@ const IMMUTABLE = 'public, max-age=31536000, immutable'
 const REVALIDATE = 'no-cache'
 
 /**
- * The Content-Security-Policy (QA14-3: built as if TonTuyau were already public). Everything comes from this origin;
- * images may also be data: URLs. No inline script: index.html loads its theme script as a file
- * (public/theme-init.js). No inline style either: the app's few dynamic styles (the player's aspect ratio, the
- * description's line count) are CSS custom properties that Svelte sets through the CSSOM (element.style), which a
- * CSP doesn't restrict, so neither 'unsafe-inline' nor style-src-attr is needed.
+ * The Content-Security-Policy (QA14-3: built as if TonTuyau were already public). Everything comes from this origin,
+ * images included: no data: URLs (QA15-2 b), nothing uses them and vite.config.ts never inlines an asset as one.
+ * No inline script: index.html loads its theme script as a file (public/theme-init.js). No inline style either: the
+ * app's few dynamic styles (the player's aspect ratio, the description's line count) are CSS custom properties that
+ * Svelte sets through the CSSOM (element.style), which a CSP doesn't restrict, so neither 'unsafe-inline' nor
+ * style-src-attr is needed.
  */
 export const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
-  "img-src 'self' data:",
+  "img-src 'self'",
   "media-src 'self'",
   "connect-src 'self'",
   "font-src 'self'",

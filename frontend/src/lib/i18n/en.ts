@@ -135,6 +135,7 @@ export const en = {
   'watch.file': 'File',
   'watch.downloaded': 'Archived on {date}',
   'watch.noDescription': 'No description',
+  'watch.playFrom': 'Play from {time}',
   'watch.moreFrom': 'More from {channel}',
   'watch.player': 'Video player',
   'watch.missingHint': "The video file can't be found on the share right now.",

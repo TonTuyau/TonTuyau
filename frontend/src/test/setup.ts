@@ -6,6 +6,10 @@ if (typeof window !== 'undefined') {
 
   // jsdom doesn't implement scrolling; the router scrolls to the top on navigation.
   window.scrollTo = () => {}
+  // Nor media playback: the player pauses and empties a <video> it lets go of (tests spy on these when it matters).
+  HTMLMediaElement.prototype.load = function () {}
+  HTMLMediaElement.prototype.pause = function () {}
+  HTMLMediaElement.prototype.play = () => Promise.resolve()
 
   beforeEach(() => {
     history.replaceState(null, '', '/')
