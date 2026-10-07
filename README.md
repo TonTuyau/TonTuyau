@@ -81,7 +81,7 @@ docker exec -it tontuyau-backend tontuyau sync full
 
 It reads the whole TubeArchivist library (read-only) into TonTuyau's index, copies the images (about 4 GB) and makes their resized versions, channel by channel. On a library of about 45,000 videos it takes **about 20 minutes**. Later full runs only copy and resize what's new: about 3 minutes.
 
-While it runs, the command shows where it is: a line at each step and every 10 seconds, with the time since it started.
+While it runs, the command shows where it is, as plain lines (the same in a terminal and in a log): a line at each step and every 10 seconds, with the time since it started. During a long step with nothing new to count (a slow TubeArchivist answer, the switch to the new indices), the current line is printed again every 10 seconds, so you can see the time go up and know it's still running.
 
 ```
 [00:00] channels      0 / 150 read
@@ -90,8 +90,7 @@ While it runs, the command shows where it is: a line at each step and every 10 s
 [19:12] deletions     nothing to delete
 ```
 
-- With `docker exec -it` (a terminal), it's **one line, updated in place**.
-- Without `-t`, or piped (`docker exec tontuyau-backend tontuyau sync full | tee sync.log`), each update is a **line of its own** (about 130 for a first full sync), and each step ends with its final counts.
+- Each update is a **line of its own** (about 130 to 180 for a first full sync), with or without `-t`, and piped too (`docker exec tontuyau-backend tontuyau sync full | tee sync.log` keeps a copy); each step ends with its final counts.
 - A count is shown as "x / y" only when the total is really known (the channels); the videos are counted as they come.
 
 Then it prints the run's report (`tontuyau sync status` shows it again). `tontuyau sync incremental`, `tontuyau index rebuild` and `tontuyau sync apply-deletions <run>` show their progress the same way. The scheduled syncs print nothing (their start and end are in the backend's log).

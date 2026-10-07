@@ -59,10 +59,8 @@ internal static class CliHost
             return CliRunner.RunFailed;
         }
 
-        // `docker exec -it` gives a terminal (progress on one line, updated in place); without -t, or piped into tee,
-        // the output is redirected (one progress line per update).
-        bool terminal = !Console.IsOutputRedirected;
-        CliRunner runner = new(host.Services, Console.Out, terminal, terminal ? Console.WindowWidth : 0);
+        // The progress is plain lines, terminal or not (QA16-1).
+        CliRunner runner = new(host.Services, Console.Out);
         return await runner.RunAsync(args, cancel.Token).ConfigureAwait(false);
     }
 }
