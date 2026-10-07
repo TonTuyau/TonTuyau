@@ -16,6 +16,7 @@
   import { shortsPlayer } from '../lib/shortsPlayer.svelte'
   import { pageTitle } from '../lib/title.svelte'
   import { ratioCss, type Ratio } from '../lib/videoRatio'
+  import { WheelGesture, wheelPixels } from '../lib/wheelGesture'
   import Avatar from '../components/Avatar.svelte'
   import Badge from '../components/Badge.svelte'
   import ErrorState from '../components/ErrorState.svelte'
@@ -25,9 +26,6 @@
 
   let { id, probe }: { id: string; probe?: (mimeType: string) => Playability } = $props()
 
-  /** Wheel distance (px) that counts as one step, and the pause after a step (a trackpad sends many events). */
-  const WHEEL_STEP = 50
-  const WHEEL_PAUSE_MS = 600
   const SWIPE_MIN = 60
   /** Load the next page of the sequence when this close to its end. */
   const PREFETCH = 3
@@ -125,8 +123,7 @@
   }
 
   let root: HTMLElement | undefined = $state()
-  let wheelDistance = 0
-  let wheelPausedUntil = 0
+  const wheel = new WheelGesture()
 
   let touchY: number | null = null
 
@@ -136,17 +133,12 @@
     if (!element) {
       return
     }
+    // One short per gesture (lib/wheelGesture.ts): Firefox's line deltas, smooth scrolling and trackpad momentum.
     const onwheel = (event: WheelEvent) => {
       event.preventDefault()
-      const now = performance.now()
-      if (now < wheelPausedUntil) {
-        return
-      }
-      wheelDistance += event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY * 16 : event.deltaY
-      if (Math.abs(wheelDistance) >= WHEEL_STEP) {
-        go(wheelDistance > 0 ? 1 : -1)
-        wheelDistance = 0
-        wheelPausedUntil = now + WHEEL_PAUSE_MS
+      const step = wheel.feed(wheelPixels(event.deltaY, event.deltaMode, element.clientHeight), event.timeStamp)
+      if (step !== 0) {
+        go(step)
       }
     }
     const ontouchstart = (event: TouchEvent) => {

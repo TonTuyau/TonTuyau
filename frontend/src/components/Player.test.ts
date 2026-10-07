@@ -239,7 +239,10 @@ describe('Player (codec check, R2-13)', () => {
       expect(await screen.findByText('File unavailable')).toBeInTheDocument()
       expect(screen.getByText("The video file can't be found on the share right now.")).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: /Download/ })).not.toBeInTheDocument()
-      expect(head).toHaveBeenCalledWith('/media/from-the-api/vid00000001', { method: 'HEAD' })
+      expect(head).toHaveBeenCalledWith('/media/from-the-api/vid00000001', {
+        method: 'HEAD',
+        signal: expect.any(AbortSignal),
+      })
       expect(onunavailable).toHaveBeenCalledOnce()
     })
 
@@ -255,6 +258,53 @@ describe('Player (codec check, R2-13)', () => {
       await fireEvent.error(second.container.querySelector('video') as HTMLVideoElement)
       expect(await screen.findByText("The browser couldn't play this file")).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /Download/ })).toBeInTheDocument()
+    })
+  })
+
+  // 1.1.0, the Firefox shorts fix: a <video> taken out of the page kept downloading (and its connection) until
+  // garbage-collected.
+  describe('letting go of its video', () => {
+    it('empties the <video> when the player goes away, so its download stops at once', () => {
+      const load = vi.spyOn(HTMLMediaElement.prototype, 'load')
+      const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause')
+      const { container, unmount } = render(Player, { video: videoDetail(), probe: (): Playability => 'probably' })
+      const media = container.querySelector('video') as HTMLVideoElement
+      expect(media).toHaveAttribute('src', '/media/from-the-api/vid00000001')
+
+      unmount()
+
+      expect(media).not.toHaveAttribute('src')
+      expect(pause.mock.contexts).toEqual([media])
+      expect(load.mock.contexts).toEqual([media])
+    })
+
+    it('empties it too when a message takes its place (a decode error)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }))
+      const load = vi.spyOn(HTMLMediaElement.prototype, 'load')
+      const { container } = render(Player, { video: videoDetail(), probe: (): Playability => 'probably' })
+      const media = container.querySelector('video') as HTMLVideoElement
+
+      await fireEvent.error(media)
+
+      expect(await screen.findByText("The browser couldn't play this file")).toBeInTheDocument()
+      expect(media).not.toHaveAttribute('src')
+      expect(load.mock.contexts).toEqual([media])
+    })
+
+    it("says it couldn't play the file when the server never answers about it", async () => {
+      const timeout = new AbortController()
+      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal)
+      vi.spyOn(globalThis, 'fetch').mockImplementation(
+        (_input, init) =>
+          new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))),
+      )
+      const { container } = render(Player, { video: videoDetail(), probe: (): Playability => 'probably' })
+
+      await fireEvent.error(container.querySelector('video') as HTMLVideoElement)
+      timeout.abort(new DOMException('The operation timed out.', 'TimeoutError'))
+
+      expect(await screen.findByText("The browser couldn't play this file")).toBeInTheDocument()
+      expect(timeoutSpy).toHaveBeenCalledWith(10_000)
     })
   })
 })
