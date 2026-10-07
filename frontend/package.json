@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:mockup": "vite --mode mockup",
     "build": "vite build",
-    "check:csp": "node scripts/check-csp-html.ts dist/index.html",
+    "check:csp": "node scripts/check-csp-html.ts dist/index.html dist/assets/*.css",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json --fail-on-warnings && tsc -p tsconfig.node.json",
     "lint": "eslint . && prettier --check .",
