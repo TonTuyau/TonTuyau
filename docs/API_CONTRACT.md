@@ -27,7 +27,7 @@
     "detail": "sort: must be one of latest, popular, oldest.", "errors": { "sort": ["must be one of latest, popular, oldest."] } }
   ```
   400 invalid parameter · 404 unknown id (or missing file/image) · 416 bad range · 500 without internals.
-- **Version** (M7): every answer carries `X-TonTuyau-Version: 1.0.0` (the backend's version, the same as `tontuyau --version`). Informative only: the front doesn't read it.
+- **Version** (M7): every answer carries `X-TonTuyau-Version: 1.1.0` (the backend's version, the same as `tontuyau --version`). Informative only: the front doesn't read it.
 
 ## Shapes
 
