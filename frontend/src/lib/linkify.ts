@@ -1,8 +1,40 @@
 // Descriptions (QA06, M5a-7): http(s) URLs become links. A display concern only: the text is split into
 // plain-text and link segments that the template renders as text nodes and <a> elements (never as HTML).
-// Timestamps ("12:30"), bare domains and other schemes stay plain text.
+// Bare domains and other schemes stay plain text. Timecodes ("1:23", "1:02:03") become `time` segments only when
+// the caller gives the video's duration (1.1.0, the watch page's description): YouTube's rules, see parseTimecode().
 
-export type Segment = { kind: 'text'; text: string } | { kind: 'link'; text: string; href: string }
+export type Segment =
+  | { kind: 'text'; text: string }
+  | { kind: 'link'; text: string; href: string }
+  | { kind: 'time'; text: string; seconds: number }
+
+export interface LinkifyOptions {
+  /** The video's duration from the API (seconds): timecodes up to it become `time` segments. */
+  duration?: number
+}
+
+/**
+ * A timecode as YouTube links it: m:ss, mm:ss, h:mm:ss or hh:mm:ss, seconds 00–59 (two digits), and minutes 00–59
+ * (two digits) when there are hours. Not inside a word or a number ("v1:23", "1:23:45:67", "1:23.5"); "3:5", "1:60"
+ * and ratios such as "16:9" aren't timecodes.
+ */
+const timecodePattern =
+  /(?<![\p{L}\p{N}_:]|\p{N}[.,])(?:(\d{1,2}):(\d{2})|(\d{1,2})):(\d{2})(?![\p{L}\p{N}_]|[:.,]\p{N})/gu
+
+/** The seconds a timecode stands for, or null when it isn't one (the rules of timecodePattern). */
+export function parseTimecode(text: string): number | null {
+  const match = new RegExp(`^(?:${timecodePattern.source})$`, 'u').exec(text)
+  return match ? secondsOf(match) : null
+}
+
+function secondsOf(match: RegExpExecArray | RegExpMatchArray): number | null {
+  const [, hours, minutesAfterHours, minutesAlone, seconds] = match
+  const minutes = Number(minutesAfterHours ?? minutesAlone)
+  if (Number(seconds) > 59 || (hours !== undefined && minutes > 59)) {
+    return null
+  }
+  return Number(hours ?? 0) * 3600 + minutes * 60 + Number(seconds)
+}
 
 /** An http(s) URL that doesn't start in the middle of a word or of another URL. */
 const urlPattern = /(?<![\p{L}\p{N}_@/.-])https?:\/\/[^\s<>"`]+/giu
@@ -38,9 +70,9 @@ function target(url: string): string | null {
   }
 }
 
-export function linkify(text: string): Segment[] {
+export function linkify(text: string, options: LinkifyOptions = {}): Segment[] {
   const segments: Segment[] = []
-  const pushText = (value: string) => {
+  const pushPlain = (value: string) => {
     if (value === '') {
       return
     }
@@ -50,6 +82,25 @@ export function linkify(text: string): Segment[] {
     } else {
       segments.push({ kind: 'text', text: value })
     }
+  }
+  // Text between URLs: its timecodes within the duration become `time` segments.
+  const { duration } = options
+  const pushText = (value: string) => {
+    if (duration === undefined) {
+      pushPlain(value)
+      return
+    }
+    let from = 0
+    for (const match of value.matchAll(timecodePattern)) {
+      const seconds = secondsOf(match)
+      if (seconds === null || seconds > duration) {
+        continue
+      }
+      pushPlain(value.slice(from, match.index))
+      segments.push({ kind: 'time', text: match[0], seconds })
+      from = match.index + match[0].length
+    }
+    pushPlain(value.slice(from))
   }
   let position = 0
   for (const match of text.matchAll(urlPattern)) {

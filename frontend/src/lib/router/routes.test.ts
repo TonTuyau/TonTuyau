@@ -1,4 +1,4 @@
-import { href, matchRoute, mergeQuery } from './routes'
+import { href, matchRoute, mergeQuery, startTime } from './routes'
 
 describe('routes', () => {
   it.each([
@@ -27,6 +27,8 @@ describe('routes', () => {
     expect(href.home()).toBe('/')
     expect(href.short('a/b')).toBe('/shorts/a%2Fb')
     expect(href.watch('a b&c')).toBe('/watch?v=a+b%26c')
+    expect(href.watch('abc', 83)).toBe('/watch?v=abc&t=83')
+    expect(href.watch('abc', 0)).toBe('/watch?v=abc')
     expect(href.channel('UC/x', 'streams', 'popular')).toBe('/channel/UC%2Fx/streams?sort=popular')
     expect(href.channel('UCx')).toBe('/channel/UCx')
     expect(href.channels({ q: 'élé', sort: null })).toBe('/channels?q=%C3%A9l%C3%A9')
@@ -46,4 +48,22 @@ describe('routes', () => {
     expect(mergeQuery('?q=a&type=short', { type: null, sort: 'latest' })).toBe('?q=a&sort=latest')
     expect(mergeQuery('?q=a', { q: '' })).toBe('')
   })
+
+  it.each([
+    ['83', 83],
+    ['83s', 83],
+    ['1m23s', 83],
+    ['1h2m3s', 3723],
+    ['2h', 7200],
+    ['0', 0],
+  ])('reads the watch page start time %s', (value, seconds) => {
+    expect(startTime(value)).toBe(seconds)
+  })
+
+  it.each([[null], [''], ['abc'], ['-5'], ['1:23'], ['1.5'], ['12x']])(
+    "ignores a start time that isn't one: %s",
+    (value) => {
+      expect(startTime(value)).toBeNull()
+    },
+  )
 })
