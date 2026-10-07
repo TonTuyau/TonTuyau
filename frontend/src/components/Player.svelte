@@ -6,6 +6,8 @@
   // The box takes the video's own shape (lib/videoRatio.ts), so no black bars; on the watch page a button on the
   // player switches between the small and the large player (lib/playerSize.svelte.ts).
   // `start` (the watch page's `t`) is where the video starts; seek() moves to a time and plays (a timecode's click).
+  // Leaving a video (the next short, another page, a message in its place) empties its <video> at once, so its download
+  // stops (1.1.0, the Firefox shorts fix): see release() below.
   import type { VideoDetail } from '../lib/api/types'
   import { playability, type Playability } from '../lib/codec'
   import { codecName } from '../lib/format'
@@ -74,6 +76,23 @@
 
   let element: HTMLVideoElement | undefined = $state()
 
+  // A <video> taken out of the page keeps downloading, and keeps its connection, until the garbage collector frees
+  // it. Scrolling through shorts in Firefox, the old ones piled up (9 open downloads for 1 video on screen) and took
+  // every HTTP/1.1 connection to the server: the next short's file then waited forever, with no error. Emptying it
+  // (no src, then load()) cancels its download right away.
+  $effect(() => {
+    const media = element
+    if (media) {
+      return () => release(media)
+    }
+  })
+
+  function release(media: HTMLVideoElement) {
+    media.pause()
+    media.removeAttribute('src')
+    media.load()
+  }
+
   // A start time within the video (the API's duration): applied once the file's metadata is in, and again when the
   // link changes to another time of the same video.
   const startAt = $derived(start !== null && start > 0 && start <= video.durationSeconds ? start : null)
@@ -102,6 +121,8 @@
     return true
   }
 
+  const HEAD_TIMEOUT_MS = 10_000
+
   // A decode error and a missing file look the same to the media element: ask the server about the file.
   async function onerror() {
     if (failure !== 'none') {
@@ -111,7 +132,9 @@
     failure = 'checking'
     let missing: boolean
     try {
-      missing = (await fetch(video.mediaUrl, { method: 'HEAD' })).status === 404
+      // Bounded: a question that never gets an answer mustn't leave the player waiting with no message.
+      missing =
+        (await fetch(video.mediaUrl, { method: 'HEAD', signal: AbortSignal.timeout(HEAD_TIMEOUT_MS) })).status === 404
     } catch {
       missing = false
     }
