@@ -9,7 +9,7 @@
   a) as is: one line for the whole run
   b) one line per phase: the line is updated in place while the phase runs, then kept, and the next phase starts a new line (about 6 lines for a full sync, like a summary of the steps)
 Default: a)
-**Answer:** Asked whether it still matters given Q16-2 (explained in chat, 2026-10-07): open.
+**Answer:** Plain lines in a terminal too, like the `tee` log: one line per update, at most every 10 s (plus the heartbeat). → 1.1.0
 
 **Q16-2. How often the terminal line changes.** Both modes print at each phase change and at most every 10 s. Plain lines need that limit (logs); a line rewritten in place costs nothing on screen.
   a) every 10 s in both modes
