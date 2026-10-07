@@ -1,6 +1,6 @@
 # TonTuyau — Development Plan
 
-> Status: **v12: TonTuyau 1.0.0 (M0–M7 and their follow-ups); next: M8, real data on the VM** (2026-10-07)
+> Status: **v13: TonTuyau 1.1.0 (QA15/QA16 follow-ups, timecodes, the Firefox shorts fixes); next: M8, real data on the VM** (2026-10-07)
 >
 > Decisions and open questions live in the Q&A files:
 > - [QA_SESSION_01.md](QA_SESSION_01.md): round 1 answers + round 2 questions and answers
@@ -18,6 +18,7 @@
 > - [QA_SESSION_14.md](QA_SESSION_14.md): M7 choices to confirm (base image, headers, healthcheck, tagging, GHCR visibility)
 > - [QA_SESSION_15.md](QA_SESSION_15.md): M7 follow-ups (the not-ready window, `data:` images, backend headers)
 > - [QA_SESSION_16.md](QA_SESSION_16.md): sync progress and wide grids (the progress on a terminal, heartbeat, a real-data look, grid caps)
+> - [QA_SESSION_17.md](QA_SESSION_17.md): 1.1.0 choices (the CSP check, the heartbeat's rhythm, `t=` on load, the shorts wheel, the shorts overlay)
 > - [FUTURE_TA_REPLACEMENT.md](FUTURE_TA_REPLACEMENT.md): future plan, replacing TubeArchivist (after M8)
 > - [FUTURE_FEDERATION.md](FUTURE_FEDERATION.md): future plan, federation between TonTuyau instances (private) and through a central instance (public)
 > - [API_CONTRACT.md](API_CONTRACT.md): the REST API contract
@@ -232,6 +233,7 @@ Its own document and discussion: **[SYNC_DESIGN.md](SYNC_DESIGN.md)**, **agreed 
 | M5 (+M6) | `milestone/m5-front` | **the real front, browse and search together** (M6 folded in, 2026-10-04: search was already built in the mockup), **built from the approved M5a code**: real API instead of the mock (kept for tests/offline), loading/error/not-found states, player fits the video's ratio + small/large player, resized art made by the sync (Q8-1, contract v1.4), real-data check on the trial index | Vitest + backend suites pass; usable against the dev stack with real data |
 | M7 | `milestone/m7-docker` | Dockerfiles, compose with resource limits (ES 4 GB heap / 8 GB, 3 CPU; backend 1 GB / 2 CPU; front 256 MB / 1 CPU; volumes on local disk, R2-21), Node prod server, README install guide; GitHub Actions publishing to GHCR, version 0.7.0 (QA13) | `docker compose up` gives a working stack on the VM. Built 2026-10-06, notes: [M7-docker.md](milestones/M7-docker.md) |
 | **1.0.0** | `main`, tag `v1.0.0` | **the first release**: M0–M7 and their follow-ups (Content-Security-Policy, generic `/health`, the videos as one folder, command-line sync progress, wide-screen grids, the watch list scrolling on, no resource limits, the compose file checked, the pipe logo, CI on pull requests and version tags only) | notes: [releases/1.0.0.md](releases/1.0.0.md) |
+| **1.1.0** | `release/1.1.0` → `main`, tag `v1.1.0` | QA15-2 b (`img-src 'self'`), QA16-1 (plain progress lines everywhere), QA16-3 b (heartbeat), clickable timecodes in descriptions and `&t=` on the watch page, the Firefox shorts stall (left videos released, one short per wheel gesture), the shorts overlay on the video's bottom edge | notes: [releases/1.1.0.md](releases/1.1.0.md) |
 | M8 | a `release/1.x` branch | first real import from your TA, measurements | import time, search latency and RAM recorded in the README |
 | Later | — | **Replace TubeArchivist** (your idea, 2026-10-05): LDAP admin login (`tontuyau_admin` only, browsing stays open), admin UI, own C# downloader around yt-dlp with fine-grained rescans, full read-only dump of TubeArchivist's Elasticsearch, switch-over in stages | see [FUTURE_TA_REPLACEMENT.md](FUTURE_TA_REPLACEMENT.md); not planned in detail yet |
 | Later | — | **TubeArchivist Companion compatibility**: the admin API answers the browser extension's requests like TubeArchivist does (same paths, token, JSON), so the Companion feeds TonTuyau's downloader | part of the replacement; see [FUTURE_TA_REPLACEMENT.md](FUTURE_TA_REPLACEMENT.md) |

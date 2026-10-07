@@ -9,7 +9,7 @@
   a) as is
   b) the backend answers **503** with `Retry-After` when Elasticsearch or the indices aren't usable, and the app says "TonTuyau is starting or its search index is unavailable" and retries by itself (a contract change: a new status and a new error state)
 Default: a)
-**Answer:** Asked how the front can start before the backend is usable with the compose healthchecks, and whether the question still matters (explained in chat, 2026-10-07): open.
+**Answer:** a), as is for now.
 
 **Q15-2. `data:` images in the CSP.** The policy has `img-src 'self' data:` as you specified. Nothing in the app uses a `data:` image today.
   a) keep `data:` (room for an inline placeholder later)
