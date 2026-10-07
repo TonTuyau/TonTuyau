@@ -51,14 +51,29 @@
 
   const video = $derived(remote.status === 'ready' && remote.data?.id === id ? remote.data : undefined)
 
-  // The frame takes the short's own shape (from the player: the API's track, else the loaded file), and the
-  // download goes away if the file turns out to be missing on the share.
+  // The frame takes the short's own shape (from the player: the API's track, else the loaded file), as big as the
+  // page allows (1.1.0: never letterboxed, so the title overlay sits on the picture's bottom edge), and the download
+  // goes away if the file turns out to be missing on the share.
   let ratio = $state<Ratio>()
   let fileMissing = $state(false)
   $effect(() => {
     void video?.id
     fileMissing = false
+    paused = false
   })
+
+  // The title overlay sits on the bottom of the picture, where the browser draws its own controls: it steps aside
+  // while they may be showing (the pointer over the video, see the CSS; paused; a few seconds after a touch).
+  const TOUCH_CONTROLS_MS = 3000
+  let paused = $state(false)
+  let touched = $state(false)
+  let touchTimer: ReturnType<typeof setTimeout> | undefined
+  function noteTouch() {
+    touched = true
+    clearTimeout(touchTimer)
+    touchTimer = setTimeout(() => (touched = false), TOUCH_CONTROLS_MS)
+  }
+  $effect(() => () => clearTimeout(touchTimer))
 
   // Not a short, says the API: the watch page plays it.
   $effect(() => {
@@ -142,6 +157,7 @@
       }
     }
     const ontouchstart = (event: TouchEvent) => {
+      noteTouch()
       touchY = event.touches[0]?.clientY ?? null
     }
     const ontouchend = (event: TouchEvent) => {
@@ -177,7 +193,15 @@
     <div class="error"><ErrorState error={remote.error} onretry={() => remote.retry()} /></div>
   {:else}
     <div class="stage">
-      <div class="frame" aria-busy={!video} style:--video-ratio={video && ratio ? ratioCss(ratio).ratio : undefined}>
+      <div
+        class="frame"
+        class:controls={paused || touched}
+        aria-busy={!video}
+        style:--video-ratio={video && ratio ? ratioCss(ratio).ratio : undefined}
+        style:--video-ratio-value={video && ratio ? ratioCss(ratio).value : undefined}
+        onplaycapture={() => (paused = false)}
+        onpausecapture={() => (paused = true)}
+      >
         {#if video && video.type === 'short'}
           <Player {video} {probe} variant="shorts" bind:ratio onunavailable={() => (fileMissing = true)} />
           <div class="info">
@@ -249,6 +273,8 @@
 </div>
 
 <style>
+  /* A size container: the frame is fitted to what's left of its content box (100cqw × 100cqh) once the actions and
+     the up / down buttons have their room. */
   .shorts-page {
     display: flex;
     align-items: center;
@@ -258,6 +284,9 @@
     padding: var(--space-4);
     overflow: hidden;
     overscroll-behavior: contain;
+    container-type: size;
+    --shorts-free-width: calc(100cqw - var(--space-6) - var(--space-4) - 2 * var(--shorts-action-size));
+    --shorts-free-height: 100cqh;
   }
 
   .error {
@@ -268,15 +297,15 @@
     display: flex;
     align-items: flex-end;
     gap: var(--space-4);
-    height: 100%;
     min-width: 0;
   }
 
+  /* Exactly the short's shape (9:16, 2:3, square, landscape…), as large as fits: the picture fills it with no black
+     bars, so what's laid over its bottom edge sits on the picture's bottom edge. */
   .frame {
     position: relative;
     overflow: hidden;
-    height: 100%;
-    max-width: 100%;
+    width: min(var(--shorts-free-width), var(--shorts-free-height) * var(--video-ratio-value, 0.5625));
     aspect-ratio: var(--video-ratio, 9 / 16);
     border-radius: var(--radius-lg);
     background: var(--color-player-bg);
@@ -286,11 +315,12 @@
     border-radius: 0;
   }
 
-  /* Over the video, above the native controls; only its links take clicks (the video stays clickable). */
+  /* Over the bottom of the picture; only its links take clicks (the video stays clickable). The browser's own controls
+     are drawn there too: the overlay fades out while they may be showing (.controls, or the pointer over the video). */
   .info {
     position: absolute;
     right: 0;
-    bottom: var(--shorts-controls-clearance);
+    bottom: 0;
     left: 0;
     display: flex;
     flex-direction: column;
@@ -299,6 +329,17 @@
     background: linear-gradient(transparent, var(--color-overlay));
     color: var(--color-on-overlay);
     pointer-events: none;
+    transition: opacity var(--transition-fast);
+  }
+
+  .controls .info {
+    opacity: 0;
+  }
+
+  @media (hover: hover) {
+    .frame:has(:global(video:hover)) .info {
+      opacity: 0;
+    }
   }
 
   .info a {
@@ -383,19 +424,25 @@
   }
 
   @media (max-width: 600px) {
+    /* The whole area is the screen: the actions and the buttons are laid over it. */
     .shorts-page {
       position: relative;
       padding: 0;
+      --shorts-free-width: 100cqw;
+      --shorts-free-height: 100cqh;
     }
 
+    /* Black around a short that isn't as tall as the screen (square, landscape), as before. */
     .stage {
       position: relative;
+      align-items: center;
+      justify-content: center;
       width: 100%;
+      height: 100%;
+      background: var(--color-player-bg);
     }
 
     .frame {
-      width: 100%;
-      aspect-ratio: auto;
       border-radius: 0;
     }
 

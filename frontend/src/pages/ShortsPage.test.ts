@@ -230,4 +230,55 @@ describe('ShortsPage (/shorts/<id>)', () => {
     const frame = document.querySelector('div.frame') as HTMLElement
     await vi.waitFor(() => expect(frame.style.getPropertyValue('--video-ratio')).toBe('2160 / 2160'))
   })
+
+  // 1.1.0: the frame is the short's exact shape (no black bars), so the title overlay sits on the picture's bottom
+  // edge, where the browser's controls are drawn too: it steps aside while they may be showing.
+  describe('the title overlay', () => {
+    async function open() {
+      vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably')
+      fakeApi({
+        '/api/videos/sq000000001': videoDetail({
+          id: 'sq000000001',
+          type: 'short',
+          tracks: [{ kind: 'video', codec: 'h264', width: 1080, height: 1350, bitrate: 1 }],
+        }),
+        '/api/videos': page([]),
+      })
+      goTo('/shorts/sq000000001')
+      render(App)
+      await heading()
+      return document.querySelector('div.frame') as HTMLElement
+    }
+
+    it("gives the frame the short's ratio as a number too, to size it within the page", async () => {
+      const frame = await open()
+
+      await vi.waitFor(() => expect(frame.style.getPropertyValue('--video-ratio-value')).toBe('0.8'))
+      expect(frame.style.getPropertyValue('--video-ratio')).toBe('1080 / 1350')
+    })
+
+    it('steps aside while the video is paused (its controls show), and comes back when it plays', async () => {
+      const frame = await open()
+      const media = frame.querySelector('video') as HTMLVideoElement
+
+      await fireEvent.pause(media)
+      expect(frame).toHaveClass('controls')
+      await fireEvent.play(media)
+      expect(frame).not.toHaveClass('controls')
+    })
+
+    it('steps aside for a few seconds after a touch (touch screens show the controls on a tap)', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        const frame = await open()
+
+        await fireEvent.touchStart(frame, { touches: [{ clientY: 300 }] })
+        expect(frame).toHaveClass('controls')
+        await vi.advanceTimersByTimeAsync(3000)
+        expect(frame).not.toHaveClass('controls')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
 })
