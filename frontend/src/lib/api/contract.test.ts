@@ -81,6 +81,7 @@ const contract: Endpoint[] = [
     required: ['q'],
     params: { q: { kind: 'text', min: 1, max: 100 }, size: size(20) },
   },
+  { doc: '/api/auth/me', path: /^\/api\/auth\/me$/, params: {} },
 ]
 
 /** With `kind=channels` the search takes no video filter and no sort (contract "filters for videos", M5a-14). */
@@ -238,6 +239,7 @@ const urls = [
   '/results?q=a&type=bogus&duration=bogus&uploaded=bogus&sort=bogus',
   '/results?q=a&sort=relevance',
   '/results',
+  '/login?next=%2Fchannels',
 ]
 
 describe('contract conformance (docs/API_CONTRACT.md)', () => {

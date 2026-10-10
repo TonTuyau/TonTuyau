@@ -15,18 +15,25 @@ if (CliRunner.IsCommand(args))
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddTonTuyauConfiguration();
+// EF Core logs every SQL command it runs, and as an error the query it expects to fail at the very first start (no
+// migration history yet). A real database error reaches the error middleware's log anyway.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
 builder.Services.AddTonTuyau();
 builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(sp =>
     (mode, ct) => sp.GetRequiredService<SyncService>().RunAsync(mode, SyncTrigger.Scheduler, ct));
 builder.Services.AddHostedService<SyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddTonTuyauApi();
+builder.Services.AddTonTuyauAuth();
 builder.Services.AddHealthChecks();
 
 WebApplication app = builder.Build();
 
 // Broken configuration stops the process here, before anything listens.
 app.Services.ValidateTonTuyauOptions();
+
+// PostgreSQL's schema up to date, and the admin account at the first start: before anything listens too.
+await app.Services.InitializeAccountsAsync();
 
 // Every answer says which version served it (handy after an upgrade; the same as `tontuyau --version`).
 app.Use(AppVersion.AddHeader);
@@ -36,6 +43,10 @@ app.UseMiddleware<ErrorMiddleware>();
 app.UseStatusCodePages(context => Problems.WriteAsync(
     context.HttpContext,
     Problems.ForStatus(context.HttpContext.Response.StatusCode)));
+
+// Who is logged in (the session cookie), then the login's rate limit.
+app.UseAuthentication();
+app.UseRateLimiter();
 
 // The OpenAPI document (/openapi/v1.json) is what the front generates its types from; the Scalar UI to try the
 // API (/scalar) is for development only (R2-25).

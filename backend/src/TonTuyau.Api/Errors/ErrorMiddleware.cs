@@ -23,6 +23,11 @@ internal sealed partial class ErrorMiddleware(RequestDelegate next, ILogger<Erro
             // The client went away (a player seeking drops its previous range request all the time): there's
             // nobody to answer and nothing went wrong. Control flow, not an error.
         }
+        catch (BadHttpRequestException ex)
+        {
+            // The server refused the request itself, e.g. a body over the route's size limit (413).
+            await WriteAsync(context, Problems.ForStatus(ex.StatusCode)).ConfigureAwait(false);
+        }
         catch (ValidationException ex)
         {
             await WriteAsync(context, Problems.Validation(ex)).ConfigureAwait(false);

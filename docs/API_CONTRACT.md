@@ -1,4 +1,4 @@
-# TonTuyau — REST API contract (v1.4)
+# TonTuyau — REST API contract (v1.5)
 
 > 2026-10-03. The shared contract between the backend (M4) and the frontend (M5a mockup, then M5/M6). Both sides build against this file; a change goes through you and is written here first.
 > Decisions: [QA_SESSION_05.md](QA_SESSION_05.md), [QA_SESSION_06.md](QA_SESSION_06.md), [QA_SESSION_07.md](QA_SESSION_07.md).
@@ -10,10 +10,12 @@
 > **v1.3 (2026-10-03)**: `exclude` on `/api/videos` too, for the shorts player's library-wide sequence (M5a-18, [QA_SESSION_07.md](QA_SESSION_07.md)).
 >
 > **v1.4 (2026-10-04)**: resized images ([QA_SESSION_09.md](QA_SESSION_09.md)): every image URL comes with a list of sized versions (`thumbnails`, `banners`) for `srcset`; new art URLs `/art/videos/{id}/{width}` and `/art/channels/{id}/{kind}/{width}`.
+>
+> **v1.5 (2026-10-10, TonTuyau 1.2)**: logging in: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Browsing still needs no login.
 
 ## Rules
 
-- **Read-only**: every endpoint is `GET` (and `HEAD` for media/art). No sync endpoint: the sync is CLI-only (Q5-4).
+- **Read-only** library: every library endpoint is `GET` (and `HEAD` for media/art). No sync endpoint: the sync is CLI-only (Q5-4). The only `POST`s are logging in and out (v1.5), JSON only.
 - **JSON**, camelCase property names, dates as ISO-8601 UTC (`2026-10-02T20:18:48Z`), durations in seconds.
 - **The front never builds or guesses anything**: every URL it needs (thumbnails, banners, media, download) is given by the API, every count and label-worthy fact too (counts per type, inactive flag, playable MIME type…).
 - **Lists** are paged with opaque cursors:
@@ -129,6 +131,9 @@ Tabs to show = the types whose `videoCounts` are > 0 (counted by the backend).
 | `GET /api/channels/{id}/videos` | page of `VideoCard` | `type` (default `video`), `sort` = `latest` \| `popular` \| `oldest`, `exclude` (a video id left out of the list and of `total`: the one being watched, for "More from <channel>"), `cursor`, `size` |
 | `GET /api/search` | see below | `q` (required, 1–200 chars), `kind` = `all` (default) \| `videos` \| `channels`, filters for videos: `type`, `channel` (id), `published` = `today` \| `week` \| `month` \| `year` (published within the last 24 h / 7 / 30 / 365 days, computed by the backend on the first page and kept in the cursor so later pages use the same cut-off), `duration` = `short` (< 4 min) \| `medium` (4–20 min) \| `long` (> 20 min), `sort` = `relevance` (default) \| `latest` \| `popular`, `cursor`, `size` |
 | `GET /api/search/suggest` | `{ "suggestions": Suggestion[] }` | `q` (required, 1–100 chars), `size` (default 8, max 20): **at most 3 channels** first, then video titles fill the rest, by prefix (as-you-type, accents ignored) |
+| `GET /api/auth/me` | `{ "username": "admin" }`, or 401 when nobody is logged in | none: the session cookie says who |
+| `POST /api/auth/login` | 204 and the session cookie (HttpOnly, SameSite=Strict, Secure): 8 hours renewed while in use, 30 days with `remember` | JSON body `{ "username", "password", "remember" }` (4 KB at most, 415 if not JSON); 401 with the same message for every refusal; 429 after 5 attempts in a minute from one address |
+| `POST /api/auth/logout` | 204, the cookie deleted | no body |
 | `GET /media/{id}` | the original file, `Accept-Ranges: bytes` (seeking), right `Content-Type` | 404 if unknown or not on the share; 416 on an unsatisfiable range |
 | `GET /media/{id}/download` | the same file as an attachment: `Content-Disposition: attachment; filename="<title>.<ext>"; filename*=UTF-8''<title>.<ext>` (characters forbidden in file names replaced, Q5-3) | 404 as above |
 | `GET /art/videos/{id}` | the thumbnail (JPEG/PNG/WebP as copied) with `Cache-Control` + `ETag` | 404 if none |

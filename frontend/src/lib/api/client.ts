@@ -6,6 +6,8 @@ import type {
   ChannelListParams,
   ChannelVideoListParams,
   Home,
+  LoginRequest,
+  Me,
   Page,
   ProblemDetails,
   SearchAll,
@@ -73,12 +75,12 @@ async function readError(response: Response): Promise<ApiError> {
   return new ApiError({ title: response.statusText || 'Error', status: response.status })
 }
 
-async function get<T>(path: string, query: Query = {}, signal?: AbortSignal): Promise<T> {
+async function send(url: string, init: RequestInit): Promise<Response> {
   let response: Response
   try {
-    response = await fetch(buildUrl(path, query), { headers: { accept: 'application/json' }, signal })
+    response = await fetch(url, init)
   } catch (error) {
-    if (signal?.aborted) {
+    if (init.signal?.aborted) {
       throw error
     }
     throw new ApiError({ title: 'Network error', status: 0 })
@@ -86,7 +88,21 @@ async function get<T>(path: string, query: Query = {}, signal?: AbortSignal): Pr
   if (!response.ok) {
     throw await readError(response)
   }
+  return response
+}
+
+async function get<T>(path: string, query: Query = {}, signal?: AbortSignal): Promise<T> {
+  const response = await send(buildUrl(path, query), { headers: { accept: 'application/json' }, signal })
   return (await response.json()) as T
+}
+
+/** A POST whose answer has no body (204). The backend takes JSON only. */
+async function post(path: string, body?: unknown): Promise<void> {
+  await send(path, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
 }
 
 const segment = encodeURIComponent
@@ -130,6 +146,18 @@ export const api = {
 
   suggest(q: string, size?: number, signal?: AbortSignal): Promise<Suggestions> {
     return get('/api/search/suggest', { q, size }, signal)
+  },
+
+  me(): Promise<Me> {
+    return get('/api/auth/me')
+  },
+
+  login(request: LoginRequest): Promise<void> {
+    return post('/api/auth/login', request)
+  },
+
+  logout(): Promise<void> {
+    return post('/api/auth/logout')
   },
 }
 

@@ -6,6 +6,7 @@
   import Icon from './components/Icon.svelte'
   import Sidebar from './components/Sidebar.svelte'
   import TopBar from './components/TopBar.svelte'
+  import { auth } from './lib/auth.svelte'
   import { guide } from './lib/guide.svelte'
   import { t } from './lib/i18n/i18n.svelte'
   import { router } from './lib/router/router.svelte'
@@ -13,6 +14,7 @@
   import ChannelsPage from './pages/ChannelsPage.svelte'
   import FeedPage from './pages/FeedPage.svelte'
   import HomePage from './pages/HomePage.svelte'
+  import LoginPage from './pages/LoginPage.svelte'
   import NotFoundPage from './pages/NotFoundPage.svelte'
   import SearchPage from './pages/SearchPage.svelte'
   import ShortsPage from './pages/ShortsPage.svelte'
@@ -31,6 +33,11 @@
   let drawerOpen = $state(false)
 
   $effect(() => router.start())
+
+  // Who is logged in (the top bar's "Log in" or name), once at start.
+  $effect(() => {
+    void auth.load()
+  })
 
   function watch(query: string, set: (value: boolean) => void): (() => void) | undefined {
     const list = globalThis.matchMedia?.(query)
@@ -107,6 +114,8 @@
       <ShortsPage id={route.id} />
     {:else if route.name === 'results'}
       <SearchPage />
+    {:else if route.name === 'login'}
+      <LoginPage />
     {:else}
       <NotFoundPage />
     {/if}
