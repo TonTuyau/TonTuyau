@@ -1,7 +1,7 @@
 @elasticsearch @api
 Feature: The admin dashboard's import history
   The new videos of the finished sync runs (never an index rebuild, which writes every video again), over a period:
-  the last day a bar per run, the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
+  the last day a bar per sync (an empty one too), the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
   every month since the first import. Days are those of the sync's time zone (Europe/Paris here: UTC+2 in summer,
   UTC+1 in winter). Every step has its bar, an empty one too. Runs of 1.1 didn't record the types.
 
@@ -19,13 +19,16 @@ Feature: The admin dashboard's import history
       | 2026-10-14T09:00:00Z | running   | 2     | 2      | 0      | 0       | false   |
       | 2026-10-14T09:30:00Z | succeeded | 0     | 0      | 0      | 0       | false   |
 
-  Scenario: The last day: a bar per run of the last 24 hours
+  # 1.2.1: every sync of the last day has its bar, an empty one for a sync that brought nothing.
+  Scenario: The last day: a bar per sync of the last 24 hours, an empty one too
     When I log in as the admin
     And I request "/api/admin/dashboard/imports?period=day" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
     And the answer has exactly the fields "step, timeZone, total, bars"
-    And the import history is by "run" in "Europe/Paris": 2 bars, 10 new videos
+    And the import history is by "run" in "Europe/Paris": 3 bars, 10 new videos
+    And "bars[2].start" is "2026-10-14T09:30:00Z"
+    And "bars[2].total" is "0"
     And its bars with new videos are:
       | start                | total | videos | shorts | streams | notRecorded |
       | 2026-10-13T21:30:00Z | 4     | 3      | 0      | 1       | 0           |

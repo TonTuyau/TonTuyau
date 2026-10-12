@@ -4,9 +4,11 @@ using TonTuyau.Application.Sync;
 namespace TonTuyau.Application.Dashboard;
 
 /// <summary>
-/// The import history's bars: the finished runs that brought new videos, added up per step. The days, weeks (from
-/// Monday) and months are those of the sync's time zone, as its crons, so a bar is a day as the admin lives it. Every
-/// step of the period has its bar, an empty one too, so that time stays linear along the chart.
+/// The import history's bars: the finished runs' new videos, added up per step. The last day has a bar for every
+/// sync, an empty one for a sync that brought nothing (1.2.1: with only the syncs that brought videos, five bars side
+/// by side didn't read as 24 hours). The days, weeks (from Monday) and months are those of the sync's time zone, as
+/// its crons, so a bar is a day as the admin lives it; every step of those periods has its bar, an empty one too, so
+/// that time stays linear along the chart.
 /// </summary>
 public static class ImportHistory
 {
@@ -40,14 +42,18 @@ public static class ImportHistory
         ImportStep step = StepOf(period);
 
         // An index rebuild writes the whole library again into new indices: every video counts as new there.
-        SyncRun[] imports = runs
-            .Where(r => r.FinishedAt is not null && !r.IndexRebuild && r.Counts.Created > 0)
+        SyncRun[] finished = runs
+            .Where(r => r.FinishedAt is not null && !r.IndexRebuild)
             .OrderBy(r => r.StartedAt)
             .ToArray();
         if (step == ImportStep.Run)
         {
-            return [.. imports.Select(r => Bar(r.StartedAt, [r]))];
+            return [.. finished.Select(r => Bar(r.StartedAt, [r]))];
         }
+
+        SyncRun[] imports = finished
+            .Where(r => r.Counts.Created > 0)
+            .ToArray();
 
         // The other periods have a fixed range (shown with empty steps); All starts at the first import's month.
         DateOnly? first = period != ImportPeriod.All
