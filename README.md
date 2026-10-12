@@ -175,7 +175,7 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs onl
 1. **Danger Zone → Change visibility → Public** (QA13-3), so the VM pulls without logging in.
 2. Check that the package is linked to `Eclegv/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
 
-Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`.
+Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`. A pre-release tag (`v1.3.0-alpha.1`) publishes only its own `1.3.0-alpha.1`, to try a version before its release.
 
 ## Development setup
 
@@ -247,7 +247,7 @@ Read by the compose file only:
 
 | Variable | Default |
 |---|---|
-| `TONTUYAU_VERSION` | `latest`: the images' tag (`1.0.0`, `1.0` or `latest`) |
+| `TONTUYAU_VERSION` | `latest`: the images' tag (`1.0.0`, `1.0` or `latest`; or a pre-release to try, such as `1.3.0-alpha.1`) |
 | `TONTUYAU_HTTP_PORT` | `80`: the port of the web app on the VM, the only one the stack publishes |
 | `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), mounted read-only |
 

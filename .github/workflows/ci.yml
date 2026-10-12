@@ -1,14 +1,18 @@
 # TonTuyau CI (QA13-1, QA13-2). Runs only on pull requests to main and on version tags, to
 # save GitHub Actions minutes: pushing a branch runs nothing, opening or updating its pull request does. Each run does
-# the same checks as scripts/check.sh, then builds both images. Images are pushed to GHCR only from a version tag
-# vX.Y.Z, when everything passed: tags `X.Y.Z`, `X.Y` and `latest` (the tag must match the version in the code).
+# the same checks as scripts/check.sh, then builds both images. Images are pushed to GHCR only from a version tag,
+# when everything passed (the tag must match the version in the code):
+#   vX.Y.Z                         → `X.Y.Z`, `X.Y` and `latest`
+#   vX.Y.Z-alpha.N / -beta.N / -rc.N → only `X.Y.Z-alpha.N`: never `latest`, `X` or `X.Y`
 # A pull request builds the images and never pushes them.
 name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # main, and the release branches (release/X.Y.Z gathers a version's steps, tried as alphas before main).
+    branches: [main, "release/**"]
   push:
+    # v1.2.3 and the pre-releases v1.3.0-alpha.1, -beta.1, -rc.1 (a glob: `*` matches the "-alpha" part too).
     tags: ["v*.*.*"]
 
 permissions:
@@ -83,7 +87,9 @@ jobs:
 
       - name: Version
         id: version
-        run: echo "version=$(./scripts/check-version.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(./scripts/check-version.sh)" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$(./scripts/check-version.sh --prerelease)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -91,11 +97,15 @@ jobs:
         id: meta
         with:
           images: ghcr.io/eclegv/tontuyau-${{ matrix.image }}
+          # Pre-releases, written out rather than left to the action's rules. On its own, metadata-action
+          # gives a pre-release tag such as v1.3.0-alpha.1 only `{{version}}` (it turns `{{major}}.{{minor}}` into the
+          # full version too), and its `latest=auto` skips pre-releases; but the `latest` below is ours, so it must be
+          # switched off by hand. Hence `latest=false` and every moving tag enabled for a release only.
           flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ steps.version.outputs.prerelease == 'false' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && steps.version.outputs.prerelease == 'false' }}
             type=ref,event=pr
           # Written out rather than taken from the repository (its name and description), so the images say
           # TonTuyau and point at github.com/Eclegv/TonTuyau whatever the repository is called when CI runs.
