@@ -10,5 +10,7 @@ internal static class ValidOptions
         new TubeArchivistOptions("http://tubearchivist.test:8000", Token),
         new ElasticsearchOptions("http://es.test:9200", "elastic", "es-password"),
         new StorageOptions("/youtube", "/data/art"),
-        new SyncOptions("0 1 * * *", "0 1 * * 0", "Europe/Paris"));
+        new SyncOptions("0 1 * * *", "0 1 * * 0", "Europe/Paris"),
+        new DatabaseOptions("tontuyau-db", "tontuyau", "tontuyau", "db-password"),
+        new AccountOptions("admin", "admin-password", true));
 }

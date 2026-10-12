@@ -1,4 +1,4 @@
-import { href, matchRoute, mergeQuery, startTime } from './routes'
+import { href, matchRoute, mergeQuery, safeNext, startTime } from './routes'
 
 describe('routes', () => {
   it.each([
@@ -18,6 +18,9 @@ describe('routes', () => {
     ['/shorts/a/b', { name: 'notFound' }],
     ['/shorts/%E0%A4%A', { name: 'notFound' }],
     ['/results', { name: 'results' }],
+    ['/login', { name: 'login' }],
+    ['/admin', { name: 'admin' }],
+    ['/admin/users', { name: 'notFound' }],
     ['/somewhere/else/entirely/deep', { name: 'notFound' }],
   ])('matches %s', (path, expected) => {
     expect(matchRoute(path)).toEqual(expected)
@@ -25,6 +28,7 @@ describe('routes', () => {
 
   it('builds every in-app link', () => {
     expect(href.home()).toBe('/')
+    expect(href.admin()).toBe('/admin')
     expect(href.short('a/b')).toBe('/shorts/a%2Fb')
     expect(href.watch('a b&c')).toBe('/watch?v=a+b%26c')
     expect(href.watch('abc', 83)).toBe('/watch?v=abc&t=83')
@@ -34,6 +38,19 @@ describe('routes', () => {
     expect(href.channels({ q: 'élé', sort: null })).toBe('/channels?q=%C3%A9l%C3%A9')
     expect(href.feed('short')).toBe('/feed/shorts')
     expect(href.results({ q: 'cuisine', channel: 'UCx', type: null })).toBe('/results?q=cuisine&channel=UCx')
+  })
+
+  it('sends the login page back to a page of this site only', () => {
+    const origin = 'http://tontuyau.lan'
+    expect(href.login('/watch?v=abc')).toBe('/login?next=%2Fwatch%3Fv%3Dabc')
+    expect(href.login('/')).toBe('/login')
+    expect(safeNext('/watch?v=abc&t=83', origin)).toBe('/watch?v=abc&t=83')
+    expect(safeNext('/channel/UCx/shorts#top', origin)).toBe('/channel/UCx/shorts#top')
+    for (const elsewhere of [null, '', 'watch', 'https://evil.example/', '//evil.example', '/\\evil.example']) {
+      expect(safeNext(elsewhere, origin)).toBe('/')
+    }
+    expect(safeNext('/\t/evil.example', origin)).toBe('/')
+    expect(safeNext('/login?next=%2Fchannels', origin)).toBe('/')
   })
 
   it('round-trips a channel link through the matcher', () => {

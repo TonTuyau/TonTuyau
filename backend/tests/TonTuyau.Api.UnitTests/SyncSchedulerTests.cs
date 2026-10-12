@@ -104,7 +104,9 @@ public sealed class SyncSchedulerTests
             new TubeArchivistOptions("http://ta.test", "t"),
             new ElasticsearchOptions("http://es.test", "elastic", "p"),
             new StorageOptions("/youtube", "/data/art"),
-            sync);
+            sync,
+            new DatabaseOptions("db.test", "tontuyau", "tontuyau", "p"),
+            new AccountOptions("admin", "", true));
         return new SyncScheduler(
             new SyncSchedule(sync),
             run,

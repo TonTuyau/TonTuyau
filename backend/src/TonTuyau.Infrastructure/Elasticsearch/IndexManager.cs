@@ -66,8 +66,8 @@ internal sealed partial class IndexManager(
                 .ConfigureAwait(false))
                 .Ensure($"Mapping of {read}");
             string? hash = mapping.Mappings.TryGetValue(read, out IndexMappingRecord? record)
-                && record.Mappings.Meta is { } meta
-                && meta.TryGetValue("definition_hash", out object? value)
+                && record.Mappings.Meta is not null
+                && record.Mappings.Meta.TryGetValue("definition_hash", out object? value)
                     ? value?.ToString()
                     : null;
             CountResponse count = (await client
@@ -190,9 +190,9 @@ internal sealed partial class IndexManager(
     /// A missing index answers <c>index_not_found_exception</c>, a typed error.
     /// </summary>
     private static bool IsAliasMissing(GetAliasResponse response) =>
-        response.ElasticsearchServerError?.Error is { } error
-        && string.IsNullOrEmpty(error.Type)
-        && error.Reason?.EndsWith(" missing", StringComparison.Ordinal) == true;
+        response.ElasticsearchServerError?.Error is not null
+        && string.IsNullOrEmpty(response.ElasticsearchServerError.Error.Type)
+        && response.ElasticsearchServerError.Error.Reason?.EndsWith(" missing", StringComparison.Ordinal) == true;
 
     /// <summary>
     /// Moves one alias of every index from one generation to another in a single <c>_aliases</c> request, so all
@@ -230,8 +230,8 @@ internal sealed partial class IndexManager(
         }
 
         string[] used = response.Indices.TryGetValue(index, out IndexState? state)
-            && state.Aliases is { } aliases
-            ? aliases.Keys
+            && state.Aliases is not null
+            ? state.Aliases.Keys
                 .Select(a => a.ToString())
                 .ToArray()
             : [];

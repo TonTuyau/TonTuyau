@@ -68,11 +68,11 @@ internal sealed partial class VideoRepository
             .GetAsync<VideoDocument>(new GetRequest(ReadAlias, id), cancellationToken)
             .ConfigureAwait(false))
             .Ensure($"Get {ReadAlias}/{id}", 404);
-        return response.Found && response.Source is { } document
+        return response.Found && response.Source is not null
             ? new StoredVideo(
-                DocumentMapper.ToVideo(document),
-                document.MediaMissing == true,
-                DocumentMapper.ToArt(document.ThumbnailArt))
+                DocumentMapper.ToVideo(response.Source),
+                response.Source.MediaMissing == true,
+                DocumentMapper.ToArt(response.Source.ThumbnailArt))
             : null;
     }
 
@@ -185,44 +185,51 @@ internal sealed partial class VideoRepository
     {
         List<Query> filters = [];
         VideoFilter filter = query.Filter;
-        if (filter.Type is { } type)
+        if (filter.Type is not null)
         {
             filters.Add(new TermQuery
             {
                 Field = Infer.Field<VideoDocument>(v => v.Type),
-                Value = DocumentMapper.TypeName(type),
+                Value = DocumentMapper.TypeName(filter.Type.Value),
             });
         }
 
-        if (filter.ChannelId is { } channelId)
+        if (filter.ChannelId is not null)
         {
-            filters.Add(new TermQuery { Field = Infer.Field<VideoDocument>(v => v.ChannelId), Value = channelId });
+            filters.Add(new TermQuery
+            {
+                Field = Infer.Field<VideoDocument>(v => v.ChannelId),
+                Value = filter.ChannelId,
+            });
         }
 
-        if (filter.PublishedFrom is { } from)
+        if (filter.PublishedFrom is not null)
         {
             filters.Add(new DateRangeQuery
             {
                 Field = Infer.Field<VideoDocument>(v => v.Published),
-                Gte = DateMath.Anchored(from.UtcDateTime),
+                Gte = DateMath.Anchored(filter.PublishedFrom.Value.UtcDateTime),
             });
         }
 
-        if (filter.Duration is { } duration)
+        if (filter.Duration is not null)
         {
-            filters.Add(DurationQuery(duration));
+            filters.Add(DurationQuery(filter.Duration.Value));
         }
 
         BoolQuery result = new() { Filter = filters };
-        if (filter.ExcludeId is { } excluded)
+        if (filter.ExcludeId is not null)
         {
-            result.MustNot = [new TermQuery { Field = Infer.Field<VideoDocument>(v => v.Id), Value = excluded }];
+            result.MustNot =
+            [
+                new TermQuery { Field = Infer.Field<VideoDocument>(v => v.Id), Value = filter.ExcludeId },
+            ];
         }
 
-        if (query.Text is { } text)
+        if (query.Text is not null)
         {
             // Every word must be found, each in any of the fields; the last one may be the start of a word.
-            result.Must = SearchTextQueries.Must(text, SearchFields, PrefixFields);
+            result.Must = SearchTextQueries.Must(query.Text, SearchFields, PrefixFields);
 
             // The words as a phrase in the title rank first.
             result.Should =
@@ -230,7 +237,7 @@ internal sealed partial class VideoRepository
                 new MatchPhraseQuery
                 {
                     Field = Infer.Field<VideoDocument>(v => v.Title),
-                    Query = text.AllWords,
+                    Query = query.Text.AllWords,
                     Boost = 2,
                 },
             ];
@@ -319,11 +326,11 @@ internal sealed partial class ChannelRepository
             .GetAsync<ChannelDocument>(new GetRequest(ReadAlias, id), cancellationToken)
             .ConfigureAwait(false))
             .Ensure($"Get {ReadAlias}/{id}", 404);
-        return response.Found && response.Source is { } document
+        return response.Found && response.Source is not null
             ? new StoredChannel(
-                DocumentMapper.ToChannel(document),
-                DocumentMapper.ToArt(document.ThumbArt),
-                DocumentMapper.ToArt(document.BannerArt))
+                DocumentMapper.ToChannel(response.Source),
+                DocumentMapper.ToArt(response.Source.ThumbArt),
+                DocumentMapper.ToArt(response.Source.BannerArt))
             : null;
     }
 
@@ -396,14 +403,14 @@ internal sealed partial class ChannelRepository
     internal static Query QueryFor(ChannelQuery query)
     {
         BoolQuery result = new();
-        if (query.NamePrefix is { } prefix)
+        if (query.NamePrefix is not null)
         {
-            result.Filter = [NamePrefixQuery(prefix)];
+            result.Filter = [NamePrefixQuery(query.NamePrefix)];
         }
 
-        if (query.Text is { } text)
+        if (query.Text is not null)
         {
-            result.Must = SearchTextQueries.Must(text, SearchFields, PrefixFields);
+            result.Must = SearchTextQueries.Must(query.Text, SearchFields, PrefixFields);
         }
 
         return result;

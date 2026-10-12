@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n/i18n.svelte'
+  import AccountMenu from './AccountMenu.svelte'
   import Icon from './Icon.svelte'
   import Logo from './Logo.svelte'
   import SearchBox from './SearchBox.svelte'
@@ -41,6 +42,7 @@
       <Icon name="search" />
     </button>
     <SettingsMenu />
+    <AccountMenu />
   </div>
 </header>
 

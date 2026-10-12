@@ -1,3 +1,5 @@
+using TonTuyau.Application.Store;
+
 namespace TonTuyau.Application.Sync;
 
 public enum SyncMode
@@ -48,6 +50,12 @@ public sealed record SyncCounts
     public int ChannelsRead { get; init; }
 
     public int Created { get; init; }
+
+    /// <summary>
+    /// The new videos by type (the dashboard's import history). Null in the runs of TonTuyau 1.1 and older, which
+    /// only counted them all together.
+    /// </summary>
+    public TypeCounts? CreatedByType { get; init; }
 
     public int Updated { get; init; }
 

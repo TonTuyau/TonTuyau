@@ -2,10 +2,167 @@
   "openapi": "3.1.1",
   "info": {
     "title": "TonTuyau API",
-    "description": "Read-only REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; errors are RFC 9457 ProblemDetails.",
+    "description": "REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; errors are RFC 9457 ProblemDetails.",
     "version": "v1"
   },
   "paths": {
+    "/api/admin/dashboard": {
+      "get": {
+        "tags": ["Admin"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard/imports": {
+      "get": {
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "day | week | month (default) | year | all.",
+            "schema": {
+              "enum": ["day", "week", "month", "year", "all"],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/home": {
       "get": {
         "tags": ["Home"],
@@ -1247,6 +1404,60 @@
           }
         }
       },
+      "ChannelTotals": {
+        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "total"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": ["null", "string"]
+          },
+          "thumbnails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageSize"
+            }
+          },
+          "counts": {
+            "$ref": "#/components/schemas/VideoCounts"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "required": ["lastSync", "totals", "playTime", "channels"],
+        "type": "object",
+        "properties": {
+          "lastSync": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/LibraryTotals"
+          },
+          "playTime": {
+            "$ref": "#/components/schemas/PlayTime"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelTotals"
+            }
+          }
+        }
+      },
       "HomeResponse": {
         "required": ["sections"],
         "type": "object",
@@ -1321,9 +1532,107 @@
           }
         }
       },
+      "ImportBar": {
+        "required": ["start", "total", "byType", "notRecorded"],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "byType": {
+            "$ref": "#/components/schemas/VideoCounts"
+          },
+          "notRecorded": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ImportHistoryResponse": {
+        "required": ["step", "timeZone", "total", "bars"],
+        "type": "object",
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/ImportStep"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bars": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportBar"
+            }
+          }
+        }
+      },
+      "ImportStep": {
+        "enum": ["run", "day", "week", "month"],
+        "type": "string"
+      },
+      "LibraryTotals": {
+        "required": ["channels", "videos", "shorts", "streams", "gone"],
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "videos": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "shorts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "streams": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": ["username", "password"],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": ["null", "string"]
+          },
+          "password": {
+            "type": ["null", "string"]
+          },
+          "remember": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "MediaTrackKind": {
         "enum": ["video", "audio"],
         "type": "string"
+      },
+      "MeResponse": {
+        "required": ["username"],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        }
       },
       "PageOfChannelCard": {
         "required": ["items", "nextCursor", "total"],
@@ -1360,6 +1669,22 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "PlayTime": {
+        "required": ["totalSeconds", "types"],
+        "type": "object",
+        "properties": {
+          "totalSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypePlayTime"
+            }
           }
         }
       },
@@ -1453,6 +1778,31 @@
             "format": "int32"
           },
           "bitrate": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TypePlayTime": {
+        "required": ["type", "count", "seconds", "share", "averageSeconds"],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/VideoType"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "share": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageSeconds": {
             "type": "integer",
             "format": "int64"
           }
@@ -1691,6 +2041,12 @@
     }
   },
   "tags": [
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Auth"
+    },
     {
       "name": "Home"
     },

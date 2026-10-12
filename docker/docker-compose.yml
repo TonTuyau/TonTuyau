@@ -1,5 +1,6 @@
-# TonTuyau stack (M7): Elasticsearch, the backend (API + sync + `tontuyau` CLI) and the front (the web app + a small
-# server forwarding /api, /media, /art to the backend). Only the front is reachable from the LAN.
+# TonTuyau stack (M7): Elasticsearch, PostgreSQL (the accounts, 1.2), the backend (API + sync + `tontuyau` CLI) and the
+# front (the web app + a small server forwarding /api, /media, /art to the backend). Only the front is reachable from
+# the LAN.
 #
 # On the VM (README, "Install with Docker"): this file and `.env` side by side, then
 #   docker compose pull && docker compose up -d
@@ -33,12 +34,33 @@ services:
       start_period: 60s
       retries: 20
 
+  # The accounts. On a network of its own with the backend: the front can't reach it.
+  tontuyau-db:
+    image: postgres:17
+    container_name: tontuyau-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TONTUYAU_DB_NAME:-tontuyau}
+      POSTGRES_USER: ${TONTUYAU_DB_USERNAME:-tontuyau}
+      POSTGRES_PASSWORD: ${TONTUYAU_DB_PASSWORD:?set TONTUYAU_DB_PASSWORD in .env}
+    networks: [tontuyau-db]
+    volumes:
+      - tontuyau-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+
   tontuyau-backend:
     image: ghcr.io/eclegv/tontuyau-backend:${TONTUYAU_VERSION:-latest}
     container_name: tontuyau-backend
     restart: unless-stopped
     depends_on:
       tontuyau-es: { condition: service_healthy }
+      tontuyau-db: { condition: service_healthy }
+    networks: [default, tontuyau-db]
     environment:
       # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art, logs /data/logs/sync).
       TONTUYAU_ES_URL: http://tontuyau-es:9200
@@ -46,6 +68,13 @@ services:
       TONTUYAU_ES_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
       TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:?set TONTUYAU_TA_URL in .env}
       TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:?set TONTUYAU_TA_TOKEN in .env}
+      TONTUYAU_DB_HOST: tontuyau-db
+      TONTUYAU_DB_NAME: ${TONTUYAU_DB_NAME:-tontuyau}
+      TONTUYAU_DB_USERNAME: ${TONTUYAU_DB_USERNAME:-tontuyau}
+      TONTUYAU_DB_PASSWORD: ${TONTUYAU_DB_PASSWORD:?set TONTUYAU_DB_PASSWORD in .env}
+      # Read at the first start only, to create the admin account (the backend says so if it's missing then).
+      TONTUYAU_ADMIN_USER: ${TONTUYAU_ADMIN_USER:-}
+      TONTUYAU_ADMIN_PASSWORD: ${TONTUYAU_ADMIN_PASSWORD:-}
       # Optional: empty means the backend's default (README, "Configuration").
       TONTUYAU_ES_INDEX_PREFIX: ${TONTUYAU_ES_INDEX_PREFIX:-}
       TONTUYAU_SYNC_INCREMENTAL_CRON: ${TONTUYAU_SYNC_INCREMENTAL_CRON:-}
@@ -58,6 +87,8 @@ services:
       TONTUYAU_SYNC_REJECT_GUARD_PERCENT: ${TONTUYAU_SYNC_REJECT_GUARD_PERCENT:-}
       TONTUYAU_TA_RESULT_WINDOW: ${TONTUYAU_TA_RESULT_WINDOW:-}
       TONTUYAU_ART_RESIZE_PARALLELISM: ${TONTUYAU_ART_RESIZE_PARALLELISM:-}
+      TONTUYAU_COOKIE_SECURE: ${TONTUYAU_COOKIE_SECURE:-}
+      TONTUYAU_TRUSTED_PROXIES: ${TONTUYAU_TRUSTED_PROXIES:-}
       # The container's clock for log timestamps; the sync schedule uses TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:
@@ -104,8 +135,12 @@ services:
       start_period: 10s
       retries: 3
 
+networks:
+  tontuyau-db:
+
 volumes:
   # Local disk on the VM. Backups: README, "Backups".
+  tontuyau-db-data:
   tontuyau-es-data:
   tontuyau-art:
   tontuyau-sync-logs:

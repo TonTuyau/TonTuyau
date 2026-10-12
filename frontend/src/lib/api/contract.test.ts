@@ -8,7 +8,7 @@ import { resolve } from 'node:path'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../../App.svelte'
-import { channelCard, channelDetail, page, videoCard, videoDetail } from '../../test/data'
+import { channelCard, channelDetail, dashboard, importHistory, page, videoCard, videoDetail } from '../../test/data'
 import { goTo } from '../../test/fakeApi'
 import { CHANNEL_FILTER_MAX_LENGTH, SEARCH_MAX_LENGTH, SUGGEST_MAX_LENGTH } from './limits'
 
@@ -80,6 +80,13 @@ const contract: Endpoint[] = [
     path: /^\/api\/search\/suggest$/,
     required: ['q'],
     params: { q: { kind: 'text', min: 1, max: 100 }, size: size(20) },
+  },
+  { doc: '/api/auth/me', path: /^\/api\/auth\/me$/, params: {} },
+  { doc: '/api/admin/dashboard', path: /^\/api\/admin\/dashboard$/, params: {} },
+  {
+    doc: '/api/admin/dashboard/imports',
+    path: /^\/api\/admin\/dashboard\/imports$/,
+    params: { period: { kind: 'enum', values: ['day', 'week', 'month', 'year', 'all'] } },
   },
 ]
 
@@ -161,6 +168,10 @@ function answer(url: URL): unknown {
     }
   }
   if (path === '/api/videos') return pageOf(url, card(url))
+  // Logged in, so that the admin area asks for its dashboard too.
+  if (path === '/api/auth/me') return { username: 'admin' }
+  if (path === '/api/admin/dashboard') return dashboard()
+  if (path === '/api/admin/dashboard/imports') return importHistory()
   if (path === '/api/search/suggest') {
     return { suggestions: [{ text: 'Tom Cooks', kind: 'channel', id: channelId }] }
   }
@@ -238,6 +249,8 @@ const urls = [
   '/results?q=a&type=bogus&duration=bogus&uploaded=bogus&sort=bogus',
   '/results?q=a&sort=relevance',
   '/results',
+  '/admin',
+  '/login?next=%2Fchannels',
 ]
 
 describe('contract conformance (docs/API_CONTRACT.md)', () => {

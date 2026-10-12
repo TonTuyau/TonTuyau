@@ -4,6 +4,239 @@
  */
 
 export interface paths {
+  '/api/admin/dashboard': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['DashboardResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/dashboard/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description day | week | month (default) | year | all. */
+          period?: 'day' | 'week' | 'month' | 'year' | 'all'
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ImportHistoryResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/auth/login': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['LoginRequest']
+          'application/*+json': components['schemas']['LoginRequest']
+        }
+      }
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Too Many Requests */
+        429: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/auth/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/auth/me': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['MeResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/home': {
     parameters: {
       query?: never
@@ -1145,6 +1378,24 @@ export interface components {
       tags: string[]
       active: boolean
     }
+    ChannelTotals: {
+      id: string
+      name: string
+      thumbnailUrl: null | string
+      thumbnails: components['schemas']['ImageSize'][]
+      counts: components['schemas']['VideoCounts']
+      /** Format: int64 */
+      gone: number
+      /** Format: int64 */
+      total: number
+    }
+    DashboardResponse: {
+      /** Format: date-time */
+      lastSync: null | string
+      totals: components['schemas']['LibraryTotals']
+      playTime: components['schemas']['PlayTime']
+      channels: components['schemas']['ChannelTotals'][]
+    }
     HomeResponse: {
       sections: components['schemas']['HomeSection'][]
     }
@@ -1169,8 +1420,47 @@ export interface components {
       width: number
       url: string
     }
+    ImportBar: {
+      /** Format: date-time */
+      start: string
+      /** Format: int64 */
+      total: number
+      byType: components['schemas']['VideoCounts']
+      /** Format: int64 */
+      notRecorded: number
+    }
+    ImportHistoryResponse: {
+      step: components['schemas']['ImportStep']
+      timeZone: string
+      /** Format: int64 */
+      total: number
+      bars: components['schemas']['ImportBar'][]
+    }
+    /** @enum {string} */
+    ImportStep: 'run' | 'day' | 'week' | 'month'
+    LibraryTotals: {
+      /** Format: int64 */
+      channels: number
+      /** Format: int64 */
+      videos: number
+      /** Format: int64 */
+      shorts: number
+      /** Format: int64 */
+      streams: number
+      /** Format: int64 */
+      gone: number
+    }
+    LoginRequest: {
+      username: null | string
+      password: null | string
+      /** @default false */
+      remember: boolean
+    }
     /** @enum {string} */
     MediaTrackKind: 'video' | 'audio'
+    MeResponse: {
+      username: string
+    }
     PageOfChannelCard: {
       items: components['schemas']['ChannelCard'][]
       nextCursor: null | string
@@ -1182,6 +1472,11 @@ export interface components {
       nextCursor: null | string
       /** Format: int64 */
       total: number
+    }
+    PlayTime: {
+      /** Format: int64 */
+      totalSeconds: number
+      types: components['schemas']['TypePlayTime'][]
     }
     ProblemDetails: {
       type?: string
@@ -1215,6 +1510,17 @@ export interface components {
       height: null | number
       /** Format: int64 */
       bitrate: number
+    }
+    TypePlayTime: {
+      type: components['schemas']['VideoType']
+      /** Format: int64 */
+      count: number
+      /** Format: int64 */
+      seconds: number
+      /** Format: double */
+      share: number
+      /** Format: int64 */
+      averageSeconds: number
     }
     VideoCard: {
       id: string

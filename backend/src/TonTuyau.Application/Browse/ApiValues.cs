@@ -1,3 +1,4 @@
+using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 
@@ -86,6 +87,16 @@ public static class ApiValues
         ["week"] = PublishedPeriod.Week,
         ["month"] = PublishedPeriod.Month,
         ["year"] = PublishedPeriod.Year,
+    };
+
+    /// <summary>The import history's periods (the admin dashboard).</summary>
+    public static readonly Table<ImportPeriod> ImportPeriods = new()
+    {
+        ["day"] = ImportPeriod.Day,
+        ["week"] = ImportPeriod.Week,
+        ["month"] = ImportPeriod.Month,
+        ["year"] = ImportPeriod.Year,
+        ["all"] = ImportPeriod.All,
     };
 
     public static readonly Table<DurationRange> Durations = new()

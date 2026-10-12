@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import App from './App.svelte'
 import { guide, GUIDE_STORAGE_KEY } from './lib/guide.svelte'
 import { i18n } from './lib/i18n/i18n.svelte'
-import { fakeApi, goTo } from './test/fakeApi'
+import { fakeApi, goTo, problemResponse } from './test/fakeApi'
 
 const layout = () => document.querySelector('[data-guide]')
 
@@ -18,23 +18,49 @@ describe('App shell', () => {
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
   })
 
-  it('only asks the API what the current page needs', async () => {
+  it('only asks the API what the current page needs (and, once, who is logged in)', async () => {
     const api = fakeApi({ '/api/home': { sections: [] } })
 
     render(App)
 
     await screen.findByText('The library is empty')
-    expect(api.calls.map((url) => url.pathname)).toEqual(['/api/home'])
+    expect(api.calls.map((url) => url.pathname).sort()).toEqual(['/api/auth/me', '/api/home'])
   })
 
-  it('shows the not-found page for an unknown URL, without calling the API', () => {
+  it('shows the not-found page for an unknown URL, asking the API nothing but who is logged in', () => {
     const api = fakeApi({})
     goTo('/no/such/page/here')
 
     render(App)
 
     expect(screen.getByText("This page isn't available")).toBeInTheDocument()
-    expect(api.spy).not.toHaveBeenCalled()
+    expect(api.calls.map((url) => url.pathname)).toEqual(['/api/auth/me'])
+  })
+
+  it('logs in from the top bar and comes back to the same page, logged in', async () => {
+    let session = false
+    fakeApi({
+      '/api/channels': { items: [], nextCursor: null, total: 0 },
+      '/api/auth/me': () =>
+        session ? { username: 'admin' } : problemResponse(401, 'Nobody is logged in.', 'Not logged in'),
+      '/api/auth/login': () => {
+        session = true
+        return new Response(null, { status: 204 })
+      },
+    })
+    goTo('/channels')
+    const user = userEvent.setup()
+    render(App)
+
+    await user.click(await screen.findByRole('link', { name: 'Log in' }))
+    expect(location.pathname + location.search).toBe('/login?next=%2Fchannels')
+    await user.type(screen.getByLabelText('Username'), 'admin')
+    await user.type(screen.getByLabelText('Password'), 'secret')
+    await user.click(screen.getByRole('button', { name: 'Log in' }))
+
+    await screen.findByRole('button', { name: 'Account: admin' })
+    expect(location.pathname).toBe('/channels')
+    expect(screen.queryByRole('link', { name: 'Log in' })).toBeNull()
   })
 
   describe('left guide', () => {

@@ -26,11 +26,11 @@ public sealed class SyncSchedule
     {
         DateTimeOffset? incremental = _incremental.GetNextOccurrence(after, _zone);
         DateTimeOffset? full = _full.GetNextOccurrence(after, _zone);
-        if (full is { } f && (incremental is null || f <= incremental))
+        if (full is not null && (incremental is null || full.Value <= incremental))
         {
-            return (f, SyncMode.Full);
+            return (full.Value, SyncMode.Full);
         }
 
-        return incremental is { } i ? (i, SyncMode.Incremental) : null;
+        return incremental is not null ? (incremental.Value, SyncMode.Incremental) : null;
     }
 }

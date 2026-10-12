@@ -6,6 +6,13 @@
     <!-- Runtime -->
     <PackageVersion Include="Cronos" Version="0.13.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="9.5.3" />
+    <!-- Accounts (1.2): PostgreSQL through EF Core; Argon2id password hashes (MIT), as OWASP recommends. -->
+    <PackageVersion Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
+    <!-- Npgsql's provider asks for 10.0.4 or later: the same version as the rest of EF Core. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />

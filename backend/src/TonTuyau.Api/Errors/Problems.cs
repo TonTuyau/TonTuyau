@@ -40,6 +40,13 @@ internal static class Problems
         "Range not satisfiable",
         string.Create(CultureInfo.InvariantCulture, $"The file has {fileLength} bytes."));
 
+    /// <summary>Every refused login, whatever the reason: nothing tells whether the name exists.</summary>
+    public static ProblemDetails LoginRefused() =>
+        Of(StatusCodes.Status401Unauthorized, "login-refused", "Login refused", "Wrong username or password.");
+
+    public static ProblemDetails NotLoggedIn() =>
+        Of(StatusCodes.Status401Unauthorized, "not-logged-in", "Not logged in", "Nobody is logged in.");
+
     public static ProblemDetails Unexpected() => Of(
         StatusCodes.Status500InternalServerError,
         "internal",
@@ -54,7 +61,7 @@ internal static class Problems
             status,
             "method-not-allowed",
             "Method not allowed",
-            "The API is read-only: GET (and HEAD for files)."),
+            "This method isn't allowed here."),
         _ => Of(
             status,
             string.Create(CultureInfo.InvariantCulture, $"http-{status}"),

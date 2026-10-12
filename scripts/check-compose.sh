@@ -11,6 +11,7 @@ mkdir "$work/media"
 sed -e "s|^TONTUYAU_MEDIA_PATH=.*|TONTUYAU_MEDIA_PATH=$work/media|" \
     -e 's|^TONTUYAU_ES_PASSWORD=.*|TONTUYAU_ES_PASSWORD=check-compose|' \
     -e 's|^TONTUYAU_TA_TOKEN=.*|TONTUYAU_TA_TOKEN=check-compose|' \
+    -e 's|^TONTUYAU_DB_PASSWORD=.*|TONTUYAU_DB_PASSWORD=check-compose|' \
     "$root/.env.example" > "$work/env"
 
 docker compose --env-file "$work/env" -f "$root/docker/docker-compose.yml" config --quiet

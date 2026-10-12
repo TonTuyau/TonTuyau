@@ -46,6 +46,9 @@ internal static class ParameterRules
             case "duration" when path == "api/search":
                 Enum(schema, ApiValues.Durations.Names);
                 break;
+            case "period" when path == "api/admin/dashboard/imports":
+                Enum(schema, ApiValues.ImportPeriods.Names);
+                break;
             case "exclude" when videoList:
                 schema.Pattern = VideoIdPattern;
                 break;

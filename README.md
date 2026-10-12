@@ -4,7 +4,7 @@
 
 *Ton tuyau*: French for "your pipe" (or "your tube").
 
-A self-hosted, YouTube-like web UI for the library of a [TubeArchivist](https://github.com/tubearchivist/tubearchivist) instance. There's no login: every channel and video is listed and searchable. TonTuyau **only reads** from TubeArchivist and never modifies it.
+A self-hosted, YouTube-like web UI for the library of a [TubeArchivist](https://github.com/tubearchivist/tubearchivist) instance. Browsing needs no login: every channel and video is listed and searchable (an admin account can log in, for the administration to come). TonTuyau **only reads** from TubeArchivist and never modifies it.
 
 - **Backend**: ASP.NET Core (.NET 10), REST API, its own Elasticsearch 9, a scheduled sync from TubeArchivist (hourly for the new downloads, a full pass once a week).
 - **Frontend**: Svelte 5 + Vite + TypeScript, built with pnpm, tested with Vitest.
@@ -28,7 +28,7 @@ Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#i
 
 ## Install with Docker
 
-TonTuyau runs as three containers: `tontuyau-es` (its own Elasticsearch), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
+TonTuyau runs as four containers: `tontuyau-es` (its own Elasticsearch), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
 
 ### Prerequisites
 
@@ -60,13 +60,13 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Fill in `TONTUYAU_TA_URL`, `TONTUYAU_TA_TOKEN` and `TONTUYAU_ES_PASSWORD` (any long random string: `openssl rand -base64 24`). Every other variable has a default; `.env.example` explains each one.
+Fill in `TONTUYAU_TA_URL`, `TONTUYAU_TA_TOKEN`, `TONTUYAU_ES_PASSWORD` and `TONTUYAU_DB_PASSWORD` (any long random strings: `openssl rand -base64 24`), and `TONTUYAU_ADMIN_PASSWORD`: the admin account's password, read at the first start only (see [Logging in](#logging-in)). Every other variable has a default; `.env.example` explains each one.
 
 ### 3. Start
 
 ```bash
 docker compose pull && docker compose up -d
-docker compose ps        # all three "healthy" after a minute or two
+docker compose ps        # all four "healthy" after a minute or two
 ```
 
 The backend's "healthy" means its process answers (`/health`); `/health/ready` also says whether Elasticsearch and TonTuyau's indices are usable (see [REST API](#rest-api)).
@@ -143,11 +143,12 @@ services:
 
 | Volume | Content | Back it up? |
 |---|---|---|
+| `tontuyau-db-data` | the accounts and the keys of the login cookies (PostgreSQL) | **Yes**: `docker exec tontuyau-db pg_dump -U tontuyau tontuyau > tontuyau-db.sql` |
 | `tontuyau-es-data` | TonTuyau's index (Elasticsearch) | Not needed: a full sync rebuilds it from TubeArchivist (about 13 minutes) |
 | `tontuyau-art` | the images copied from TubeArchivist and their resized versions (about 6 GB) | Optional: the next full sync copies and resizes what's missing (about 20 minutes) |
 | `tontuyau-sync-logs` | full runs' deletion lists | Optional, small |
 | `TONTUYAU_MEDIA_PATH` (a folder, not a volume) | your videos | Yours: TonTuyau never writes there |
-| `.env` | the settings and secrets | **Yes** (it holds the TubeArchivist token and the Elasticsearch password: keep the copy private) |
+| `.env` | the settings and secrets | **Yes** (it holds the TubeArchivist token and the passwords: keep the copy private) |
 
 A volume to a tarball, for example (a folder, see above: back it up like any folder): `docker run --rm -v tontuyau_tontuyau-art:/v:ro -v "$PWD":/b busybox tar czf /b/art.tgz -C /v .` (Compose prefixes the volume names with the project name `tontuyau_`; `docker volume ls` lists them.)
 
@@ -178,7 +179,7 @@ Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `l
 
 ## Development setup
 
-Prerequisites: .NET 10 SDK, Node 24+, pnpm (via corepack), Docker (for Elasticsearch and the integration tests that need it; your user must be in the `docker` group). The Elasticsearch integration tests start a container with a 512 MB heap and refuse to start with less than 2 GB of free RAM.
+Prerequisites: .NET 10 SDK, Node 24+, pnpm (via corepack), Docker (for Elasticsearch, PostgreSQL and the integration tests that need them; your user must be in the `docker` group). The integration tests start one PostgreSQL (`postgres:17`) and give each scenario a database of its own. The Elasticsearch integration tests start a container with a 512 MB heap and refuse to start with less than 2 GB of free RAM.
 
 ```bash
 cp .env.example .env    # then fill in the values, and uncomment the "Development only" lines; .env is git-ignored
@@ -188,7 +189,7 @@ cp .env.example .env    # then fill in the values, and uncomment the "Developmen
 Run locally:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-es   # Elasticsearch on localhost:9200
+docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-es tontuyau-db   # localhost:9200, :5432
 set -a; . ./.env; set +a; cd backend && dotnet run --project src/TonTuyau.Api   # http://localhost:5080
 cd frontend && pnpm install && pnpm dev                              # http://localhost:5173, proxies /api /media /art
 ```
@@ -232,6 +233,14 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS` | no | `20`: the format guard doesn't judge before this many documents are read (`0` = from the first page) |
 | `TONTUYAU_SYNC_REJECT_GUARD_PERCENT` | no | `50`: past that minimum, a run stops when more than this share of what it read is rejected (`100` = guard off) |
 | `TONTUYAU_ART_RESIZE_PARALLELISM` | no | the machine's core count (in the stack: the backend container's, 2): how many images the sync resizes at once (1–64) |
+| `TONTUYAU_DB_HOST` | no | `tontuyau-db` (`host` or `host:port`; fixed in the stack) |
+| `TONTUYAU_DB_NAME` | no | `tontuyau` |
+| `TONTUYAU_DB_USERNAME` | no | `tontuyau` |
+| `TONTUYAU_DB_PASSWORD` | yes | |
+| `TONTUYAU_ADMIN_USER` | no | `admin`: the account the first start creates |
+| `TONTUYAU_ADMIN_PASSWORD` | at the first start | its password; read only while there's no account at all |
+| `TONTUYAU_COOKIE_SECURE` | no | `true`: the login cookie only travels over HTTPS; `false` to browse over plain `http://` |
+| `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 
 Read by the compose file only:
 
@@ -241,14 +250,27 @@ Read by the compose file only:
 | `TONTUYAU_HTTP_PORT` | `80`: the port of the web app on the VM, the only one the stack publishes |
 | `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), mounted read-only |
 
+## Logging in
+
+Browsing needs no login. The accounts live in PostgreSQL; at its first start (no account yet) the backend creates the admin, `TONTUYAU_ADMIN_USER` (default `admin`) with `TONTUYAU_ADMIN_PASSWORD`, and refuses to start without that password. Later starts never read them again: changing them in `.env` changes nothing. Passwords are stored as OWASP recommends (Argon2id, 19 MiB, 2 passes, 1 lane, a random salt each), never as such.
+
+`/login` (or "Log in" in the top bar) opens a session: a cookie (HttpOnly, SameSite=Strict, Secure) valid 8 hours and renewed while in use, or 30 days with "Stay logged in". A restart keeps everyone logged in (the cookies' keys are in PostgreSQL). Log out from the menu under your initial.
+
+- **HTTPS**: the cookie is `Secure`, so browsers only keep it over HTTPS (and on `localhost`). Browsing TonTuyau over plain `http://` on the LAN, set `TONTUYAU_COOKIE_SECURE=false`.
+- **Guessing passwords**: 5 attempts a minute per client address, then 429. The address is the one the front server saw; **behind a reverse proxy, that's the proxy's**: name it in `TONTUYAU_TRUSTED_PROXIES` and the visitor's address is read from the `X-Forwarded-For` it adds, so each visitor gets their own 5 attempts. Only the proxy's entry is trusted: an address a client writes itself before it doesn't count. Without the setting, everyone behind the proxy shares the 5 attempts.
+- Logging out deletes the cookie in the browser; a copy taken before stays valid until it expires (no server-side session list).
+
 ## Upgrading
+
+From 1.1: add `TONTUYAU_DB_PASSWORD` and `TONTUYAU_ADMIN_PASSWORD` to `.env`, take the new compose file, then `docker compose up -d` (the new `tontuyau-db` starts first).
+
 
 After upgrading, **the index rebuilds itself at startup** when the new version changed the index definitions (fields, analysers): the backend notices it, starts a rebuild in the background (a full run into a new index generation, then one alias switch) and keeps serving the current indices meanwhile. It's a sync like the others (same lock, TubeArchivist read-only, the same safety limits). If it fails, or TubeArchivist can't be reached, every following sync rebuilds instead of its normal run until it succeeds. With `TONTUYAU_SYNC_SCHEDULER_ENABLED=false` the backend never starts it by itself: it logs a warning, `tontuyau sync status` says "Index rebuild : pending", and `tontuyau index rebuild` (or any `tontuyau sync`) does it.
 
 
 ## REST API
 
-Read-only, under `/api`, `/media` and `/art`; the contract is [docs/API_CONTRACT.md](docs/API_CONTRACT.md). The backend publishes its OpenAPI document at `/openapi/v1.json`; in Development, a Scalar UI to try it is at `/scalar`.
+Read-only for the library, under `/api`, `/media` and `/art`, plus logging in and out (`/api/auth/…`); the contract is [docs/API_CONTRACT.md](docs/API_CONTRACT.md). The backend publishes its OpenAPI document at `/openapi/v1.json`; in Development, a Scalar UI to try it is at `/scalar`.
 
 ```bash
 curl -s 'localhost:5080/api/home?size=2'
@@ -278,7 +300,7 @@ The commands that run a sync show their progress while they run, then the report
 
 ## Before going public
 
-TonTuyau is designed for the LAN. Before exposing it to the internet: add authentication, run the planned RCE / path-traversal audit, and regenerate the TubeArchivist API token.
+TonTuyau is designed for the LAN. Before exposing it to the internet: decide whether browsing should need a login (it doesn't yet), run the planned RCE / path-traversal audit, and regenerate the TubeArchivist API token.
 
 Already done, as if it were public (QA14-3): the front server sends a strict **Content-Security-Policy** on every answer (`default-src 'self'`, images from the site only with `img-src 'self'` (no `data:` URLs), no inline script or style, `object-src 'none'`, `frame-ancestors 'self'`: the full policy is in `frontend/server/server.ts`), with `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `X-Frame-Options: SAMEORIGIN`. `check.sh` fails if the built page or its stylesheets get anything the policy would block (an inline script or style, a `data:` URL).
 

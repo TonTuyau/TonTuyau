@@ -40,6 +40,21 @@ public sealed partial class TonTuyauOptionsValidator : IValidator<TonTuyauOption
             errors.Add(Field(ConfigKeys.ArtResizeParallelism), $"must be between 1 and {MaxArtResizeParallelism}.");
         }
 
+        RequireValue(errors, ConfigKeys.DbHost, value.Database.Host);
+        RequireValue(errors, ConfigKeys.DbName, value.Database.Name);
+        RequireValue(errors, ConfigKeys.DbUsername, value.Database.Username);
+        RequireValue(errors, ConfigKeys.DbPassword, value.Database.Password);
+        // The admin's password is only needed to create the account, so only the startup's first run checks it.
+        RequireValue(errors, ConfigKeys.AdminUser, value.Accounts.AdminUser);
+        if (!value.Accounts.TrustedProxies
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .All(part => System.Net.IPAddress.TryParse(part, out _)))
+        {
+            errors.Add(
+                Field(ConfigKeys.TrustedProxies),
+                "must be IP addresses separated by commas (your reverse proxy's, as the front server sees it).");
+        }
+
         foreach (ValidationError error in value.Unparsable)
         {
             errors.Add(error.Field, error.Message);

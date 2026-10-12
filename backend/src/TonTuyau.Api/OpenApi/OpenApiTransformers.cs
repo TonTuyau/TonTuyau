@@ -17,7 +17,7 @@ internal static class OpenApiTransformers
             {
                 Title = "TonTuyau API",
                 Version = "v1",
-                Description = "Read-only REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; "
+                Description = "REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; "
                     + "errors are RFC 9457 ProblemDetails.",
             };
 
@@ -85,10 +85,10 @@ internal static class OpenApiTransformers
 
         foreach (IOpenApiResponse response in operation.Responses.Values)
         {
-            if (response.Content is { } content && content.ContainsKey("application/json"))
+            if (response.Content is not null && response.Content.ContainsKey("application/json"))
             {
-                content.Remove("text/plain");
-                content.Remove("text/json");
+                response.Content.Remove("text/plain");
+                response.Content.Remove("text/json");
             }
         }
 
@@ -108,10 +108,10 @@ internal static class OpenApiTransformers
         foreach (IOpenApiParameter parameter in operation.Parameters ?? [])
         {
             if (parameter.In == ParameterLocation.Query
-                && parameter.Name is { } name
+                && parameter.Name is not null
                 && parameter.Schema is OpenApiSchema schema)
             {
-                ParameterRules.Apply(path, name, schema);
+                ParameterRules.Apply(path, parameter.Name, schema);
             }
         }
 

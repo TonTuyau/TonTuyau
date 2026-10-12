@@ -21,6 +21,24 @@ export function formatDuration(totalSeconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
 
+/**
+ * A long play time, to the minute: "12,345 h" (100 hours and more), "3 h 05 min", "12 min", or "38 s" under a minute.
+ * The units read the same in English and French.
+ */
+export function formatPlayTime(totalSeconds: number, lang: Lang): string {
+  const seconds = Math.max(0, Math.round(totalSeconds))
+  if (seconds < 60) {
+    return `${seconds} s`
+  }
+  const minutes = Math.round(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  if (hours >= 100) {
+    return `${formatNumber(Math.round(seconds / 3600), lang)} h`
+  }
+  const rest = minutes % 60
+  return hours > 0 ? `${hours} h ${String(rest).padStart(2, '0')} min` : `${minutes} min`
+}
+
 const DAY = 86_400
 
 /** "3 hours ago" / "il y a 3 heures", like YouTube: the largest whole unit. */

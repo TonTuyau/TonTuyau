@@ -617,7 +617,8 @@ public sealed partial class SyncService(
         context.Rejected(page.Rejected);
 
         UpsertResult result = await videos.UpsertAsync(page.Items, runId, ct).ConfigureAwait(false);
-        context.Count(c => Add(c, result));
+        TypeCounts createdByType = CountByType(page.Items, result.CreatedIds);
+        context.Count(c => Add(c, result) with { CreatedByType = Add(c.CreatedByType, createdByType) });
         if (runId is not null)
         {
             await MarkRejectedSeenAsync(page.Rejected, id => videos.MarkSeenAsync(id, runId, ct)).ConfigureAwait(false);
@@ -765,6 +766,26 @@ public sealed partial class SyncService(
         Unchanged = counts.Unchanged + result.Unchanged,
     };
 
+    private static TypeCounts CountByType(IEnumerable<Video> items, IReadOnlyList<string> ids)
+    {
+        HashSet<string> wanted = new(ids, StringComparer.Ordinal);
+        // The same id twice in a page was written once (the last one wins).
+        Video[] matching = items
+            .Where(v => wanted.Contains(v.Id))
+            .GroupBy(v => v.Id, StringComparer.Ordinal)
+            .Select(g => g.Last())
+            .ToArray();
+        return new TypeCounts(
+            matching.Count(v => v.Type == VideoType.Video),
+            matching.Count(v => v.Type == VideoType.Short),
+            matching.Count(v => v.Type == VideoType.Stream));
+    }
+
+    private static TypeCounts Add(TypeCounts? counts, TypeCounts more) =>
+        counts is null
+            ? more
+            : new TypeCounts(counts.Videos + more.Videos, counts.Shorts + more.Shorts, counts.Streams + more.Streams);
+
     private static void ArtFailed(string path, RunContext context)
     {
         context.PendingArt.Add(path);
@@ -886,8 +907,8 @@ public sealed partial class SyncService(
 
     private async Task SaveWatermarkAsync(SyncCheckpoint checkpoint, RunContext context)
     {
-        long? watermark = context.MaxDownloaded is { } seen
-            ? Math.Max(checkpoint.Watermark ?? seen, seen)
+        long? watermark = context.MaxDownloaded is not null
+            ? Math.Max(checkpoint.Watermark ?? context.MaxDownloaded.Value, context.MaxDownloaded.Value)
             : checkpoint.Watermark;
         await state.SaveCheckpointAsync(checkpoint with { Watermark = watermark }, context.CancellationToken)
             .ConfigureAwait(false);

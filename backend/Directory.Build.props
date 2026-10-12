@@ -9,7 +9,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <!-- TonTuyau's version: one minor per milestone until 1.0 (QA13-4). frontend/package.json carries the same one
          (scripts/check-version.sh). No "+<commit>" suffix: the images carry the commit in their labels. -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>

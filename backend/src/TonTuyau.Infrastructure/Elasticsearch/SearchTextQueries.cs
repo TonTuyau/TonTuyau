@@ -43,14 +43,14 @@ internal static class SearchTextQueries
             must.Add(WholeWords(string.Join(' ', text.Words), wholeFields));
         }
 
-        if (text.Prefix is { } prefix)
+        if (text.Prefix is not null)
         {
             must.Add(new BoolQuery
             {
                 Should =
                 [
-                    WholeWords(prefix, wholeFields),
-                    .. prefixFields.Select(f => StartOfWord(f, prefix)),
+                    WholeWords(text.Prefix, wholeFields),
+                    .. prefixFields.Select(f => StartOfWord(f, text.Prefix)),
                 ],
                 MinimumShouldMatch = 1,
             });

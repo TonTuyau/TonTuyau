@@ -61,7 +61,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             .GetAsync<TDocument>(new GetRequest(ReadAlias, id), cancellationToken)
             .ConfigureAwait(false))
             .Ensure($"Get {ReadAlias}/{id}", 404);
-        return response.Found && response.Source is { } document ? ToDomain(document) : default;
+        return response.Found && response.Source is not null ? ToDomain(response.Source) : default;
     }
 
     public async Task<long> CountAsync(CancellationToken cancellationToken)
@@ -255,6 +255,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
 
         int created = 0, updated = 0, unchanged = 0;
         List<string> changed = [];
+        List<string> createdIds = [];
         List<IBulkOperation> operations = [];
         foreach (TDocument document in batch)
         {
@@ -280,6 +281,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             else
             {
                 created++;
+                createdIds.Add(document.Id);
             }
 
             // A content rewrite keeps the bookkeeping it had; a run's id replaces the old "seen" mark.
@@ -293,7 +295,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             await BulkAsync(new BulkRequest { Operations = [.. operations] }, cancellationToken).ConfigureAwait(false);
         }
 
-        return new UpsertResult(created, updated, unchanged) { ChangedIds = changed };
+        return new UpsertResult(created, updated, unchanged) { ChangedIds = changed, CreatedIds = createdIds };
     }
 
     private async Task<Dictionary<string, StoreBookkeeping>> GetBookkeepingAsync(
