@@ -37,7 +37,7 @@ describe('SettingsMenu', () => {
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(__TONTUYAU_VERSION__).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(__TONTUYAU_VERSION__).toMatch(/^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$/)
     const version = screen.getByText(`TonTuyau ${__TONTUYAU_VERSION__}`)
     expect(screen.getByRole('menu')).toContainElement(version)
     expect(version.closest('[role^="menuitem"]')).toBeNull()

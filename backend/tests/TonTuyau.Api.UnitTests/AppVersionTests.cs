@@ -16,7 +16,7 @@ public sealed partial class AppVersionTests
         Assert.Equal(expected, AppVersion.Value);
     }
 
-    [GeneratedRegex(@"^\d+\.\d+\.\d+\z")]
+    [GeneratedRegex(@"^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?\z")]
     private static partial Regex SemVer();
 
     /// <summary>The first <c>Version</c> in the Directory.Build.props files above the test (tests/ has its own).</summary>
