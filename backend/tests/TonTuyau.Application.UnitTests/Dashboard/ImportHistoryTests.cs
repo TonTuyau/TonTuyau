@@ -55,7 +55,7 @@ public sealed class ImportHistoryTests
     }
 
     [Fact]
-    public async Task The_last_day_is_a_bar_per_run_of_the_last_24_hours()
+    public async Task The_last_day_is_a_bar_per_sync_of_the_last_24_hours_an_empty_one_too()
     {
         _store.Runs =
         [
@@ -70,6 +70,7 @@ public sealed class ImportHistoryTests
         Assert.Equal(
             [
                 new ImportBarView(At("2026-10-11T12:00:00Z"), new TypeCounts(4, 0, 0), 0),
+                new ImportBarView(At("2026-10-12T08:00:00Z"), new TypeCounts(0, 0, 0), 0),
                 new ImportBarView(At("2026-10-12T09:00:00Z"), new TypeCounts(1, 2, 0), 0),
             ],
             history.Bars);
