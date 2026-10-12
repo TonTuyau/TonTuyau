@@ -178,11 +178,11 @@ internal sealed class DashboardRepository(
         DateTimeOffset? since,
         CancellationToken cancellationToken)
     {
-        Query query = since is { } from
+        Query query = since is not null
             ? new DateRangeQuery
             {
                 Field = Infer.Field<SyncRun>(r => r.StartedAt),
-                Gte = DateMath.Anchored(from.UtcDateTime),
+                Gte = DateMath.Anchored(since.Value.UtcDateTime),
             }
             : new MatchAllQuery();
         List<SyncRun> runs = [];

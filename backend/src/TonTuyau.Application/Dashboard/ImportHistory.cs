@@ -94,11 +94,11 @@ public static class ImportHistory
         long notRecorded = 0;
         foreach (SyncRun run in runs)
         {
-            if (run.Counts.CreatedByType is { } byType)
+            if (run.Counts.CreatedByType is not null)
             {
-                videos += byType.Videos;
-                shorts += byType.Shorts;
-                streams += byType.Streams;
+                videos += run.Counts.CreatedByType.Videos;
+                shorts += run.Counts.CreatedByType.Shorts;
+                streams += run.Counts.CreatedByType.Streams;
             }
             else
             {

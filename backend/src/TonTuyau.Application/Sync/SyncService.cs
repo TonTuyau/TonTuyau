@@ -907,8 +907,8 @@ public sealed partial class SyncService(
 
     private async Task SaveWatermarkAsync(SyncCheckpoint checkpoint, RunContext context)
     {
-        long? watermark = context.MaxDownloaded is { } seen
-            ? Math.Max(checkpoint.Watermark ?? seen, seen)
+        long? watermark = context.MaxDownloaded is not null
+            ? Math.Max(checkpoint.Watermark ?? context.MaxDownloaded.Value, context.MaxDownloaded.Value)
             : checkpoint.Watermark;
         await state.SaveCheckpointAsync(checkpoint with { Watermark = watermark }, context.CancellationToken)
             .ConfigureAwait(false);

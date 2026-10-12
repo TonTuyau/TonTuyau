@@ -61,9 +61,9 @@ public static class CursorCodec
             }
 
             json.WriteEndArray();
-            if (since is { } cutOff)
+            if (since is not null)
             {
-                json.WriteNumber("t", cutOff.ToUnixTimeMilliseconds());
+                json.WriteNumber("t", since.Value.ToUnixTimeMilliseconds());
             }
 
             json.WriteEndObject();

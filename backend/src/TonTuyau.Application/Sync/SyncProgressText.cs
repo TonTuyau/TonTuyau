@@ -33,7 +33,7 @@ public static class SyncProgressText
     /// than what's already done is wrong, so it isn't shown either.
     /// </summary>
     public static string OutOf(int done, int? total) =>
-        total is { } end && done <= end ? $"{Number(done)} / {Number(end)}" : Number(done);
+        total is not null && done <= total.Value ? $"{Number(done)} / {Number(total.Value)}" : Number(done);
 
     public static string Label(SyncPhase phase) => phase switch
     {

@@ -274,9 +274,9 @@ public sealed class ArtResizeTests : IDisposable
         using SKBitmap bitmap = new(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
         using (SKCanvas canvas = new(bitmap))
         {
-            if (solid is { } color)
+            if (solid is not null)
             {
-                canvas.Clear(color);
+                canvas.Clear(solid.Value);
             }
             else
             {

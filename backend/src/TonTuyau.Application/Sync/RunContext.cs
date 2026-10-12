@@ -106,7 +106,7 @@ internal sealed class RunContext(
     public void SawDownloaded(DateTimeOffset downloaded)
     {
         long seconds = downloaded.ToUnixTimeSeconds();
-        MaxDownloaded = MaxDownloaded is { } max ? Math.Max(max, seconds) : seconds;
+        MaxDownloaded = MaxDownloaded is not null ? Math.Max(MaxDownloaded.Value, seconds) : seconds;
     }
 
     /// <summary>Counts rejected documents and stops the run when most of what TubeArchivist sends is broken.</summary>
@@ -143,10 +143,10 @@ internal sealed class RunContext(
     // Under _gate. Nothing before the first phase (e.g. apply-deletions starting from the latest run's counts).
     private void Report()
     {
-        if (_phase is { } phase)
+        if (_phase is not null)
         {
             progress.Report(new SyncProgress(
-                phase,
+                _phase.Value,
                 progressStart,
                 _done,
                 _total,
