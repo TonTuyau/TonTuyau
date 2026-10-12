@@ -10,6 +10,9 @@ public sealed record UpsertResult(int Created, int Updated, int Unchanged)
     /// <summary>Ids that were created or updated (their art may need copying again).</summary>
     public IReadOnlyList<string> ChangedIds { get; init; } = [];
 
+    /// <summary>Ids that were created (the sync counts its new videos by type from them).</summary>
+    public IReadOnlyList<string> CreatedIds { get; init; } = [];
+
     public int Total => Created + Updated + Unchanged;
 
     public UpsertResult Add(UpsertResult other)
@@ -18,13 +21,15 @@ public sealed record UpsertResult(int Created, int Updated, int Unchanged)
         return new(Created + other.Created, Updated + other.Updated, Unchanged + other.Unchanged)
         {
             ChangedIds = [.. ChangedIds, .. other.ChangedIds],
+            CreatedIds = [.. CreatedIds, .. other.CreatedIds],
         };
     }
 
     public bool Equals(UpsertResult? other) =>
         other is not null
         && (Created, Updated, Unchanged) == (other.Created, other.Updated, other.Unchanged)
-        && ChangedIds.SequenceEqual(other.ChangedIds);
+        && ChangedIds.SequenceEqual(other.ChangedIds)
+        && CreatedIds.SequenceEqual(other.CreatedIds);
 
     public override int GetHashCode() => HashCode.Combine(Created, Updated, Unchanged);
 }

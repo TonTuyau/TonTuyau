@@ -2,6 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
+using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Infrastructure.Elasticsearch;
@@ -21,6 +22,7 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IIndexManager, IndexManager>();
         services.AddSingleton<IVideoRepository, VideoRepository>();
         services.AddSingleton<IChannelRepository, ChannelRepository>();
+        services.AddSingleton<IDashboardRepository, DashboardRepository>();
         services.AddSingleton<SearchStoreReadiness>();
         services.AddSingleton<IndexRebuildState>();
         services.AddSingleton(TimeProvider.System);

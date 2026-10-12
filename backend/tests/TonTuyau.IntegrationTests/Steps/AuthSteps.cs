@@ -58,6 +58,14 @@ public sealed class AuthSteps(ScenarioState state)
         await SendAsync(request);
     }
 
+    /// <summary>A GET with the session cookie, if there is one (<c>{video:key}</c> etc. as in the other requests).</summary>
+    [When("I request {string} with my session")]
+    public async Task RequestWithSession(string path)
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, new Uri(TestIds.Expand(path), UriKind.Relative));
+        await SendAsync(request);
+    }
+
     [When("I log out")]
     public Task LogOut() => PostAsync("/api/auth/logout", content: null, from: null);
 

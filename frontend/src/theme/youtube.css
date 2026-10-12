@@ -5,6 +5,7 @@
  *
  * Breakpoints can't be custom properties (media queries don't read them). Components use these widths:
  *   600px  phone (one column, compact top bar, bottom navigation bar instead of the mini rail)
+ *   900px  the admin area's left menu shows its icons only (unless opened)
  *   1024px sidebar becomes an overlay drawer
  *   1312px watch page puts the side column under the player
  *
@@ -45,6 +46,13 @@
   --color-player-bg: #000000;
   --color-on-player: #ffffff;
   --color-tag: light-dark(#065fd4, #3ea6ff);
+  /* The admin dashboard's charts: one colour per video type (checked for colour-blind separation in both themes),
+     a grey for imports whose types weren't recorded, and the recessive grid lines. */
+  --color-type-video: light-dark(#00908f, #1f9fa1);
+  --color-type-short: light-dark(#d9741f, #d27a30);
+  --color-type-stream: light-dark(#6c5ce7, #8a79f0);
+  --color-type-unknown: light-dark(#9e9e9e, #6f6f6f);
+  --color-chart-grid: light-dark(#ececec, #2c2c2c);
 
   /* Typography */
   --font-family: Roboto, Arial, system-ui, sans-serif;
@@ -55,6 +63,7 @@
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-size-xxl: 2.25rem;
+  --font-size-stat: 1.75rem;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;
@@ -145,6 +154,9 @@
   --player-min-height: 240px;
   --menu-width: 280px;
   --login-width: 448px;
+  --admin-page-max-width: 1180px;
+  --admin-search-max-width: 360px;
+  --chart-tip-width: 200px;
   --badge-height: 20px;
   --shorts-action-size: 48px;
   /* Room left under the shorts overlay for the video's native controls. */

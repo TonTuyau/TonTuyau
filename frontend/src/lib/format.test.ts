@@ -1,4 +1,13 @@
-import { codecName, formatAge, formatBytes, formatCompact, formatDate, formatDuration, formatNumber } from './format'
+import {
+  codecName,
+  formatAge,
+  formatBytes,
+  formatCompact,
+  formatDate,
+  formatDuration,
+  formatNumber,
+  formatPlayTime,
+} from './format'
 
 // Intl output uses narrow / non-breaking spaces in French: compare with normal spaces.
 const plain = (text: string) => text.replace(/[\u202f\u00a0]/g, ' ')
@@ -12,6 +21,23 @@ describe('format', () => {
     [6 * 3600 + 2 * 60 + 41, '6:02:41'],
   ])('formats %i seconds as %s', (seconds, expected) => {
     expect(formatDuration(seconds)).toBe(expected)
+  })
+
+  it.each([
+    [0, '0 s'],
+    [38.4, '38 s'],
+    [60, '1 min'],
+    [451, '8 min'],
+    [3600, '1 h 00 min'],
+    [3 * 3600 + 5 * 60 + 10, '3 h 05 min'],
+    [99 * 3600 + 59 * 60 + 40, '100 h'],
+    [12_345 * 3600, '12,345 h'],
+  ])('formats a play time of %d seconds as %s', (seconds, expected) => {
+    expect(formatPlayTime(seconds, 'en')).toBe(expected)
+  })
+
+  it('formats long play times per language', () => {
+    expect(plain(formatPlayTime(12_345 * 3600, 'fr'))).toBe('12 345 h')
   })
 
   it('formats counts compactly per language, like YouTube', () => {

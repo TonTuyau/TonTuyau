@@ -13,6 +13,7 @@ export type Route =
   | { name: 'shorts'; id: string }
   | { name: 'results' }
   | { name: 'login' }
+  | { name: 'admin' }
   | { name: 'notFound' }
 
 /** URL segment ↔ API video type. */
@@ -66,6 +67,9 @@ export function matchRoute(pathname: string): Route {
   if (first === 'login' && second === undefined) {
     return { name: 'login' }
   }
+  if (first === 'admin' && second === undefined) {
+    return { name: 'admin' }
+  }
   return { name: 'notFound' }
 }
 
@@ -107,6 +111,8 @@ export const href = {
   results: (query: Record<string, string | null | undefined>): string => withQuery('/results', query),
   /** `next`: where to go back after logging in (an in-app path, see safeNext). */
   login: (next?: string | null): string => withQuery('/login', { next: next && next !== '/' ? next : null }),
+  /** The admin area (1.2): its dashboard, the only page for now. */
+  admin: (): string => '/admin',
 }
 
 /**

@@ -19,6 +19,8 @@ describe('routes', () => {
     ['/shorts/%E0%A4%A', { name: 'notFound' }],
     ['/results', { name: 'results' }],
     ['/login', { name: 'login' }],
+    ['/admin', { name: 'admin' }],
+    ['/admin/users', { name: 'notFound' }],
     ['/somewhere/else/entirely/deep', { name: 'notFound' }],
   ])('matches %s', (path, expected) => {
     expect(matchRoute(path)).toEqual(expected)
@@ -26,6 +28,7 @@ describe('routes', () => {
 
   it('builds every in-app link', () => {
     expect(href.home()).toBe('/')
+    expect(href.admin()).toBe('/admin')
     expect(href.short('a/b')).toBe('/shorts/a%2Fb')
     expect(href.watch('a b&c')).toBe('/watch?v=a+b%26c')
     expect(href.watch('abc', 83)).toBe('/watch?v=abc&t=83')

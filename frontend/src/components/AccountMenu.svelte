@@ -1,7 +1,8 @@
 <script lang="ts">
   // The top bar's account corner (1.2): a "Log in" link while nobody is logged in (back to this page afterwards; not on
-  // the login page itself); once logged in, the name's initial, opening a small menu with the name and Log out. Menu
-  // button like the settings menu: Enter / Space / ↓ open; Esc, Tab or a click outside close; focus back on the button.
+  // the login page itself); once logged in, the name's initial, opening a small menu with the name, Administration and
+  // Log out. Menu button like the settings menu: Enter / Space / ↓ open on the first item, ↑ / ↓ move between the items;
+  // Esc, Tab or a click outside close; focus back on the button.
   import { tick } from 'svelte'
   import { auth } from '../lib/auth.svelte'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -15,15 +16,17 @@
   let open = $state(false)
   let trigger: HTMLButtonElement | undefined = $state()
   let root: HTMLElement | undefined = $state()
-  let logoutItem: HTMLButtonElement | undefined = $state()
+  let menu: HTMLElement | undefined = $state()
 
   const initial = $derived((auth.username ?? '').slice(0, 1).toUpperCase())
   const loginHref = $derived(href.login(router.path + router.search))
 
+  const items = () => [...(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+
   async function show() {
     open = true
     await tick()
-    logoutItem?.focus()
+    items()[0]?.focus()
   }
 
   function hide(restoreFocus = true) {
@@ -44,6 +47,12 @@
     if (event.key === 'Escape') {
       event.preventDefault()
       hide()
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const all = items()
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      const at = all.indexOf(document.activeElement as HTMLElement)
+      all[(at + step + all.length) % all.length]?.focus()
     } else if (event.key === 'Tab') {
       hide(false)
     }
@@ -93,10 +102,22 @@
       <span class="initial" aria-hidden="true">{initial}</span>
     </button>
     {#if open}
-      <div id={menuId} class="menu" role="menu" tabindex="-1" aria-label={auth.username} onkeydown={onmenukeydown}>
+      <div
+        bind:this={menu}
+        id={menuId}
+        class="menu"
+        role="menu"
+        tabindex="-1"
+        aria-label={auth.username}
+        onkeydown={onmenukeydown}
+      >
         <p class="name">{auth.username}</p>
         <hr />
-        <button bind:this={logoutItem} type="button" role="menuitem" class="item" tabindex="-1" onclick={logout}>
+        <a href={href.admin()} role="menuitem" class="item" tabindex="-1" onclick={() => hide(false)}>
+          <Icon name="dashboard" />
+          <span>{t('account.admin')}</span>
+        </a>
+        <button type="button" role="menuitem" class="item" tabindex="-1" onclick={logout}>
           <Icon name="logout" />
           <span>{t('account.logout')}</span>
         </button>
