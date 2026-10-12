@@ -27,7 +27,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     private bool _countedBeforeRestart;
     private ISyncLease? _otherProcessLease;
 
-    private FakeTubeArchivist Fake => _fake!;
+    public FakeTubeArchivist Fake => _fake!;
 
     private IServiceProvider Services => state.Backend.Services;
 

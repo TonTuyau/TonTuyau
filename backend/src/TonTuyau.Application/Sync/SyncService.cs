@@ -116,6 +116,7 @@ public sealed partial class SyncService(
             await context.SaveAsync().ConfigureAwait(false);
             using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
             LogStarted(run.Id, run.Mode, trigger);
+            progress.Started(run.Id);
             try
             {
                 context.BeginPhase(SyncPhase.DeletionList, entries.Count);
@@ -205,6 +206,7 @@ public sealed partial class SyncService(
             // From here on, every line logged (from any class) is also this run's log (1.4).
             using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
             LogStarted(run.Id, mode, trigger);
+            progress.Started(run.Id);
 
             IndexRebuild? rebuilding = null;
             try
@@ -725,12 +727,14 @@ public sealed partial class SyncService(
 
     /// <summary>
     /// Records how a run that threw ended: Canceled when its caller asked it to stop (<paramref name="caller"/>), else
-    /// Failed and why. Losing the lock to another process is a failure, even when the caller stops too.
+    /// Failed and why. Whatever the exception then: a request cut short doesn't always say it was canceled (the
+    /// Elasticsearch client reports it as "can't be reached"). Losing the lock to another process is a failure, even
+    /// when the caller stops too.
     /// </summary>
     private void Stopped(RunContext context, Exception ex, ISyncLease lease, CancellationToken caller)
     {
-        bool lockLost = ex is OperationCanceledException && lease.Lost.IsCancellationRequested;
-        if (ex is OperationCanceledException && caller.IsCancellationRequested && !lockLost)
+        bool lockLost = lease.Lost.IsCancellationRequested;
+        if (caller.IsCancellationRequested && !lockLost)
         {
             context.Update(r => r with { Outcome = SyncOutcome.Canceled });
             return;
