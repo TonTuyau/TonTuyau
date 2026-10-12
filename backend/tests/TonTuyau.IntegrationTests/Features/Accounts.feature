@@ -93,6 +93,22 @@ Feature: Logging in
     When I log in as the admin from "203.0.113.1, 203.0.113.2"
     Then the response status is 204
 
+  Scenario: Behind the reverse proxy named in TONTUYAU_TRUSTED_PROXIES, each visitor gets their own attempts
+    Given the setting "TONTUYAU_TRUSTED_PROXIES" is "192.168.1.1"
+    When I try a wrong password 5 times from "203.0.113.1, 192.168.1.1"
+    And I log in as the admin from "203.0.113.1, 192.168.1.1"
+    Then the answer is a problem 429
+    When I log in as the admin from "203.0.113.2, 192.168.1.1"
+    Then the response status is 204
+    # A visitor writing another address before the proxy's entry is still counted as themself.
+    When I log in as the admin from "203.0.113.9, 203.0.113.1, 192.168.1.1"
+    Then the answer is a problem 429
+
+  Scenario: TONTUYAU_TRUSTED_PROXIES holds addresses only
+    Given the setting "TONTUYAU_TRUSTED_PROXIES" is "my-proxy"
+    When the backend starts
+    Then it fails to start with an error about "TONTUYAU_TRUSTED_PROXIES"
+
   Scenario: The login takes JSON only
     When I send the login "username=admin&password=integration-admin-password" as "application/x-www-form-urlencoded"
     Then the answer is a problem 415

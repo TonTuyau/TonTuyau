@@ -6,4 +6,12 @@ namespace TonTuyau.Application.Configuration;
 /// The login cookie only travels over HTTPS (the default). False for a TonTuyau browsed over plain HTTP, where browsers
 /// would drop a secure cookie.
 /// </param>
-public sealed record AccountOptions(string AdminUser, string AdminPassword, bool CookieSecure);
+/// <param name="TrustedProxies">
+/// The reverse proxies in front of the stack, addresses separated by commas (empty: none). Their
+/// <c>X-Forwarded-For</c> names the visitor, so each visitor gets their own login attempts.
+/// </param>
+public sealed record AccountOptions(
+    string AdminUser,
+    string AdminPassword,
+    bool CookieSecure,
+    string TrustedProxies = "");

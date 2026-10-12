@@ -20,6 +20,7 @@ namespace TonTuyau.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed partial class AuthController(
     AccountService accounts,
+    ClientAddresses clients,
     TimeProvider clock,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -45,7 +46,7 @@ public sealed partial class AuthController(
             .ConfigureAwait(false);
         if (account is null)
         {
-            string address = AuthServices.ClientAddress(HttpContext);
+            string address = clients.Of(HttpContext);
             LogRefused(address);
             return new ProblemResult(Problems.LoginRefused());
         }

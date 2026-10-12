@@ -98,7 +98,8 @@ public static class TonTuyauOptionsReader
             new AccountOptions(
                 Get(ConfigKeys.AdminUser, DefaultAdminUser),
                 Get(ConfigKeys.AdminPassword),
-                GetBool(ConfigKeys.CookieSecure, true)))
+                GetBool(ConfigKeys.CookieSecure, true),
+                Get(ConfigKeys.TrustedProxies)))
         {
             Unparsable = unparsable,
         };
