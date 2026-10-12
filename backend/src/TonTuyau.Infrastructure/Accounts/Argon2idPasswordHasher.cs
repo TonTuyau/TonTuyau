@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Konscious.Security.Cryptography;
+using TonTuyau.Application.Accounts;
 
 namespace TonTuyau.Infrastructure.Accounts;
 
@@ -10,7 +11,7 @@ namespace TonTuyau.Infrastructure.Accounts;
 /// password, stored as a PHC string: <c>$argon2id$v=19$m=19456,t=2,p=1$&lt;salt&gt;$&lt;hash&gt;</c> (unpadded
 /// Base64). The string carries its parameters, so they can be raised later without breaking existing hashes.
 /// </summary>
-public static class PasswordHasher
+public sealed class Argon2idPasswordHasher : IPasswordHasher
 {
     public const int MemoryKib = 19_456;
     public const int Iterations = 2;
@@ -20,7 +21,7 @@ public static class PasswordHasher
 
     private const string Prefix = "$argon2id$v=19$";
 
-    public static string Hash(string password)
+    public string Hash(string password)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
         byte[] salt = RandomNumberGenerator.GetBytes(SaltBytes);
@@ -30,27 +31,27 @@ public static class PasswordHasher
             $"{Prefix}m={MemoryKib},t={Iterations},p={Parallelism}${Encode(salt)}${Encode(hash)}");
     }
 
-    /// <summary>True when <paramref name="password"/> is the one <paramref name="phc"/> was made from.</summary>
-    public static bool Verify(string password, string phc)
+    /// <summary>True when <paramref name="password"/> is the one <paramref name="hash"/> (a PHC string) was made from.</summary>
+    public bool Verify(string password, string hash)
     {
         ArgumentNullException.ThrowIfNull(password);
-        ArgumentNullException.ThrowIfNull(phc);
+        ArgumentNullException.ThrowIfNull(hash);
         // No password is empty (Argon2 refuses one): nothing to compute, whoever's account it would be.
         if (password.Length == 0
             || !TryParse(
-                phc,
+                hash,
                 out int memory,
                 out int iterations,
                 out int parallelism,
                 out byte[] salt,
-                out byte[] hash))
+                out byte[] expected))
         {
             return false;
         }
 
-        byte[] actual = Derive(password, salt, memory, iterations, parallelism, hash.Length);
+        byte[] actual = Derive(password, salt, memory, iterations, parallelism, expected.Length);
         // Constant time: how long the comparison takes says nothing about how much of the hash matched.
-        return CryptographicOperations.FixedTimeEquals(actual, hash);
+        return CryptographicOperations.FixedTimeEquals(actual, expected);
     }
 
     private static byte[] Derive(string password, byte[] salt, int memory, int iterations, int parallelism, int length)

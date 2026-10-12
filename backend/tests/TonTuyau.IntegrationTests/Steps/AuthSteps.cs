@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using TonTuyau.Api.Hosting;
+using TonTuyau.Application.Accounts;
 using TonTuyau.Infrastructure.Accounts;
 using TonTuyau.IntegrationTests.Support;
 
@@ -136,8 +137,10 @@ public sealed class AuthSteps(ScenarioState state)
     private async Task<Account> AccountAsync(string username)
     {
         await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
-        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-        return await db.Accounts.SingleAsync(a => a.Username == username);
+        Account? account = await scope.ServiceProvider
+            .GetRequiredService<IAccountRepository>()
+            .FindByUsernameAsync(username, TestContext.Current.CancellationToken);
+        return account ?? throw new InvalidOperationException($"No account {username}.");
     }
 
     private Task LogInAsync(string username, string password, bool remember, string? from)

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using TonTuyau.Application.Accounts;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Infrastructure.Accounts;
 
@@ -13,19 +14,29 @@ public static class AccountsServiceCollectionExtensions
     {
         services.AddDbContext<TonTuyauDbContext>((sp, o) =>
             o.UseNpgsql(ConnectionString(sp.GetRequiredService<TonTuyauOptions>().Database)));
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
         services.AddScoped<AccountService>();
         return services;
     }
 
-    /// <summary>The schema up to date and the first account there, before the backend answers anything.</summary>
+    /// <summary>
+    /// The schema up to date (the migrations: a database matter, here) and the first account there (a rule, the
+    /// service's), before the backend answers anything.
+    /// </summary>
     public static async Task InitializeAccountsAsync(this IServiceProvider services)
     {
         AsyncServiceScope scope = services.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
             await scope.ServiceProvider
+                .GetRequiredService<TonTuyauDbContext>()
+                .Database
+                .MigrateAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            await scope.ServiceProvider
                 .GetRequiredService<AccountService>()
-                .InitializeAsync(CancellationToken.None)
+                .EnsureAdminAsync(CancellationToken.None)
                 .ConfigureAwait(false);
         }
     }

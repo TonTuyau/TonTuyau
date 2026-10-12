@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
 using TonTuyau.Api.Hosting;
-using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Application.Accounts;
 
 namespace TonTuyau.Api.Controllers;
 

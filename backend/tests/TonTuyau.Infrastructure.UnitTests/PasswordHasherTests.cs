@@ -4,6 +4,8 @@ namespace TonTuyau.Infrastructure.UnitTests;
 
 public sealed class PasswordHasherTests
 {
+    private static readonly Argon2idPasswordHasher PasswordHasher = new();
+
     [Fact]
     public void A_hash_verifies_its_password()
     {

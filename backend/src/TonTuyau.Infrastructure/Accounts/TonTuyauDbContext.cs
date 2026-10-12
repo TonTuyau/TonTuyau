@@ -10,14 +10,14 @@ namespace TonTuyau.Infrastructure.Accounts;
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
     : DbContext(options), IDataProtectionKeyContext
 {
-    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountRow> Accounts => Set<AccountRow>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
-        modelBuilder.Entity<Account>(account =>
+        modelBuilder.Entity<AccountRow>(account =>
         {
             account.ToTable("accounts");
             account.Property(a => a.Id).HasColumnName("id");
