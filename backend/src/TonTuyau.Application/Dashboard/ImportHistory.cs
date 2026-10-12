@@ -49,18 +49,20 @@ public static class ImportHistory
             return [.. imports.Select(r => Bar(r.StartedAt, [r]))];
         }
 
-        if (imports.Length == 0 && period == ImportPeriod.All)
+        // The other periods have a fixed range (shown with empty steps); All starts at the first import's month.
+        DateOnly? first = period != ImportPeriod.All
+            ? FirstStep(period, now, zone)
+            : imports.Length > 0 ? StartOf(step, LocalDay(imports[0].StartedAt, zone)) : null;
+        if (first is null)
         {
+            // All without any import: no first import, so no range and no bar.
             return [];
         }
 
         ILookup<DateOnly, SyncRun> bySteps = imports.ToLookup(r => StartOf(step, LocalDay(r.StartedAt, zone)));
-        DateOnly first = period == ImportPeriod.All
-            ? StartOf(step, LocalDay(imports[0].StartedAt, zone))
-            : FirstStep(period, now, zone);
         DateOnly last = StartOf(step, LocalDay(now, zone));
         List<ImportBarView> bars = [];
-        for (DateOnly day = first; day <= last; day = Next(step, day))
+        for (DateOnly day = first.Value; day <= last; day = Next(step, day))
         {
             bars.Add(Bar(Midnight(day, zone), bySteps[day]));
         }
