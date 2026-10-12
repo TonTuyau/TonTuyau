@@ -88,6 +88,7 @@ services:
       TONTUYAU_TA_RESULT_WINDOW: ${TONTUYAU_TA_RESULT_WINDOW:-}
       TONTUYAU_ART_RESIZE_PARALLELISM: ${TONTUYAU_ART_RESIZE_PARALLELISM:-}
       TONTUYAU_COOKIE_SECURE: ${TONTUYAU_COOKIE_SECURE:-}
+      TONTUYAU_TRUSTED_PROXIES: ${TONTUYAU_TRUSTED_PROXIES:-}
       # The container's clock for log timestamps; the sync schedule uses TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:

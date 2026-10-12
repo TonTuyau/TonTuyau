@@ -22,6 +22,8 @@ internal static class AuthServices
     public static IServiceCollection AddTonTuyauAuth(this IServiceCollection services)
     {
         services.AddAccounts();
+        services.AddSingleton(sp => new ClientAddresses(
+            ClientAddresses.Parse(sp.GetRequiredService<TonTuyauOptions>().Accounts.TrustedProxies)));
 
         // The keys that sign the cookies live in PostgreSQL: a restart, or a new container, logs nobody out. They're
         // stored unencrypted (Data Protection warns about it once, when it makes a key): the database is the stack's
@@ -48,24 +50,12 @@ internal static class AuthServices
         return services;
     }
 
-    /// <summary>
-    /// Who is asking, for the rate limit. The backend is only reached through the front server, which adds the address
-    /// it got the request from at the end of <c>X-Forwarded-For</c>: that last entry is the one to trust (what comes
-    /// before it, the client or a proxy in between could have written). Behind a reverse proxy it's the proxy's
-    /// address, so every client shares the limit: README, "Logging in".
-    /// </summary>
-    internal static string ClientAddress(HttpContext context)
-    {
-        string? forwarded = context.Request.Headers["X-Forwarded-For"]
-            .LastOrDefault()
-            ?.Split(',')[^1]
-            .Trim();
-        return forwarded is { Length: > 0 } ? forwarded : context.Connection.RemoteIpAddress?.ToString() ?? "";
-    }
-
+    /// <summary>Per client address (<see cref="ClientAddresses"/>: the visitor's, behind a named proxy too).</summary>
     private static RateLimitPartition<string> PerClientAddress(HttpContext context) =>
         RateLimitPartition.GetFixedWindowLimiter(
-            ClientAddress(context),
+            context.RequestServices
+                .GetRequiredService<ClientAddresses>()
+                .Of(context),
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = LoginAttemptsPerMinute,

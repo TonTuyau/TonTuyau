@@ -240,6 +240,7 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_ADMIN_USER` | no | `admin`: the account the first start creates |
 | `TONTUYAU_ADMIN_PASSWORD` | at the first start | its password; read only while there's no account at all |
 | `TONTUYAU_COOKIE_SECURE` | no | `true`: the login cookie only travels over HTTPS; `false` to browse over plain `http://` |
+| `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 
 Read by the compose file only:
 
@@ -256,7 +257,7 @@ Browsing needs no login. The accounts live in PostgreSQL; at its first start (no
 `/login` (or "Log in" in the top bar) opens a session: a cookie (HttpOnly, SameSite=Strict, Secure) valid 8 hours and renewed while in use, or 30 days with "Stay logged in". A restart keeps everyone logged in (the cookies' keys are in PostgreSQL). Log out from the menu under your initial.
 
 - **HTTPS**: the cookie is `Secure`, so browsers only keep it over HTTPS (and on `localhost`). Browsing TonTuyau over plain `http://` on the LAN, set `TONTUYAU_COOKIE_SECURE=false`.
-- **Guessing passwords**: 5 attempts a minute per client address, then 429. The address is the one the front server saw; **behind a reverse proxy, that's the proxy's**, so all clients share these 5 attempts (one person guessing can make the others wait a minute; nobody is locked out for longer).
+- **Guessing passwords**: 5 attempts a minute per client address, then 429. The address is the one the front server saw; **behind a reverse proxy, that's the proxy's**: name it in `TONTUYAU_TRUSTED_PROXIES` and the visitor's address is read from the `X-Forwarded-For` it adds, so each visitor gets their own 5 attempts. Only the proxy's entry is trusted: an address a client writes itself before it doesn't count. Without the setting, everyone behind the proxy shares the 5 attempts.
 - Logging out deletes the cookie in the browser; a copy taken before stays valid until it expires (no server-side session list).
 
 ## Upgrading

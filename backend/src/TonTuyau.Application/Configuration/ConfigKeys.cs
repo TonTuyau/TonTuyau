@@ -34,6 +34,7 @@ public static class ConfigKeys
     public const string AdminUser = "ADMIN_USER";
     public const string AdminPassword = "ADMIN_PASSWORD";
     public const string CookieSecure = "COOKIE_SECURE";
+    public const string TrustedProxies = "TRUSTED_PROXIES";
 
     public static string EnvironmentName(string key) => EnvironmentPrefix + key;
 }
