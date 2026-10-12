@@ -78,6 +78,41 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
                     b.ToTable("accounts", (string)null);
                 });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.RunLogs.RunLogRow", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<string>("RunId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("run_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunId", "Id");
+
+                    b.ToTable("run_log_lines", (string)null);
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -1,12 +1,11 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Time.Testing;
-using TonTuyau.Api.Cli;
 using TonTuyau.Application.Sync;
 
-namespace TonTuyau.Api.UnitTests;
+namespace TonTuyau.Application.UnitTests;
 
-public sealed partial class CliProgressTests
+public sealed partial class ProgressLinesTests
 {
     private static readonly DateTimeOffset Start = new(2026, 10, 7, 9, 0, 0, TimeSpan.Zero);
 
@@ -15,7 +14,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.Channels, 0, 150));
         clock.Advance(TimeSpan.FromSeconds(8));
@@ -38,12 +37,12 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.Channels, 0, 150));
         clock.Advance(TimeSpan.FromSeconds(5));
         progress.Report(Progress(SyncPhase.Channels, 10, 150));
-        clock.Advance(CliProgress.Interval - TimeSpan.FromSeconds(5) - TimeSpan.FromMilliseconds(1));
+        clock.Advance(ProgressLines.Interval - TimeSpan.FromSeconds(5) - TimeSpan.FromMilliseconds(1));
         progress.Report(Progress(SyncPhase.Channels, 20, 150));
         clock.Advance(TimeSpan.FromMilliseconds(1)); // 00:10: a line is due, the heartbeat shows the latest state
         progress.Report(Progress(SyncPhase.Channels, 30, 150)); // just after it: skipped
@@ -64,7 +63,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.ChannelVideos, 120, 120));
         clock.Advance(TimeSpan.FromSeconds(1));
@@ -85,7 +84,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.Channels, 0, 150));
         clock.Advance(TimeSpan.FromSeconds(3));
@@ -106,7 +105,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.ArtRetry, 0, 3));
         clock.Advance(TimeSpan.FromSeconds(2));
@@ -124,7 +123,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.MediaCheck, 0, null));
         clock.Advance(TimeSpan.FromSeconds(1));
@@ -143,7 +142,7 @@ public sealed partial class CliProgressTests
     public void Finishing_without_any_progress_prints_nothing()
     {
         using StringWriter output = new();
-        using CliProgress progress = new(output, new FakeTimeProvider(Start));
+        using ProgressLines progress = new(output.WriteLine, new FakeTimeProvider(Start));
 
         progress.Finish();
 
@@ -158,7 +157,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
         SyncPhase[] phases =
         [
             SyncPhase.Channels,
@@ -201,7 +200,7 @@ public sealed partial class CliProgressTests
         const int PerThread = 2_000;
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         using Barrier barrier = new(Threads);
         Task[] workers = Enumerable.Range(0, Threads)
@@ -234,7 +233,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.Channels, 150, 150));
         progress.Report(Progress(SyncPhase.IndexSwitch, 0, null));
@@ -260,7 +259,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.ChannelVideos, 12, null));
         Wait(clock, TimeSpan.FromSeconds(10));
@@ -275,7 +274,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         progress.Report(Progress(SyncPhase.ChannelVideos, 1, null));
         Wait(clock, TimeSpan.FromSeconds(14)); // the heartbeat: [00:10]
@@ -301,7 +300,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         for (int second = 0; second <= 60; second += 2)
         {
@@ -334,7 +333,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         for (int second = 0; second < 300; second++)
         {
@@ -349,7 +348,7 @@ public sealed partial class CliProgressTests
         TimeSpan[] times = Lines(output)
             .Select(line => TimeSpan.ParseExact(line[1..6], @"mm\:ss", CultureInfo.InvariantCulture))
             .ToArray();
-        Assert.All(times.Zip(times.Skip(1)), pair => Assert.Equal(CliProgress.Interval, pair.Second - pair.First));
+        Assert.All(times.Zip(times.Skip(1)), pair => Assert.Equal(ProgressLines.Interval, pair.Second - pair.First));
         Assert.Equal(31, times.Length);
     }
 
@@ -358,7 +357,7 @@ public sealed partial class CliProgressTests
     {
         FakeTimeProvider clock = new(Start);
         using StringWriter output = new();
-        using CliProgress progress = new(output, clock);
+        using ProgressLines progress = new(output.WriteLine, clock);
 
         clock.Advance(TimeSpan.FromMinutes(1));
         progress.Finish();
