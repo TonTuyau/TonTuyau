@@ -17,7 +17,7 @@ internal static class OpenApiTransformers
             {
                 Title = "TonTuyau API",
                 Version = "v1",
-                Description = "Read-only REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; "
+                Description = "REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; "
                     + "errors are RFC 9457 ProblemDetails.",
             };
 

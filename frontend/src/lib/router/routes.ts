@@ -12,6 +12,7 @@ export type Route =
   | { name: 'watch' }
   | { name: 'shorts'; id: string }
   | { name: 'results' }
+  | { name: 'login' }
   | { name: 'notFound' }
 
 /** URL segment ↔ API video type. */
@@ -62,6 +63,9 @@ export function matchRoute(pathname: string): Route {
   if (first === 'results' && second === undefined) {
     return { name: 'results' }
   }
+  if (first === 'login' && second === undefined) {
+    return { name: 'login' }
+  }
   return { name: 'notFound' }
 }
 
@@ -101,6 +105,32 @@ export const href = {
     withQuery('/watch', { v: id, t: start ? String(Math.floor(start)) : null }),
   short: (id: string): string => `/shorts/${encodeURIComponent(id)}`,
   results: (query: Record<string, string | null | undefined>): string => withQuery('/results', query),
+  /** `next`: where to go back after logging in (an in-app path, see safeNext). */
+  login: (next?: string | null): string => withQuery('/login', { next: next && next !== '/' ? next : null }),
+}
+
+/**
+ * Where the login page goes once logged in: `next` when it's a page of this site ("/watch?v=…"), else home. Never
+ * another site ("//evil.example", "https://…", "/\\evil.example": read as the browser would) nor the login page.
+ */
+export function safeNext(
+  next: string | null,
+  origin: string = globalThis.location?.origin ?? 'http://localhost',
+): string {
+  if (!next?.startsWith('/')) {
+    return href.home()
+  }
+  let url: URL
+  try {
+    url = new URL(next, origin)
+  } catch {
+    // Not even a URL ("//[" …): home.
+    return href.home()
+  }
+  if (url.origin !== origin || matchRoute(url.pathname).name === 'login') {
+    return href.home()
+  }
+  return url.pathname + url.search + url.hash
 }
 
 /**

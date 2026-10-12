@@ -19,6 +19,10 @@ public static class TonTuyauOptionsReader
     public const int DefaultTaResultWindow = 10_000;
     public const int DefaultRejectGuardPercent = 50;
     public const int DefaultRejectGuardMinDocuments = 20;
+    public const string DefaultDbHost = "tontuyau-db";
+    public const string DefaultDbName = "tontuyau";
+    public const string DefaultDbUsername = "tontuyau";
+    public const string DefaultAdminUser = "admin";
 
     /// <summary>Reads the options; missing optional values get their defaults, missing required ones stay empty for the validator.</summary>
     public static TonTuyauOptions Read(IConfiguration configuration)
@@ -85,7 +89,16 @@ public static class TonTuyauOptionsReader
                 GetInt(ConfigKeys.TaResultWindow, DefaultTaResultWindow),
                 GetInt(ConfigKeys.SyncRejectGuardPercent, DefaultRejectGuardPercent),
                 GetInt(ConfigKeys.SyncRejectGuardMinDocuments, DefaultRejectGuardMinDocuments),
-                GetInt(ConfigKeys.ArtResizeParallelism, Environment.ProcessorCount)))
+                GetInt(ConfigKeys.ArtResizeParallelism, Environment.ProcessorCount)),
+            new DatabaseOptions(
+                Get(ConfigKeys.DbHost, DefaultDbHost),
+                Get(ConfigKeys.DbName, DefaultDbName),
+                Get(ConfigKeys.DbUsername, DefaultDbUsername),
+                Get(ConfigKeys.DbPassword)),
+            new AccountOptions(
+                Get(ConfigKeys.AdminUser, DefaultAdminUser),
+                Get(ConfigKeys.AdminPassword),
+                GetBool(ConfigKeys.CookieSecure, true)))
         {
             Unparsable = unparsable,
         };

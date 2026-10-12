@@ -174,6 +174,19 @@ export const en = {
   'filter.channelNone': 'No channel found',
   'filter.channelError': "Couldn't load the channels",
 
+  'account.login': 'Log in',
+  'account.menu': 'Account: {user}',
+  'account.logout': 'Log out',
+
+  'login.title': 'Log in',
+  'login.username': 'Username',
+  'login.password': 'Password',
+  'login.remember': 'Stay logged in',
+  'login.submit': 'Log in',
+  'login.back': 'Back to TonTuyau',
+  'login.refused': 'Wrong username or password.',
+  'login.tooMany': 'Too many attempts. Try again in a minute.',
+
   'notFound.title': "This page isn't available",
   'notFound.home': 'Go to Home',
 

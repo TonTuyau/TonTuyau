@@ -2,10 +2,92 @@
   "openapi": "3.1.1",
   "info": {
     "title": "TonTuyau API",
-    "description": "Read-only REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; errors are RFC 9457 ProblemDetails.",
+    "description": "REST API of TonTuyau (docs/API_CONTRACT.md). Lists are cursor-paged; errors are RFC 9457 ProblemDetails.",
     "version": "v1"
   },
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/home": {
       "get": {
         "tags": ["Home"],
@@ -1321,9 +1403,34 @@
           }
         }
       },
+      "LoginRequest": {
+        "required": ["username", "password"],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": ["null", "string"]
+          },
+          "password": {
+            "type": ["null", "string"]
+          },
+          "remember": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "MediaTrackKind": {
         "enum": ["video", "audio"],
         "type": "string"
+      },
+      "MeResponse": {
+        "required": ["username"],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        }
       },
       "PageOfChannelCard": {
         "required": ["items", "nextCursor", "total"],
@@ -1691,6 +1798,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Auth"
+    },
     {
       "name": "Home"
     },

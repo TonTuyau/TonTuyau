@@ -8,7 +8,7 @@ public sealed class TonTuyauOptionsValidatorTests
 {
     private readonly TonTuyauOptionsValidator _validator = new();
 
-    public enum RequiredField { TaUrl, TaToken, EsUrl, EsUsername, EsPassword }
+    public enum RequiredField { TaUrl, TaToken, EsUrl, EsUsername, EsPassword, DbHost, DbPassword, AdminUser }
 
     public enum UrlField { TaUrl, EsUrl }
 
@@ -179,6 +179,17 @@ public sealed class TonTuyauOptionsValidatorTests
             options.Sync);
     }
 
+    [Fact]
+    public void Database_and_account_settings_have_defaults()
+    {
+        TonTuyauOptions options = TonTuyauOptionsReader.Read(
+            new ConfigurationBuilder().AddInMemoryCollection(Valid()).Build());
+
+        _validator.Validate(options);
+        Assert.Equal(new DatabaseOptions("tontuyau-db", "tontuyau", "tontuyau", "d"), options.Database);
+        Assert.Equal(new AccountOptions("admin", "", true), options.Accounts);
+    }
+
     [Theory, CombinatorialData]
     public void Guard_percent_must_be_between_0_and_100([CombinatorialValues(101, 150, 1000)] int percent)
     {
@@ -238,6 +249,7 @@ public sealed class TonTuyauOptionsValidatorTests
         new(ConfigKeys.TaToken, "t"),
         new(ConfigKeys.EsUrl, "http://es.test:9200"),
         new(ConfigKeys.EsPassword, "p"),
+        new(ConfigKeys.DbPassword, "d"),
     ];
 
     [Theory]
@@ -261,11 +273,13 @@ public sealed class TonTuyauOptionsValidatorTests
             new TubeArchivistOptions("", ""),
             new ElasticsearchOptions("", "", ""),
             new StorageOptions("relative", "relative"),
-            new SyncOptions("x", "x", "x"));
+            new SyncOptions("x", "x", "x"),
+            new DatabaseOptions("", "", "", ""),
+            new AccountOptions("", "", true));
 
         ValidationException ex = Assert.Throws<ValidationException>(() => _validator.Validate(options));
 
-        Assert.Equal(10, ex.Errors.Count);
+        Assert.Equal(15, ex.Errors.Count);
     }
 
     [Theory, CombinatorialData]
@@ -286,6 +300,9 @@ public sealed class TonTuyauOptionsValidatorTests
         RequiredField.EsUrl => ConfigKeys.EsUrl,
         RequiredField.EsUsername => ConfigKeys.EsUsername,
         RequiredField.EsPassword => ConfigKeys.EsPassword,
+        RequiredField.DbHost => ConfigKeys.DbHost,
+        RequiredField.DbPassword => ConfigKeys.DbPassword,
+        RequiredField.AdminUser => ConfigKeys.AdminUser,
         _ => throw new ArgumentOutOfRangeException(nameof(field)),
     };
 
@@ -296,6 +313,9 @@ public sealed class TonTuyauOptionsValidatorTests
         RequiredField.EsUrl => o with { Elasticsearch = o.Elasticsearch with { Url = value } },
         RequiredField.EsUsername => o with { Elasticsearch = o.Elasticsearch with { Username = value } },
         RequiredField.EsPassword => o with { Elasticsearch = o.Elasticsearch with { Password = value } },
+        RequiredField.DbHost => o with { Database = o.Database with { Host = value } },
+        RequiredField.DbPassword => o with { Database = o.Database with { Password = value } },
+        RequiredField.AdminUser => o with { Accounts = o.Accounts with { AdminUser = value } },
         _ => throw new ArgumentOutOfRangeException(nameof(field)),
     };
 }

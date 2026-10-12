@@ -41,6 +41,7 @@
   --color-warning-bg: light-dark(#fff3d6, #3d2e00);
   --color-on-warning: light-dark(#7a4f00, #ffd36a);
   --color-error: light-dark(#cc0000, #ff6b6b);
+  --color-error-bg: light-dark(#fce8e6, #4a1c1c);
   --color-player-bg: #000000;
   --color-on-player: #ffffff;
   --color-tag: light-dark(#065fd4, #3ea6ff);
@@ -143,6 +144,7 @@
   --player-max-height-large: calc(100vh - var(--topbar-height) - 48px);
   --player-min-height: 240px;
   --menu-width: 280px;
+  --login-width: 448px;
   --badge-height: 20px;
   --shorts-action-size: 48px;
   /* Room left under the shorts overlay for the video's native controls. */

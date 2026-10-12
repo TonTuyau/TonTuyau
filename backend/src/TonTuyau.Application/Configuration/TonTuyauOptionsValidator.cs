@@ -40,6 +40,13 @@ public sealed partial class TonTuyauOptionsValidator : IValidator<TonTuyauOption
             errors.Add(Field(ConfigKeys.ArtResizeParallelism), $"must be between 1 and {MaxArtResizeParallelism}.");
         }
 
+        RequireValue(errors, ConfigKeys.DbHost, value.Database.Host);
+        RequireValue(errors, ConfigKeys.DbName, value.Database.Name);
+        RequireValue(errors, ConfigKeys.DbUsername, value.Database.Username);
+        RequireValue(errors, ConfigKeys.DbPassword, value.Database.Password);
+        // The admin's password is only needed to create the account, so only the startup's first run checks it.
+        RequireValue(errors, ConfigKeys.AdminUser, value.Accounts.AdminUser);
+
         foreach (ValidationError error in value.Unparsable)
         {
             errors.Add(error.Field, error.Message);

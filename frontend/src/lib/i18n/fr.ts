@@ -176,6 +176,19 @@ export const fr: Dictionary = {
   'filter.channelNone': 'Aucune chaîne trouvée',
   'filter.channelError': 'Impossible de charger les chaînes',
 
+  'account.login': 'Se connecter',
+  'account.menu': 'Compte : {user}',
+  'account.logout': 'Se déconnecter',
+
+  'login.title': 'Se connecter',
+  'login.username': "Nom d'utilisateur",
+  'login.password': 'Mot de passe',
+  'login.remember': 'Rester connecté',
+  'login.submit': 'Se connecter',
+  'login.back': 'Retour à TonTuyau',
+  'login.refused': "Nom d'utilisateur ou mot de passe incorrect.",
+  'login.tooMany': 'Trop de tentatives. Réessayez dans une minute.',
+
   'notFound.title': "Cette page n'est pas disponible",
   'notFound.home': "Aller à l'accueil",
 

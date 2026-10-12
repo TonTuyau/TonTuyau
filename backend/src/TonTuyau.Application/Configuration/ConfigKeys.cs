@@ -27,6 +27,13 @@ public static class ConfigKeys
     public const string SyncRejectGuardPercent = "SYNC_REJECT_GUARD_PERCENT";
     public const string SyncRejectGuardMinDocuments = "SYNC_REJECT_GUARD_MIN_DOCUMENTS";
     public const string ArtResizeParallelism = "ART_RESIZE_PARALLELISM";
+    public const string DbHost = "DB_HOST";
+    public const string DbName = "DB_NAME";
+    public const string DbUsername = "DB_USERNAME";
+    public const string DbPassword = "DB_PASSWORD";
+    public const string AdminUser = "ADMIN_USER";
+    public const string AdminPassword = "ADMIN_PASSWORD";
+    public const string CookieSecure = "COOKIE_SECURE";
 
     public static string EnvironmentName(string key) => EnvironmentPrefix + key;
 }

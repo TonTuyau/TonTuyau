@@ -4,7 +4,9 @@ public sealed record TonTuyauOptions(
     TubeArchivistOptions TubeArchivist,
     ElasticsearchOptions Elasticsearch,
     StorageOptions Storage,
-    SyncOptions Sync)
+    SyncOptions Sync,
+    DatabaseOptions Database,
+    AccountOptions Accounts)
 {
     /// <summary>Values the reader couldn't parse (e.g. a number that isn't one); reported by the validator.</summary>
     public IReadOnlyList<Validation.ValidationError> Unparsable { get; init; } = [];

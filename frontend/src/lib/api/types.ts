@@ -58,6 +58,12 @@ export type SearchAll = Schemas['SearchAllResponse']
 
 export type Suggestions = Schemas['SuggestResponse']
 
+/** `POST /api/auth/login`'s body (1.2): `remember` is "Stay logged in" (30 days instead of 8 hours). */
+export type LoginRequest = Schemas['LoginRequest']
+
+/** `GET /api/auth/me`: who is logged in (a 401 when nobody is). */
+export type Me = Schemas['MeResponse']
+
 /** RFC 9457 ProblemDetails, as the backend sends it (`errors` on a 400). */
 export type ProblemDetails = Schemas['HttpValidationProblemDetails']
 

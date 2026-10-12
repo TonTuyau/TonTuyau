@@ -34,6 +34,10 @@ dotnet_diagnostic.RCS0053.severity = warning
 dotnet_diagnostic.RCS0054.severity = warning
 dotnet_diagnostic.RCS0056.severity = warning
 
+# EF Core's migrations, as `dotnet ef migrations add` writes them: generated code, not held to the rules above.
+[**/Migrations/*.cs]
+generated_code = true
+
 [*.{csproj,props,targets,slnx}]
 indent_size = 2
 

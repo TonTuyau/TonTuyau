@@ -6,6 +6,7 @@ namespace TonTuyau.IntegrationTests.Support;
 public sealed class TestSettings
 {
     public const string Token = "integration-test-token-0f9a";
+    public const string AdminPassword = "integration-admin-password";
 
     private readonly Dictionary<string, string?> _values = new()
     {
@@ -14,6 +15,9 @@ public sealed class TestSettings
         [ConfigKeys.EnvironmentName(ConfigKeys.EsUrl)] = "http://es.test:9200",
         [ConfigKeys.EnvironmentName(ConfigKeys.EsPassword)] = "es-password",
         [ConfigKeys.EnvironmentName(ConfigKeys.SyncSchedulerEnabled)] = "false",
+        // PostgresHooks points every scenario at a database of its own; the admin is created at its first start.
+        [ConfigKeys.EnvironmentName(ConfigKeys.DbPassword)] = "db-password",
+        [ConfigKeys.EnvironmentName(ConfigKeys.AdminPassword)] = AdminPassword,
     };
 
     public void Set(string environmentName, string? value) => _values[environmentName] = value;
