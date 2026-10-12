@@ -72,6 +72,17 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         }
     });
 
+    [Given("TubeArchivist downloads {int} new short(s) and {int} new stream(s) in {string}")]
+    public void DownloadShortsAndStreams(int shorts, int streams, string channel) => Fake.Mutate(() =>
+    {
+        foreach (string type in Enumerable.Repeat("shorts", shorts).Concat(Enumerable.Repeat("streams", streams)))
+        {
+            string name = NewName(channel);
+            AddVideo(name, channel, NextDownload());
+            Fake.Video(name).Type = type;
+        }
+    });
+
     [Given("TubeArchivist downloads {int} new videos in {string}, all in the same second")]
     public void DownloadSameSecond(int count, string channel) => Fake.Mutate(() =>
     {
@@ -365,6 +376,13 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 
     [Then("the run created {int} videos")]
     public void Created(int count) => Assert.Equal(count, _run!.Counts.Created);
+
+    [Then("the run created {int} videos: {int} videos, {int} short(s) and {int} stream(s)")]
+    public void CreatedByType(int count, int videos, int shorts, int streams)
+    {
+        Assert.Equal(count, _run!.Counts.Created);
+        Assert.Equal(new TypeCounts(videos, shorts, streams), _run.Counts.CreatedByType);
+    }
 
     [Then("the run updated {int} videos and left {int} unchanged")]
     public void UpdatedUnchanged(int updated, int unchanged) =>

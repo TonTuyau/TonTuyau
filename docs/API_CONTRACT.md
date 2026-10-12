@@ -1,4 +1,4 @@
-# TonTuyau — REST API contract (v1.5)
+# TonTuyau — REST API contract (v1.6)
 
 > 2026-10-03. The shared contract between the backend (M4) and the frontend (M5a mockup, then M5/M6). Both sides build against this file; a change goes through you and is written here first.
 > Decisions: [QA_SESSION_05.md](QA_SESSION_05.md), [QA_SESSION_06.md](QA_SESSION_06.md), [QA_SESSION_07.md](QA_SESSION_07.md).
@@ -12,6 +12,8 @@
 > **v1.4 (2026-10-04)**: resized images ([QA_SESSION_09.md](QA_SESSION_09.md)): every image URL comes with a list of sized versions (`thumbnails`, `banners`) for `srcset`; new art URLs `/art/videos/{id}/{width}` and `/art/channels/{id}/{kind}/{width}`.
 >
 > **v1.5 (2026-10-10, TonTuyau 1.2)**: logging in: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Browsing still needs no login.
+>
+> **v1.6 (2026-10-12, TonTuyau 1.2)**: the admin dashboard: `GET /api/admin/dashboard`, logged-in accounts only (401 otherwise).
 
 ## Rules
 
@@ -134,6 +136,7 @@ Tabs to show = the types whose `videoCounts` are > 0 (counted by the backend).
 | `GET /api/auth/me` | `{ "username": "admin" }`, or 401 when nobody is logged in | none: the session cookie says who |
 | `POST /api/auth/login` | 204 and the session cookie (HttpOnly, SameSite=Strict, Secure): 8 hours renewed while in use, 30 days with `remember` | JSON body `{ "username", "password", "remember" }` (4 KB at most, 415 if not JSON); 401 with the same message for every refusal; 429 after 5 attempts in a minute from one address |
 | `POST /api/auth/logout` | 204, the cookie deleted | no body |
+| `GET /api/admin/dashboard` | `DashboardResponse`: `lastSync` (when the latest successful sync finished, or null), `totals` (`channels`, `videos`, `shorts`, `streams`, `gone`: videos no longer available on YouTube), `playTime` (`totalSeconds`, and per type `count`, `seconds`, `share` from 0 to 1, `averageSeconds`), `imports` (the latest 30 sync runs that brought new videos, oldest first: `at`, `total`, `byType` as `VideoCounts`, null for runs of 1.1), `channels` (every channel, biggest first: `id`, `name`, `thumbnailUrl`, `thumbnails`, `counts`, `gone`, `total`) | none; logged in only (the session cookie), 401 otherwise |
 | `GET /media/{id}` | the original file, `Accept-Ranges: bytes` (seeking), right `Content-Type` | 404 if unknown or not on the share; 416 on an unsatisfiable range |
 | `GET /media/{id}/download` | the same file as an attachment: `Content-Disposition: attachment; filename="<title>.<ext>"; filename*=UTF-8''<title>.<ext>` (characters forbidden in file names replaced, Q5-3) | 404 as above |
 | `GET /art/videos/{id}` | the thumbnail (JPEG/PNG/WebP as copied) with `Cache-Control` + `ETag` | 404 if none |

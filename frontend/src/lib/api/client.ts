@@ -5,6 +5,7 @@ import type {
   ChannelDetail,
   ChannelListParams,
   ChannelVideoListParams,
+  Dashboard,
   Home,
   LoginRequest,
   Me,
@@ -158,6 +159,11 @@ export const api = {
 
   logout(): Promise<void> {
     return post('/api/auth/logout')
+  },
+
+  /** The admin dashboard (1.2): 401 when nobody is logged in. */
+  dashboard(signal?: AbortSignal): Promise<Dashboard> {
+    return get('/api/admin/dashboard', {}, signal)
   },
 }
 

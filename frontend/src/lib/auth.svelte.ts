@@ -40,6 +40,11 @@ class Auth {
     this.#set(null)
   }
 
+  /** The backend answered 401 to a logged-in page: the session ended (expired, or logged out in another tab). */
+  expired(): void {
+    this.#set(null)
+  }
+
   /** Back to "not asked yet" (tests). */
   reset(): void {
     this.status = 'unknown'

@@ -1,6 +1,14 @@
 // Small API-shaped objects for component tests. Values are deliberately odd (URLs the front could never
 // guess, counts that don't match list lengths) so a test fails if a component computes instead of displaying.
-import type { ChannelCard, ChannelDetail, Page, VideoCard, VideoDetail } from '../lib/api/types'
+import type {
+  ChannelCard,
+  ChannelDetail,
+  ChannelTotals,
+  Dashboard,
+  Page,
+  VideoCard,
+  VideoDetail,
+} from '../lib/api/types'
 
 export function videoCard(overrides: Partial<VideoCard> = {}): VideoCard {
   return {
@@ -86,4 +94,61 @@ export function channelDetail(overrides: Partial<ChannelDetail> = {}): ChannelDe
 
 export function page<T>(items: T[], total = items.length, nextCursor: string | null = null): Page<T> {
   return { items, total, nextCursor }
+}
+
+export function channelTotals(overrides: Partial<ChannelTotals> = {}): ChannelTotals {
+  return {
+    id: 'UCtest',
+    name: 'Tom Cooks',
+    thumbnailUrl: '/art/from-the-api/UCtest-thumb',
+    thumbnails: [{ width: 900, url: '/art/from-the-api/UCtest-thumb' }],
+    counts: { videos: 120, shorts: 14, streams: 0 },
+    gone: 3,
+    total: 134,
+    ...overrides,
+  }
+}
+
+/** The admin dashboard. The shares and averages don't follow from the other numbers: the page must show them as is. */
+export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
+  return {
+    lastSync: '2026-10-12T07:00:00Z',
+    totals: { channels: 3, videos: 5583, shorts: 1231, streams: 574, gone: 85 },
+    playTime: {
+      totalSeconds: 3_600_000,
+      types: [
+        { type: 'video', count: 5583, seconds: 2_520_000, share: 0.7, averageSeconds: 451 },
+        { type: 'short', count: 1231, seconds: 36_000, share: 0.01, averageSeconds: 29 },
+        { type: 'stream', count: 574, seconds: 1_044_000, share: 0.29, averageSeconds: 7200 },
+      ],
+    },
+    imports: [
+      { at: '2026-09-01T07:00:00Z', total: 40_000, byType: null },
+      { at: '2026-10-11T09:30:00Z', total: 12, byType: { videos: 8, shorts: 3, streams: 1 } },
+    ],
+    channels: [
+      channelTotals({
+        id: 'UCbig',
+        name: 'Vinyl Archive',
+        counts: { videos: 1203, shorts: 0, streams: 156 },
+        gone: 24,
+        total: 1359,
+      }),
+      channelTotals({
+        id: 'UCmid',
+        name: 'Écoles du Goût',
+        counts: { videos: 412, shorts: 96, streams: 12 },
+        gone: 0,
+        total: 520,
+      }),
+      channelTotals({
+        id: 'UCsmall',
+        name: 'Atelier Bois',
+        counts: { videos: 254, shorts: 61, streams: 3 },
+        gone: 7,
+        total: 318,
+      }),
+    ],
+    ...overrides,
+  }
 }

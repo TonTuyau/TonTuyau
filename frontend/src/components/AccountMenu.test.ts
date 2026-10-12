@@ -52,6 +52,8 @@ describe('AccountMenu (the top bar)', () => {
 
     await user.click(trigger)
     expect(screen.getByRole('menu', { name: 'admin' })).toHaveTextContent('admin')
+    expect(screen.getByRole('menuitem', { name: 'Administration' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
     const logout = screen.getByRole('menuitem', { name: 'Log out' })
     expect(logout).toHaveFocus()
 
@@ -59,6 +61,17 @@ describe('AccountMenu (the top bar)', () => {
     expect(posts).toEqual(['/api/auth/logout'])
     expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument()
     expect(auth.status).toBe('anonymous')
+  })
+
+  it('leads to the admin area', async () => {
+    backend(asAdmin())
+    await auth.load()
+    const user = userEvent.setup()
+    render(AccountMenu)
+
+    await user.click(screen.getByRole('button', { name: 'Account: admin' }))
+
+    expect(screen.getByRole('menuitem', { name: 'Administration' })).toHaveAttribute('href', '/admin')
   })
 
   it('closes its menu with Escape, focus back on the button', async () => {

@@ -5,6 +5,7 @@ using System.Text.Unicode;
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.OpenApi;
 using TonTuyau.Application.Browse;
+using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Media;
 using TonTuyau.Application.Validation;
 
@@ -26,6 +27,7 @@ internal static class ApiServices
         services.AddSingleton<ChannelService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();
+        services.AddSingleton<DashboardService>();
 
         services
             .AddControllers(o =>

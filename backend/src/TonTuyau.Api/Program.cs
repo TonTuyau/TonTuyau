@@ -44,8 +44,9 @@ app.UseStatusCodePages(context => Problems.WriteAsync(
     context.HttpContext,
     Problems.ForStatus(context.HttpContext.Response.StatusCode)));
 
-// Who is logged in (the session cookie), then the login's rate limit.
+// Who is logged in (the session cookie), whether that's enough for the admin endpoints, then the login's rate limit.
 app.UseAuthentication();
+app.UseAuthorization();
 app.UseRateLimiter();
 
 // The OpenAPI document (/openapi/v1.json) is what the front generates its types from; the Scalar UI to try the

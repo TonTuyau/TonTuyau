@@ -4,6 +4,50 @@
  */
 
 export interface paths {
+  '/api/admin/dashboard': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['DashboardResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/auth/login': {
     parameters: {
       query?: never
@@ -1278,6 +1322,25 @@ export interface components {
       tags: string[]
       active: boolean
     }
+    ChannelTotals: {
+      id: string
+      name: string
+      thumbnailUrl: null | string
+      thumbnails: components['schemas']['ImageSize'][]
+      counts: components['schemas']['VideoCounts']
+      /** Format: int64 */
+      gone: number
+      /** Format: int64 */
+      total: number
+    }
+    DashboardResponse: {
+      /** Format: date-time */
+      lastSync: null | string
+      totals: components['schemas']['LibraryTotals']
+      playTime: components['schemas']['PlayTime']
+      imports: components['schemas']['SyncImport'][]
+      channels: components['schemas']['ChannelTotals'][]
+    }
     HomeResponse: {
       sections: components['schemas']['HomeSection'][]
     }
@@ -1302,6 +1365,18 @@ export interface components {
       width: number
       url: string
     }
+    LibraryTotals: {
+      /** Format: int64 */
+      channels: number
+      /** Format: int64 */
+      videos: number
+      /** Format: int64 */
+      shorts: number
+      /** Format: int64 */
+      streams: number
+      /** Format: int64 */
+      gone: number
+    }
     LoginRequest: {
       username: null | string
       password: null | string
@@ -1324,6 +1399,11 @@ export interface components {
       nextCursor: null | string
       /** Format: int64 */
       total: number
+    }
+    PlayTime: {
+      /** Format: int64 */
+      totalSeconds: number
+      types: components['schemas']['TypePlayTime'][]
     }
     ProblemDetails: {
       type?: string
@@ -1348,6 +1428,13 @@ export interface components {
     SuggestResponse: {
       suggestions: components['schemas']['Suggestion'][]
     }
+    SyncImport: {
+      /** Format: date-time */
+      at: string
+      /** Format: int32 */
+      total: number
+      byType: null | components['schemas']['VideoCounts']
+    }
     Track: {
       kind: components['schemas']['MediaTrackKind']
       codec: string
@@ -1357,6 +1444,17 @@ export interface components {
       height: null | number
       /** Format: int64 */
       bitrate: number
+    }
+    TypePlayTime: {
+      type: components['schemas']['VideoType']
+      /** Format: int64 */
+      count: number
+      /** Format: int64 */
+      seconds: number
+      /** Format: double */
+      share: number
+      /** Format: int64 */
+      averageSeconds: number
     }
     VideoCard: {
       id: string

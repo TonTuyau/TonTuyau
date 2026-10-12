@@ -6,6 +6,33 @@
     "version": "v1"
   },
   "paths": {
+    "/api/admin/dashboard": {
+      "get": {
+        "tags": ["Admin"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": ["Auth"],
@@ -1329,6 +1356,66 @@
           }
         }
       },
+      "ChannelTotals": {
+        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "total"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": ["null", "string"]
+          },
+          "thumbnails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageSize"
+            }
+          },
+          "counts": {
+            "$ref": "#/components/schemas/VideoCounts"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "required": ["lastSync", "totals", "playTime", "imports", "channels"],
+        "type": "object",
+        "properties": {
+          "lastSync": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/LibraryTotals"
+          },
+          "playTime": {
+            "$ref": "#/components/schemas/PlayTime"
+          },
+          "imports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncImport"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelTotals"
+            }
+          }
+        }
+      },
       "HomeResponse": {
         "required": ["sections"],
         "type": "object",
@@ -1403,6 +1490,32 @@
           }
         }
       },
+      "LibraryTotals": {
+        "required": ["channels", "videos", "shorts", "streams", "gone"],
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "videos": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "shorts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "streams": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "LoginRequest": {
         "required": ["username", "password"],
         "type": "object",
@@ -1467,6 +1580,22 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "PlayTime": {
+        "required": ["totalSeconds", "types"],
+        "type": "object",
+        "properties": {
+          "totalSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypePlayTime"
+            }
           }
         }
       },
@@ -1541,6 +1670,30 @@
           }
         }
       },
+      "SyncImport": {
+        "required": ["at", "total", "byType"],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VideoCounts"
+              }
+            ]
+          }
+        }
+      },
       "Track": {
         "required": ["kind", "codec", "width", "height", "bitrate"],
         "type": "object",
@@ -1560,6 +1713,31 @@
             "format": "int32"
           },
           "bitrate": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TypePlayTime": {
+        "required": ["type", "count", "seconds", "share", "averageSeconds"],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/VideoType"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "share": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageSeconds": {
             "type": "integer",
             "format": "int64"
           }
@@ -1798,6 +1976,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Admin"
+    },
     {
       "name": "Auth"
     },

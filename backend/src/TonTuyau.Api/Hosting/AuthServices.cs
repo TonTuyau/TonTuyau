@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using TonTuyau.Api.Errors;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Infrastructure;
 using TonTuyau.Infrastructure.Accounts;
@@ -39,6 +40,7 @@ internal static class AuthServices
         services
             .AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
             .Configure<TonTuyauOptions>(ConfigureCookie);
+        services.AddAuthorization();
 
         // Guessing passwords: a few attempts per minute and client address, then 429 (as ProblemDetails, by the
         // status code pages).
@@ -78,5 +80,10 @@ internal static class AuthServices
         // 8 hours, renewed while in use; "Stay logged in" makes it 30 days (AuthController).
         cookie.ExpireTimeSpan = SessionLifetime;
         cookie.SlidingExpiration = true;
+
+        // An API answers 401 / 403, not the cookie handler's redirect to a login page: the front has its own.
+        cookie.Events.OnRedirectToLogin = context => Problems.WriteAsync(context.HttpContext, Problems.NotLoggedIn());
+        cookie.Events.OnRedirectToAccessDenied = context =>
+            Problems.WriteAsync(context.HttpContext, Problems.ForStatus(StatusCodes.Status403Forbidden));
     }
 }

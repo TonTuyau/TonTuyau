@@ -8,7 +8,7 @@ import { resolve } from 'node:path'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../../App.svelte'
-import { channelCard, channelDetail, page, videoCard, videoDetail } from '../../test/data'
+import { channelCard, channelDetail, dashboard, page, videoCard, videoDetail } from '../../test/data'
 import { goTo } from '../../test/fakeApi'
 import { CHANNEL_FILTER_MAX_LENGTH, SEARCH_MAX_LENGTH, SUGGEST_MAX_LENGTH } from './limits'
 
@@ -82,6 +82,7 @@ const contract: Endpoint[] = [
     params: { q: { kind: 'text', min: 1, max: 100 }, size: size(20) },
   },
   { doc: '/api/auth/me', path: /^\/api\/auth\/me$/, params: {} },
+  { doc: '/api/admin/dashboard', path: /^\/api\/admin\/dashboard$/, params: {} },
 ]
 
 /** With `kind=channels` the search takes no video filter and no sort (contract "filters for videos", M5a-14). */
@@ -162,6 +163,9 @@ function answer(url: URL): unknown {
     }
   }
   if (path === '/api/videos') return pageOf(url, card(url))
+  // Logged in, so that the admin area asks for its dashboard too.
+  if (path === '/api/auth/me') return { username: 'admin' }
+  if (path === '/api/admin/dashboard') return dashboard()
   if (path === '/api/search/suggest') {
     return { suggestions: [{ text: 'Tom Cooks', kind: 'channel', id: channelId }] }
   }
@@ -239,6 +243,7 @@ const urls = [
   '/results?q=a&type=bogus&duration=bogus&uploaded=bogus&sort=bogus',
   '/results?q=a&sort=relevance',
   '/results',
+  '/admin',
   '/login?next=%2Fchannels',
 ]
 

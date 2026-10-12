@@ -1,6 +1,7 @@
 <script lang="ts">
   // The shell: top bar, the left guide (expanded / mini rail / drawer) or, on phones, the bottom bar,
-  // and the page for the current URL.
+  // and the page for the current URL. The admin area (1.2) has its own shell.
+  import AdminShell from './components/AdminShell.svelte'
   import BottomNav from './components/BottomNav.svelte'
   import Logo from './components/Logo.svelte'
   import Icon from './components/Icon.svelte'
@@ -90,53 +91,57 @@
 <svelte:window {onkeydown} />
 
 <a class="skip" href="#main">{t('a11y.skipToContent')}</a>
-<TopBar {onmenu} menu={!phone} />
+{#if route.name === 'admin'}
+  <AdminShell />
+{:else}
+  <TopBar {onmenu} menu={!phone} />
 
-<div class="layout" class:full class:phone data-guide={phone ? 'bottom' : full ? 'full' : 'mini'}>
-  {#if !phone}
-    <aside class="guide">
-      <Sidebar variant={full ? 'full' : 'mini'} />
-    </aside>
+  <div class="layout" class:full class:phone data-guide={phone ? 'bottom' : full ? 'full' : 'mini'}>
+    {#if !phone}
+      <aside class="guide">
+        <Sidebar variant={full ? 'full' : 'mini'} />
+      </aside>
+    {/if}
+
+    <main id="main" tabindex="-1">
+      {#if route.name === 'home'}
+        <HomePage />
+      {:else if route.name === 'feed'}
+        <FeedPage type={route.type} />
+      {:else if route.name === 'channels'}
+        <ChannelsPage />
+      {:else if route.name === 'channel'}
+        <ChannelPage id={route.id} tab={route.tab} />
+      {:else if route.name === 'watch'}
+        <WatchPage />
+      {:else if route.name === 'shorts'}
+        <ShortsPage id={route.id} />
+      {:else if route.name === 'results'}
+        <SearchPage />
+      {:else if route.name === 'login'}
+        <LoginPage />
+      {:else}
+        <NotFoundPage />
+      {/if}
+    </main>
+  </div>
+
+  {#if phone}
+    <BottomNav />
   {/if}
 
-  <main id="main" tabindex="-1">
-    {#if route.name === 'home'}
-      <HomePage />
-    {:else if route.name === 'feed'}
-      <FeedPage type={route.type} />
-    {:else if route.name === 'channels'}
-      <ChannelsPage />
-    {:else if route.name === 'channel'}
-      <ChannelPage id={route.id} tab={route.tab} />
-    {:else if route.name === 'watch'}
-      <WatchPage />
-    {:else if route.name === 'shorts'}
-      <ShortsPage id={route.id} />
-    {:else if route.name === 'results'}
-      <SearchPage />
-    {:else if route.name === 'login'}
-      <LoginPage />
-    {:else}
-      <NotFoundPage />
-    {/if}
-  </main>
-</div>
-
-{#if phone}
-  <BottomNav />
-{/if}
-
-{#if drawerOpen && !phone}
-  <button type="button" class="scrim" aria-label={t('nav.menu')} onclick={() => (drawerOpen = false)}></button>
-  <div class="drawer" role="dialog" aria-modal="true" aria-label={t('nav.main')}>
-    <div class="drawer-head">
-      <button type="button" class="icon-button" aria-label={t('nav.menu')} onclick={() => (drawerOpen = false)}>
-        <Icon name="menu" />
-      </button>
-      <Logo />
+  {#if drawerOpen && !phone}
+    <button type="button" class="scrim" aria-label={t('nav.menu')} onclick={() => (drawerOpen = false)}></button>
+    <div class="drawer" role="dialog" aria-modal="true" aria-label={t('nav.main')}>
+      <div class="drawer-head">
+        <button type="button" class="icon-button" aria-label={t('nav.menu')} onclick={() => (drawerOpen = false)}>
+          <Icon name="menu" />
+        </button>
+        <Logo />
+      </div>
+      <Sidebar variant="full" />
     </div>
-    <Sidebar variant="full" />
-  </div>
+  {/if}
 {/if}
 
 <style>

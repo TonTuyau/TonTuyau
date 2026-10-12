@@ -37,6 +37,13 @@ Feature: Sync from TubeArchivist
     And TonTuyau has 33 videos
     And the watermark is the download date of the newest video
 
+  Scenario: A run records its new videos by type (the dashboard's import history)
+    Given a first sync has run
+    And TubeArchivist downloads 2 new videos in "alpha"
+    And TubeArchivist downloads 1 new short and 2 new streams in "beta"
+    When an incremental sync runs
+    Then the run created 5 videos: 2 videos, 1 short and 2 streams
+
   Scenario: Too many missing videos for an incremental run: straight to a full run
     Given TubeArchivist's result window is 30
     And a first sync has run
