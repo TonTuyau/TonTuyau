@@ -45,6 +45,18 @@ Feature: Command line
     And the output mentions "    Check "
     And the output mentions ", then run: tontuyau sync apply-deletions run-"
 
+  Scenario: Applying a blocked list from the command line reports a run of its own
+    Given the deletion limit is 1
+    And a first sync has run
+    And TubeArchivist deletes 2 videos of "alpha"
+    And a full sync has run
+    When I run "tontuyau sync apply-deletions" for the latest full run
+    Then the command exits with code 0
+    And the output mentions "apply-deletions by cli  SUCCEEDED"
+    And the output mentions "  applies   the list of run-"
+    And the output mentions ": 2 of 2 deleted"
+    And the output mentions "  deletions 2 deleted, 0 kept (still in TubeArchivist)"
+
   Scenario: Another sync is running
     Given another process holds the sync lock
     When I run "tontuyau sync incremental"

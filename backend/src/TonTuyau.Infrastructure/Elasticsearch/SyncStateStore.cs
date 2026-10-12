@@ -118,7 +118,12 @@ internal sealed partial class SyncStateStore(
                 new TermsQuery
                 {
                     Field = Infer.Field<SyncRun>(r => r.Outcome),
-                    Terms = new TermsQueryField([FieldValue.String("succeeded"), FieldValue.String("failed")]),
+                    Terms = new TermsQueryField(
+                    [
+                        FieldValue.String("succeeded"),
+                        FieldValue.String("failed"),
+                        FieldValue.String("canceled"),
+                    ]),
                 },
             ],
         };

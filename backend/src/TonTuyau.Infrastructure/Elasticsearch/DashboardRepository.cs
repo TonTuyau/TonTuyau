@@ -161,7 +161,10 @@ internal sealed class DashboardRepository(
         SearchRequest<SyncRun> request = new(names.SyncRuns)
         {
             Size = 1,
-            Query = new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" },
+            Query = new BoolQuery
+            {
+                Filter = [Syncs(), new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" }],
+            },
             Sort = [ByStart(SortOrder.Desc)],
             Source = new SourceConfig(new SourceFilter { Includes = RunFields }),
         };
@@ -179,12 +182,19 @@ internal sealed class DashboardRepository(
         CancellationToken cancellationToken)
     {
         Query query = since is not null
-            ? new DateRangeQuery
+            ? new BoolQuery
             {
-                Field = Infer.Field<SyncRun>(r => r.StartedAt),
-                Gte = DateMath.Anchored(since.Value.UtcDateTime),
+                Filter =
+                [
+                    Syncs(),
+                    new DateRangeQuery
+                    {
+                        Field = Infer.Field<SyncRun>(r => r.StartedAt),
+                        Gte = DateMath.Anchored(since.Value.UtcDateTime),
+                    },
+                ],
             }
-            : new MatchAllQuery();
+            : Syncs();
         List<SyncRun> runs = [];
         ICollection<FieldValue>? after = null;
         while (true)
@@ -217,6 +227,14 @@ internal sealed class DashboardRepository(
             after = response.Hits.Last().Sort?.ToArray();
         }
     }
+
+    /// <summary>The syncs: incremental and full runs, not the runs that only applied a deletion list (1.4).</summary>
+    private static TermsQuery Syncs() =>
+        new()
+        {
+            Field = Infer.Field<SyncRun>(r => r.Mode),
+            Terms = new TermsQueryField([FieldValue.String("incremental"), FieldValue.String("full")]),
+        };
 
     private static SortOptions ByStart(SortOrder order) =>
         new() { Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.StartedAt), Order = order } };

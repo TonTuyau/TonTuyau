@@ -297,7 +297,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI.
+The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Ctrl-C stops a run: it's recorded as canceled, and what it did until then stays. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it).
 
 ## Before going public
 
