@@ -126,6 +126,8 @@ services:
       tontuyau-backend: { condition: service_healthy }
     environment:
       TONTUYAU_BACKEND_URL: http://tontuyau-backend:8080
+      # The address people reach TonTuyau at, for the link previews in chat apps (.env; empty: no previews).
+      TONTUYAU_PUBLIC_URL: ${TONTUYAU_PUBLIC_URL:-}
     ports:
       - "${TONTUYAU_HTTP_PORT:-80}:8080"
     healthcheck:

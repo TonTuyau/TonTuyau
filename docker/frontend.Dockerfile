@@ -27,7 +27,7 @@ ENV NODE_ENV=production \
     TONTUYAU_BACKEND_URL=http://tontuyau-backend:8080
 WORKDIR /app
 COPY --from=build /src/frontend/dist ./dist
-COPY frontend/server/server.ts frontend/server/main.ts ./server/
+COPY frontend/server/server.ts frontend/server/previews.ts frontend/server/main.ts ./server/
 USER node
 EXPOSE 8080
 CMD ["node", "server/main.ts"]
