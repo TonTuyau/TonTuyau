@@ -7,9 +7,10 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!-- TonTuyau's version: one minor per milestone until 1.0 (QA13-4). frontend/package.json carries the same one
-         (scripts/check-version.sh). No "+<commit>" suffix: the images carry the commit in their labels. -->
-    <Version>1.3.0</Version>
+    <!-- TonTuyau's version (QA13-4): X.Y.Z, or a pre-release X.Y.Z-alpha.N / -beta.N / -rc.N (a release branch tried
+         on the VM). frontend/package.json carries the same one (scripts/check-version.sh). No "+<commit>" suffix: the
+         images carry the commit in their labels. -->
+    <Version>1.3.0-alpha.1</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
