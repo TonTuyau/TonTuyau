@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Api.Cli;
+using TonTuyau.Application.Sync;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -16,6 +18,16 @@ public sealed partial class CliSteps(ScenarioState state) : IDisposable
         string[] args = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal("tontuyau", args[0]);
         _exitCode = await new CliRunner(state.Backend.Services, _output).RunAsync(args[1..], CancellationToken.None);
+    }
+
+    [When("I run {string} for the latest full run")]
+    public async Task RunForLatestFullRun(string commandLine)
+    {
+        SyncRun? latest = await state.Backend.Services
+            .GetRequiredService<ISyncStateStore>()
+            .GetLatestFullRunAsync(CancellationToken.None);
+        Assert.NotNull(latest);
+        await Run($"{commandLine} {latest.Id}");
     }
 
     [Then("the command exits with code {int}")]

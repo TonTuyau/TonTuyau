@@ -56,16 +56,20 @@ public sealed partial class SyncService(
         CancellationToken cancellationToken) =>
         WithLockAsync(SyncMode.Full, trigger, rebuild: true, progress, cancellationToken);
 
-    /// <summary>Deletes, after confirming each one with TubeArchivist, the list a blocked full run wrote.</summary>
+    /// <summary>
+    /// Deletes, after confirming each one with TubeArchivist, the list a blocked full run wrote. A run of its own
+    /// (<see cref="SyncMode.ApplyDeletions"/>, 1.4): the full run's record stays as that run left it.
+    /// </summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     /// <exception cref="SyncRefusedException">Not the latest full run, or no list for it.</exception>
-    public Task<SyncRun> ApplyDeletionsAsync(string runId, CancellationToken cancellationToken) =>
-        ApplyDeletionsAsync(runId, NoSyncProgress.Instance, cancellationToken);
+    public Task<SyncRun> ApplyDeletionsAsync(string runId, SyncTrigger trigger, CancellationToken cancellationToken) =>
+        ApplyDeletionsAsync(runId, trigger, NoSyncProgress.Instance, cancellationToken);
 
-    /// <inheritdoc cref="ApplyDeletionsAsync(string, CancellationToken)"/>
+    /// <inheritdoc cref="ApplyDeletionsAsync(string, SyncTrigger, CancellationToken)"/>
     /// <param name="progress">Told where it is as it goes (the CLI shows it).</param>
     public async Task<SyncRun> ApplyDeletionsAsync(
         string runId,
+        SyncTrigger trigger,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken)
     {
@@ -74,7 +78,7 @@ public sealed partial class SyncService(
             throw new SyncRefusedException($"'{runId}' isn't a run id (expected run-YYYYMMDDTHHMMSSZ-xxxxxx).");
         }
 
-        ISyncLease lease = await state.TryAcquireLockAsync(SyncMode.Full, SyncTrigger.Cli, cancellationToken)
+        ISyncLease lease = await state.TryAcquireLockAsync(SyncMode.ApplyDeletions, trigger, cancellationToken)
             .ConfigureAwait(false)
             ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
         await using (lease.ConfigureAwait(false))
@@ -93,31 +97,52 @@ public sealed partial class SyncService(
                 .ConfigureAwait(false)
                 ?? throw new SyncRefusedException($"There's no deletion list for {runId}.");
 
-            RunContext context = NewContext(latest, new HashSet<string>(), progress, linked.Token);
-            SyncCounts before = context.Run.Counts;
-            context.BeginPhase(SyncPhase.DeletionList, entries.Count);
-            List<DeletionEntry> stillStored = new();
-            int lookedUp = 0;
-            foreach (DeletionEntry entry in entries)
+            SyncRun run = new()
             {
-                bool stored = entry.Kind == "channel"
-                    ? await channels.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null
-                    : await videos.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null;
-                if (stored)
+                Id = SyncRun.NewId(clock.GetUtcNow()),
+                Mode = SyncMode.ApplyDeletions,
+                Trigger = trigger,
+                StartedAt = clock.GetUtcNow(),
+                AppliesTo = runId,
+                DeletionsPlanned = entries.Count,
+            };
+            RunContext context = NewContext(run, new HashSet<string>(), progress, linked.Token);
+            await context.SaveAsync().ConfigureAwait(false);
+            LogStarted(run.Id, run.Mode, trigger);
+            try
+            {
+                context.BeginPhase(SyncPhase.DeletionList, entries.Count);
+                List<DeletionEntry> stillStored = new();
+                int lookedUp = 0;
+                foreach (DeletionEntry entry in entries)
                 {
-                    stillStored.Add(entry);
+                    bool stored = entry.Kind == "channel"
+                        ? await channels.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null
+                        : await videos.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null;
+                    if (stored)
+                    {
+                        stillStored.Add(entry);
+                    }
+
+                    context.Progressed(++lookedUp);
                 }
 
-                context.Progressed(++lookedUp);
+                await ConfirmAndDeleteAsync(stillStored, context).ConfigureAwait(false);
+                await indices.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
+                context.Update(r => r with { Outcome = SyncOutcome.Succeeded });
+            }
+            catch (Exception ex) when (IsRunFailure(ex))
+            {
+                // What was deleted until then stays deleted, and is counted.
+                Stopped(context, ex, lease, cancellationToken);
+            }
+            finally
+            {
+                context.Update(r => r with { FinishedAt = clock.GetUtcNow() });
+                await context.SaveAsync().ConfigureAwait(false);
             }
 
-            await ConfirmAndDeleteAsync(stillStored, context).ConfigureAwait(false);
-            int deleted = context.Run.Counts.Deleted - before.Deleted;
-            int kept = context.Run.Counts.KeptStillInTubeArchivist - before.KeptStillInTubeArchivist;
-            context.Note(
-                $"apply-deletions {clock.GetUtcNow():u}: {deleted} deleted, {kept} kept (still in TubeArchivist).");
-            await indices.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
-            await context.SaveAsync().ConfigureAwait(false);
+            LogFinished(context.Run.Id, context.Run.Outcome);
             return context.Run;
         }
     }
@@ -211,11 +236,7 @@ public sealed partial class SyncService(
             }
             catch (Exception ex) when (IsRunFailure(ex))
             {
-                string reason = ex is OperationCanceledException && lease.Lost.IsCancellationRequested
-                    ? "The sync lock was lost (another process holds it): stopped."
-                    : ex.Message;
-                context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
-                LogFailed(run.Id, reason);
+                Stopped(context, ex, lease, cancellationToken);
                 if (rebuilding is not null)
                 {
                     await indices.AbortRebuildAsync(rebuilding, CancellationToken.None).ConfigureAwait(false);
@@ -688,6 +709,24 @@ public sealed partial class SyncService(
             LogRejected(ex.Subject, ex.Message);
             context.Rejected([new RejectedItem(channelId, ex.Subject, ex.Errors)]);
         }
+    }
+
+    /// <summary>
+    /// Records how a run that threw ended: Canceled when its caller asked it to stop (<paramref name="caller"/>), else
+    /// Failed and why. Losing the lock to another process is a failure, even when the caller stops too.
+    /// </summary>
+    private void Stopped(RunContext context, Exception ex, ISyncLease lease, CancellationToken caller)
+    {
+        bool lockLost = ex is OperationCanceledException && lease.Lost.IsCancellationRequested;
+        if (ex is OperationCanceledException && caller.IsCancellationRequested && !lockLost)
+        {
+            context.Update(r => r with { Outcome = SyncOutcome.Canceled });
+            return;
+        }
+
+        string reason = lockLost ? "The sync lock was lost (another process holds it): stopped." : ex.Message;
+        context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
+        LogFailed(context.Run.Id, reason);
     }
 
     private static bool IsRunFailure(Exception ex) =>

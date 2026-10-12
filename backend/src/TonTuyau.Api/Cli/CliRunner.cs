@@ -63,7 +63,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
                     progress => Sync.RunAsync(SyncMode.Full, SyncTrigger.Cli, progress, cancellationToken))),
                 ["sync", "status"] => Status(await Sync.GetStatusAsync(cancellationToken)),
                 ["sync", "apply-deletions", string run] => Report(await WithProgressAsync(
-                    progress => Sync.ApplyDeletionsAsync(run, progress, cancellationToken))),
+                    progress => Sync.ApplyDeletionsAsync(run, SyncTrigger.Cli, progress, cancellationToken))),
                 ["index", "rebuild"] => Report(await WithProgressAsync(
                     progress => Sync.RebuildAsync(SyncTrigger.Cli, progress, cancellationToken))),
                 ["help" or "--help" or "-h"] => Write(Help, Ok),
@@ -133,7 +133,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
             $"Watermark      : {watermark}{(status.Checkpoint.FullRunRequested ? " — full run requested" : "")}");
         WriteLines(status.Lock is { } l
             ? $"""
-                Lock           : held by {l.Owner} ({l.Mode}, {l.Trigger}) since {When(l.AcquiredAt)}
+                Lock           : held by {l.Owner} ({Name(l.Mode)}, {l.Trigger}) since {When(l.AcquiredAt)}
                                  lease until {When(l.LeaseUntil)}
                 """
             : "Lock           : free");
@@ -166,20 +166,26 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     private void WriteRun(SyncRun run, string indent = "")
     {
         SyncCounts c = run.Counts;
-        string mode = run.Mode.ToString().ToLowerInvariant();
+        string mode = Name(run.Mode);
         string trigger = run.Trigger.ToString().ToLowerInvariant();
         string outcome = run.Outcome.ToString().ToUpperInvariant();
+        string span = $"{When(run.StartedAt)} → {When(run.FinishedAt)}";
+        output.WriteLine($"{indent}{run.Id}  {mode} by {trigger}  {outcome}  {span}");
         WriteLines(
-            $"""
-            {run.Id}  {mode} by {trigger}  {outcome}  {When(run.StartedAt)} → {When(run.FinishedAt)}
-              read      {c.VideosRead} videos / {c.ChannelsRead} channels
-              store     new {c.Created}, changed {c.Updated}, unchanged {c.Unchanged}
-                        rejected {c.Rejected}, corrected {c.Corrected}
-              art       {c.ArtCopied} copied / {c.ArtFailed} failed
-              resized   {c.ArtResized} versions made / {c.ArtResizeFailed} failed
-              files     {c.MediaMissing} missing
-              deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
-            """,
+            run.Mode == SyncMode.ApplyDeletions
+                ? $"""
+                      applies   the list of {run.AppliesTo}: {c.Deleted} of {run.DeletionsPlanned} deleted
+                      deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
+                    """
+                : $"""
+                      read      {c.VideosRead} videos / {c.ChannelsRead} channels
+                      store     new {c.Created}, changed {c.Updated}, unchanged {c.Unchanged}
+                                rejected {c.Rejected}, corrected {c.Corrected}
+                      art       {c.ArtCopied} copied / {c.ArtFailed} failed
+                      resized   {c.ArtResized} versions made / {c.ArtResizeFailed} failed
+                      files     {c.MediaMissing} missing
+                      deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
+                    """,
             indent);
         if (run.Error is not null)
         {
@@ -206,4 +212,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     }
 
     private static string Name(StoreIndex index) => index.ToString().ToLowerInvariant();
+
+    /// <summary>As the commands spell it: incremental, full, apply-deletions.</summary>
+    private static string Name(SyncMode mode) =>
+        mode == SyncMode.ApplyDeletions ? "apply-deletions" : mode.ToString().ToLowerInvariant();
 }

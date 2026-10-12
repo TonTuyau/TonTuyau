@@ -55,13 +55,14 @@ Feature: The admin dashboard
     And "channels[1].thumbnails" lists the widths "88, 176, 900"
     And "channels[2].thumbnailUrl" is null
 
-  Scenario: The last sync is when the latest successful run finished, whether it brought videos or not
+  Scenario: The last sync is when the latest successful sync finished, whether it brought videos or not
     Given the sync runs:
       | started              | outcome   | new | videos | shorts | streams | rebuild |
       | 2026-09-01T07:00:00Z | succeeded | 40  |        |        |         | false   |
       | 2026-09-05T07:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
       | 2026-09-06T07:00:00Z | failed    | 3   | 2      | 1      | 0       | false   |
       | 2026-09-07T07:00:00Z | running   | 2   | 2      | 0      | 0       | false   |
+    And a run applied a deletion list at "2026-09-08T07:00:00Z"
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then "lastSync" is "2026-09-05T07:10:00Z"

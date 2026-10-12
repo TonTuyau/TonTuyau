@@ -51,6 +51,29 @@ public sealed class DashboardSteps(ScenarioState state)
         }
     }
 
+    /// <summary>A run that applied a full run's deletion list (1.4): never a sync for the dashboard.</summary>
+    [Given("a run applied a deletion list at {string}")]
+    public async Task AppliedDeletions(string at)
+    {
+        await state.WaitUntilReadyAsync();
+        DateTimeOffset started = DateTimeOffset.Parse(at, CultureInfo.InvariantCulture);
+        SyncRun run = new()
+        {
+            Id = SyncRun.NewId(started),
+            Mode = SyncMode.ApplyDeletions,
+            Trigger = SyncTrigger.Cli,
+            StartedAt = started,
+            FinishedAt = started.AddMinutes(2),
+            Outcome = SyncOutcome.Succeeded,
+            AppliesTo = "run-20260101T000000Z-abcdef",
+            DeletionsPlanned = 140,
+            Counts = new SyncCounts { Deleted = 140 },
+        };
+        await state.Backend.Services
+            .GetRequiredService<ISyncStateStore>()
+            .SaveRunAsync(run, CancellationToken.None);
+    }
+
     [Then("the play time by type is:")]
     public void PlayTimeIs(DataTable table) =>
         AssertRows(table, Json["playTime"]!["types"]!, (item, column) => Scalar(item[column]));

@@ -6,6 +6,11 @@ public enum SyncMode
 {
     Incremental,
     Full,
+
+    /// <summary>
+    /// Applies the deletion list a full run wrote but didn't apply (over the limit): a run of its own, since 1.4.
+    /// </summary>
+    ApplyDeletions,
 }
 
 public enum SyncTrigger
@@ -22,6 +27,9 @@ public enum SyncOutcome
     Running,
     Succeeded,
     Failed,
+
+    /// <summary>Stopped because whoever started it asked (1.4): what it did stays, as after a failure.</summary>
+    Canceled,
 }
 
 /// <param name="Watermark">
@@ -98,6 +106,9 @@ public sealed record SyncRun
     public SyncOutcome Outcome { get; init; } = SyncOutcome.Running;
 
     public string? Error { get; init; }
+
+    /// <summary>For an <see cref="SyncMode.ApplyDeletions"/> run: the full run whose deletion list it applied.</summary>
+    public string? AppliesTo { get; init; }
 
     public SyncCounts Counts { get; init; } = new();
 

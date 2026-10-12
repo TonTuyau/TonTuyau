@@ -34,7 +34,10 @@ public interface ISyncStateStore
     /// <returns>Most recent first.</returns>
     Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken);
 
-    /// <returns>The most recent full run that finished (succeeded or failed), or null.</returns>
+    /// <returns>
+    /// The most recent full run that finished (succeeded, failed or canceled: it may have changed the library since an
+    /// older run's deletion list), or null.
+    /// </returns>
     Task<SyncRun?> GetLatestFullRunAsync(CancellationToken cancellationToken);
 
     /// <returns>TubeArchivist cache paths of art that failed to copy and must be retried.</returns>
