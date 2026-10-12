@@ -11,7 +11,7 @@ public static class RequestRules
     public static void Size(ValidationErrors errors, int? size, int max)
     {
         ArgumentNullException.ThrowIfNull(errors);
-        if (size is { } value && (value < 1 || value > max))
+        if (size is not null && (size.Value < 1 || size.Value > max))
         {
             errors.Add("size", $"must be between 1 and {max}.");
         }

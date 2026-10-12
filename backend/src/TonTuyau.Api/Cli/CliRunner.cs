@@ -126,8 +126,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
 
     private int Status(SyncStatus status)
     {
-        string watermark = status.Checkpoint.Watermark is { } w
-            ? When(DateTimeOffset.FromUnixTimeSeconds(w))
+        string watermark = status.Checkpoint.Watermark is not null
+            ? When(DateTimeOffset.FromUnixTimeSeconds(status.Checkpoint.Watermark.Value))
             : "none (next run is a full one)";
         output.WriteLine(
             $"Watermark      : {watermark}{(status.Checkpoint.FullRunRequested ? " — full run requested" : "")}");

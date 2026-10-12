@@ -37,9 +37,9 @@ public sealed class BrowseQueryTests
         JsonNode[] filters = Many(query["filter"]);
         int given = new object?[] { type, channel, dated ? Day : null, duration }.Count(f => f is not null);
         Assert.Equal(given, filters.Length);
-        if (type is { } t)
+        if (type is not null)
         {
-            string name = t
+            string name = type.Value
                 .ToString()
                 .ToLowerInvariant();
             Assert.Contains(filters, f => f["term"]?["type"]?["value"]?.GetValue<string>() == name);
@@ -57,11 +57,11 @@ public sealed class BrowseQueryTests
             Assert.Null(published["lt"]);
         }
 
-        if (duration is { } d)
+        if (duration is not null)
         {
             JsonNode range = filters
                 .Single(f => f["range"]?["duration_seconds"] is not null)["range"]!["duration_seconds"]!;
-            Assert.Equal(ExpectedDuration(d), Bounds(range));
+            Assert.Equal(ExpectedDuration(duration.Value), Bounds(range));
         }
 
         Assert.Equal(text is not null, query["must"] is not null);

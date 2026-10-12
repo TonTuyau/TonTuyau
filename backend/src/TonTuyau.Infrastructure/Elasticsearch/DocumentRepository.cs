@@ -61,7 +61,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             .GetAsync<TDocument>(new GetRequest(ReadAlias, id), cancellationToken)
             .ConfigureAwait(false))
             .Ensure($"Get {ReadAlias}/{id}", 404);
-        return response.Found && response.Source is { } document ? ToDomain(document) : default;
+        return response.Found && response.Source is not null ? ToDomain(response.Source) : default;
     }
 
     public async Task<long> CountAsync(CancellationToken cancellationToken)

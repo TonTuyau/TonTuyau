@@ -147,9 +147,9 @@ internal sealed class TubeArchivistGateway(
             parts.Add("channel=" + query.ChannelId);
         }
 
-        if (query.Type is { } type)
+        if (query.Type is not null)
         {
-            parts.Add("type=" + TaFormats.VideoTypes.Single(kv => kv.Value == type).Key);
+            parts.Add("type=" + TaFormats.VideoTypes.Single(kv => kv.Value == query.Type.Value).Key);
         }
 
         parts.Add("page=" + page.ToString(CultureInfo.InvariantCulture));

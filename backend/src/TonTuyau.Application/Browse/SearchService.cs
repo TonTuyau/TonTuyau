@@ -106,14 +106,14 @@ public sealed class SearchService(
     /// <exception cref="ValidationException">A cursor of this search without its cut-off (hand-made).</exception>
     private DateTimeOffset? SinceOf(PublishedPeriod? period, PageCursor? cursor)
     {
-        if (period is not { } given)
+        if (period is null)
         {
             return cursor?.Since is null ? null : throw CursorCodec.Invalid();
         }
 
         if (cursor is null)
         {
-            return clock.GetUtcNow() - ApiValues.LengthOf(given);
+            return clock.GetUtcNow() - ApiValues.LengthOf(period.Value);
         }
 
         return cursor.Since ?? throw CursorCodec.Invalid();

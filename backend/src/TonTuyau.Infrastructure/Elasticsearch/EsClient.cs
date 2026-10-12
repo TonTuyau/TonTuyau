@@ -41,7 +41,7 @@ internal static class EsClient
     {
         ArgumentNullException.ThrowIfNull(response);
         int? status = response.ApiCallDetails.HttpStatusCode;
-        if (response.IsValidResponse || (status is { } s && accepted.Contains(s)))
+        if (response.IsValidResponse || (status is not null && accepted.Contains(status.Value)))
         {
             return response;
         }
@@ -53,8 +53,8 @@ internal static class EsClient
                 response.ApiCallDetails.OriginalException);
         }
 
-        string reason = response.ElasticsearchServerError?.Error is { } error
-            ? $"{error.Type} {error.Reason}"
+        string reason = response.ElasticsearchServerError?.Error is not null
+            ? $"{response.ElasticsearchServerError.Error.Type} {response.ElasticsearchServerError.Error.Reason}"
             : "(no error details)";
         throw new SearchStoreException($"{what}: Elasticsearch answered {status}: {reason}");
     }

@@ -81,7 +81,9 @@ public sealed class ByteRangesTests
         [CombinatorialValues(0, 1, 500, 998, 999)] long start,
         [CombinatorialValues(null, 0L, 1L, 999L, 1000L, 5000L)] long? suffixOrEnd)
     {
-        string header = suffixOrEnd is { } end ? $"bytes={start}-{Math.Max(start, end)}" : $"bytes={start}-";
+        string header = suffixOrEnd is not null
+            ? $"bytes={start}-{Math.Max(start, suffixOrEnd.Value)}"
+            : $"bytes={start}-";
         if (start >= length)
         {
             Assert.Throws<RangeNotSatisfiableException>(() => ByteRanges.Parse(header, length));

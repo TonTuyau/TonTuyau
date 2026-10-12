@@ -138,6 +138,7 @@ public sealed class FakeTubeArchivist : IAsyncDisposable
             return (403, """{"detail":"Authentication credentials were not provided."}""", Json);
         }
 
+        // Read once: the steps change it while the backend's requests are being answered on other threads.
         if (DownWithStatus is { } down)
         {
             return (down, "<h1>down</h1>", "text/html");
