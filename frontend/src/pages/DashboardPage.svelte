@@ -1,11 +1,11 @@
 <script lang="ts">
   // The admin dashboard: the library's totals, its play time by type and every channel, all as GET
   // /api/admin/dashboard gives them (the shares and averages too), and the import history of the chosen period (its
-  // own call: changing the period reloads the chart only; the choice is remembered). A 401 means the session ended
-  // meanwhile: the shell then goes to the login page.
+  // own call: changing the period reloads the chart only; the choice is remembered), drawn on a linear or log scale
+  // (remembered too, no call). A 401 means the session ended meanwhile: the shell then goes to the login page.
   import ChannelTable from '../components/ChannelTable.svelte'
   import ErrorState from '../components/ErrorState.svelte'
-  import ImportChart from '../components/ImportChart.svelte'
+  import ImportChart, { type ImportScale } from '../components/ImportChart.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api } from '../lib/api/client'
   import type { Dashboard, ImportHistory, ImportPeriod, VideoType } from '../lib/api/types'
@@ -18,12 +18,16 @@
   import { pageTitle } from '../lib/title.svelte'
 
   const IMPORT_PERIOD_STORAGE_KEY = 'tontuyau.importPeriod'
+  const IMPORT_SCALE_STORAGE_KEY = 'tontuyau.importScale'
   const periods: ImportPeriod[] = ['day', 'week', 'month', 'year', 'all']
+  const scales: ImportScale[] = ['linear', 'log']
   const saved = readPreference(IMPORT_PERIOD_STORAGE_KEY)
+  const savedScale = readPreference(IMPORT_SCALE_STORAGE_KEY)
 
   const remote = new Remote<Dashboard>()
   const imports = new Remote<ImportHistory>()
   let period = $state<ImportPeriod>(periods.find((p) => p === saved) ?? 'month')
+  let scale = $state<ImportScale>(scales.find((s) => s === savedScale) ?? 'linear')
 
   $effect(() => remote.run((signal) => api.dashboard(signal)))
   $effect(() => imports.run((signal) => api.imports(period, signal)))
@@ -37,6 +41,11 @@
   function choose(value: ImportPeriod) {
     period = value
     writePreference(IMPORT_PERIOD_STORAGE_KEY, value)
+  }
+
+  function chooseScale(value: ImportScale) {
+    scale = value
+    writePreference(IMPORT_SCALE_STORAGE_KEY, value)
   }
 
   pageTitle(() => t('admin.dashboard'))
@@ -120,19 +129,28 @@
 
       <section class="card" aria-labelledby="imports">
         <h2 id="imports">{t('dashboard.imports')}</h2>
-        <div class="periods" role="group" aria-label={t('dashboard.period')}>
-          {#each periods as value (value)}
-            <button type="button" class="chip" aria-pressed={period === value} onclick={() => choose(value)}>
-              {t(`dashboard.period.${value}`)}
-            </button>
-          {/each}
+        <div class="tools">
+          <div class="periods" role="group" aria-label={t('dashboard.period')}>
+            {#each periods as value (value)}
+              <button type="button" class="chip" aria-pressed={period === value} onclick={() => choose(value)}>
+                {t(`dashboard.period.${value}`)}
+              </button>
+            {/each}
+          </div>
+          <div class="scale" role="group" aria-label={t('dashboard.scale')}>
+            {#each scales as value (value)}
+              <button type="button" aria-pressed={scale === value} onclick={() => chooseScale(value)}>
+                {t(`dashboard.scale.${value}`)}
+              </button>
+            {/each}
+          </div>
         </div>
         {#if imports.status === 'error' && imports.error}
           <ErrorState error={imports.error} onretry={() => imports.retry()} />
         {:else if imports.data}
           <!-- The previous period's chart stays, dimmed, until the next one comes. -->
           <div class:loading={imports.status === 'loading'} aria-busy={imports.status === 'loading'}>
-            <ImportChart history={imports.data} />
+            <ImportChart history={imports.data} {scale} />
           </div>
         {:else}
           <p class="waiting" role="status">{t('state.loading')}</p>
@@ -223,10 +241,44 @@
     font-weight: var(--font-weight-medium);
   }
 
+  /* The periods on the left, the scale on the right (under them when the card is too narrow). */
+  .tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
   .periods {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+  }
+
+  /* A switch: the track, the chosen side raised on it. */
+  .scale {
+    display: inline-flex;
+    padding: var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .scale button {
+    height: calc(var(--chip-height) - 2 * var(--space-1));
+    padding: 0 var(--space-3);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .scale button[aria-pressed='true'] {
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    box-shadow: 0 0 0 var(--border-width) var(--color-border);
   }
 
   .chip {

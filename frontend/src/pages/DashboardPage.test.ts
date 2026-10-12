@@ -21,6 +21,17 @@ async function hover(index: number) {
   await fireEvent.pointerMove(zone)
 }
 
+/** The vertical axis' labels, bottom to top. */
+const axis = () => [...document.querySelectorAll('text.axis[text-anchor="end"]')].map((text) => text.textContent)
+
+/** The heights of the bar's pieces, bottom to top. */
+const pieces = (index: number) =>
+  [...(document.querySelectorAll('[data-testid="import-bar"]')[index]?.querySelectorAll('rect') ?? [])].map((rect) =>
+    Number(rect.getAttribute('height')),
+  )
+
+const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
+
 const total = (label: string) => screen.getAllByText(label, { selector: 'dt' })[0]?.nextElementSibling?.textContent
 
 describe('DashboardPage', () => {
@@ -131,6 +142,39 @@ describe('DashboardPage', () => {
       '?period=year',
       '?period=year',
     ])
+  })
+
+  it('switches to a log scale: powers of ten, a small import shows, its types share its height, remembered', async () => {
+    const api = fakeApi({ '/api/admin/dashboard': dashboard(), '/api/admin/dashboard/imports': importHistory() })
+    const user = userEvent.setup()
+    const { unmount } = render(DashboardPage)
+
+    const card = within(await screen.findByRole('region', { name: 'Import history' }))
+    await card.findByText('40,012 new videos', { selector: 'p' })
+    expect(card.getByRole('button', { name: 'Linear' })).toHaveAttribute('aria-pressed', 'true')
+    expect(axis()).toEqual(['0', '12,500', '25,000', '37,500', '50,000'])
+    // 12 videos beside 40,000: under a pixel.
+    expect(sum(pieces(2))).toBeLessThan(1)
+
+    await user.click(card.getByRole('button', { name: 'Log' }))
+    expect(card.getByRole('button', { name: 'Log' })).toHaveAttribute('aria-pressed', 'true')
+    expect(card.getByRole('button', { name: 'Linear' })).toHaveAttribute('aria-pressed', 'false')
+    expect(axis()).toEqual(['0', '1', '10', '100', '1,000', '10,000', '50,000'])
+    // log10(13) / log10(50,001) of the 190 pixels, shared 8 : 3 : 1 by the videos, shorts and streams.
+    expect(sum(pieces(2))).toBeCloseTo(45.05, 1)
+    expect(pieces(2).map((height) => height / sum(pieces(2)))).toEqual(
+      [8 / 12, 3 / 12, 1 / 12].map((share) => expect.closeTo(share)),
+    )
+    expect(pieces(1)).toEqual([])
+    // Drawn again, not asked again.
+    expect(api.requests('/api/admin/dashboard/imports')).toHaveLength(1)
+    expect(localStorage.getItem('tontuyau.importScale')).toBe('log')
+
+    unmount()
+    render(DashboardPage)
+    const again = within(await screen.findByRole('region', { name: 'Import history' }))
+    await again.findByText('40,012 new videos', { selector: 'p' })
+    expect(again.getByRole('button', { name: 'Log' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('says when the period brought no video, and when there was no sync yet', async () => {

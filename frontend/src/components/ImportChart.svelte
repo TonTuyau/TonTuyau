@@ -1,13 +1,19 @@
+<script module lang="ts">
+  export type ImportScale = 'linear' | 'log'
+</script>
+
 <script lang="ts">
   // The import history of a period: one bar per step (a sync run, a day, a week or a month, oldest left), stacked
   // by type, the runs of 1.1 (which didn't record the types) in grey. Every step has its slot, an empty one too, so
   // time stays linear. Hovering a bar names its step and its counts. Dates are those of the sync's time zone, as
-  // the backend counted them. The same numbers are in a table for screen readers.
+  // the backend counted them. The vertical scale is linear or logarithmic (log10(1 + n): 0 stays on the baseline and
+  // a single video still has a bar), for a big import not to flatten the others. The same numbers are in a table for
+  // screen readers.
   import type { ImportBar, ImportHistory, VideoType } from '../lib/api/types'
   import { formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
 
-  let { history }: { history: ImportHistory } = $props()
+  let { history, scale }: { history: ImportHistory; scale: ImportScale } = $props()
 
   // Drawn at the card's own width (in CSS pixels, so the labels keep their size on a phone); 640 until measured.
   let measured = $state(0)
@@ -59,23 +65,36 @@
     return ([1, 2, 2.5, 5, 10].find((m) => m * step >= value) ?? 10) * step
   }
 
-  const y = (value: number) => top + plotHeight - (value / max) * plotHeight
+  /** The value's height, from 0 (the baseline) to 1 (the axis' top). */
+  const share = (value: number) => (scale === 'log' ? Math.log10(1 + value) / Math.log10(1 + max) : value / max)
+  const y = (value: number) => top + plotHeight - share(value) * plotHeight
+  // Linear: 5 even steps. Log: the powers of ten under the top, then the top.
+  const ticks = $derived(
+    scale === 'log'
+      ? [0, ...[1, 10, 100, 1_000, 10_000, 100_000, 1_000_000].filter((value) => value < max), max]
+      : [0, 1, 2, 3, 4].map((tick) => (max / 4) * tick),
+  )
 
-  /** The bar's pieces from the bottom: by type, then the part whose types weren't recorded. */
-  function segments(bar: ImportBar): { kind: VideoType | 'unknown'; from: number; to: number }[] {
+  /**
+   * The bar's pieces from the bottom: by type, then the part whose types weren't recorded. The bar is as tall as its
+   * total; the pieces share that height by their counts (stacking the counts on a log axis would make the bottom one
+   * look far bigger than it is; on a linear one, it's the same).
+   */
+  function segments(bar: ImportBar): { kind: VideoType | 'unknown'; y: number; height: number }[] {
     const parts: [VideoType | 'unknown', number][] = [
       ['video', bar.byType.videos],
       ['short', bar.byType.shorts],
       ['stream', bar.byType.streams],
       ['unknown', bar.notRecorded],
     ]
-    let base = 0
+    const barHeight = y(0) - y(bar.total)
+    let base = y(0)
     return parts
       .filter(([, count]) => count > 0)
       .map(([kind, count]) => {
-        const from = base
-        base += count
-        return { kind, from, to: base }
+        const height = (count / bar.total) * barHeight
+        base -= height
+        return { kind, y: base, height }
       })
   }
 
@@ -145,8 +164,7 @@
       {onpointermove}
       onpointerleave={() => (active = null)}
     >
-      {#each [0, 1, 2, 3, 4] as tick (tick)}
-        {@const value = (max / 4) * tick}
+      {#each ticks as value (value)}
         <line class="grid" x1={left} x2={width} y1={y(value)} y2={y(value)} />
         <text class="axis" x={left - 6} y={y(value) + 4} text-anchor="end">{formatNumber(value, i18n.lang)}</text>
       {/each}
@@ -154,7 +172,7 @@
         {@const x = left + index * slot + (slot - barWidth) / 2}
         <g class="bar" class:active={active === index} data-testid="import-bar">
           {#each segments(bar) as part (part.kind)}
-            <rect class={part.kind} {x} y={y(part.to)} width={barWidth} height={y(part.from) - y(part.to)} rx="1.5" />
+            <rect class={part.kind} {x} y={part.y} width={barWidth} height={part.height} rx="1.5" />
           {/each}
         </g>
         {#if index % labelEvery === 0}
