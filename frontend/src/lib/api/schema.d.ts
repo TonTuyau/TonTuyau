@@ -48,6 +48,62 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/dashboard/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description day | week | month (default) | year | all. */
+          period?: 'day' | 'week' | 'month' | 'year' | 'all'
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ImportHistoryResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/auth/login': {
     parameters: {
       query?: never
@@ -1338,7 +1394,6 @@ export interface components {
       lastSync: null | string
       totals: components['schemas']['LibraryTotals']
       playTime: components['schemas']['PlayTime']
-      imports: components['schemas']['SyncImport'][]
       channels: components['schemas']['ChannelTotals'][]
     }
     HomeResponse: {
@@ -1365,6 +1420,24 @@ export interface components {
       width: number
       url: string
     }
+    ImportBar: {
+      /** Format: date-time */
+      start: string
+      /** Format: int64 */
+      total: number
+      byType: components['schemas']['VideoCounts']
+      /** Format: int64 */
+      notRecorded: number
+    }
+    ImportHistoryResponse: {
+      step: components['schemas']['ImportStep']
+      timeZone: string
+      /** Format: int64 */
+      total: number
+      bars: components['schemas']['ImportBar'][]
+    }
+    /** @enum {string} */
+    ImportStep: 'run' | 'day' | 'week' | 'month'
     LibraryTotals: {
       /** Format: int64 */
       channels: number
@@ -1427,13 +1500,6 @@ export interface components {
     SuggestionKind: 'channel' | 'video'
     SuggestResponse: {
       suggestions: components['schemas']['Suggestion'][]
-    }
-    SyncImport: {
-      /** Format: date-time */
-      at: string
-      /** Format: int32 */
-      total: number
-      byType: null | components['schemas']['VideoCounts']
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']

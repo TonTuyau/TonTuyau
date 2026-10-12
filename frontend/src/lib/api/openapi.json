@@ -10,6 +10,16 @@
       "get": {
         "tags": ["Admin"],
         "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -19,13 +29,51 @@
                 }
               }
             }
-          },
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard/imports": {
+      "get": {
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "day | week | month (default) | year | all.",
+            "schema": {
+              "enum": ["day", "week", "month", "year", "all"],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
           "401": {
             "description": "Unauthorized",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -1389,7 +1437,7 @@
         }
       },
       "DashboardResponse": {
-        "required": ["lastSync", "totals", "playTime", "imports", "channels"],
+        "required": ["lastSync", "totals", "playTime", "channels"],
         "type": "object",
         "properties": {
           "lastSync": {
@@ -1401,12 +1449,6 @@
           },
           "playTime": {
             "$ref": "#/components/schemas/PlayTime"
-          },
-          "imports": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SyncImport"
-            }
           },
           "channels": {
             "type": "array",
@@ -1489,6 +1531,53 @@
             "type": "string"
           }
         }
+      },
+      "ImportBar": {
+        "required": ["start", "total", "byType", "notRecorded"],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "byType": {
+            "$ref": "#/components/schemas/VideoCounts"
+          },
+          "notRecorded": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ImportHistoryResponse": {
+        "required": ["step", "timeZone", "total", "bars"],
+        "type": "object",
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/ImportStep"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bars": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportBar"
+            }
+          }
+        }
+      },
+      "ImportStep": {
+        "enum": ["run", "day", "week", "month"],
+        "type": "string"
       },
       "LibraryTotals": {
         "required": ["channels", "videos", "shorts", "streams", "gone"],
@@ -1667,30 +1756,6 @@
             "items": {
               "$ref": "#/components/schemas/Suggestion"
             }
-          }
-        }
-      },
-      "SyncImport": {
-        "required": ["at", "total", "byType"],
-        "type": "object",
-        "properties": {
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "total": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "byType": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/VideoCounts"
-              }
-            ]
           }
         }
       },

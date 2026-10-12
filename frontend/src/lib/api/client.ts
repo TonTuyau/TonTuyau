@@ -6,6 +6,8 @@ import type {
   ChannelListParams,
   ChannelVideoListParams,
   Dashboard,
+  ImportHistory,
+  ImportPeriod,
   Home,
   LoginRequest,
   Me,
@@ -164,6 +166,11 @@ export const api = {
   /** The admin dashboard (1.2): 401 when nobody is logged in. */
   dashboard(signal?: AbortSignal): Promise<Dashboard> {
     return get('/api/admin/dashboard', {}, signal)
+  },
+
+  /** The dashboard's import history of a period (1.2): 401 when nobody is logged in. */
+  imports(period: ImportPeriod, signal?: AbortSignal): Promise<ImportHistory> {
+    return get('/api/admin/dashboard/imports', { period }, signal)
   },
 }
 

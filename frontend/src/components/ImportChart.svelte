@@ -1,12 +1,13 @@
 <script lang="ts">
-  // The import history: one bar per sync run that brought new videos (oldest left), stacked by type; a run of 1.1,
-  // which didn't record the types, is one grey bar. Hovering a bar shows its date, time and counts. The same numbers
-  // are in a table for screen readers.
-  import type { SyncImport, VideoType } from '../lib/api/types'
+  // The import history of a period: one bar per step (a sync run, a day, a week or a month, oldest left), stacked
+  // by type, the runs of 1.1 (which didn't record the types) in grey. Every step has its slot, an empty one too, so
+  // time stays linear. Hovering a bar names its step and its counts. Dates are those of the sync's time zone, as
+  // the backend counted them. The same numbers are in a table for screen readers.
+  import type { ImportBar, ImportHistory, VideoType } from '../lib/api/types'
   import { formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
 
-  let { imports }: { imports: SyncImport[] } = $props()
+  let { history }: { history: ImportHistory } = $props()
 
   // Drawn at the card's own width (in CSS pixels, so the labels keep their size on a phone); 640 until measured.
   let measured = $state(0)
@@ -37,15 +38,20 @@
     return () => observer.disconnect()
   })
 
-  const added = $derived(imports.reduce((sum, item) => sum + item.total, 0))
-  const max = $derived(niceMax(Math.max(1, ...imports.map((item) => item.total))))
-  const slot = $derived((width - left) / Math.max(1, imports.length))
-  const barWidth = $derived(Math.min(Math.max(4, slot * 0.62), 28))
-  // A date under every 5th bar, every 10th on a phone.
-  const labelEvery = $derived(width < 480 ? 10 : 5)
-  const unrecorded = $derived(imports.some((item) => item.byType === null))
-  const dateFormat = $derived(new Intl.DateTimeFormat(i18n.lang, { day: 'numeric', month: 'short' }))
-  const timeFormat = $derived(new Intl.DateTimeFormat(i18n.lang, { hour: '2-digit', minute: '2-digit' }))
+  const bars = $derived(history.bars)
+  const max = $derived(niceMax(Math.max(1, ...bars.map((bar) => bar.total))))
+  const slot = $derived((width - left) / Math.max(1, bars.length))
+  const barWidth = $derived(Math.min(Math.max(2, slot * 0.62), 28))
+  // About 7 dates under the bars, 4 on a phone.
+  const labelEvery = $derived(Math.max(1, Math.ceil(bars.length / (width < 480 ? 4 : 7))))
+  const unrecorded = $derived(bars.some((bar) => bar.notRecorded > 0))
+
+  const format = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(i18n.lang, { ...options, timeZone: history.timeZone })
+  const dayFormat = $derived(format({ day: 'numeric', month: 'short' }))
+  const timeFormat = $derived(format({ hour: '2-digit', minute: '2-digit' }))
+  const monthFormat = $derived(format({ month: 'short', year: '2-digit' }))
+  const longMonthFormat = $derived(format({ month: 'long', year: 'numeric' }))
 
   /** The axis' top: the next 1, 2, 2.5 or 5 times a power of ten. */
   function niceMax(value: number): number {
@@ -55,15 +61,14 @@
 
   const y = (value: number) => top + plotHeight - (value / max) * plotHeight
 
-  /** The bar's pieces from the bottom: by type, or the whole when the types weren't recorded. */
-  function segments(item: SyncImport): { kind: VideoType | 'unknown'; from: number; to: number }[] {
-    const parts: [VideoType | 'unknown', number][] = item.byType
-      ? [
-          ['video', item.byType.videos],
-          ['short', item.byType.shorts],
-          ['stream', item.byType.streams],
-        ]
-      : [['unknown', item.total]]
+  /** The bar's pieces from the bottom: by type, then the part whose types weren't recorded. */
+  function segments(bar: ImportBar): { kind: VideoType | 'unknown'; from: number; to: number }[] {
+    const parts: [VideoType | 'unknown', number][] = [
+      ['video', bar.byType.videos],
+      ['short', bar.byType.shorts],
+      ['stream', bar.byType.streams],
+      ['unknown', bar.notRecorded],
+    ]
     let base = 0
     return parts
       .filter(([, count]) => count > 0)
@@ -74,18 +79,40 @@
       })
   }
 
-  function when(item: SyncImport): string {
-    const at = new Date(item.at)
-    return `${dateFormat.format(at)}, ${timeFormat.format(at)}`
+  /** Under the bar: the run's time, the day, the week's Monday, the month. */
+  function label(bar: ImportBar): string {
+    const at = new Date(bar.start)
+    if (history.step === 'run') {
+      return timeFormat.format(at)
+    }
+    return (history.step === 'month' ? monthFormat : dayFormat).format(at)
   }
 
-  function detail(item: SyncImport): string {
-    const byType = item.byType
-    if (!byType) {
+  /** The step, named: "12 Oct, 09:30" (a run), "12 Oct", "Week of 6 Oct", "October 2026". */
+  function when(bar: ImportBar): string {
+    const at = new Date(bar.start)
+    switch (history.step) {
+      case 'run':
+        return `${dayFormat.format(at)}, ${timeFormat.format(at)}`
+      case 'week':
+        return t('dashboard.weekOf', { date: dayFormat.format(at) })
+      case 'month':
+        return longMonthFormat.format(at)
+      default:
+        return dayFormat.format(at)
+    }
+  }
+
+  function detail(bar: ImportBar): string {
+    if (bar.notRecorded === bar.total) {
       return t('dashboard.notRecorded')
     }
-    const counts = { video: byType.videos, short: byType.shorts, stream: byType.streams }
-    return types.map((type) => tp(countKeys[type], counts[type])).join(' · ')
+    const counts = { video: bar.byType.videos, short: bar.byType.shorts, stream: bar.byType.streams }
+    const parts = types.map((type) => tp(countKeys[type], counts[type]))
+    if (bar.notRecorded > 0) {
+      parts.push(tp('dashboard.notRecordedCount', bar.notRecorded))
+    }
+    return parts.join(' · ')
   }
 
   /** The bar under the pointer: each one's whole column (taller than the bar) is its hover zone. */
@@ -94,15 +121,13 @@
     active = index === null ? null : Number(index)
   }
 
-  const shown = $derived(active === null ? null : (imports[active] ?? null))
+  const shown = $derived(active === null ? null : (bars[active] ?? null))
 </script>
 
-{#if imports.length === 0}
+{#if history.total === 0}
   <p class="empty">{t('dashboard.noImports')}</p>
 {:else}
-  <p class="sub">
-    {tp('dashboard.importsSummary', imports.length, undefined, { videos: formatNumber(added, i18n.lang) })}
-  </p>
+  <p class="sub">{tp('dashboard.newVideos', history.total)}</p>
   <ul class="legend" aria-hidden="true">
     {#each types as type (type)}
       <li><span class="{type} swatch"></span>{t(`type.${type}`)}</li>
@@ -116,7 +141,7 @@
     <svg
       viewBox="0 0 {width} {height}"
       role="img"
-      aria-label={tp('dashboard.chart', imports.length)}
+      aria-label={t(`dashboard.chart.${history.step}`)}
       {onpointermove}
       onpointerleave={() => (active = null)}
     >
@@ -125,17 +150,15 @@
         <line class="grid" x1={left} x2={width} y1={y(value)} y2={y(value)} />
         <text class="axis" x={left - 6} y={y(value) + 4} text-anchor="end">{formatNumber(value, i18n.lang)}</text>
       {/each}
-      {#each imports as item, index (index)}
+      {#each bars as bar, index (index)}
         {@const x = left + index * slot + (slot - barWidth) / 2}
         <g class="bar" class:active={active === index} data-testid="import-bar">
-          {#each segments(item) as part (part.kind)}
+          {#each segments(bar) as part (part.kind)}
             <rect class={part.kind} {x} y={y(part.to)} width={barWidth} height={y(part.from) - y(part.to)} rx="1.5" />
           {/each}
         </g>
-        {#if index % labelEvery === 0 || index === imports.length - 1}
-          <text class="axis" x={x + barWidth / 2} y={height - 6} text-anchor="middle">
-            {dateFormat.format(new Date(item.at))}
-          </text>
+        {#if index % labelEvery === 0}
+          <text class="axis" x={x + barWidth / 2} y={height - 6} text-anchor="middle">{label(bar)}</text>
         {/if}
         <rect class="hit" data-index={index} x={left + index * slot} y={top} width={slot} height={plotHeight} />
       {/each}
@@ -144,21 +167,23 @@
       <div class="tip" role="status" style:--x={(left + (active + 0.5) * slot) / width}>
         <b>{when(shown)}</b>
         <span>{tp('dashboard.newVideos', shown.total)}</span>
-        <span>{detail(shown)}</span>
+        {#if shown.total > 0}
+          <span>{detail(shown)}</span>
+        {/if}
       </div>
     {/if}
   </div>
 
-  <!-- A table is never narrower than its content: the wrapper hides it. -->
+  <!-- A table is never narrower than its content: the wrapper hides it. The steps with new videos only. -->
   <div class="visually-hidden">
     <table>
-      <caption>{tp('dashboard.chart', imports.length)}</caption>
+      <caption>{t(`dashboard.chart.${history.step}`)}</caption>
       <tbody>
-        {#each imports as item, index (index)}
+        {#each bars.filter((bar) => bar.total > 0) as bar (bar.start)}
           <tr>
-            <th scope="row">{when(item)}</th>
-            <td>{tp('dashboard.newVideos', item.total)}</td>
-            <td>{detail(item)}</td>
+            <th scope="row">{when(bar)}</th>
+            <td>{tp('dashboard.newVideos', bar.total)}</td>
+            <td>{detail(bar)}</td>
           </tr>
         {/each}
       </tbody>

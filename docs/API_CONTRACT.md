@@ -13,7 +13,7 @@
 >
 > **v1.5 (2026-10-10, TonTuyau 1.2)**: logging in: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Browsing still needs no login.
 >
-> **v1.6 (2026-10-12, TonTuyau 1.2)**: the admin dashboard: `GET /api/admin/dashboard`, logged-in accounts only (401 otherwise).
+> **v1.6 (2026-10-12, TonTuyau 1.2)**: the admin dashboard: `GET /api/admin/dashboard` and its import history `GET /api/admin/dashboard/imports`, logged-in accounts only (401 otherwise).
 
 ## Rules
 
@@ -136,7 +136,8 @@ Tabs to show = the types whose `videoCounts` are > 0 (counted by the backend).
 | `GET /api/auth/me` | `{ "username": "admin" }`, or 401 when nobody is logged in | none: the session cookie says who |
 | `POST /api/auth/login` | 204 and the session cookie (HttpOnly, SameSite=Strict, Secure): 8 hours renewed while in use, 30 days with `remember` | JSON body `{ "username", "password", "remember" }` (4 KB at most, 415 if not JSON); 401 with the same message for every refusal; 429 after 5 attempts in a minute from one address |
 | `POST /api/auth/logout` | 204, the cookie deleted | no body |
-| `GET /api/admin/dashboard` | `DashboardResponse`: `lastSync` (when the latest successful sync finished, or null), `totals` (`channels`, `videos`, `shorts`, `streams`, `gone`: videos no longer available on YouTube), `playTime` (`totalSeconds`, and per type `count`, `seconds`, `share` from 0 to 1, `averageSeconds`), `imports` (the latest 30 sync runs that brought new videos, oldest first: `at`, `total`, `byType` as `VideoCounts`, null for runs of 1.1), `channels` (every channel, biggest first: `id`, `name`, `thumbnailUrl`, `thumbnails`, `counts`, `gone`, `total`) | none; logged in only (the session cookie), 401 otherwise |
+| `GET /api/admin/dashboard` | `DashboardResponse`: `lastSync` (when the latest successful sync finished, or null), `totals` (`channels`, `videos`, `shorts`, `streams`, `gone`: videos no longer available on YouTube), `playTime` (`totalSeconds`, and per type `count`, `seconds`, `share` from 0 to 1, `averageSeconds`), `channels` (every channel, biggest first: `id`, `name`, `thumbnailUrl`, `thumbnails`, `counts`, `gone`, `total`) | none; logged in only (the session cookie), 401 otherwise |
+| `GET /api/admin/dashboard/imports` | `ImportHistoryResponse`: the new videos of the finished sync runs of the period (never an index rebuild): `step` = `run` \| `day` \| `week` (from Monday) \| `month`, `timeZone` (the sync's, `TONTUYAU_TZ`: the days, weeks and months are its own), `total`, `bars` (oldest first, every step of the period, empty ones too: `start` = when the step starts, midnight in that zone, or when the run started; `total`; `byType` as `VideoCounts`; `notRecorded`: the new videos of runs of 1.1, which didn't record the types) | `period` = `day` (a bar per run of the last 24 h) \| `week` (a bar per day, the last 7 days) \| `month` (default: per day, the last 30 days) \| `year` (per week, the weeks of the last 365 days) \| `all` (per month, since the first import); 400 otherwise; logged in only, 401 otherwise |
 | `GET /media/{id}` | the original file, `Accept-Ranges: bytes` (seeking), right `Content-Type` | 404 if unknown or not on the share; 416 on an unsatisfiable range |
 | `GET /media/{id}/download` | the same file as an attachment: `Content-Disposition: attachment; filename="<title>.<ext>"; filename*=UTF-8''<title>.<ext>` (characters forbidden in file names replaced, Q5-3) | 404 as above |
 | `GET /art/videos/{id}` | the thumbnail (JPEG/PNG/WebP as copied) with `Cache-Control` + `ETag` | 404 if none |

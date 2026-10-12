@@ -1,9 +1,13 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
+using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -62,16 +66,48 @@ public sealed class DashboardSteps(ScenarioState state)
                 _ => Scalar(item[column]),
             });
 
-    [Then("the dashboard's imports are:")]
-    public void ImportsAre(DataTable table) =>
+    /// <summary>Restarts the backend (log in after this) with a repository that pages through the runs.</summary>
+    [Given("the dashboard reads the runs {int} at a time")]
+    public void RunsPerPage(int runs)
+    {
+        state.ServiceOverrides.Add(services => services.Replace(ServiceDescriptor.Singleton<IDashboardRepository>(
+            sp => new DashboardRepository(
+                sp.GetRequiredService<ElasticsearchClient>(),
+                sp.GetRequiredService<IndexNames>(),
+                runs))));
+        state.StopBackend();
+    }
+
+    [Then("the import history is by {string} in {string}: {int} bars, {int} new videos")]
+    public void ImportHistoryIs(string step, string timeZone, int bars, long total)
+    {
+        JsonNode history = Json;
+        Assert.Equal(
+            (step, timeZone, bars, total),
+            (
+                history["step"]!.GetValue<string>(),
+                history["timeZone"]!.GetValue<string>(),
+                history["bars"]!.AsArray().Count,
+                history["total"]!.GetValue<long>()));
+    }
+
+    /// <summary>The bars whose total isn't 0, oldest first.</summary>
+    [Then("its bars with new videos are:")]
+    public void BarsWithNewVideos(DataTable table)
+    {
+        JsonArray bars = [.. Json["bars"]!
+            .AsArray()
+            .Where(b => b!["total"]!.GetValue<long>() > 0)
+            .Select(b => b!.DeepClone())];
         AssertRows(
             table,
-            Json["imports"]!,
+            bars,
             (item, column) => column switch
             {
-                "videos" or "shorts" or "streams" => item["byType"] is { } byType ? Scalar(byType[column]) : "",
+                "videos" or "shorts" or "streams" => Scalar(item["byType"]![column]),
                 _ => Scalar(item[column]),
             });
+    }
 
     private static void AssertRows(DataTable table, JsonNode items, Func<JsonNode, string, string> value)
     {

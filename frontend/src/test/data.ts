@@ -5,6 +5,7 @@ import type {
   ChannelDetail,
   ChannelTotals,
   Dashboard,
+  ImportHistory,
   Page,
   VideoCard,
   VideoDetail,
@@ -122,10 +123,6 @@ export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         { type: 'stream', count: 574, seconds: 1_044_000, share: 0.29, averageSeconds: 7200 },
       ],
     },
-    imports: [
-      { at: '2026-09-01T07:00:00Z', total: 40_000, byType: null },
-      { at: '2026-10-11T09:30:00Z', total: 12, byType: { videos: 8, shorts: 3, streams: 1 } },
-    ],
     channels: [
       channelTotals({
         id: 'UCbig',
@@ -148,6 +145,25 @@ export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         gone: 7,
         total: 318,
       }),
+    ],
+    ...overrides,
+  }
+}
+
+/**
+ * An import history by day in Paris: three days, the first of them a run of 1.1 (no types), the second empty. The
+ * starts are Paris midnights (UTC+2 in October).
+ */
+export function importHistory(overrides: Partial<ImportHistory> = {}): ImportHistory {
+  const none = { videos: 0, shorts: 0, streams: 0 }
+  return {
+    step: 'day',
+    timeZone: 'Europe/Paris',
+    total: 40_012,
+    bars: [
+      { start: '2026-10-09T22:00:00Z', total: 40_000, byType: none, notRecorded: 40_000 },
+      { start: '2026-10-10T22:00:00Z', total: 0, byType: none, notRecorded: 0 },
+      { start: '2026-10-11T22:00:00Z', total: 12, byType: { videos: 8, shorts: 3, streams: 1 }, notRecorded: 0 },
     ],
     ...overrides,
   }

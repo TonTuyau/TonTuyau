@@ -64,15 +64,20 @@ export type LoginRequest = Schemas['LoginRequest']
 /** `GET /api/auth/me`: who is logged in (a 401 when nobody is). */
 export type Me = Schemas['MeResponse']
 
-/**
- * `GET /api/admin/dashboard` (1.2): the library's totals and play time, the recent imports (sync runs that brought
- * videos, oldest first; `byType` null for runs of 1.1, which didn't record the types) and every channel.
- */
+/** `GET /api/admin/dashboard` (1.2): the library's totals and play time, and every channel. */
 export type Dashboard = Schemas['DashboardResponse']
 
-export type TypePlayTime = Schemas['TypePlayTime']
+/**
+ * `GET /api/admin/dashboard/imports` (1.2): the new videos of a period, a bar per run, day, week or month of the
+ * sync's time zone (`timeZone`), oldest first, empty ones too; `notRecorded` is the part of the runs of 1.1.
+ */
+export type ImportHistory = Schemas['ImportHistoryResponse']
 
-export type SyncImport = Schemas['SyncImport']
+export type ImportBar = Schemas['ImportBar']
+
+export type ImportPeriod = NonNullable<QueryOf<'/api/admin/dashboard/imports'>['period']>
+
+export type TypePlayTime = Schemas['TypePlayTime']
 
 export type ChannelTotals = Schemas['ChannelTotals']
 

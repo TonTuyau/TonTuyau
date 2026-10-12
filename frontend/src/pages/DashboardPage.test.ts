@@ -2,7 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import { auth } from '../lib/auth.svelte'
 import { i18n } from '../lib/i18n/i18n.svelte'
-import { dashboard } from '../test/data'
+import type { ImportBar, ImportHistory } from '../lib/api/types'
+import { dashboard, importHistory } from '../test/data'
 import { fakeApi, problemResponse } from '../test/fakeApi'
 import DashboardPage from './DashboardPage.svelte'
 
@@ -12,6 +13,13 @@ const names = () =>
     .getAllByRole('row')
     .slice(1)
     .map((row) => within(row).queryByRole('link')?.textContent?.trim() ?? row.textContent?.trim())
+
+/** Moves the pointer over the bar at this index (its whole column is the hover zone). */
+async function hover(index: number) {
+  const zone = document.querySelectorAll('rect.hit')[index]
+  if (!zone) throw new Error(`no hover zone for bar ${index}`)
+  await fireEvent.pointerMove(zone)
+}
 
 const total = (label: string) => screen.getAllByText(label, { selector: 'dt' })[0]?.nextElementSibling?.textContent
 
@@ -42,34 +50,97 @@ describe('DashboardPage', () => {
     expect(card.getByText('29%, 2 h 00 min on average')).toBeInTheDocument()
   })
 
-  it('draws a bar per import, with its date, time and counts on hover', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+  it('asks for the last month by default, a bar per day, empty ones too, the step and counts on hover', async () => {
+    const api = fakeApi({ '/api/admin/dashboard': dashboard(), '/api/admin/dashboard/imports': importHistory() })
     render(DashboardPage)
 
     const card = within(await screen.findByRole('region', { name: 'Import history' }))
-    expect(card.getByText('Last 2 imports, 40,012 new videos')).toBeInTheDocument()
-    expect(card.getAllByTestId('import-bar')).toHaveLength(2)
-    // A run of 1.1: one grey piece, and the legend says why.
-    expect(card.getAllByTestId('import-bar')[0]?.querySelectorAll('rect.unknown')).toHaveLength(1)
-    expect(card.getAllByTestId('import-bar')[1]?.querySelectorAll('rect')).toHaveLength(3)
+    expect(await card.findByText('40,012 new videos', { selector: 'p' })).toBeInTheDocument()
+    expect(api.requests('/api/admin/dashboard/imports').map((url) => url.search)).toEqual(['?period=month'])
+    expect(card.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true')
+    expect(card.getByRole('img', { name: 'New videos per day' })).toBeInTheDocument()
+
+    const bars = card.getAllByTestId('import-bar')
+    expect(bars).toHaveLength(3)
+    // A run of 1.1: one grey piece, and the legend says why. An empty day keeps its slot.
+    expect(bars[0]?.querySelectorAll('rect.unknown')).toHaveLength(1)
+    expect(bars[1]?.querySelectorAll('rect')).toHaveLength(0)
+    expect(bars[2]?.querySelectorAll('rect')).toHaveLength(3)
     expect(card.getAllByText('Types not recorded (before 1.2)').length).toBeGreaterThan(0)
 
-    const second = document.querySelectorAll('rect.hit')[1]
-    if (!second) throw new Error('no hover zone for the second bar')
-    await fireEvent.pointerMove(second)
+    // 22:00 UTC on the 11th is the 12th in Paris, the sync's time zone.
+    await hover(2)
     const tip = card.getByRole('status')
+    expect(tip).toHaveTextContent('Oct 12')
     expect(tip).toHaveTextContent('12 new videos')
     expect(tip).toHaveTextContent('8 videos · 3 shorts · 1 stream')
-    expect(tip).toHaveTextContent(
-      new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' }).format(new Date('2026-10-11T09:30:00Z')),
-    )
+    await hover(1)
+    expect(card.getByRole('status')).toHaveTextContent('Oct 11 0 new videos')
   })
 
-  it('says when there was no import yet', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard({ imports: [], lastSync: null }) })
+  it.each<[ImportHistory['step'], string, string]>([
+    ['run', '2026-10-12T07:30:00Z', 'Oct 12, 09:30 AM'],
+    ['day', '2026-10-11T22:00:00Z', 'Oct 12'],
+    ['week', '2026-10-04T22:00:00Z', 'Week of Oct 5'],
+    ['month', '2026-09-30T22:00:00Z', 'October 2026'],
+  ])('names a bar by its step: %s', async (step, start, name) => {
+    const bar: ImportBar = { start, total: 2, byType: { videos: 2, shorts: 0, streams: 0 }, notRecorded: 0 }
+    fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      '/api/admin/dashboard/imports': importHistory({ step, total: 2, bars: [bar] }),
+    })
     render(DashboardPage)
 
-    expect(await screen.findByText('No import yet')).toBeInTheDocument()
+    await screen.findByText('2 new videos', { selector: 'p' })
+    await hover(0)
+    expect(within(screen.getByRole('region', { name: 'Import history' })).getByRole('status')).toHaveTextContent(name)
+  })
+
+  it('switches the period: asks again, draws the new steps, remembers the choice', async () => {
+    const year = importHistory({
+      step: 'week',
+      total: 5,
+      bars: [{ start: '2026-10-04T22:00:00Z', total: 5, byType: { videos: 3, shorts: 2, streams: 0 }, notRecorded: 0 }],
+    })
+    const api = fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      '/api/admin/dashboard/imports': (url: URL) =>
+        url.searchParams.get('period') === 'year' ? year : importHistory(),
+    })
+    const user = userEvent.setup()
+    const { unmount } = render(DashboardPage)
+
+    const card = within(await screen.findByRole('region', { name: 'Import history' }))
+    await card.findByText('40,012 new videos', { selector: 'p' })
+    await user.click(card.getByRole('button', { name: 'Last year' }))
+
+    expect(await card.findByText('5 new videos', { selector: 'p' })).toBeInTheDocument()
+    expect(card.getByRole('button', { name: 'Last year' })).toHaveAttribute('aria-pressed', 'true')
+    expect(card.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'false')
+    expect(card.getAllByTestId('import-bar')).toHaveLength(1)
+    expect(card.getByRole('img', { name: 'New videos per week' })).toBeInTheDocument()
+    // The rest of the dashboard isn't asked again.
+    expect(api.requests('/api/admin/dashboard')).toHaveLength(1)
+    expect(localStorage.getItem('tontuyau.importPeriod')).toBe('year')
+
+    unmount()
+    render(DashboardPage)
+    await screen.findByText('5 new videos', { selector: 'p' })
+    expect(api.requests('/api/admin/dashboard/imports').map((url) => url.search)).toEqual([
+      '?period=month',
+      '?period=year',
+      '?period=year',
+    ])
+  })
+
+  it('says when the period brought no video, and when there was no sync yet', async () => {
+    fakeApi({
+      '/api/admin/dashboard': dashboard({ lastSync: null }),
+      '/api/admin/dashboard/imports': importHistory({ total: 0, bars: [] }),
+    })
+    render(DashboardPage)
+
+    expect(await screen.findByText('No new video over this period')).toBeInTheDocument()
     expect(screen.getByText('No successful sync yet')).toBeInTheDocument()
   })
 
@@ -121,6 +192,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument()
     expect(await screen.findByText('Disparues de YouTube', { selector: 'dt' })).toBeInTheDocument()
     expect(screen.getByText('3 sur 3 chaînes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dernier mois' })).toHaveAttribute('aria-pressed', 'true')
     i18n.setLang('en')
   })
 

@@ -1,7 +1,7 @@
 @elasticsearch @api
 Feature: The admin dashboard
   Logged-in accounts only. Every number is counted by Elasticsearch over what users see ("gone from YouTube" is
-  TubeArchivist's active flag); the import history is the finished sync runs that brought new videos.
+  TubeArchivist's active flag). The import history has its own call (ImportHistory.feature).
 
   Background:
     Given the channels:
@@ -32,7 +32,7 @@ Feature: The admin dashboard
     And I request "/api/admin/dashboard" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
-    And the answer has exactly the fields "lastSync, totals, playTime, imports, channels"
+    And the answer has exactly the fields "lastSync, totals, playTime, channels"
     And 'totals' is '{"channels":3,"videos":3,"shorts":2,"streams":1,"gone":3}'
     And 'playTime.totalSeconds' is '10000'
     And the play time by type is:
@@ -55,26 +55,18 @@ Feature: The admin dashboard
     And "channels[1].thumbnails" lists the widths "88, 176, 900"
     And "channels[2].thumbnailUrl" is null
 
-  Scenario: The import history: the finished runs that brought videos, oldest first
+  Scenario: The last sync is when the latest successful run finished, whether it brought videos or not
     Given the sync runs:
-      | started              | outcome   | new   | videos | shorts | streams | rebuild |
-      | 2026-09-01T07:00:00Z | succeeded | 40000 |        |        |         | false   |
-      | 2026-09-02T07:00:00Z | succeeded | 0     | 0      | 0      | 0       | false   |
-      | 2026-09-03T07:00:00Z | failed    | 3     | 2      | 1      | 0       | false   |
-      | 2026-09-04T01:00:00Z | succeeded | 40003 | 40000  | 3      | 0       | true    |
-      | 2026-09-05T07:00:00Z | succeeded | 6     | 3      | 2      | 1       | false   |
-      | 2026-09-06T07:00:00Z | running   | 2     | 2      | 0      | 0       | false   |
+      | started              | outcome   | new | videos | shorts | streams | rebuild |
+      | 2026-09-01T07:00:00Z | succeeded | 40  |        |        |         | false   |
+      | 2026-09-05T07:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
+      | 2026-09-06T07:00:00Z | failed    | 3   | 2      | 1      | 0       | false   |
+      | 2026-09-07T07:00:00Z | running   | 2   | 2      | 0      | 0       | false   |
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
-    Then the dashboard's imports are:
-      | at                   | total | videos | shorts | streams |
-      | 2026-09-01T07:00:00Z | 40000 |        |        |         |
-      | 2026-09-03T07:00:00Z | 3     | 2      | 1      | 0       |
-      | 2026-09-05T07:00:00Z | 6     | 3      | 2      | 1       |
-    And "lastSync" is "2026-09-05T07:10:00Z"
+    Then "lastSync" is "2026-09-05T07:10:00Z"
 
-  Scenario: Without any run, no import and no last sync
+  Scenario: Without any run, no last sync
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
-    Then "imports" has 0 items
-    And "lastSync" is null
+    Then "lastSync" is null

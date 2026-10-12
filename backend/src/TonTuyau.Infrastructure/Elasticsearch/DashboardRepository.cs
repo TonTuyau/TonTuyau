@@ -14,10 +14,14 @@ namespace TonTuyau.Infrastructure.Elasticsearch;
 /// The admin dashboard's reads: the read aliases (what users see) and the run history. The library is counted by
 /// aggregations: no video is loaded.
 /// </summary>
-internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames names) : IDashboardRepository
+/// <param name="runsPerPage">How many runs one search reads (a test makes it small to page through a few runs).</param>
+internal sealed class DashboardRepository(
+    ElasticsearchClient client,
+    IndexNames names,
+    int runsPerPage = DashboardRepository.MaxHits) : IDashboardRepository
 {
     /// <summary>The most hits one search gives (Elasticsearch's default <c>max_result_window</c>).</summary>
-    public const int MaxChannels = 10_000;
+    public const int MaxHits = 10_000;
 
     private const string ByType = "by_type";
     private const string ByChannel = "by_channel";
@@ -31,6 +35,20 @@ internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames
         c => c.ThumbPath!,
         c => c.ThumbArt!);
 
+    /// <summary>
+    /// What the import history reads of a run: the notes and rejected samples are most of its size, and a year is
+    /// thousands of runs. The id, mode and trigger only because a <see cref="SyncRun"/> requires them.
+    /// </summary>
+    private static readonly Fields RunFields = Infer.Fields<SyncRun>(
+        r => r.Id,
+        r => r.Mode,
+        r => r.Trigger,
+        r => r.StartedAt,
+        r => r.FinishedAt!,
+        r => r.IndexRebuild,
+        r => r.Counts.Created,
+        r => r.Counts.CreatedByType!);
+
     private static readonly Query GoneQuery =
         new TermQuery { Field = Infer.Field<VideoDocument>(v => v.Active), Value = false };
 
@@ -43,7 +61,7 @@ internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames
         // One search: a library has a few hundred channels. Past the window, say so rather than show some of them.
         SearchRequest<ChannelDocument> request = new(Channels)
         {
-            Size = MaxChannels,
+            Size = MaxHits,
             TrackTotalHits = new TrackHits(true),
             Source = new SourceConfig(new SourceFilter { Includes = ChannelFields }),
         };
@@ -54,7 +72,7 @@ internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames
         if (response.Total > response.Hits.Count)
         {
             throw new SearchStoreException(
-                $"List {Channels}: {response.Total} channels, the dashboard lists {MaxChannels} at most.");
+                $"List {Channels}: {response.Total} channels, the dashboard lists {MaxHits} at most.");
         }
 
         return response.Hits
@@ -138,19 +156,14 @@ internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames
         return new LibraryStats(byType, result.GetFilter(Gone)?.DocCount ?? 0, byChannel);
     }
 
-    public async Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken)
+    public async Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken)
     {
         SearchRequest<SyncRun> request = new(names.SyncRuns)
         {
-            Size = count,
-            Sort = [new SortOptions {
-                Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.StartedAt), Order = SortOrder.Desc } }],
-
-            // The notes and rejected samples are most of a run's size, and the dashboard reads hundreds of runs.
-            Source = new SourceConfig(new SourceFilter
-            {
-                Excludes = Infer.Fields<SyncRun>(r => r.Notes, r => r.RejectedSamples),
-            }),
+            Size = 1,
+            Query = new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" },
+            Sort = [ByStart(SortOrder.Desc)],
+            Source = new SourceConfig(new SourceFilter { Includes = RunFields }),
         };
         SearchResponse<SyncRun> response = (await client
             .SearchAsync<SyncRun>(request, cancellationToken)
@@ -158,9 +171,55 @@ internal sealed class DashboardRepository(ElasticsearchClient client, IndexNames
             .Ensure($"Search {names.SyncRuns}");
         return response.Hits
             .Select(h => h.Source)
-            .OfType<SyncRun>()
-            .ToArray();
+            .FirstOrDefault();
     }
+
+    public async Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(
+        DateTimeOffset? since,
+        CancellationToken cancellationToken)
+    {
+        Query query = since is { } from
+            ? new DateRangeQuery
+            {
+                Field = Infer.Field<SyncRun>(r => r.StartedAt),
+                Gte = DateMath.Anchored(from.UtcDateTime),
+            }
+            : new MatchAllQuery();
+        List<SyncRun> runs = [];
+        ICollection<FieldValue>? after = null;
+        while (true)
+        {
+            // Paged with search_after (the id breaks ties), so that years of runs fit past the 10k window.
+            SearchRequest<SyncRun> request = new(names.SyncRuns)
+            {
+                Size = runsPerPage,
+                Query = query,
+                Sort =
+                [
+                    ByStart(SortOrder.Asc),
+                    new SortOptions { Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.Id) } },
+                ],
+                SearchAfter = after,
+                Source = new SourceConfig(new SourceFilter { Includes = RunFields }),
+            };
+            SearchResponse<SyncRun> response = (await client
+                .SearchAsync<SyncRun>(request, cancellationToken)
+                .ConfigureAwait(false))
+                .Ensure($"Search {names.SyncRuns}");
+            runs.AddRange(response.Hits
+                .Select(h => h.Source)
+                .OfType<SyncRun>());
+            if (response.Hits.Count < runsPerPage)
+            {
+                return runs;
+            }
+
+            after = response.Hits.Last().Sort?.ToArray();
+        }
+    }
+
+    private static SortOptions ByStart(SortOrder order) =>
+        new() { Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.StartedAt), Order = order } };
 
     private static IReadOnlyCollection<StringTermsBucket> Buckets(AggregateDictionary? aggregations, string name) =>
         aggregations?.GetStringTerms(name)?.Buckets

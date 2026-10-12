@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
@@ -14,11 +15,22 @@ namespace TonTuyau.Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 public sealed class AdminController(DashboardService dashboard) : ControllerBase
 {
-    /// <summary>The dashboard: the library's totals and play time, the recent imports, every channel.</summary>
+    /// <summary>The dashboard: the library's totals and play time, every channel.</summary>
     [HttpGet("dashboard")]
     [ProducesResponseType<DashboardResponse>(StatusCodes.Status200OK)]
     public async Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken) =>
         (DashboardResponse)await dashboard
             .GetAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>The dashboard's import history: the new videos of a period, per run, day, week or month.</summary>
+    [HttpGet("dashboard/imports")]
+    [ProducesResponseType<ImportHistoryResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    public async Task<ImportHistoryResponse> GetImportsAsync(
+        [FromQuery, Description("day | week | month (default) | year | all.")] string? period,
+        CancellationToken cancellationToken) =>
+        (ImportHistoryResponse)await dashboard
+            .GetImportsAsync(new ImportHistoryRequest(period), cancellationToken)
             .ConfigureAwait(false);
 }

@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Time.Testing;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.UnitTests.Configuration;
 
 namespace TonTuyau.Application.UnitTests.Dashboard;
 
@@ -84,50 +86,9 @@ public sealed class DashboardServiceTests
     }
 
     [Fact]
-    public async Task The_imports_are_the_finished_runs_that_brought_videos_oldest_first()
+    public async Task The_last_sync_is_when_the_latest_successful_run_finished()
     {
-        // Most recent first, as the store gives them.
-        _store.Runs =
-        [
-            Run(hoursAfterStart: 6, created: 2, byType: new TypeCounts(1, 1, 0), finished: false),
-            Run(hoursAfterStart: 5, created: 9, byType: new TypeCounts(6, 2, 1)),
-            Run(hoursAfterStart: 4, created: 0, byType: TypeCounts.None),
-            Run(hoursAfterStart: 3, created: 45_000, byType: new TypeCounts(45_000, 0, 0), rebuild: true),
-            Run(hoursAfterStart: 2, created: 3, byType: null, outcome: SyncOutcome.Failed),
-        ];
-
-        IReadOnlyList<ImportView> imports = (await Service().GetAsync(Ct)).Imports;
-
-        Assert.Equal(
-            [
-                new ImportView(Start.AddHours(2), 3, null),
-                new ImportView(Start.AddHours(5), 9, new TypeCounts(6, 2, 1)),
-            ],
-            imports);
-        Assert.Equal(DashboardService.RunsRead, _store.RunsAskedFor);
-    }
-
-    [Fact]
-    public async Task The_import_history_keeps_the_latest_30()
-    {
-        _store.Runs = [.. Enumerable.Range(0, 40).Select(i => Run(hoursAfterStart: 40 - i, created: i + 1))];
-
-        IReadOnlyList<ImportView> imports = (await Service().GetAsync(Ct)).Imports;
-
-        Assert.Equal(DashboardService.ImportsShown, imports.Count);
-        Assert.Equal((Start.AddHours(11), 30), (imports[0].At, imports[0].Total));
-        Assert.Equal((Start.AddHours(40), 1), (imports[^1].At, imports[^1].Total));
-    }
-
-    [Fact]
-    public async Task The_last_sync_is_the_latest_successful_run()
-    {
-        _store.Runs =
-        [
-            Run(hoursAfterStart: 3, created: 0, outcome: SyncOutcome.Failed),
-            Run(hoursAfterStart: 2, created: 0),
-            Run(hoursAfterStart: 1, created: 0),
-        ];
+        _store.LatestSuccess = SucceededRun(hoursAfterStart: 2);
 
         Assert.Equal(Start.AddHours(2).AddMinutes(5), (await Service().GetAsync(Ct)).LastSync);
     }
@@ -135,8 +96,6 @@ public sealed class DashboardServiceTests
     [Fact]
     public async Task Without_a_successful_run_there_is_no_last_sync()
     {
-        _store.Runs = [Run(hoursAfterStart: 1, created: 0, outcome: SyncOutcome.Failed)];
-
         Assert.Null((await Service().GetAsync(Ct)).LastSync);
     }
 
@@ -145,13 +104,7 @@ public sealed class DashboardServiceTests
     private static TypeStats Type(VideoType type, long count, double hours) =>
         new(type, count, TimeSpan.FromHours(hours));
 
-    private static SyncRun Run(
-        int hoursAfterStart,
-        int created,
-        TypeCounts? byType = null,
-        SyncOutcome outcome = SyncOutcome.Succeeded,
-        bool finished = true,
-        bool rebuild = false)
+    private static SyncRun SucceededRun(int hoursAfterStart)
     {
         DateTimeOffset started = Start.AddHours(hoursAfterStart);
         return new SyncRun
@@ -160,14 +113,17 @@ public sealed class DashboardServiceTests
             Mode = SyncMode.Incremental,
             Trigger = SyncTrigger.Scheduler,
             StartedAt = started,
-            FinishedAt = finished ? started.AddMinutes(5) : null,
-            Outcome = finished ? outcome : SyncOutcome.Running,
-            IndexRebuild = rebuild,
-            Counts = new SyncCounts { Created = created, CreatedByType = byType },
+            FinishedAt = started.AddMinutes(5),
+            Outcome = SyncOutcome.Succeeded,
         };
     }
 
-    private DashboardService Service() => new(_store);
+    private DashboardService Service() =>
+        new(
+            _store,
+            new ImportHistoryRequestValidator(),
+            ValidOptions.Create(),
+            new FakeTimeProvider(Start));
 
     private sealed class FakeStore : IDashboardRepository
     {
@@ -175,11 +131,9 @@ public sealed class DashboardServiceTests
 
         public LibraryStats Stats { get; set; } = new([], 0, new Dictionary<string, ChannelStats>());
 
-        public IReadOnlyList<SyncRun> Runs { get; set; } = [];
+        public SyncRun? LatestSuccess { get; set; }
 
         public IReadOnlyList<string> CountedChannels { get; private set; } = [];
-
-        public int RunsAskedFor { get; private set; }
 
         public Task<IReadOnlyList<ChannelListItem>> GetChannelsAsync(CancellationToken cancellationToken) =>
             Task.FromResult(Channels);
@@ -192,10 +146,12 @@ public sealed class DashboardServiceTests
             return Task.FromResult(Stats);
         }
 
-        public Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken)
-        {
-            RunsAskedFor = count;
-            return Task.FromResult(Runs);
-        }
+        public Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(LatestSuccess);
+
+        public Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(
+            DateTimeOffset? since,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("ImportHistoryTests reads the runs.");
     }
 }

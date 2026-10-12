@@ -1,25 +1,27 @@
+using TonTuyau.Application.Browse;
+using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.Validation;
 
 namespace TonTuyau.Application.Dashboard;
 
 /// <summary>
-/// The admin dashboard: the library's totals, its play time, the recent imports and every channel. Elasticsearch counts
-/// (<see cref="IDashboardRepository"/>); this adds them up, divides and picks.
+/// The admin dashboard: the library's totals, its play time, every channel, and the import history of a period.
+/// Elasticsearch counts (<see cref="IDashboardRepository"/>); this adds them up, divides and picks.
 /// </summary>
-public sealed class DashboardService(IDashboardRepository store)
+public sealed class DashboardService(
+    IDashboardRepository store,
+    IValidator<ImportHistoryRequest> importsValidator,
+    TonTuyauOptions options,
+    TimeProvider clock)
 {
-    /// <summary>
-    /// How many runs are read to find the imports. The run history only indexes a few fields, not the counts, so the
-    /// runs that brought videos are picked here: 500 runs is about a month with the default crons (hourly).
-    /// </summary>
-    public const int RunsRead = 500;
-
-    /// <summary>The bars of the import history.</summary>
-    public const int ImportsShown = 30;
+    public const ImportPeriod DefaultImportPeriod = ImportPeriod.Month;
 
     private static readonly VideoType[] Types = [VideoType.Video, VideoType.Short, VideoType.Stream];
+
+    private readonly TimeZoneInfo _zone = TimeZoneInfo.FindSystemTimeZoneById(options.Sync.TimeZone);
 
     public async Task<DashboardView> GetAsync(CancellationToken cancellationToken)
     {
@@ -29,15 +31,32 @@ public sealed class DashboardService(IDashboardRepository store)
         LibraryStats stats = await store
             .GetLibraryStatsAsync([.. channels.Select(c => c.Id)], cancellationToken)
             .ConfigureAwait(false);
-        IReadOnlyList<SyncRun> runs = await store
-            .GetRecentRunsAsync(RunsRead, cancellationToken)
+        SyncRun? lastSuccess = await store
+            .GetLatestSuccessfulRunAsync(cancellationToken)
             .ConfigureAwait(false);
         return new DashboardView(
-            runs.FirstOrDefault(r => r.Outcome == SyncOutcome.Succeeded)?.FinishedAt,
+            lastSuccess?.FinishedAt,
             Totals(channels.Count, stats),
             PlayTime(stats),
-            Imports(runs),
             ChannelTotals(channels, stats));
+    }
+
+    /// <summary>The import history of a period: its own call, so that changing the period reads the runs only.</summary>
+    /// <exception cref="ValidationException">An unknown period.</exception>
+    public async Task<ImportHistoryView> GetImportsAsync(
+        ImportHistoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        importsValidator.Validate(request);
+        ImportPeriod period = request.Period is null ? DefaultImportPeriod : ApiValues.ImportPeriods[request.Period];
+        DateTimeOffset now = clock.GetUtcNow();
+        IReadOnlyList<SyncRun> runs = await store
+            .GetRunsSinceAsync(ImportHistory.Since(period, now, _zone), cancellationToken)
+            .ConfigureAwait(false);
+        return new ImportHistoryView(
+            ImportHistory.StepOf(period),
+            options.Sync.TimeZone,
+            ImportHistory.Bars(period, runs, now, _zone));
     }
 
     private static LibraryTotalsView Totals(int channels, LibraryStats stats) =>
@@ -65,18 +84,6 @@ public sealed class DashboardService(IDashboardRepository store)
                     s.Count > 0 ? s.Duration / s.Count : TimeSpan.Zero)),
             ]);
     }
-
-    /// <summary>
-    /// The finished runs that brought new videos. An index rebuild is left out: it writes the whole library again into
-    /// new indices, so every video counts as new there.
-    /// </summary>
-    private static ImportView[] Imports(IReadOnlyList<SyncRun> runs) =>
-        runs
-            .Where(r => r.FinishedAt is not null && !r.IndexRebuild && r.Counts.Created > 0)
-            .Take(ImportsShown)
-            .Reverse()
-            .Select(r => new ImportView(r.StartedAt, r.Counts.Created, r.Counts.CreatedByType))
-            .ToArray();
 
     private static ChannelTotalsView[] ChannelTotals(IReadOnlyList<ChannelListItem> channels, LibraryStats stats) =>
         channels

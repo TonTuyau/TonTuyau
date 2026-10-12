@@ -1,29 +1,43 @@
 <script lang="ts">
-  // The admin dashboard: the library's totals, its play time by type, the recent imports and every channel, all as
-  // GET /api/admin/dashboard gives them (the shares and averages too). A 401 means the session ended meanwhile: the
-  // shell then goes to the login page.
+  // The admin dashboard: the library's totals, its play time by type and every channel, all as GET
+  // /api/admin/dashboard gives them (the shares and averages too), and the import history of the chosen period (its
+  // own call: changing the period reloads the chart only; the choice is remembered). A 401 means the session ended
+  // meanwhile: the shell then goes to the login page.
   import ChannelTable from '../components/ChannelTable.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import ImportChart from '../components/ImportChart.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api } from '../lib/api/client'
-  import type { Dashboard, VideoType } from '../lib/api/types'
+  import type { Dashboard, ImportHistory, ImportPeriod, VideoType } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatNumber, formatPlayTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import type { TextKey } from '../lib/i18n/types'
   import { Remote } from '../lib/remote.svelte'
+  import { readPreference, writePreference } from '../lib/storage'
   import { pageTitle } from '../lib/title.svelte'
 
+  const IMPORT_PERIOD_STORAGE_KEY = 'tontuyau.importPeriod'
+  const periods: ImportPeriod[] = ['day', 'week', 'month', 'year', 'all']
+  const saved = readPreference(IMPORT_PERIOD_STORAGE_KEY)
+
   const remote = new Remote<Dashboard>()
+  const imports = new Remote<ImportHistory>()
+  let period = $state<ImportPeriod>(periods.find((p) => p === saved) ?? 'month')
 
   $effect(() => remote.run((signal) => api.dashboard(signal)))
+  $effect(() => imports.run((signal) => api.imports(period, signal)))
 
   $effect(() => {
-    if (remote.error?.status === 401) {
+    if (remote.error?.status === 401 || imports.error?.status === 401) {
       auth.expired()
     }
   })
+
+  function choose(value: ImportPeriod) {
+    period = value
+    writePreference(IMPORT_PERIOD_STORAGE_KEY, value)
+  }
 
   pageTitle(() => t('admin.dashboard'))
 
@@ -106,7 +120,23 @@
 
       <section class="card" aria-labelledby="imports">
         <h2 id="imports">{t('dashboard.imports')}</h2>
-        <ImportChart imports={data.imports} />
+        <div class="periods" role="group" aria-label={t('dashboard.period')}>
+          {#each periods as value (value)}
+            <button type="button" class="chip" aria-pressed={period === value} onclick={() => choose(value)}>
+              {t(`dashboard.period.${value}`)}
+            </button>
+          {/each}
+        </div>
+        {#if imports.status === 'error' && imports.error}
+          <ErrorState error={imports.error} onretry={() => imports.retry()} />
+        {:else if imports.data}
+          <!-- The previous period's chart stays, dimmed, until the next one comes. -->
+          <div class:loading={imports.status === 'loading'} aria-busy={imports.status === 'loading'}>
+            <ImportChart history={imports.data} />
+          </div>
+        {:else}
+          <p class="waiting" role="status">{t('state.loading')}</p>
+        {/if}
       </section>
     </div>
 
@@ -191,6 +221,39 @@
   h2 {
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-medium);
+  }
+
+  .periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .chip {
+    height: var(--chip-height);
+    padding: 0 var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .chip:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .chip[aria-pressed='true'] {
+    background: var(--color-surface-selected);
+    color: var(--color-on-surface-selected);
+  }
+
+  .loading {
+    opacity: 0.6;
+  }
+
+  .waiting {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
   }
 
   .big {

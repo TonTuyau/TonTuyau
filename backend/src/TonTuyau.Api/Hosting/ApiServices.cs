@@ -22,6 +22,7 @@ internal static class ApiServices
         services.AddSingleton<IValidator<ChannelVideosRequest>, ChannelVideosRequestValidator>();
         services.AddSingleton<IValidator<VideoSearchRequest>, VideoSearchRequestValidator>();
         services.AddSingleton<IValidator<SuggestRequest>, SuggestRequestValidator>();
+        services.AddSingleton<IValidator<ImportHistoryRequest>, ImportHistoryRequestValidator>();
         services.AddSingleton<CardBuilder>();
         services.AddSingleton<VideoService>();
         services.AddSingleton<ChannelService>();

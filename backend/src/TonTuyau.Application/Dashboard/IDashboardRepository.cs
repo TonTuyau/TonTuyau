@@ -17,6 +17,13 @@ public interface IDashboardRepository
         IReadOnlyCollection<string> channelIds,
         CancellationToken cancellationToken);
 
-    /// <returns>The latest runs, most recent first, without their notes and rejected samples.</returns>
-    Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken);
+    /// <returns>The latest run that succeeded, or null when none did.</returns>
+    Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken);
+
+    /// <param name="since">Null for every run.</param>
+    /// <returns>
+    /// The runs started from <paramref name="since"/> on, oldest first, with only what the import history reads: when
+    /// they started and finished, whether they rebuilt the indices, their new videos.
+    /// </returns>
+    Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(DateTimeOffset? since, CancellationToken cancellationToken);
 }
