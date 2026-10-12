@@ -5,10 +5,12 @@
 //   the status (200, 206, 304, 416…) and headers come back, and a client that goes away cancels the upstream request.
 //   A backend that can't be reached gives a bare 502 (plain text, not ProblemDetails: the front then says "Can't reach
 //   the TonTuyau server", as with the dev server's proxy).
+// - With a public address (TONTUYAU_PUBLIC_URL), a page gets its link preview's tags, and /oembed answers (see
+//   previews.ts); such a page is written for its URL, so it's revalidated without an ETag.
 // - Every answer carries the security headers below, the Content-Security-Policy included (added to the backend's
 //   answers when it didn't set them).
 import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import http, {
   type IncomingHttpHeaders,
   type IncomingMessage,
@@ -17,6 +19,7 @@ import http, {
 } from 'node:http'
 import path from 'node:path'
 import { pipeline } from 'node:stream'
+import { oembed, previewTags, withTags, type PreviewOptions } from './previews.ts'
 
 export interface FrontServerOptions {
   /** The built app (Vite's dist/), absolute or relative to the working directory. */
@@ -25,6 +28,8 @@ export interface FrontServerOptions {
   backend: URL
   /** Where failures are reported (a proxy error, a file that can't be read). */
   log?: (message: string) => void
+  /** The public address, for the link previews (none without it). */
+  publicUrl?: URL
 }
 
 export const proxiedPrefixes = ['/api', '/media', '/art'] as const
@@ -134,6 +139,7 @@ export function createFrontServer(options: FrontServerOptions): http.Server {
   const backend = options.backend
   const log = options.log ?? ((message: string) => console.error(message))
   const agent = new http.Agent({ keepAlive: true })
+  const previews: PreviewOptions | null = options.publicUrl ? { backend, publicUrl: options.publicUrl, log } : null
 
   function forward(req: IncomingMessage, res: ServerResponse): void {
     const headers = endToEnd(req.headers)
@@ -248,6 +254,37 @@ export function createFrontServer(options: FrontServerOptions): http.Server {
     return true
   }
 
+  function sendBody(req: IncomingMessage, res: ServerResponse, status: number, type: string, body: string): void {
+    res.writeHead(status, {
+      ...securityHeaders,
+      'content-type': type,
+      'content-length': Buffer.byteLength(body),
+      'cache-control': REVALIDATE,
+    })
+    res.end(req.method === 'HEAD' ? undefined : body)
+  }
+
+  /** index.html with the link preview of the page asked. */
+  async function servePage(req: IncomingMessage, res: ServerResponse, preview: PreviewOptions, target: URL) {
+    const html = await readFile(index, 'utf8').catch(() => null)
+    if (html === null) {
+      log(`static: ${index} is missing`)
+      sendText(res, 500, 'The front has no index.html: was it built?')
+      return
+    }
+    const tags = await previewTags(preview, target.pathname, target.searchParams)
+    sendBody(req, res, 200, contentTypes['.html'] ?? 'text/html', withTags(html, tags))
+  }
+
+  async function serveOembed(req: IncomingMessage, res: ServerResponse, preview: PreviewOptions, target: URL) {
+    const document = await oembed(preview, target.searchParams)
+    if (document === null) {
+      sendText(res, 404, 'Not Found')
+      return
+    }
+    sendBody(req, res, 200, 'application/json; charset=utf-8', JSON.stringify(document))
+  }
+
   async function serveStatic(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       sendText(res, 405, 'Method Not Allowed', { allow: 'GET, HEAD' })
@@ -268,6 +305,15 @@ export function createFrontServer(options: FrontServerOptions): http.Server {
       return
     }
     // Any other path is one of the app's own pages: the client-side router reads it.
+    const target = new URL(req.url ?? '/', 'http://front')
+    if (previews !== null && pathname === '/oembed') {
+      await serveOembed(req, res, previews, target)
+      return
+    }
+    if (previews !== null) {
+      await servePage(req, res, previews, target)
+      return
+    }
     if (!(await serveFile(req, res, index, REVALIDATE))) {
       log(`static: ${index} is missing`)
       sendText(res, 500, 'The front has no index.html: was it built?')
