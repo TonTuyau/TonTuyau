@@ -25,6 +25,7 @@ builder.Services.AddHostedService<SyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddTonTuyauApi();
 builder.Services.AddTonTuyauAuth();
+builder.Services.AddRunLogs();
 builder.Services.AddHealthChecks();
 
 WebApplication app = builder.Build();

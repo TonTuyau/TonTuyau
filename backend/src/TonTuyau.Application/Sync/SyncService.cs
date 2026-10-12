@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.TubeArchivist;
 using TonTuyau.Application.Validation;
@@ -106,8 +107,14 @@ public sealed partial class SyncService(
                 AppliesTo = runId,
                 DeletionsPlanned = entries.Count,
             };
-            RunContext context = NewContext(run, new HashSet<string>(), progress, linked.Token);
+            using ProgressLines logged = new(LogProgress, clock);
+            RunContext context = NewContext(
+                run,
+                new HashSet<string>(),
+                new BothProgress(progress, logged),
+                linked.Token);
             await context.SaveAsync().ConfigureAwait(false);
+            using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
             LogStarted(run.Id, run.Mode, trigger);
             try
             {
@@ -142,6 +149,7 @@ public sealed partial class SyncService(
                 await context.SaveAsync().ConfigureAwait(false);
             }
 
+            logged.Finish();
             LogFinished(context.Run.Id, context.Run.Outcome);
             return context.Run;
         }
@@ -191,8 +199,11 @@ public sealed partial class SyncService(
                 StartedAt = clock.GetUtcNow(),
             };
             IReadOnlySet<string> pending = await state.GetPendingArtAsync(linked.Token).ConfigureAwait(false);
-            RunContext context = NewContext(run, pending, progress, linked.Token);
+            using ProgressLines logged = new(LogProgress, clock);
+            RunContext context = NewContext(run, pending, new BothProgress(progress, logged), linked.Token);
             await context.SaveAsync().ConfigureAwait(false);
+            // From here on, every line logged (from any class) is also this run's log (1.4).
+            using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
             LogStarted(run.Id, mode, trigger);
 
             IndexRebuild? rebuilding = null;
@@ -255,6 +266,7 @@ public sealed partial class SyncService(
                 await context.SaveAsync().ConfigureAwait(false);
             }
 
+            logged.Finish();
             LogFinished(context.Run.Id, context.Run.Outcome);
             return context.Run;
         }
@@ -987,6 +999,10 @@ public sealed partial class SyncService(
         Level = LogLevel.Warning,
         Message = "Sync {RunId}: the index definitions changed, so this {Mode} run rebuilds the indices instead.")]
     private partial void LogRebuildInstead(string runId, SyncMode mode);
+
+    /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Line}")]
+    private partial void LogProgress(string line);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sync {RunId} started: {Mode} by {Trigger}.")]
     private partial void LogStarted(string runId, SyncMode mode, SyncTrigger trigger);

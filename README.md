@@ -93,7 +93,7 @@ While it runs, the command shows where it is, as plain lines (the same in a term
 - Each update is a **line of its own** (about 130 to 180 for a first full sync), with or without `-t`, and piped too (`docker exec tontuyau-backend tontuyau sync full | tee sync.log` keeps a copy); each step ends with its final counts.
 - A count is shown as "x / y" only when the total is really known (the channels); the videos are counted as they come.
 
-Then it prints the run's report (`tontuyau sync status` shows it again). `tontuyau sync incremental`, `tontuyau index rebuild` and `tontuyau sync apply-deletions <run>` show their progress the same way. The scheduled syncs print nothing (their start and end are in the backend's log).
+Then it prints the run's report (`tontuyau sync status` shows it again). `tontuyau sync incremental`, `tontuyau index rebuild` and `tontuyau sync apply-deletions <run>` show their progress the same way. The scheduled syncs write the same progress lines to the backend's log (`docker logs tontuyau-backend`), and every run's lines (its start, progress, warnings, errors, end) are also kept in PostgreSQL, for the admin's Tasks page (1.4). Until the command line goes through the backend (a later 1.4 step), the runs it starts print to its terminal only.
 
 After it, the scheduler keeps TonTuyau up to date by itself (`TONTUYAU_SYNC_INCREMENTAL_CRON`, `TONTUYAU_SYNC_FULL_CRON` in `TONTUYAU_TZ`). Without the command above, its first run would do the full import anyway, at the next scheduled time.
 

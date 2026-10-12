@@ -8,7 +8,7 @@ namespace TonTuyau.Api.Cli;
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
 /// Exit codes: 0 done, 1 the run failed, 2 usage error, 3 another sync is running, 4 refused.
-/// The commands that run a sync print its progress while it runs (see <see cref="CliProgress"/>), then the report.
+/// The commands that run a sync print its progress while it runs (see <see cref="ProgressLines"/>), then the report.
 /// </summary>
 internal sealed class CliRunner(IServiceProvider services, TextWriter output)
 {
@@ -84,7 +84,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     /// <summary>Runs a sync with its progress shown, and ends the progress (even on an error) before the report.</summary>
     private async Task<SyncRun> WithProgressAsync(Func<ISyncProgressReporter, Task<SyncRun>> sync)
     {
-        using CliProgress progress = new(output, services.GetService<TimeProvider>() ?? TimeProvider.System);
+        using ProgressLines progress = new(Print, services.GetService<TimeProvider>() ?? TimeProvider.System);
         try
         {
             return await sync(progress);
@@ -93,6 +93,13 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
         {
             progress.Finish();
         }
+    }
+
+    /// <summary>A progress line, at once (a pipe, e.g. to <c>tee</c>, gets it as it comes).</summary>
+    private void Print(string line)
+    {
+        output.WriteLine(line);
+        output.Flush();
     }
 
     private static string When(DateTimeOffset? at) =>

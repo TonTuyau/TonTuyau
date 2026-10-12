@@ -1,12 +1,10 @@
-using TonTuyau.Application.Sync;
-
-namespace TonTuyau.Api.Cli;
+namespace TonTuyau.Application.Sync;
 
 /// <summary>
-/// Shows a running sync's progress under the CLI as plain lines, the same in a terminal and in a log (QA16-1: like
-/// the <c>tee</c> log): a line at each phase change, then at most one every <see cref="Interval"/> (a 20-minute run
-/// prints about 130), and each phase's last state before the next phase (its result stays on screen). Thread-safe:
-/// the sync reports from several threads.
+/// A running sync's progress as plain lines, the same in a terminal and in a log (QA16-1: like the <c>tee</c> log):
+/// the CLI prints them, and every run writes them to its log (1.4). A line at each phase change, then at most one
+/// every <see cref="Interval"/> (a 20-minute run prints about 130), and each phase's last state before the next phase
+/// (its result stays on screen). Thread-safe: the sync reports from several threads.
 /// <para>
 /// A heartbeat (QA16-3 b): when nothing was shown for <see cref="Interval"/> (a long step with nothing new to report:
 /// a slow TubeArchivist answer, the index switch), the current line is shown again, so the time keeps going up and the
@@ -14,7 +12,8 @@ namespace TonTuyau.Api.Cli;
 /// come every few seconds, the lines are the same as without it. <see cref="Finish"/> stops it.
 /// </para>
 /// </summary>
-internal sealed class CliProgress(TextWriter output, TimeProvider clock) : ISyncProgressReporter, IDisposable
+/// <param name="write">Called with each line, under a lock: one at a time, in order.</param>
+public sealed class ProgressLines(Action<string> write, TimeProvider clock) : ISyncProgressReporter, IDisposable
 {
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 
@@ -112,8 +111,7 @@ internal sealed class CliProgress(TextWriter output, TimeProvider clock) : ISync
     // Under _gate.
     private void Show(SyncProgress progress, DateTimeOffset now)
     {
-        output.WriteLine(SyncProgressText.Line(progress, now - progress.StartedAt));
-        output.Flush();
+        write(SyncProgressText.Line(progress, now - progress.StartedAt));
         _shown = progress;
         _shownAt = now;
         if (!_finished)
