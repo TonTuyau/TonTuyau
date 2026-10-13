@@ -33,16 +33,18 @@ public sealed partial class SyncService(
     /// <summary>A run nobody watches (the scheduler).</summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     public Task<SyncRun> RunAsync(SyncMode mode, SyncTrigger trigger, CancellationToken cancellationToken) =>
-        RunAsync(mode, trigger, NoSyncProgress.Instance, cancellationToken);
+        RunAsync(mode, trigger, null, NoSyncProgress.Instance, cancellationToken);
 
+    /// <param name="startedBy">The account that started it from the Tasks page; null otherwise.</param>
     /// <param name="progress">Told where the run is as it goes (the CLI shows it).</param>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     public Task<SyncRun> RunAsync(
         SyncMode mode,
         SyncTrigger trigger,
+        string? startedBy,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken) =>
-        WithLockAsync(mode, trigger, rebuild: false, progress, cancellationToken);
+        WithLockAsync(mode, trigger, startedBy, rebuild: false, progress, cancellationToken);
 
     /// <summary>Re-imports everything into a new index generation and switches users to it at the end.</summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
@@ -55,7 +57,7 @@ public sealed partial class SyncService(
         SyncTrigger trigger,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken) =>
-        WithLockAsync(SyncMode.Full, trigger, rebuild: true, progress, cancellationToken);
+        WithLockAsync(SyncMode.Full, trigger, null, rebuild: true, progress, cancellationToken);
 
     /// <summary>
     /// Deletes, after confirming each one with TubeArchivist, the list a blocked full run wrote. A run of its own
@@ -64,13 +66,15 @@ public sealed partial class SyncService(
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     /// <exception cref="SyncRefusedException">Not the latest full run, or no list for it.</exception>
     public Task<SyncRun> ApplyDeletionsAsync(string runId, SyncTrigger trigger, CancellationToken cancellationToken) =>
-        ApplyDeletionsAsync(runId, trigger, NoSyncProgress.Instance, cancellationToken);
+        ApplyDeletionsAsync(runId, trigger, null, NoSyncProgress.Instance, cancellationToken);
 
     /// <inheritdoc cref="ApplyDeletionsAsync(string, SyncTrigger, CancellationToken)"/>
+    /// <param name="startedBy">The account that started it from the Tasks page; null otherwise.</param>
     /// <param name="progress">Told where it is as it goes (the CLI shows it).</param>
     public async Task<SyncRun> ApplyDeletionsAsync(
         string runId,
         SyncTrigger trigger,
+        string? startedBy,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken)
     {
@@ -104,6 +108,7 @@ public sealed partial class SyncService(
                 Mode = SyncMode.ApplyDeletions,
                 Trigger = trigger,
                 StartedAt = clock.GetUtcNow(),
+                StartedBy = startedBy,
                 AppliesTo = runId,
                 DeletionsPlanned = entries.Count,
             };
@@ -181,6 +186,7 @@ public sealed partial class SyncService(
     private async Task<SyncRun> WithLockAsync(
         SyncMode mode,
         SyncTrigger trigger,
+        string? startedBy,
         bool rebuild,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken)
@@ -198,6 +204,7 @@ public sealed partial class SyncService(
                 Mode = mode,
                 Trigger = trigger,
                 StartedAt = clock.GetUtcNow(),
+                StartedBy = startedBy,
             };
             IReadOnlySet<string> pending = await state.GetPendingArtAsync(linked.Token).ConfigureAwait(false);
             using ProgressLines logged = new(LogProgress, clock);

@@ -20,6 +20,9 @@ public enum SyncTrigger
 
     /// <summary>The automatic index rebuild when the backend starts with changed index definitions (QA10 M5-10).</summary>
     Startup,
+
+    /// <summary>From the admin's Tasks page (1.4), by the account <see cref="SyncRun.StartedBy"/>.</summary>
+    Admin,
 }
 
 public enum SyncOutcome
@@ -100,6 +103,9 @@ public sealed record SyncRun
     public required SyncTrigger Trigger { get; init; }
 
     public required DateTimeOffset StartedAt { get; init; }
+
+    /// <summary>The account that started it from the Tasks page (<see cref="SyncTrigger.Admin"/>), or null.</summary>
+    public string? StartedBy { get; init; }
 
     public DateTimeOffset? FinishedAt { get; init; }
 

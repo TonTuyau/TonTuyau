@@ -1339,6 +1339,121 @@
         }
       }
     },
+    "/api/admin/tasks/{task}/runs": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "description": "incremental | full | applyDeletions.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs/{id}/cancel": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/runs": {
       "get": {
         "tags": ["Tasks"],
@@ -2086,6 +2201,7 @@
           "id",
           "task",
           "trigger",
+          "startedBy",
           "state",
           "startedAt",
           "finishedAt",
@@ -2108,6 +2224,9 @@
           },
           "trigger": {
             "$ref": "#/components/schemas/SyncTrigger"
+          },
+          "startedBy": {
+            "type": ["null", "string"]
           },
           "state": {
             "$ref": "#/components/schemas/SyncOutcome"
@@ -2205,7 +2324,7 @@
         "type": "string"
       },
       "SyncTrigger": {
-        "enum": ["scheduler", "cli", "startup"],
+        "enum": ["scheduler", "cli", "startup", "admin"],
         "type": "string"
       },
       "TaskResponse": {

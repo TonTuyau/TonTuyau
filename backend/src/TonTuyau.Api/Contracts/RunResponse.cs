@@ -5,7 +5,8 @@ namespace TonTuyau.Api.Contracts;
 
 /// <summary>A run of the history (contract v1.7, TonTuyau 1.4).</summary>
 /// <param name="Task">incremental | full | applyDeletions.</param>
-/// <param name="Trigger">What started it: scheduler | cli | startup (the index rebuild after an upgrade).</param>
+/// <param name="Trigger">What started it: scheduler | cli | startup (the rebuild after an upgrade) | admin.</param>
+/// <param name="StartedBy">For <c>admin</c>: the account that started it; null otherwise.</param>
 /// <param name="State">running | succeeded | failed | canceled.</param>
 /// <param name="Error">Why it failed; null otherwise.</param>
 /// <param name="DeletionsPlanned">
@@ -20,6 +21,7 @@ public sealed record RunResponse(
     string Id,
     SyncMode Task,
     SyncTrigger Trigger,
+    string? StartedBy,
     SyncOutcome State,
     DateTime StartedAt,
     DateTime? FinishedAt,
@@ -40,6 +42,7 @@ public sealed record RunResponse(
             run.Id,
             run.Mode,
             run.Trigger,
+            run.StartedBy,
             run.Outcome,
             run.StartedAt.UtcDateTime,
             run.FinishedAt?.UtcDateTime,

@@ -36,6 +36,10 @@ internal sealed partial class ErrorMiddleware(RequestDelegate next, ILogger<Erro
         {
             await WriteAsync(context, Problems.NotFound(ex.Message)).ConfigureAwait(false);
         }
+        catch (ConflictException ex)
+        {
+            await WriteAsync(context, Problems.Conflict(ex.Message)).ConfigureAwait(false);
+        }
         catch (RangeNotSatisfiableException ex)
         {
             if (!context.Response.HasStarted)
