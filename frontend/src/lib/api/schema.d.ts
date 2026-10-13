@@ -1351,6 +1351,234 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/tasks': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['TasksResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/runs': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description incremental | full | applyDeletions; every task when absent. */
+          task?: string
+          /** @description The previous page's nextCursor: the runs started before that one. */
+          before?: string
+          /** @description 1 to 100, default 20. */
+          size?: number
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['PageOfRunResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/runs/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/runs/{id}/log': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description The last line's id: the lines after it. 0 (default): from the first. */
+          after?: number
+          /** @description 1 to 2000, default 500. */
+          size?: number
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunLogResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -1467,6 +1695,12 @@ export interface components {
       /** Format: int64 */
       total: number
     }
+    PageOfRunResponse: {
+      items: components['schemas']['RunResponse'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
+    }
     PageOfVideoCard: {
       items: components['schemas']['VideoCard'][]
       nextCursor: null | string
@@ -1487,6 +1721,75 @@ export interface components {
       instance?: string
       traceId?: string
     }
+    RunCounts: {
+      /** Format: int32 */
+      videosRead: number
+      /** Format: int32 */
+      channelsRead: number
+      /** Format: int32 */
+      created: number
+      /** Format: int32 */
+      updated: number
+      /** Format: int32 */
+      unchanged: number
+      /** Format: int32 */
+      rejected: number
+      /** Format: int32 */
+      corrected: number
+      /** Format: int32 */
+      artCopied: number
+      /** Format: int32 */
+      artFailed: number
+      /** Format: int32 */
+      artResized: number
+      /** Format: int32 */
+      artResizeFailed: number
+      /** Format: int32 */
+      mediaMissing: number
+      /** Format: int32 */
+      deleted: number
+      /** Format: int32 */
+      kept: number
+    }
+    RunLock: {
+      task: components['schemas']['SyncMode']
+      trigger: components['schemas']['SyncTrigger']
+      /** Format: date-time */
+      since: string
+    }
+    /** @enum {string} */
+    RunLogLevel: 'information' | 'warning' | 'error'
+    RunLogLineResponse: {
+      /** Format: int64 */
+      id: number
+      /** Format: date-time */
+      at: string
+      level: components['schemas']['RunLogLevel']
+      message: string
+    }
+    RunLogResponse: {
+      lines: components['schemas']['RunLogLineResponse'][]
+      complete: boolean
+    }
+    RunResponse: {
+      id: string
+      task: components['schemas']['SyncMode']
+      trigger: components['schemas']['SyncTrigger']
+      state: components['schemas']['SyncOutcome']
+      /** Format: date-time */
+      startedAt: string
+      /** Format: date-time */
+      finishedAt: null | string
+      error: null | string
+      counts: components['schemas']['RunCounts']
+      /** Format: int32 */
+      deletionsPlanned: number
+      deletionsBlocked: boolean
+      appliesTo: null | string
+      indexRebuild: boolean
+      notes: string[]
+      cancellable: boolean
+    }
     SearchAllResponse: {
       channels: components['schemas']['ChannelCard'][]
       videos: components['schemas']['PageOfVideoCard']
@@ -1500,6 +1803,25 @@ export interface components {
     SuggestionKind: 'channel' | 'video'
     SuggestResponse: {
       suggestions: components['schemas']['Suggestion'][]
+    }
+    /** @enum {string} */
+    SyncMode: 'incremental' | 'full' | 'applyDeletions'
+    /** @enum {string} */
+    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled'
+    /** @enum {string} */
+    SyncTrigger: 'scheduler' | 'cli' | 'startup'
+    TaskResponse: {
+      task: components['schemas']['SyncMode']
+      schedule: null | string
+      /** Format: date-time */
+      next: null | string
+      lastRun: null | components['schemas']['RunResponse']
+      waiting: null | components['schemas']['WaitingDeletions']
+    }
+    TasksResponse: {
+      lock: null | components['schemas']['RunLock']
+      runningHere: null | string
+      tasks: components['schemas']['TaskResponse'][]
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']
@@ -1590,6 +1912,13 @@ export interface components {
     }
     /** @enum {string} */
     VideoType: 'video' | 'short' | 'stream'
+    WaitingDeletions: {
+      runId: string
+      /** Format: date-time */
+      startedAt: string
+      /** Format: int32 */
+      count: number
+    }
   }
   responses: never
   parameters: never

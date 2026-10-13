@@ -1311,6 +1311,223 @@
           }
         }
       }
+    },
+    "/api/admin/tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TasksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs": {
+      "get": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "task",
+            "in": "query",
+            "description": "incremental | full | applyDeletions; every task when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "The previous page's nextCursor: the runs started before that one.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "1 to 100, default 20.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs/{id}": {
+      "get": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs/{id}/log": {
+      "get": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The last line's id: the lines after it. 0 (default): from the first.",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "1 to 2000, default 500.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1653,6 +1870,25 @@
           }
         }
       },
+      "PageOfRunResponse": {
+        "required": ["items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "PageOfVideoCard": {
         "required": ["items", "nextCursor", "total"],
         "type": "object",
@@ -1713,6 +1949,207 @@
           }
         }
       },
+      "RunCounts": {
+        "required": [
+          "videosRead",
+          "channelsRead",
+          "created",
+          "updated",
+          "unchanged",
+          "rejected",
+          "corrected",
+          "artCopied",
+          "artFailed",
+          "artResized",
+          "artResizeFailed",
+          "mediaMissing",
+          "deleted",
+          "kept"
+        ],
+        "type": "object",
+        "properties": {
+          "videosRead": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "channelsRead": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unchanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "corrected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artCopied": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artResized": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artResizeFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mediaMissing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kept": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RunLock": {
+        "required": ["task", "trigger", "since"],
+        "type": "object",
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/SyncMode"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/SyncTrigger"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RunLogLevel": {
+        "enum": ["information", "warning", "error"],
+        "type": "string"
+      },
+      "RunLogLineResponse": {
+        "required": ["id", "at", "level", "message"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "level": {
+            "$ref": "#/components/schemas/RunLogLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "RunLogResponse": {
+        "required": ["lines", "complete"],
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunLogLineResponse"
+            }
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RunResponse": {
+        "required": [
+          "id",
+          "task",
+          "trigger",
+          "state",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "counts",
+          "deletionsPlanned",
+          "deletionsBlocked",
+          "appliesTo",
+          "indexRebuild",
+          "notes",
+          "cancellable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "task": {
+            "$ref": "#/components/schemas/SyncMode"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/SyncTrigger"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SyncOutcome"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "error": {
+            "type": ["null", "string"]
+          },
+          "counts": {
+            "$ref": "#/components/schemas/RunCounts"
+          },
+          "deletionsPlanned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletionsBlocked": {
+            "type": "boolean"
+          },
+          "appliesTo": {
+            "type": ["null", "string"]
+          },
+          "indexRebuild": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cancellable": {
+            "type": "boolean"
+          }
+        }
+      },
       "SearchAllResponse": {
         "required": ["channels", "videos"],
         "type": "object",
@@ -1755,6 +2192,79 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Suggestion"
+            }
+          }
+        }
+      },
+      "SyncMode": {
+        "enum": ["incremental", "full", "applyDeletions"],
+        "type": "string"
+      },
+      "SyncOutcome": {
+        "enum": ["running", "succeeded", "failed", "canceled"],
+        "type": "string"
+      },
+      "SyncTrigger": {
+        "enum": ["scheduler", "cli", "startup"],
+        "type": "string"
+      },
+      "TaskResponse": {
+        "required": ["task", "schedule", "next", "lastRun", "waiting"],
+        "type": "object",
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/SyncMode"
+          },
+          "schedule": {
+            "type": ["null", "string"]
+          },
+          "next": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "lastRun": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunResponse"
+              }
+            ]
+          },
+          "waiting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WaitingDeletions"
+              }
+            ]
+          }
+        }
+      },
+      "TasksResponse": {
+        "required": ["lock", "runningHere", "tasks"],
+        "type": "object",
+        "properties": {
+          "lock": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunLock"
+              }
+            ]
+          },
+          "runningHere": {
+            "type": ["null", "string"]
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskResponse"
             }
           }
         }
@@ -2037,6 +2547,23 @@
       "VideoType": {
         "enum": ["video", "short", "stream"],
         "type": "string"
+      },
+      "WaitingDeletions": {
+        "required": ["runId", "startedAt", "count"],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       }
     }
   },
@@ -2064,6 +2591,9 @@
     },
     {
       "name": "Search"
+    },
+    {
+      "name": "Tasks"
     }
   ]
 }

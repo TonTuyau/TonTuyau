@@ -5,6 +5,7 @@ using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.Tasks;
 using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.Infrastructure.Storage;
 
@@ -23,6 +24,7 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IVideoRepository, VideoRepository>();
         services.AddSingleton<IChannelRepository, ChannelRepository>();
         services.AddSingleton<IDashboardRepository, DashboardRepository>();
+        services.AddSingleton<ITaskRepository, TaskRepository>();
         services.AddSingleton<SearchStoreReadiness>();
         services.AddSingleton<IndexRebuildState>();
         services.AddSingleton(TimeProvider.System);
