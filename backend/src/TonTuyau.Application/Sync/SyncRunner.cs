@@ -34,11 +34,27 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
     /// <exception cref="SyncRefusedException">The list can't be applied (see <see cref="SyncService"/>).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
-    public async Task<StartedRun> StartAsync(
+    public Task<StartedRun> StartAsync(
         SyncMode mode,
         SyncTrigger trigger,
         string? appliesTo = null,
-        string? startedBy = null)
+        string? startedBy = null) =>
+        StartAsync((progress, token) => mode == SyncMode.ApplyDeletions
+            ? sync.ApplyDeletionsAsync(
+                appliesTo ?? throw new ArgumentNullException(nameof(appliesTo)),
+                trigger,
+                startedBy,
+                progress,
+                token)
+            : sync.RunAsync(mode, trigger, startedBy, progress, token));
+
+    /// <summary>Starts an index rebuild (<c>tontuyau index rebuild</c>), a run like the others.</summary>
+    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public Task<StartedRun> StartRebuildAsync(SyncTrigger trigger) =>
+        StartAsync((progress, token) => sync.RebuildAsync(trigger, progress, token));
+
+    private async Task<StartedRun> StartAsync(Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work)
     {
         // The run's own: disposed when it ends (RunInBackgroundAsync).
         CancellationTokenSource cancel = new();
@@ -52,7 +68,7 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
                 throw new OperationCanceledException("The backend is stopping: no run starts any more.");
             }
 
-            run = Task.Run(() => RunInBackgroundAsync(mode, trigger, appliesTo, startedBy, starting, cancel));
+            run = Task.Run(() => RunInBackgroundAsync(work, starting, cancel));
             _latest = run;
         }
 
@@ -126,24 +142,13 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
     }
 
     private async Task<SyncRun> RunInBackgroundAsync(
-        SyncMode mode,
-        SyncTrigger trigger,
-        string? appliesTo,
-        string? startedBy,
+        Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work,
         Starting starting,
         CancellationTokenSource cancel)
     {
         try
         {
-            Task<SyncRun> run = mode == SyncMode.ApplyDeletions
-                ? sync.ApplyDeletionsAsync(
-                    appliesTo ?? throw new ArgumentNullException(nameof(appliesTo)),
-                    trigger,
-                    startedBy,
-                    starting,
-                    cancel.Token)
-                : sync.RunAsync(mode, trigger, startedBy, starting, cancel.Token);
-            return await run.ConfigureAwait(false);
+            return await work(starting, cancel.Token).ConfigureAwait(false);
         }
         finally
         {

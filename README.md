@@ -93,7 +93,7 @@ While it runs, the command shows where it is, as plain lines (the same in a term
 - Each update is a **line of its own** (about 130 to 180 for a first full sync), with or without `-t`, and piped too (`docker exec tontuyau-backend tontuyau sync full | tee sync.log` keeps a copy); each step ends with its final counts.
 - A count is shown as "x / y" only when the total is really known (the channels); the videos are counted as they come.
 
-Then it prints the run's report (`tontuyau sync status` shows it again). `tontuyau sync incremental`, `tontuyau index rebuild` and `tontuyau sync apply-deletions <run>` show their progress the same way. The scheduled syncs write the same progress lines to the backend's log (`docker logs tontuyau-backend`), and every run's lines (its start, progress, warnings, errors, end) are also kept in PostgreSQL, for the admin's Tasks page (1.4). Until the command line goes through the backend (a later 1.4 step), the runs it starts print to its terminal only.
+Then it prints the run's report (`tontuyau sync status` shows it again). `tontuyau sync incremental`, `tontuyau index rebuild` and `tontuyau sync apply-deletions <run>` show their progress the same way. The scheduled syncs write the same progress lines to the backend's log (`docker logs tontuyau-backend`), and every run's lines (its start, progress, warnings, errors, end) are also kept in PostgreSQL, for the admin's Tasks page (1.4).
 
 After it, the scheduler keeps TonTuyau up to date by itself (`TONTUYAU_SYNC_INCREMENTAL_CRON`, `TONTUYAU_SYNC_FULL_CRON` in `TONTUYAU_TZ`). Without the command above, its first run would do the full import anyway, at the next scheduled time.
 
@@ -240,6 +240,7 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_ADMIN_USER` | no | `admin`: the account the first start creates |
 | `TONTUYAU_ADMIN_PASSWORD` | at the first start | its password; read only while there's no account at all |
 | `TONTUYAU_COOKIE_SECURE` | no | `true`: the login cookie only travels over HTTPS; `false` to browse over plain `http://` |
+| `TONTUYAU_CLI_SOCKET` | no | `/tmp/tontuyau.sock`: the Unix socket the command line reaches the backend through, inside the container (empty: none, and the command line can't run anything) |
 | `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 | `TONTUYAU_PUBLIC_URL` | no | empty: no link previews. The address people reach TonTuyau at (`https://tontuyau.example.net`, no path), read by the front server: a link shared in Discord, Messenger… then shows the channel, the title and the video. Their servers fetch the page and the video there |
 
@@ -297,7 +298,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Ctrl-C stops a run: it's recorded as canceled, and what it did until then stays. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it).
+The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `sync status` reads Elasticsearch itself. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it).
 
 ## Before going public
 

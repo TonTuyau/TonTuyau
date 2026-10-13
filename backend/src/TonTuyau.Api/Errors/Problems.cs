@@ -11,6 +11,9 @@ internal static class Problems
     public const string ContentType = "application/problem+json";
     public const string TypeBase = "https://tontuyau/errors/";
 
+    public const string SyncBusySlug = "sync-busy";
+    public const string SyncRefusedSlug = "sync-refused";
+
     public static ProblemDetails Validation(ValidationException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
@@ -36,6 +39,14 @@ internal static class Problems
 
     public static ProblemDetails Conflict(string detail) =>
         Of(StatusCodes.Status409Conflict, "conflict", "Not now", detail);
+
+    /// <summary>The command line's: another run holds the lock (its exit code 3).</summary>
+    public static ProblemDetails SyncBusy(string detail) =>
+        Of(StatusCodes.Status409Conflict, SyncBusySlug, "A run is going on", detail);
+
+    /// <summary>The command line's: the run can't be done (its exit code 4).</summary>
+    public static ProblemDetails SyncRefused(string detail) =>
+        Of(StatusCodes.Status409Conflict, SyncRefusedSlug, "Refused", detail);
 
     public static ProblemDetails RangeNotSatisfiable(long fileLength) => Of(
         StatusCodes.Status416RangeNotSatisfiable,

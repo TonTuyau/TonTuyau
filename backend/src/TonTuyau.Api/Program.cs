@@ -15,6 +15,8 @@ if (CliRunner.IsCommand(args))
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddTonTuyauConfiguration();
+// The command line reaches the backend through a Unix socket (1.4), besides the backend's own address.
+CliSocket.ListenAlso(builder);
 // EF Core logs every SQL command it runs, and as an error the query it expects to fail at the very first start (no
 // migration history yet). A real database error reaches the error middleware's log anyway.
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);

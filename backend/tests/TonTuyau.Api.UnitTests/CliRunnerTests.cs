@@ -3,8 +3,15 @@ using TonTuyau.Api.Hosting;
 
 namespace TonTuyau.Api.UnitTests;
 
-public sealed class CliRunnerTests
+public sealed class CliRunnerTests : IDisposable
 {
+    private readonly HttpClient _nowhere = new();
+
+    /// <summary>For the commands that never reach the backend.</summary>
+    private BackendClient NoBackend => new(_nowhere);
+
+    public void Dispose() => _nowhere.Dispose();
+
     [Theory]
     [InlineData(new[] { "sync", "incremental" }, true)]
     [InlineData(new[] { "index", "rebuild" }, true)]
@@ -25,7 +32,7 @@ public sealed class CliRunnerTests
         using StringWriter output = new();
         string[] args = commandLine.Split(' ');
 
-        int code = await new CliRunner(EmptyServices.Instance, output).RunAsync(
+        int code = await new CliRunner(EmptyServices.Instance, output, NoBackend).RunAsync(
             args,
             TestContext.Current.CancellationToken);
 
@@ -33,12 +40,13 @@ public sealed class CliRunnerTests
         Assert.Contains("Usage: tontuyau", output.ToString(), StringComparison.Ordinal);
     }
 
+    // The runs go through the backend (1.4): only the status reads Elasticsearch itself.
     [Theory]
-    [InlineData("sync incremental", true)]
-    [InlineData("sync full", true)]
+    [InlineData("sync incremental", false)]
+    [InlineData("sync full", false)]
     [InlineData("sync status", true)]
-    [InlineData("sync apply-deletions run-x", true)]
-    [InlineData("index rebuild", true)]
+    [InlineData("sync apply-deletions run-x", false)]
+    [InlineData("index rebuild", false)]
     [InlineData("help", false)]
     [InlineData("--version", false)]
     [InlineData("sync", false)]
@@ -52,7 +60,7 @@ public sealed class CliRunnerTests
     {
         using StringWriter output = new();
 
-        int code = await new CliRunner(EmptyServices.Instance, output).RunAsync(
+        int code = await new CliRunner(EmptyServices.Instance, output, NoBackend).RunAsync(
             ["help"],
             TestContext.Current.CancellationToken);
 
@@ -66,7 +74,7 @@ public sealed class CliRunnerTests
     {
         using StringWriter output = new();
 
-        int code = await new CliRunner(EmptyServices.Instance, output).RunAsync(
+        int code = await new CliRunner(EmptyServices.Instance, output, NoBackend).RunAsync(
             [verb],
             TestContext.Current.CancellationToken);
 
