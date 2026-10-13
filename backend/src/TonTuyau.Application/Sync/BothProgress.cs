@@ -8,4 +8,10 @@ internal sealed class BothProgress(ISyncProgressReporter first, ISyncProgressRep
         first.Report(progress);
         second.Report(progress);
     }
+
+    public void Started(string runId)
+    {
+        first.Started(runId);
+        second.Started(runId);
+    }
 }
