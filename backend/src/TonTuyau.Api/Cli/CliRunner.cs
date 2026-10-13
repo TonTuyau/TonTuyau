@@ -18,6 +18,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     public const int Busy = 3;
     public const int Refused = 4;
 
+    private const SyncTrigger Cli = SyncTrigger.Cli;
+
     public const string Help = """
         Usage: tontuyau <command>
 
@@ -58,12 +60,12 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
             return args switch
             {
                 ["sync", "incremental"] => ReportSync(await WithProgressAsync(
-                    progress => Sync.RunAsync(SyncMode.Incremental, SyncTrigger.Cli, progress, cancellationToken))),
+                    progress => Sync.RunAsync(SyncMode.Incremental, Cli, null, progress, cancellationToken))),
                 ["sync", "full"] => ReportSync(await WithProgressAsync(
-                    progress => Sync.RunAsync(SyncMode.Full, SyncTrigger.Cli, progress, cancellationToken))),
+                    progress => Sync.RunAsync(SyncMode.Full, Cli, null, progress, cancellationToken))),
                 ["sync", "status"] => Status(await Sync.GetStatusAsync(cancellationToken)),
                 ["sync", "apply-deletions", string run] => Report(await WithProgressAsync(
-                    progress => Sync.ApplyDeletionsAsync(run, SyncTrigger.Cli, progress, cancellationToken))),
+                    progress => Sync.ApplyDeletionsAsync(run, Cli, null, progress, cancellationToken))),
                 ["index", "rebuild"] => Report(await WithProgressAsync(
                     progress => Sync.RebuildAsync(SyncTrigger.Cli, progress, cancellationToken))),
                 ["help" or "--help" or "-h"] => Write(Help, Ok),

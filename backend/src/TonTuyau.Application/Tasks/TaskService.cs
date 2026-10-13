@@ -83,6 +83,59 @@ public sealed class TaskService(
             page.Total);
     }
 
+    /// <summary>Starts a task now, in this backend's background: the run, just started.</summary>
+    /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
+    /// <exception cref="ValidationException">Not a task.</exception>
+    /// <exception cref="ConflictException">A run is going on, or no deletion list waits to be applied.</exception>
+    public async Task<RunView> StartAsync(string task, string account, CancellationToken cancellationToken)
+    {
+        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode))
+        {
+            throw RequestRules.Invalid("task", $"must be one of {ApiValues.Tasks.Choices}.");
+        }
+
+        string? appliesTo = null;
+        if (mode == SyncMode.ApplyDeletions)
+        {
+            SyncRun waiting = await WaitingAsync(cancellationToken).ConfigureAwait(false)
+                ?? throw new ConflictException("No deletion list waits to be applied.");
+            appliesTo = waiting.Id;
+        }
+
+        StartedRun started;
+        try
+        {
+            started = await runner.StartAsync(mode, SyncTrigger.Admin, appliesTo, account).ConfigureAwait(false);
+        }
+        catch (SyncBusyException ex)
+        {
+            throw new ConflictException(ex.Message, ex);
+        }
+        catch (SyncRefusedException ex)
+        {
+            throw new ConflictException(ex.Message, ex);
+        }
+
+        return await GetRunAsync(started.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asks the run going on to stop: it ends canceled soon after (between two requests).</summary>
+    /// <param name="account">Who asks: the run's log says it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It's over, or it goes on in another process.</exception>
+    public async Task<RunView> CancelAsync(string id, string account, CancellationToken cancellationToken)
+    {
+        SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        if (runner.Cancel(run.Id, account))
+        {
+            return new RunView(run, Cancellable: true);
+        }
+
+        throw new ConflictException(run.Outcome == SyncOutcome.Running
+            ? "This run goes on in another process (the command line): stop it there."
+            : "This run is over.");
+    }
+
     /// <exception cref="NotFoundException">No such run.</exception>
     public async Task<RunView> GetRunAsync(string id, CancellationToken cancellationToken)
     {

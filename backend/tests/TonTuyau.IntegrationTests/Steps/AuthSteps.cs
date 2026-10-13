@@ -66,6 +66,9 @@ public sealed class AuthSteps(ScenarioState state)
         await SendAsync(request);
     }
 
+    [When("I send POST {string} with my session")]
+    public Task PostWithSession(string path) => PostAsync(TestIds.Expand(path), content: null, from: null);
+
     [When("I log out")]
     public Task LogOut() => PostAsync("/api/auth/logout", content: null, from: null);
 

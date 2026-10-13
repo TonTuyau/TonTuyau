@@ -34,6 +34,9 @@ internal static class Problems
     public static ProblemDetails NotFound(string detail) =>
         Of(StatusCodes.Status404NotFound, "not-found", "Not found", detail);
 
+    public static ProblemDetails Conflict(string detail) =>
+        Of(StatusCodes.Status409Conflict, "conflict", "Not now", detail);
+
     public static ProblemDetails RangeNotSatisfiable(long fileLength) => Of(
         StatusCodes.Status416RangeNotSatisfiable,
         "range-not-satisfiable",

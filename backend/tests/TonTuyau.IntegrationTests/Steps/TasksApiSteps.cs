@@ -46,6 +46,20 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         await Store.SaveRunAsync(run, CancellationToken.None);
     }
 
+    /// <summary>A run that another process (the command line) is doing: its record says it's going on.</summary>
+    [Given("a run going on in another process, {string}")]
+    public async Task RunElsewhere(string id)
+    {
+        await OldRun(id);
+        SyncRun? run = await Store.GetRunAsync(id, CancellationToken.None);
+        SyncRun going = run! with { FinishedAt = null, Outcome = SyncOutcome.Running };
+        await Store.SaveRunAsync(going, CancellationToken.None);
+    }
+
+    [When("I cancel the latest run with my session")]
+    public async Task CancelLatest() =>
+        await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
+
     /// <param name="suffix">After the run's path: "" for the run, "/log" for its log.</param>
     [When("I request the latest run's {string} with my session")]
     public async Task RequestLatestRun(string suffix) =>
@@ -69,6 +83,31 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         SyncRun? latest = await Store.GetLatestFullRunAsync(CancellationToken.None);
         Assert.Equal(latest?.Id, ApiSteps.Scalar(api.At(path)));
     }
+
+    [Then("the latest run ends {word} within {int} seconds")]
+    public async Task LatestEnds(string outcome, int seconds)
+    {
+        SyncOutcome expected = Enum.Parse<SyncOutcome>(outcome, ignoreCase: true);
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (true)
+        {
+            IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(1, CancellationToken.None);
+            if (runs[0].Outcome != SyncOutcome.Running)
+            {
+                Assert.Equal(expected, runs[0].Outcome);
+                return;
+            }
+
+            Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} still runs after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
+    [Then("the Location header is the run's address")]
+    public void LocationIsRun() =>
+        Assert.Equal(
+            $"/api/admin/runs/{ApiSteps.Scalar(api.At("id"))}",
+            state.Response!.Headers.Location?.OriginalString);
 
     [Then("the next cursor is the id of the page's last run")]
     public void NextCursorIsLastId() =>

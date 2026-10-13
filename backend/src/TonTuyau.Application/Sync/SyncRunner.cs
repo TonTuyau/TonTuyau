@@ -30,10 +30,15 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
 
     /// <summary>Starts a run, and returns once it has started (its record exists): it goes on by itself.</summary>
     /// <param name="appliesTo">For <see cref="SyncMode.ApplyDeletions"/>: the full run whose list to apply.</param>
+    /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
     /// <exception cref="SyncRefusedException">The list can't be applied (see <see cref="SyncService"/>).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
-    public async Task<StartedRun> StartAsync(SyncMode mode, SyncTrigger trigger, string? appliesTo = null)
+    public async Task<StartedRun> StartAsync(
+        SyncMode mode,
+        SyncTrigger trigger,
+        string? appliesTo = null,
+        string? startedBy = null)
     {
         // The run's own: disposed when it ends (RunInBackgroundAsync).
         CancellationTokenSource cancel = new();
@@ -47,7 +52,7 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
                 throw new OperationCanceledException("The backend is stopping: no run starts any more.");
             }
 
-            run = Task.Run(() => RunInBackgroundAsync(mode, trigger, appliesTo, starting, cancel));
+            run = Task.Run(() => RunInBackgroundAsync(mode, trigger, appliesTo, startedBy, starting, cancel));
             _latest = run;
         }
 
@@ -124,6 +129,7 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
         SyncMode mode,
         SyncTrigger trigger,
         string? appliesTo,
+        string? startedBy,
         Starting starting,
         CancellationTokenSource cancel)
     {
@@ -133,9 +139,10 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
                 ? sync.ApplyDeletionsAsync(
                     appliesTo ?? throw new ArgumentNullException(nameof(appliesTo)),
                     trigger,
+                    startedBy,
                     starting,
                     cancel.Token)
-                : sync.RunAsync(mode, trigger, starting, cancel.Token);
+                : sync.RunAsync(mode, trigger, startedBy, starting, cancel.Token);
             return await run.ConfigureAwait(false);
         }
         finally
