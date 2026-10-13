@@ -1,6 +1,7 @@
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.Sync;
 
 namespace TonTuyau.Application.Browse;
 
@@ -90,6 +91,14 @@ public static class ApiValues
     };
 
     /// <summary>The import history's periods (the admin dashboard).</summary>
+    /// <summary>The Tasks page's tasks (1.4): the kinds of run.</summary>
+    public static readonly Table<SyncMode> Tasks = new()
+    {
+        ["incremental"] = SyncMode.Incremental,
+        ["full"] = SyncMode.Full,
+        ["applyDeletions"] = SyncMode.ApplyDeletions,
+    };
+
     public static readonly Table<ImportPeriod> ImportPeriods = new()
     {
         ["day"] = ImportPeriod.Day,

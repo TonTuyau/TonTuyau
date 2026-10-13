@@ -21,6 +21,32 @@ public sealed class SyncSchedule
         _zone = TimeZoneInfo.FindSystemTimeZoneById(options.TimeZone);
     }
 
+    /// <returns>
+    /// When the scheduler runs that kind next, strictly after <paramref name="after"/>: an incremental tick at the
+    /// same instant as a full one is the full one. Null when it never does (applying deletions isn't scheduled).
+    /// </returns>
+    public DateTimeOffset? NextOf(SyncMode mode, DateTimeOffset after)
+    {
+        if (mode == SyncMode.Full)
+        {
+            return _full.GetNextOccurrence(after, _zone);
+        }
+
+        if (mode != SyncMode.Incremental)
+        {
+            return null;
+        }
+
+        // The next incremental tick that isn't also a full one.
+        DateTimeOffset? at = _incremental.GetNextOccurrence(after, _zone);
+        while (at is not null && _full.GetNextOccurrence(at.Value.AddTicks(-1), _zone) == at)
+        {
+            at = _incremental.GetNextOccurrence(at.Value, _zone);
+        }
+
+        return at;
+    }
+
     /// <returns>The next run strictly after <paramref name="after"/>, or null if neither cron ever fires again.</returns>
     public (DateTimeOffset At, SyncMode Mode)? Next(DateTimeOffset after)
     {

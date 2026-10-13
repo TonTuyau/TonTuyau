@@ -7,6 +7,7 @@ using TonTuyau.Api.OpenApi;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Media;
+using TonTuyau.Application.Tasks;
 using TonTuyau.Application.Validation;
 
 namespace TonTuyau.Api.Hosting;
@@ -23,12 +24,16 @@ internal static class ApiServices
         services.AddSingleton<IValidator<VideoSearchRequest>, VideoSearchRequestValidator>();
         services.AddSingleton<IValidator<SuggestRequest>, SuggestRequestValidator>();
         services.AddSingleton<IValidator<ImportHistoryRequest>, ImportHistoryRequestValidator>();
+        services.AddSingleton<IValidator<RunListRequest>, RunListRequestValidator>();
+        services.AddSingleton<IValidator<RunLogRequest>, RunLogRequestValidator>();
         services.AddSingleton<CardBuilder>();
         services.AddSingleton<VideoService>();
         services.AddSingleton<ChannelService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();
         services.AddSingleton<DashboardService>();
+        // Scoped: it reads the runs' logs through the database context.
+        services.AddScoped<TaskService>();
 
         services
             .AddControllers(o =>
