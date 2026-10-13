@@ -61,6 +61,29 @@ export function formatAge(iso: string, lang: Lang, now: Date = new Date()): stri
   return rtf.format(-elapsed, 'second')
 }
 
+/** A run's length (1.4): "38 s", "4 min 07 s", "1 h 08 min". */
+export function formatRunTime(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.round(totalSeconds))
+  if (seconds < 60) {
+    return `${seconds} s`
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, '0')} s`
+  }
+  return `${Math.floor(seconds / 3600)} h ${String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')} min`
+}
+
+/** "Mon, Oct 12, 2:00 PM" / "lun. 12 oct., 14:00": when a run started (1.4), in the browser's time zone. */
+export function formatDateTime(iso: string, lang: Lang): string {
+  return new Intl.DateTimeFormat(lang, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
+
 /** "Apr 24, 2026" / "24 avr. 2026". */
 export function formatDate(iso: string, lang: Lang): string {
   return new Intl.DateTimeFormat(lang, { dateStyle: 'medium' }).format(new Date(iso))

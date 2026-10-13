@@ -48,6 +48,24 @@ export class Remote<T> {
       this.run(this.#load)
     }
   }
+
+  /**
+   * Asks again without showing it (a page kept up to date, 1.4): the data stays until the new one comes, and a
+   * failure leaves it as it was (the next refresh tries again). Nothing before the first answer.
+   */
+  async refresh(): Promise<void> {
+    const load = this.#load
+    if (!load || this.status !== 'ready') {
+      return
+    }
+    const data = await load(new AbortController().signal).then(
+      (value) => value,
+      () => undefined,
+    )
+    if (data !== undefined) {
+      this.data = data
+    }
+  }
 }
 
 /** A cursor-paged list: items appended in the API's order, `total` and `nextCursor` as the API sent them. */
@@ -126,5 +144,31 @@ export class Pager<T> {
     if (this.#fetch) {
       this.start(this.#fetch)
     }
+  }
+
+  /**
+   * Asks for the first page again without showing it (a list kept up to date, 1.4): new items come first, the ones
+   * already there are replaced by their new version (same `key`), and the pages loaded after it stay. A failure leaves
+   * the list as it was.
+   */
+  async refreshFirst(key: (item: T) => string): Promise<void> {
+    const fetchPage = this.#fetch
+    const controller = this.#controller
+    if (!fetchPage || !controller || this.status !== 'ready') {
+      return
+    }
+    const page = await fetchPage(null, controller.signal).then(
+      (value) => value,
+      () => undefined,
+    )
+    if (!page || controller.signal.aborted) {
+      return
+    }
+    const fresh = page.items.map(key)
+    const rest = this.items.filter((item) => !fresh.includes(key(item)))
+    const loadedMore = this.items.length > page.items.length
+    this.items = [...page.items, ...(loadedMore ? rest : [])]
+    this.total = page.total
+    this.nextCursor = loadedMore ? this.nextCursor : page.nextCursor
   }
 }

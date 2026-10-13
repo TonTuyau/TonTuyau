@@ -81,6 +81,24 @@ export type TypePlayTime = Schemas['TypePlayTime']
 
 export type ChannelTotals = Schemas['ChannelTotals']
 
+/**
+ * `GET /api/admin/tasks` (1.4): the incremental sync, the full sync and applying deletions (in that order), and the
+ * run going on (`lock`, in any process; `runningHere`, the one this backend can cancel).
+ */
+export type Tasks = Schemas['TasksResponse']
+
+export type TaskInfo = Schemas['TaskResponse']
+
+/** A run of the history (1.4). */
+export type Run = Schemas['RunResponse']
+
+export type RunTask = Run['task']
+
+export type RunState = Run['state']
+
+/** `/api/admin/runs`: task, size, before (the previous page's last run). */
+export type RunListParams = QueryOf<'/api/admin/runs'>
+
 /** RFC 9457 ProblemDetails, as the backend sends it (`errors` on a 400). */
 export type ProblemDetails = Schemas['HttpValidationProblemDetails']
 

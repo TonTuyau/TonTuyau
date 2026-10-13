@@ -8,7 +8,17 @@ import { resolve } from 'node:path'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../../App.svelte'
-import { channelCard, channelDetail, dashboard, importHistory, page, videoCard, videoDetail } from '../../test/data'
+import {
+  channelCard,
+  channelDetail,
+  dashboard,
+  importHistory,
+  page,
+  run,
+  tasks,
+  videoCard,
+  videoDetail,
+} from '../../test/data'
 import { goTo } from '../../test/fakeApi'
 import { CHANNEL_FILTER_MAX_LENGTH, SEARCH_MAX_LENGTH, SUGGEST_MAX_LENGTH } from './limits'
 
@@ -87,6 +97,16 @@ const contract: Endpoint[] = [
     doc: '/api/admin/dashboard/imports',
     path: /^\/api\/admin\/dashboard\/imports$/,
     params: { period: { kind: 'enum', values: ['day', 'week', 'month', 'year', 'all'] } },
+  },
+  { doc: '/api/admin/tasks', path: /^\/api\/admin\/tasks$/, params: {} },
+  {
+    doc: '/api/admin/runs',
+    path: /^\/api\/admin\/runs$/,
+    params: {
+      task: { kind: 'enum', values: ['incremental', 'full', 'applyDeletions'] },
+      before: { kind: 'cursor' },
+      size: size(100),
+    },
   },
 ]
 
@@ -172,6 +192,14 @@ function answer(url: URL): unknown {
   if (path === '/api/auth/me') return { username: 'admin' }
   if (path === '/api/admin/dashboard') return dashboard()
   if (path === '/api/admin/dashboard/imports') return importHistory()
+  if (path === '/api/admin/tasks') return tasks()
+  if (path === '/api/admin/runs') {
+    // The history pages after the previous page's last run (`before`): a cursor the front sends back as is.
+    const id = `run-20261001T000000Z-${String(++serial).padStart(6, '0')}`
+    const next = params.has('before') ? null : id
+    if (next) issuedCursors.add(next)
+    return { items: [run({ id })], nextCursor: next, total: 2 }
+  }
   if (path === '/api/search/suggest') {
     return { suggestions: [{ text: 'Tom Cooks', kind: 'channel', id: channelId }] }
   }
@@ -250,6 +278,8 @@ const urls = [
   '/results?q=a&sort=relevance',
   '/results',
   '/admin',
+  '/admin/tasks',
+  '/admin/tasks?task=full',
   '/login?next=%2Fchannels',
 ]
 

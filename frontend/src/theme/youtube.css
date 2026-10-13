@@ -43,6 +43,11 @@
   --color-on-warning: light-dark(#7a4f00, #ffd36a);
   --color-error: light-dark(#cc0000, #ff6b6b);
   --color-error-bg: light-dark(#fce8e6, #4a1c1c);
+  /* A run's state (1.4): succeeded, going on. */
+  --color-success: light-dark(#137333, #81c995);
+  --color-success-bg: light-dark(#e6f4ea, #12301f);
+  --color-running: light-dark(#0b6e70, #5fd0d2);
+  --color-running-bg: light-dark(#ddf1f1, #0f3536);
   --color-player-bg: #000000;
   --color-on-player: #ffffff;
   --color-tag: light-dark(#065fd4, #3ea6ff);
@@ -56,6 +61,8 @@
 
   /* Typography */
   --font-family: Roboto, Arial, system-ui, sans-serif;
+  /* Commands, run ids, log lines (1.4). */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   --font-size-xxs: 0.625rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -158,6 +165,8 @@
   --admin-search-max-width: 360px;
   --chart-tip-width: 200px;
   --badge-height: 20px;
+  /* The labels' column of a task card (1.4): When, Last run. */
+  --task-label-width: 72px;
   --shorts-action-size: 48px;
   /* Room left under the shorts overlay for the video's native controls. */
   --shorts-controls-clearance: 48px;

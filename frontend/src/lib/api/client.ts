@@ -13,9 +13,12 @@ import type {
   Me,
   Page,
   ProblemDetails,
+  Run,
+  RunListParams,
   SearchAll,
   SearchParams,
   Suggestions,
+  Tasks,
   VideoCard,
   VideoDetail,
   VideoListParams,
@@ -171,6 +174,16 @@ export const api = {
   /** The dashboard's import history of a period (1.2): 401 when nobody is logged in. */
   imports(period: ImportPeriod, signal?: AbortSignal): Promise<ImportHistory> {
     return get('/api/admin/dashboard/imports', { period }, signal)
+  },
+
+  /** The Tasks page's tasks and the run going on (1.4): 401 when nobody is logged in. */
+  tasks(signal?: AbortSignal): Promise<Tasks> {
+    return get('/api/admin/tasks', {}, signal)
+  },
+
+  /** The run history, latest first (1.4): `before` is the previous page's nextCursor. */
+  runs(params: RunListParams, signal?: AbortSignal): Promise<Page<Run>> {
+    return get('/api/admin/runs', { ...params }, signal)
   },
 }
 
