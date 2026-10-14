@@ -96,6 +96,11 @@ export type RunTask = Run['task']
 
 export type RunState = Run['state']
 
+/** `GET /api/admin/runs/{id}/log` (1.4): lines after a given one, and whether more will come. */
+export type RunLog = Schemas['RunLogResponse']
+
+export type RunLogLine = Schemas['RunLogLineResponse']
+
 /** `/api/admin/runs`: task, size, before (the previous page's last run). */
 export type RunListParams = QueryOf<'/api/admin/runs'>
 

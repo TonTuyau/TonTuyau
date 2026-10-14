@@ -88,6 +88,21 @@ describe('the admin area', () => {
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current')
   })
 
+  it('shows a run’s page as part of the Tasks', async () => {
+    const one = run()
+    fakeApi({
+      '/api/auth/me': loggedIn(),
+      [`/api/admin/runs/${one.id}`]: one,
+      [`/api/admin/runs/${one.id}/log`]: { lines: [], complete: true },
+    })
+    goTo(`/admin/runs/${one.id}`)
+    render(App)
+
+    expect(await screen.findByRole('heading', { name: 'Incremental sync', level: 1 })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Administration' })
+    expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('collapses its menu to the icons with ☰, and remembers it', async () => {
     fakeApi({ '/api/auth/me': loggedIn(), '/api/admin/dashboard': dashboard() })
     goTo('/admin')

@@ -48,6 +48,7 @@
   --color-success-bg: light-dark(#e6f4ea, #12301f);
   --color-running: light-dark(#0b6e70, #5fd0d2);
   --color-running-bg: light-dark(#ddf1f1, #0f3536);
+  --color-log-bg: light-dark(#f8f8f8, #181818);
   --color-player-bg: #000000;
   --color-on-player: #ffffff;
   --color-tag: light-dark(#065fd4, #3ea6ff);
@@ -167,6 +168,12 @@
   --badge-height: 20px;
   /* The labels' column of a task card (1.4): When, Last run. */
   --task-label-width: 72px;
+  /* A run's log (1.4): its box, and its time and level columns. */
+  --log-max-height: 440px;
+  /* A run's facts and counts (1.4): their columns' narrowest. */
+  --meta-min-width: 140px;
+  --log-time-width: 5.5em;
+  --log-level-width: 2.6em;
   --shorts-action-size: 48px;
   /* Room left under the shorts overlay for the video's native controls. */
   --shorts-controls-clearance: 48px;

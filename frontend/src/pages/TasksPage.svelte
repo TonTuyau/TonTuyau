@@ -144,7 +144,10 @@
             {#each history.items as run (run.id)}
               <tr>
                 <td><RunStatePill state={run.state} /></td>
-                <td class="run"><b>{t(`task.${run.task}`)}</b><code>{run.id}</code></td>
+                <td class="run">
+                  <b>{t(`task.${run.task}`)}</b>
+                  <a href={href.adminRun(run.id)}><code>{run.id}</code></a>
+                </td>
                 <td>{startedBy(run)}</td>
                 <td>{formatDateTime(run.startedAt, i18n.lang)}</td>
                 <td class="num">{formatRunTime(runSeconds(run, now))}</td>
@@ -265,7 +268,7 @@
   }
 
   .run code {
-    color: var(--color-text-secondary);
+    color: var(--color-link);
     font-size: var(--font-size-xs);
   }
 

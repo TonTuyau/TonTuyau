@@ -108,6 +108,12 @@ const contract: Endpoint[] = [
       size: size(100),
     },
   },
+  { doc: '/api/admin/runs/{id}', path: new RegExp(`^/api/admin/runs/${segment}$`), params: {} },
+  {
+    doc: '/api/admin/runs/{id}/log',
+    path: new RegExp(`^/api/admin/runs/${segment}/log$`),
+    params: { after: { kind: 'int', min: 0, max: Number.MAX_SAFE_INTEGER }, size: { kind: 'int', min: 1, max: 2000 } },
+  },
 ]
 
 /** With `kind=channels` the search takes no video filter and no sort (contract "filters for videos", M5a-14). */
@@ -193,6 +199,9 @@ function answer(url: URL): unknown {
   if (path === '/api/admin/dashboard') return dashboard()
   if (path === '/api/admin/dashboard/imports') return importHistory()
   if (path === '/api/admin/tasks') return tasks()
+  if (/^\/api\/admin\/runs\/[^/]+\/log$/.test(path)) return { lines: [], complete: true }
+  const oneRun = /^\/api\/admin\/runs\/([^/]+)$/.exec(path)
+  if (oneRun) return run({ id: decodeURIComponent(oneRun[1] ?? '') })
   if (path === '/api/admin/runs') {
     // The history pages after the previous page's last run (`before`): a cursor the front sends back as is.
     const id = `run-20261001T000000Z-${String(++serial).padStart(6, '0')}`
@@ -280,6 +289,7 @@ const urls = [
   '/admin',
   '/admin/tasks',
   '/admin/tasks?task=full',
+  '/admin/runs/run-20261012T120000Z-3f9a1c',
   '/login?next=%2Fchannels',
 ]
 
