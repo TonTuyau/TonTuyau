@@ -168,4 +168,28 @@ describe('RunPage', () => {
 
     await vi.waitFor(() => expect(auth.status).toBe('anonymous'))
   })
+
+  it('cancels the run going on, asked first', async () => {
+    const user = userEvent.setup()
+    const running = run({ state: 'running', finishedAt: null, cancellable: true })
+    const api = fakeApi({
+      [`/api/admin/runs/${running.id}`]: running,
+      [`/api/admin/runs/${running.id}/log`]: log([line(1, 'Sync run started.')], false),
+      [`/api/admin/runs/${running.id}/cancel`]: running,
+    })
+    render(RunPage, { id: running.id })
+
+    await user.click(await screen.findByRole('button', { name: 'Cancel the run' }))
+    expect(screen.getByText(/It stops after its current step/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancel the run' }))
+    await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${running.id}/cancel`)).toHaveLength(1))
+  })
+
+  it('has no Cancel for a run over, or going on elsewhere', async () => {
+    fakeApi({ [path]: blocked, [`${path}/log`]: log([]) })
+    render(RunPage, { id })
+
+    await screen.findByRole('heading', { name: 'Full sync', level: 1 })
+    expect(screen.queryByRole('button', { name: 'Cancel the run' })).not.toBeInTheDocument()
+  })
 })

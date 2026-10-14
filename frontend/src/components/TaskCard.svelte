@@ -1,14 +1,57 @@
 <script lang="ts">
-  // A task of the Tasks page (1.4): what it does, its command, when it runs next, how it last ran. `now` (a clock
-  // ticking every second) keeps a running run's duration going up, without asking the API.
-  import type { RunTask, TaskInfo } from '../lib/api/types'
+  // A task of the Tasks page (1.4): what it does, its command, when it runs next, how it last ran, and its buttons.
+  // `now` (a clock ticking every second) keeps a running run's duration going up, without asking the API.
+  // Run now starts the incremental sync at once; the full sync (an hour) and applying deletions ask first. One run at a
+  // time: while one holds the lock, the buttons wait; this task's run, going on in this backend, can be canceled
+  // (asked first too). The page does the requests (onstart, oncancel).
+  import type { RunTask, TaskInfo, Tasks } from '../lib/api/types'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
   import { runSeconds } from '../lib/runs'
+  import Button from './Button.svelte'
   import RunStatePill from './RunStatePill.svelte'
 
-  let { info, now }: { info: TaskInfo; now: number } = $props()
+  let {
+    info,
+    now,
+    lock,
+    runningHere,
+    onstart,
+    oncancel,
+  }: {
+    info: TaskInfo
+    now: number
+    lock: Tasks['lock']
+    runningHere: string | null
+    onstart: (task: RunTask) => Promise<void>
+    oncancel: (runId: string) => Promise<void>
+  } = $props()
+
+  let asking = $state<'start' | 'cancel' | null>(null)
+  let pending = $state(false)
+
+  /** This task's run holds the lock; `cancellable` when it goes on in this backend. */
+  const mine = $derived(lock?.task === info.task)
+  const cancellable = $derived(mine && info.lastRun !== null && info.lastRun.id === runningHere)
+
+  async function act(work: () => Promise<void>) {
+    pending = true
+    try {
+      await work()
+    } finally {
+      pending = false
+      asking = null
+    }
+  }
+
+  function start() {
+    if (info.task === 'incremental') {
+      void act(() => onstart(info.task))
+    } else {
+      asking = 'start'
+    }
+  }
 
   const commands: Record<RunTask, string> = {
     incremental: 'tontuyau sync incremental',
@@ -69,6 +112,61 @@
       </dd>
     </div>
   </dl>
+
+  <div class="actions">
+    {#if mine && cancellable && info.lastRun}
+      {@const running = info.lastRun}
+      {#if asking === 'cancel'}
+        <div class="confirm" role="group" aria-label={t('task.confirmCancel')}>
+          <p>{t('task.confirmCancel')}</p>
+          <div>
+            <Button variant="filled" disabled={pending} onclick={() => void act(() => oncancel(running.id))}>
+              {t('task.cancelRun')}
+            </Button>
+            <Button onclick={() => (asking = null)}>{t('task.keepRunning')}</Button>
+          </div>
+        </div>
+      {:else}
+        <Button onclick={() => (asking = 'cancel')}>{t('task.cancel')}</Button>
+        <a href={href.adminRun(running.id)}>{t('task.follow')}</a>
+      {/if}
+    {:else if mine}
+      <small>{t('task.elsewhere')}</small>
+    {:else if asking === 'start'}
+      <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
+        <p>
+          {info.task === 'full' ? t('task.confirmFull') : tp('task.confirmApply', info.waiting?.count ?? 0)}
+        </p>
+        <div>
+          <Button
+            variant="filled"
+            disabled={pending || lock !== null}
+            onclick={() => void act(() => onstart(info.task))}
+          >
+            {info.task === 'full' ? t('task.startFull') : tp('task.apply', info.waiting?.count ?? 0)}
+          </Button>
+          <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
+        </div>
+      </div>
+    {:else}
+      <Button
+        variant="filled"
+        disabled={pending || lock !== null || (info.task === 'applyDeletions' && !info.waiting)}
+        onclick={start}
+      >
+        {#if info.task !== 'applyDeletions'}
+          {t('task.runNow')}
+        {:else if info.waiting}
+          {tp('task.apply', info.waiting.count)}
+        {:else}
+          {t('task.nothingToApply')}
+        {/if}
+      </Button>
+      {#if lock}
+        <small>{t('task.oneAtATime', { task: t(`task.${lock.task}`) })}</small>
+      {/if}
+    {/if}
+  </div>
 </article>
 
 <style>
@@ -140,5 +238,34 @@
 
   .state {
     display: inline-flex;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: auto;
+  }
+
+  .actions a {
+    color: var(--color-link);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .confirm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .confirm div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 </style>
