@@ -16,6 +16,7 @@ import type {
   Run,
   RunListParams,
   RunLog,
+  RunTask,
   SearchAll,
   SearchParams,
   Suggestions,
@@ -112,6 +113,12 @@ async function post(path: string, body?: unknown): Promise<void> {
   })
 }
 
+/** A POST without a body whose answer has one (1.4: starting a task, canceling a run: 202 and the run). */
+async function postFor<T>(path: string): Promise<T> {
+  const response = await send(path, { method: 'POST', headers: { accept: 'application/json' } })
+  return (await response.json()) as T
+}
+
 const segment = encodeURIComponent
 
 export const api = {
@@ -190,6 +197,16 @@ export const api = {
   /** A run (1.4): 404 when there's none with that id. */
   run(id: string, signal?: AbortSignal): Promise<Run> {
     return get(`/api/admin/runs/${segment(id)}`, {}, signal)
+  },
+
+  /** Starts a task now (1.4): the run, just started. 409 when a run is going on, or no deletion list waits. */
+  startTask(task: RunTask): Promise<Run> {
+    return postFor(`/api/admin/tasks/${segment(task)}/runs`)
+  },
+
+  /** Asks the run going on to stop (1.4): it ends canceled soon after. 409 when it's over or runs elsewhere. */
+  cancelRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/cancel`)
   },
 
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */

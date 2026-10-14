@@ -1,7 +1,8 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
   // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
-  // the run is asked again every 2 s. A 404: no such run. A 401: the session ended, the shell goes to the login page.
+  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend. A 404: no such
+  // run. A 401: the session ended, the shell goes to the login page.
   import CopyButton from '../components/CopyButton.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Icon from '../components/Icon.svelte'
@@ -9,7 +10,8 @@
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import StateMessage from '../components/StateMessage.svelte'
-  import { api } from '../lib/api/client'
+  import Button from '../components/Button.svelte'
+  import { api, ApiError } from '../lib/api/client'
   import type { Run } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatDateTime, formatNumber, formatRunTime } from '../lib/format'
@@ -48,6 +50,22 @@
       clearInterval(clock)
     }
   })
+
+  let asking = $state(false)
+  let refused = $state<string | null>(null)
+
+  async function cancel(runId: string) {
+    refused = null
+    try {
+      await api.cancelRun(runId)
+    } catch (error) {
+      refused = t('task.cancelRefused', {
+        reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
+      })
+    }
+    asking = false
+    await remote.refresh()
+  }
 
   $effect(() => {
     if (remote.error?.status === 401) {
@@ -104,6 +122,25 @@
         <CopyButton text={() => run.id} label={`${t('run.copy')} · ${run.id}`} />
       </p>
     </div>
+
+    {#if running && run.cancellable}
+      <div class="actions">
+        {#if asking}
+          <div class="confirm" role="group" aria-label={t('task.confirmCancel')}>
+            <p>{t('task.confirmCancel')}</p>
+            <div>
+              <Button variant="filled" onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
+              <Button onclick={() => (asking = false)}>{t('task.keepRunning')}</Button>
+            </div>
+          </div>
+        {:else}
+          <Button onclick={() => (asking = true)}>{t('task.cancelRun')}</Button>
+        {/if}
+      </div>
+    {/if}
+    {#if refused}
+      <p class="refused" role="alert">{refused}</p>
+    {/if}
 
     <dl class="meta">
       <div>
@@ -239,6 +276,32 @@
     margin-top: var(--space-1);
     font-weight: var(--font-weight-medium);
     font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+  }
+
+  .confirm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .confirm div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .refused {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-error-bg);
+    color: var(--color-error);
   }
 
   .card {

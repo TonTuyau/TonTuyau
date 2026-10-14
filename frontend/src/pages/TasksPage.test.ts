@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/svelte'
+import userEvent from '@testing-library/user-event'
 import { auth } from '../lib/auth.svelte'
 import { i18n } from '../lib/i18n/i18n.svelte'
 import { page, run, tasks } from '../test/data'
@@ -171,5 +172,103 @@ describe('TasksPage', () => {
     render(TasksPage)
 
     await vi.waitFor(() => expect(auth.status).toBe('anonymous'))
+  })
+
+  describe('starting and canceling', () => {
+    const started = run({ id: 'run-20261014T090000Z-aaaaaa', state: 'running', finishedAt: null, trigger: 'admin' })
+
+    it('starts the incremental sync at once, then shows its run', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/incremental/runs': started,
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Incremental sync' })
+      await user.click(within(card).getByRole('button', { name: 'Run now' }))
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+      expect(api.requests('/api/admin/tasks/incremental/runs')).toHaveLength(1)
+    })
+
+    it('asks before a full sync, and before applying the list that waits', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/full/runs': started,
+        '/api/admin/tasks/applyDeletions/runs': started,
+      })
+      render(TasksPage)
+
+      const full = await screen.findByRole('article', { name: 'Full sync' })
+      await user.click(within(full).getByRole('button', { name: 'Run now' }))
+      expect(within(full).getByText(/about an hour/)).toBeInTheDocument()
+      await user.click(within(full).getByRole('button', { name: 'Back' }))
+      expect(api.requests('/api/admin/tasks/full/runs')).toHaveLength(0)
+
+      const deletions = screen.getByRole('article', { name: 'Apply deletions' })
+      await user.click(within(deletions).getByRole('button', { name: 'Apply 312 deletions' }))
+      expect(within(deletions).getByRole('group')).toHaveTextContent('Removes 312 videos from TonTuyau')
+      await user.click(within(deletions).getByRole('button', { name: 'Apply 312 deletions' }))
+      await vi.waitFor(() => expect(api.requests('/api/admin/tasks/applyDeletions/runs')).toHaveLength(1))
+    })
+
+    it('one run at a time: the other buttons wait, this task’s run can be canceled (asked first)', async () => {
+      const user = userEvent.setup()
+      const running = run({ id: 'run-20261014T090000Z-bbbbbb', state: 'running', finishedAt: null })
+      const busy = tasks({
+        lock: { task: 'incremental', trigger: 'scheduler', since: running.startedAt },
+        runningHere: running.id,
+      })
+      busy.tasks = busy.tasks.map((info) => (info.task === 'incremental' ? { ...info, lastRun: running } : info))
+      const api = fakeApi({
+        '/api/admin/tasks': busy,
+        '/api/admin/runs': page([running]),
+        [`/api/admin/runs/${running.id}/cancel`]: { ...running, cancellable: true },
+      })
+      render(TasksPage)
+
+      const full = await screen.findByRole('article', { name: 'Full sync' })
+      expect(within(full).getByRole('button', { name: 'Run now' })).toBeDisabled()
+      expect(within(full).getByText('Incremental sync is going on: one run at a time.')).toBeInTheDocument()
+
+      const incremental = screen.getByRole('article', { name: 'Incremental sync' })
+      expect(within(incremental).getByRole('link', { name: 'Follow its log' })).toHaveAttribute(
+        'href',
+        `/admin/runs/${running.id}`,
+      )
+      await user.click(within(incremental).getByRole('button', { name: 'Cancel' }))
+      await user.click(within(incremental).getByRole('button', { name: 'Cancel the run' }))
+      await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${running.id}/cancel`)).toHaveLength(1))
+    })
+
+    it('a run going on in another process can only be stopped there', async () => {
+      const running = run({ state: 'running', finishedAt: null, trigger: 'cli' })
+      const busy = tasks({ lock: { task: 'incremental', trigger: 'cli', since: running.startedAt } })
+      busy.tasks = busy.tasks.map((info) => (info.task === 'incremental' ? { ...info, lastRun: running } : info))
+      fakeApi({ '/api/admin/tasks': busy, '/api/admin/runs': page([running]) })
+      render(TasksPage)
+
+      const incremental = await screen.findByRole('article', { name: 'Incremental sync' })
+      expect(within(incremental).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+      expect(within(incremental).getByText(/stop it there/)).toBeInTheDocument()
+    })
+
+    it('says why a start was refused', async () => {
+      const user = userEvent.setup()
+      fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/incremental/runs': problemResponse(409, 'A sync is already running.'),
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Incremental sync' })
+      await user.click(within(card).getByRole('button', { name: 'Run now' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A sync is already running.')
+      expect(location.pathname).toBe('/admin/tasks')
+    })
   })
 })

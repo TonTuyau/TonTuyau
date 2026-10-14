@@ -204,6 +204,21 @@ export const en = {
   'task.waitingFrom': 'from the full sync of {date}',
   'task.never': 'Never',
   'task.runningFor': 'for {duration}',
+  'task.runNow': 'Run now',
+  'task.nothingToApply': 'Nothing to apply',
+  'task.oneAtATime': '{task} is going on: one run at a time.',
+  'task.elsewhere': 'Going on in another process (the command line or a startup rebuild): stop it there.',
+  'task.cancel': 'Cancel',
+  'task.follow': 'Follow its log',
+  'task.confirmFull':
+    'A full sync reads all of TubeArchivist again: about an hour, during which no other task can run.',
+  'task.startFull': 'Start the full sync',
+  'task.back': 'Back',
+  'task.confirmCancel': 'Cancel this run? It stops after its current step; what it did stays.',
+  'task.cancelRun': 'Cancel the run',
+  'task.keepRunning': 'Keep it running',
+  'task.refused': 'Not started: {reason}',
+  'task.cancelRefused': 'Not canceled: {reason}',
   'run.state.running': 'Running',
   'run.state.succeeded': 'Succeeded',
   'run.state.failed': 'Failed',
@@ -320,4 +335,10 @@ export const en = {
   'dashboard.shown': { one: '{shown} of {count} channel', other: '{shown} of {count} channels' },
   'task.waiting': { one: '{count} deletion waiting', other: '{count} deletions waiting' },
   'runs.count': { one: '{count} run', other: '{count} runs' },
+  'task.apply': { one: 'Apply {count} deletion', other: 'Apply {count} deletions' },
+  'task.confirmApply': {
+    one: 'Removes {count} video from TonTuyau, first confirmed gone from TubeArchivist. TubeArchivist itself is never changed.',
+    other:
+      'Removes {count} videos from TonTuyau, each first confirmed gone from TubeArchivist. TubeArchivist itself is never changed.',
+  },
 } as const

@@ -3,7 +3,9 @@
   // last ran, the deletion list waiting), and the run history, all tasks' or one's (?task=, the chips). Kept up to
   // date by itself: asked again every 3 s while a run goes on, every 30 s else, without redrawing what didn't change
   // (Svelte updates the values that did: a row under the pointer stays); a running duration ticks every second from
-  // its start, without asking. A 401 means the session ended meanwhile: the shell then goes to the login page.
+  // its start, without asking. Starting a task opens its run's page (its live log); a refusal (409: a run going on,
+  // nothing to apply) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
+  // login page.
   import { untrack } from 'svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
@@ -11,7 +13,7 @@
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import TaskCard from '../components/TaskCard.svelte'
-  import { api } from '../lib/api/client'
+  import { api, ApiError } from '../lib/api/client'
   import type { Run, RunTask, Tasks } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
@@ -71,6 +73,34 @@
     }
   })
 
+  /** Why the last start or cancel was refused; cleared by the next one. */
+  let refused = $state<string | null>(null)
+
+  async function onstart(task: RunTask) {
+    refused = null
+    try {
+      const started = await api.startTask(task)
+      router.navigate(href.adminRun(started.id))
+    } catch (error) {
+      refused = t('task.refused', { reason: reasonOf(error) })
+      refresh()
+    }
+  }
+
+  async function oncancel(runId: string) {
+    refused = null
+    try {
+      await api.cancelRun(runId)
+    } catch (error) {
+      refused = t('task.cancelRefused', { reason: reasonOf(error) })
+    }
+    refresh()
+  }
+
+  function reasonOf(error: unknown): string {
+    return error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error)
+  }
+
   pageTitle(() => t('admin.tasks'))
 
   const filters = $derived([
@@ -100,9 +130,13 @@
   {:else if tasks.status === 'error' && tasks.error}
     <ErrorState error={tasks.error} onretry={() => tasks.retry()} />
   {:else if tasks.data}
+    {@const data = tasks.data}
+    {#if refused}
+      <p class="refused" role="alert">{refused}</p>
+    {/if}
     <div class="tasks">
-      {#each tasks.data.tasks as info (info.task)}
-        <TaskCard {info} {now} />
+      {#each data.tasks as info (info.task)}
+        <TaskCard {info} {now} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
       {/each}
     </div>
   {/if}
@@ -186,6 +220,13 @@
   .busy {
     color: var(--color-running);
     font-weight: var(--font-weight-medium);
+  }
+
+  .refused {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-error-bg);
+    color: var(--color-error);
   }
 
   .tasks {

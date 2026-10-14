@@ -206,6 +206,22 @@ export const fr: Dictionary = {
   'task.waitingFrom': 'de la synchronisation complète du {date}',
   'task.never': 'Jamais',
   'task.runningFor': 'depuis {duration}',
+  'task.runNow': 'Lancer',
+  'task.nothingToApply': 'Rien à appliquer',
+  'task.oneAtATime': '{task} en cours : une exécution à la fois.',
+  'task.elsewhere':
+    'En cours dans un autre processus (la ligne de commande ou une reconstruction au démarrage) : arrêtez-la là-bas.',
+  'task.cancel': 'Annuler',
+  'task.follow': 'Suivre son journal',
+  'task.confirmFull':
+    'Une synchronisation complète relit tout TubeArchivist : environ une heure, pendant laquelle aucune autre tâche ne peut tourner.',
+  'task.startFull': 'Lancer la synchronisation complète',
+  'task.back': 'Retour',
+  'task.confirmCancel': "Annuler cette exécution ? Elle s'arrête après son étape en cours ; ce qu'elle a fait reste.",
+  'task.cancelRun': "Annuler l'exécution",
+  'task.keepRunning': 'La laisser tourner',
+  'task.refused': 'Pas lancée : {reason}',
+  'task.cancelRefused': 'Pas annulée : {reason}',
   'run.state.running': 'En cours',
   'run.state.succeeded': 'Réussie',
   'run.state.failed': 'Échouée',
@@ -322,4 +338,10 @@ export const fr: Dictionary = {
   'dashboard.shown': { one: '{shown} sur {count} chaîne', other: '{shown} sur {count} chaînes' },
   'task.waiting': { one: '{count} suppression en attente', other: '{count} suppressions en attente' },
   'runs.count': { one: '{count} exécution', other: '{count} exécutions' },
+  'task.apply': { one: 'Appliquer {count} suppression', other: 'Appliquer {count} suppressions' },
+  'task.confirmApply': {
+    one: "Retire {count} vidéo de TonTuyau, après avoir vérifié qu'elle a disparu de TubeArchivist. TubeArchivist n'est jamais modifié.",
+    other:
+      "Retire {count} vidéos de TonTuyau, chacune après avoir vérifié qu'elle a disparu de TubeArchivist. TubeArchivist n'est jamais modifié.",
+  },
 }
