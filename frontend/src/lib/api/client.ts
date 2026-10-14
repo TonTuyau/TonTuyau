@@ -15,6 +15,7 @@ import type {
   ProblemDetails,
   Run,
   RunListParams,
+  RunLog,
   SearchAll,
   SearchParams,
   Suggestions,
@@ -184,6 +185,16 @@ export const api = {
   /** The run history, latest first (1.4): `before` is the previous page's nextCursor. */
   runs(params: RunListParams, signal?: AbortSignal): Promise<Page<Run>> {
     return get('/api/admin/runs', { ...params }, signal)
+  },
+
+  /** A run (1.4): 404 when there's none with that id. */
+  run(id: string, signal?: AbortSignal): Promise<Run> {
+    return get(`/api/admin/runs/${segment(id)}`, {}, signal)
+  },
+
+  /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
+  runLog(id: string, after: number, signal?: AbortSignal): Promise<RunLog> {
+    return get(`/api/admin/runs/${segment(id)}/log`, { after: after > 0 ? after : undefined }, signal)
   },
 }
 

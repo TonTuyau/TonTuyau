@@ -4,6 +4,7 @@
   import type { RunTask, TaskInfo } from '../lib/api/types'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
+  import { href } from '../lib/router/routes'
   import { runSeconds } from '../lib/runs'
   import RunStatePill from './RunStatePill.svelte'
 
@@ -32,7 +33,11 @@
         {#if info.task === 'applyDeletions'}
           {#if info.waiting}
             <b>{tp('task.waiting', info.waiting.count)}</b>
-            <small>{t('task.waitingFrom', { date: formatDateTime(info.waiting.startedAt, i18n.lang) })}</small>
+            <small>
+              <a href={href.adminRun(info.waiting.runId)}>
+                {t('task.waitingFrom', { date: formatDateTime(info.waiting.startedAt, i18n.lang) })}
+              </a>
+            </small>
           {:else}
             <small>{t('task.afterFull')} · {t('task.nothingWaiting')}</small>
           {/if}
@@ -48,7 +53,7 @@
       <dt>{t('task.lastRun')}</dt>
       <dd>
         {#if last}
-          <RunStatePill state={last.state} />
+          <a class="state" href={href.adminRun(last.id)}><RunStatePill state={last.state} /></a>
           <small>
             {#if last.state === 'running'}
               {t('task.runningFor', { duration: formatRunTime(runSeconds(last, now)) })}
@@ -127,5 +132,13 @@
   small {
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);
+  }
+
+  small a {
+    color: var(--color-link);
+  }
+
+  .state {
+    display: inline-flex;
   }
 </style>

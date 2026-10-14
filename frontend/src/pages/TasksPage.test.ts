@@ -83,13 +83,14 @@ describe('TasksPage', () => {
     expect(screen.getByText('3 runs')).toBeInTheDocument()
     const [first, second, third] = rows()
     expect(first?.[0]).toBe('Canceled')
-    expect(first?.[1]).toBe('Full sync' + canceled.id)
+    expect(first?.[1]).toBe(`Full sync ${canceled.id}`)
     expect(first?.[2]).toBe('claire')
     expect(first?.[4]).toBe('4 min 32 s')
     expect(first?.[5]).toBe('Stopped')
     expect(second?.[2]).toBe('Schedule')
     expect(second?.[5]).toBe('8 new · 3 changed')
     expect(third?.[5]).toBe('TubeArchivist failed (502).')
+    expect(screen.getByRole('link', { name: canceled.id })).toHaveAttribute('href', `/admin/runs/${canceled.id}`)
   })
 
   it('shows one task’s runs from the URL, and the chips link to each task', async () => {

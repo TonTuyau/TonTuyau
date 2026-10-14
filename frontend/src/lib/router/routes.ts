@@ -4,8 +4,8 @@ import type { VideoType } from '../api/types'
 
 export type ChannelTab = 'videos' | 'shorts' | 'streams'
 
-/** The admin area's pages (1.4: the Tasks page). */
-export type AdminPage = 'dashboard' | 'tasks'
+/** The admin area's pages (1.4: the Tasks page, a run's page). */
+export type AdminRoute = { page: 'dashboard' } | { page: 'tasks' } | { page: 'run'; id: string }
 
 export type Route =
   | { name: 'home' }
@@ -16,7 +16,7 @@ export type Route =
   | { name: 'shorts'; id: string }
   | { name: 'results' }
   | { name: 'login' }
-  | { name: 'admin'; page: AdminPage }
+  | ({ name: 'admin' } & AdminRoute)
   | { name: 'notFound' }
 
 /** URL segment ↔ API video type. */
@@ -76,6 +76,10 @@ export function matchRoute(pathname: string): Route {
   if (first === 'admin' && second === 'tasks' && parts.length === 2) {
     return { name: 'admin', page: 'tasks' }
   }
+  if (first === 'admin' && second === 'runs' && third !== undefined && rest.length === 0) {
+    const id = decode(third)
+    return id === null ? { name: 'notFound' } : { name: 'admin', page: 'run', id }
+  }
   return { name: 'notFound' }
 }
 
@@ -121,6 +125,8 @@ export const href = {
   admin: (): string => '/admin',
   /** The admin's Tasks page (1.4); `task`: the history of that task only. */
   adminTasks: (task?: string | null): string => withQuery('/admin/tasks', { task }),
+  /** A run's page (1.4): its facts and its log. */
+  adminRun: (id: string): string => `/admin/runs/${encodeURIComponent(id)}`,
 }
 
 /**
