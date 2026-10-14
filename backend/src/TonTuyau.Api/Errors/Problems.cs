@@ -58,6 +58,20 @@ internal static class Problems
     public static ProblemDetails LoginRefused() =>
         Of(StatusCodes.Status401Unauthorized, "login-refused", "Login refused", "Wrong username or password.");
 
+    /// <summary>A Bearer key that's unknown, malformed or disabled: the same answer for each.</summary>
+    public static ProblemDetails ApiKeyRefused() => Of(
+        StatusCodes.Status401Unauthorized,
+        "api-key-refused",
+        "API key refused",
+        "The API key is unknown or disabled.");
+
+    /// <summary>A key whose kind this endpoint doesn't take (an admin's endpoint, for instance).</summary>
+    public static ProblemDetails ApiKeyNotAllowed() => Of(
+        StatusCodes.Status403Forbidden,
+        "api-key-not-allowed",
+        "Not for this key",
+        "This API key's kind doesn't allow this.");
+
     public static ProblemDetails NotLoggedIn() =>
         Of(StatusCodes.Status401Unauthorized, "not-logged-in", "Not logged in", "Nobody is logged in.");
 

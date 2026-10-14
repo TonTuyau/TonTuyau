@@ -1,4 +1,4 @@
-# TonTuyau — REST API contract (v1.7)
+# TonTuyau — REST API contract (v1.8)
 
 > 2026-10-03. The shared contract between the backend (M4) and the frontend (M5a mockup, then M5/M6). Both sides build against this file; a change goes through you and is written here first.
 > Decisions: [QA_SESSION_05.md](QA_SESSION_05.md), [QA_SESSION_06.md](QA_SESSION_06.md), [QA_SESSION_07.md](QA_SESSION_07.md).
@@ -16,10 +16,13 @@
 > **v1.6 (2026-10-12, TonTuyau 1.2)**: the admin dashboard: `GET /api/admin/dashboard` and its import history `GET /api/admin/dashboard/imports`, logged-in accounts only (401 otherwise).
 >
 > **v1.7 (2026-10-13, TonTuyau 1.4)**: the admin's Tasks page: `GET /api/admin/tasks`, `GET /api/admin/runs`, `GET /api/admin/runs/{id}`, `GET /api/admin/runs/{id}/log` read the runs; `POST /api/admin/tasks/{task}/runs` starts a task, `POST /api/admin/runs/{id}/cancel` cancels a run. Logged-in accounts only (401 otherwise).
+>
+> **v1.8 (2026-10-15, TonTuyau 1.5)**: API keys, for programs: `GET /api/admin/api-keys`, `POST /api/admin/api-keys` (the secret given once), `POST /api/admin/api-keys/{id}/enable`, `POST /api/admin/api-keys/{id}/disable`, `DELETE /api/admin/api-keys/{id}`, managed by a logged-in admin. A key has a **kind** and opens only the endpoints that take it: `browserExtension` (the only kind in 1.5) opens `/api/extension/…`, starting with `GET /api/extension/connection`. Every other logged-in endpoint is an admin's session only.
 
 ## Rules
 
-- **Read-only** library: every library endpoint is `GET` (and `HEAD` for media/art). The sync runs by itself (the schedule) and from the CLI; the admin's Tasks page reads its runs (v1.7). The only `POST`s are logging in and out (v1.5, JSON only), and starting a task or canceling a run from the Tasks page (v1.7, no body).
+- **Read-only** library: every library endpoint is `GET` (and `HEAD` for media/art). The sync runs by itself (the schedule) and from the CLI; the admin's Tasks page reads its runs (v1.7). The only `POST`s are logging in and out (v1.5, JSON only), starting a task or canceling a run from the Tasks page (v1.7, no body), and managing the API keys (v1.8, the one `DELETE` too).
+- **Logged in** means the session cookie (`POST /api/auth/login`): an admin. Programs use an API key instead (v1.8), sent as `Authorization: Bearer tt_…`, named `"<name> (API key)"`; a key opens only the endpoints that take its kind (`browserExtension`: `/api/extension/…`, where an admin's session works too) and gets 403 `api-key-not-allowed` anywhere else. An unknown, malformed or disabled key gets 401 `api-key-refused` and `WWW-Authenticate: Bearer`, the same for each.
 - **JSON**, camelCase property names, dates as ISO-8601 UTC (`2026-10-02T20:18:48Z`), durations in seconds.
 - **The front never builds or guesses anything**: every URL it needs (thumbnails, banners, media, download) is given by the API, every count and label-worthy fact too (counts per type, inactive flag, playable MIME type…).
 - **Lists** are paged with opaque cursors:
@@ -146,6 +149,11 @@ Tabs to show = the types whose `videoCounts` are > 0 (counted by the backend).
 | `GET /api/admin/runs/{id}/log` | `RunLogResponse`: `lines` (oldest first: `id`, `at`, `level` = `information` \| `warning` \| `error`, `message`), `complete` (true: no line will come after these, the run is over; while false, ask again with `after` = the last line's `id`). A run from before TonTuyau 1.4 has no line, and is complete | `after` (default 0: from the first line), `size` (default 500, 1–2000); 400 otherwise; 404 if the run is unknown; logged in only, 401 otherwise |
 | `POST /api/admin/tasks/{task}/runs` | 202 and the `RunResponse` of the run just started (it goes on in the backend's background; `Location`: `/api/admin/runs/{id}`), `trigger` `admin`, `startedBy` the account. `applyDeletions` applies the list that waits (`waiting` in `GET /api/admin/tasks`) | `task` = `incremental` \| `full` \| `applyDeletions`, 400 otherwise; no body. 409 when a run is going on (in any process), or `applyDeletions` without a list waiting; logged in only, 401 otherwise |
 | `POST /api/admin/runs/{id}/cancel` | 202 and the `RunResponse` of the run asked to stop (it ends `canceled` soon after, between two requests; its log says who asked) | no body. 404 if unknown; 409 when it's over, or goes on in another process (the command line: stop it there); logged in only, 401 otherwise |
+| `GET /api/admin/api-keys` | `ApiKeyResponse[]`, the latest created first: `id`, `name`, `prefix` (the secret's first 7 characters, `tt_` and 4: to tell keys apart), `kind` = `browserExtension`, `enabled`, `createdAt`, `createdBy` (the account), `lastUsedAt` (to the minute; null if never used). Never the secret | none; an admin's session only, 401 otherwise (403 for a key) |
+| `POST /api/admin/api-keys` | 201 and `{ "key": ApiKeyResponse, "secret": "tt_…" }`: the secret, `tt_` and 40 letters or digits, is given this once (only its hash is kept) | JSON body `{ "name", "kind" }` (4 KB at most, 415 if not JSON): `name` 1 to 60 characters once trimmed, no control characters; `kind` = `browserExtension`; 400 otherwise; 409 when a key has the name already, whatever the case; an admin's session only |
+| `POST /api/admin/api-keys/{id}/enable`, `/disable` | `ApiKeyResponse`: a disabled key is refused from its next request on | no body. 404 if unknown; an admin's session only |
+| `DELETE /api/admin/api-keys/{id}` | 204: the key is gone for good | 404 if unknown; an admin's session only |
+| `GET /api/extension/connection` | `{ "version": "1.5.0", "name": "Firefox, laptop (API key)" }`: the browser extension's connection test (TonTuyau's version, and as whom) | a `browserExtension` key, or an admin's session; 401 otherwise |
 | `GET /media/{id}` | the original file, `Accept-Ranges: bytes` (seeking), right `Content-Type` | 404 if unknown or not on the share; 416 on an unsatisfiable range |
 | `GET /media/{id}/download` | the same file as an attachment: `Content-Disposition: attachment; filename="<title>.<ext>"; filename*=UTF-8''<title>.<ext>` (characters forbidden in file names replaced, Q5-3) | 404 as above |
 | `GET /art/videos/{id}` | the thumbnail (JPEG/PNG/WebP as copied) with `Cache-Control` + `ETag` | 404 if none |

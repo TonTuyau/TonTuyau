@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using TonTuyau.Infrastructure.ApiKeys;
 using TonTuyau.Infrastructure.RunLogs;
 
 namespace TonTuyau.Infrastructure.Accounts;
 
 /// <summary>
-/// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), and the
-/// runs' logs (1.4).
+/// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
+/// runs' logs (1.4) and the API keys (1.5).
 /// Table and column names are snake_case, as PostgreSQL likes them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
@@ -17,6 +18,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public DbSet<RunLogRow> RunLogLines => Set<RunLogRow>();
+
+    public DbSet<ApiKeyRow> ApiKeys => Set<ApiKeyRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +53,30 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             line.Property(l => l.Message).HasColumnName("message");
             // A run's lines, in order: the only way they're read.
             line.HasIndex(l => new { l.RunId, l.Id });
+        });
+        modelBuilder.Entity<ApiKeyRow>(key =>
+        {
+            key.ToTable("api_keys");
+            key.Property(k => k.Id).HasColumnName("id");
+            key.Property(k => k.Name).HasColumnName("name");
+            key.Property(k => k.NameKey).HasColumnName("name_key");
+            key.Property(k => k.Prefix).HasColumnName("prefix");
+            key.Property(k => k.Hash).HasColumnName("hash");
+            key
+                .Property(k => k.Kind)
+                .HasColumnName("kind")
+                .HasConversion<string>();
+            key.Property(k => k.Enabled).HasColumnName("enabled");
+            key.Property(k => k.CreatedAt).HasColumnName("created_at");
+            key.Property(k => k.CreatedBy).HasColumnName("created_by");
+            key.Property(k => k.LastUsedAt).HasColumnName("last_used_at");
+            // A request's key is found by its hash.
+            key
+                .HasIndex(k => k.Hash)
+                .IsUnique();
+            key
+                .HasIndex(k => k.NameKey)
+                .IsUnique();
         });
     }
 }
