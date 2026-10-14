@@ -1,7 +1,8 @@
 @elasticsearch @sync
 Feature: Command line
-  `tontuyau` inside the backend container runs one sync command and exits.
-  Exit codes: 0 done, 1 the run failed, 2 usage error, 3 another sync is running, 4 refused.
+  `tontuyau` inside the backend container runs one sync command and exits. Since 1.4 it asks the backend to (through
+  its Unix socket; here its in-memory server) and prints the run's log as it comes, then the report.
+  Exit codes: 0 done, 1 the run failed or was canceled, 2 usage error, 3 another sync is running, 4 refused.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 5 videos
@@ -44,6 +45,40 @@ Feature: Command line
     Then the output mentions "  - 2 deletions planned > limit 1: nothing deleted."
     And the output mentions "    Check "
     And the output mentions ", then run: tontuyau sync apply-deletions run-"
+
+  Scenario: Applying a blocked list from the command line reports a run of its own
+    Given the deletion limit is 1
+    And a first sync has run
+    And TubeArchivist deletes 2 videos of "alpha"
+    And a full sync has run
+    When I run "tontuyau sync apply-deletions" for the latest full run
+    Then the command exits with code 0
+    And the output mentions "apply-deletions by cli  SUCCEEDED"
+    And the output mentions "  applies   the list of run-"
+    And the output mentions ": 2 of 2 deleted"
+    And the output mentions "  deletions 2 deleted, 0 kept (still in TubeArchivist)"
+
+  # 1.4: the command line asks the backend to run it, and prints the run's log as it comes.
+  Scenario: A run from the command line is the backend's: in its log, the Tasks page sees it
+    When I run "tontuyau sync full"
+    Then the command exits with code 0
+    And the output mentions "started: Full by Cli."
+    And the output mentions "finished: Succeeded."
+    And the last run's log has, in order, lines with:
+      | level       | text                       |
+      | information | started: Full by Cli       |
+      | information | finished: Succeeded        |
+
+  Scenario: Ctrl-C cancels the run in the backend, and the report says so
+    Given a first sync has run
+    And TubeArchivist downloads 15 new videos in "alpha"
+    And Ctrl-C is pressed right before TubeArchivist answers page 2
+    When I run "tontuyau sync incremental"
+    Then the command exits with code 1
+    And the output mentions "Ctrl-C: canceling the run"
+    And the output mentions "warning: Sync run-"
+    And the output mentions ": canceled by the command line."
+    And the output mentions "CANCELED"
 
   Scenario: Another sync is running
     Given another process holds the sync lock

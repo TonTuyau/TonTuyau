@@ -13,9 +13,14 @@ import type {
   Me,
   Page,
   ProblemDetails,
+  Run,
+  RunListParams,
+  RunLog,
+  RunTask,
   SearchAll,
   SearchParams,
   Suggestions,
+  Tasks,
   VideoCard,
   VideoDetail,
   VideoListParams,
@@ -108,6 +113,12 @@ async function post(path: string, body?: unknown): Promise<void> {
   })
 }
 
+/** A POST without a body whose answer has one (1.4: starting a task, canceling a run: 202 and the run). */
+async function postFor<T>(path: string): Promise<T> {
+  const response = await send(path, { method: 'POST', headers: { accept: 'application/json' } })
+  return (await response.json()) as T
+}
+
 const segment = encodeURIComponent
 
 export const api = {
@@ -171,6 +182,36 @@ export const api = {
   /** The dashboard's import history of a period (1.2): 401 when nobody is logged in. */
   imports(period: ImportPeriod, signal?: AbortSignal): Promise<ImportHistory> {
     return get('/api/admin/dashboard/imports', { period }, signal)
+  },
+
+  /** The Tasks page's tasks and the run going on (1.4): 401 when nobody is logged in. */
+  tasks(signal?: AbortSignal): Promise<Tasks> {
+    return get('/api/admin/tasks', {}, signal)
+  },
+
+  /** The run history, latest first (1.4): `before` is the previous page's nextCursor. */
+  runs(params: RunListParams, signal?: AbortSignal): Promise<Page<Run>> {
+    return get('/api/admin/runs', { ...params }, signal)
+  },
+
+  /** A run (1.4): 404 when there's none with that id. */
+  run(id: string, signal?: AbortSignal): Promise<Run> {
+    return get(`/api/admin/runs/${segment(id)}`, {}, signal)
+  },
+
+  /** Starts a task now (1.4): the run, just started. 409 when a run is going on, or no deletion list waits. */
+  startTask(task: RunTask): Promise<Run> {
+    return postFor(`/api/admin/tasks/${segment(task)}/runs`)
+  },
+
+  /** Asks the run going on to stop (1.4): it ends canceled soon after. 409 when it's over or runs elsewhere. */
+  cancelRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/cancel`)
+  },
+
+  /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
+  runLog(id: string, after: number, signal?: AbortSignal): Promise<RunLog> {
+    return get(`/api/admin/runs/${segment(id)}/log`, { after: after > 0 ? after : undefined }, signal)
   },
 }
 

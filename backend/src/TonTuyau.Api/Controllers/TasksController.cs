@@ -1,0 +1,106 @@
+using System.ComponentModel;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TonTuyau.Api.Contracts;
+using TonTuyau.Api.Errors;
+using TonTuyau.Application.Paging;
+using TonTuyau.Application.Tasks;
+
+namespace TonTuyau.Api.Controllers;
+
+/// <summary>
+/// The admin's Tasks page (1.4): the tasks, the run history, each run's log; starting a task, canceling a run. Any
+/// logged-in account.
+/// </summary>
+[ApiController]
+[Authorize]
+[Route("api/admin")]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
+public sealed class TasksController(TaskService tasks) : ControllerBase
+{
+    /// <summary>The incremental sync, the full sync and applying deletions: when they run, how they last ran.</summary>
+    [HttpGet("tasks")]
+    [ProducesResponseType<TasksResponse>(StatusCodes.Status200OK)]
+    public async Task<TasksResponse> GetTasksAsync(CancellationToken cancellationToken) =>
+        (TasksResponse)await tasks
+            .GetTasksAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>
+    /// Starts a task now: the run, just started (it goes on in the background). applyDeletions applies the list that
+    /// waits (see GET tasks). 409 when a run is going on, or no list waits.
+    /// </summary>
+    [HttpPost("tasks/{task}/runs")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> StartAsync(
+        [Description("incremental | full | applyDeletions.")] string task,
+        CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .StartAsync(task, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
+    /// Asks the run going on to stop: it ends canceled soon after (between two requests), and its log says who asked.
+    /// 409 when it's over, or goes on in another process.
+    /// </summary>
+    [HttpPost("runs/{id}/cancel")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> CancelAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .CancelAsync(id, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>The run history, latest first.</summary>
+    [HttpGet("runs")]
+    [ProducesResponseType<Page<RunResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    public async Task<Page<RunResponse>> GetRunsAsync(
+        [FromQuery, Description("incremental | full | applyDeletions; every task when absent.")] string? task,
+        [FromQuery, Description("The previous page's nextCursor: the runs started before that one.")] string? before,
+        [FromQuery, Description("1 to 100, default 20.")] int? size,
+        CancellationToken cancellationToken)
+    {
+        ResultPage<RunView> page = await tasks
+            .GetRunsAsync(new RunListRequest(task, before, size), cancellationToken)
+            .ConfigureAwait(false);
+        return new Page<RunResponse>([.. page.Items.Select(r => (RunResponse)r)], page.NextCursor, page.Total);
+    }
+
+    /// <summary>A run: its counts, notes, error.</summary>
+    [HttpGet("runs/{id}")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<RunResponse> GetRunAsync(string id, CancellationToken cancellationToken) =>
+        (RunResponse)await tasks
+            .GetRunAsync(id, cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>A run's log, oldest line first: while it goes on, ask again for the lines after the last one.</summary>
+    [HttpGet("runs/{id}/log")]
+    [ProducesResponseType<RunLogResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<RunLogResponse> GetLogAsync(
+        string id,
+        [FromQuery, Description("The last line's id: the lines after it. 0 (default): from the first.")] long? after,
+        [FromQuery, Description("1 to 2000, default 500.")] int? size,
+        CancellationToken cancellationToken) =>
+        (RunLogResponse)await tasks
+            .GetLogAsync(id, new RunLogRequest(after, size), cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>The logged-in account's name ([Authorize]: there is one).</summary>
+    private string Account() =>
+        User.Identity?.Name ?? throw new InvalidOperationException("A logged-in request without a name.");
+}

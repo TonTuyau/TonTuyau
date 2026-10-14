@@ -1,18 +1,25 @@
 <script lang="ts">
-  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Back to TonTuyau), for a
-  // logged-in account only: anyone else goes to the login page, and comes back here once logged in.
+  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), Back to
+  // TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
   // The menu: full or icons only with the ☰, remembered (wide screens); icons only under 900 px, the ☰ opening it for
   // the visit; on phones a row of links, no ☰.
   import { adminGuide } from '../lib/adminGuide.svelte'
   import { auth } from '../lib/auth.svelte'
   import { t } from '../lib/i18n/i18n.svelte'
   import { router } from '../lib/router/router.svelte'
-  import { href } from '../lib/router/routes'
+  import { href, type AdminRoute } from '../lib/router/routes'
   import DashboardPage from '../pages/DashboardPage.svelte'
+  import RunPage from '../pages/RunPage.svelte'
+  import TasksPage from '../pages/TasksPage.svelte'
   import AccountMenu from './AccountMenu.svelte'
   import Icon from './Icon.svelte'
   import Logo from './Logo.svelte'
   import SettingsMenu from './SettingsMenu.svelte'
+
+  let { route }: { route: AdminRoute } = $props()
+
+  // A run's page is part of the Tasks (the menu says so).
+  const section = $derived(route.page === 'dashboard' ? 'dashboard' : 'tasks')
 
   const uid = $props.id()
   const navId = `${uid}-nav`
@@ -81,9 +88,23 @@
 
   <div class="shell" class:full class:phone data-guide={phone ? 'row' : full ? 'full' : 'icons'}>
     <nav id={navId} class="guide" aria-label={t('admin.nav')}>
-      <a class="item" href={href.admin()} aria-current="page" title={full ? undefined : t('admin.dashboard')}>
+      <a
+        class="item"
+        href={href.admin()}
+        aria-current={section === 'dashboard' ? 'page' : undefined}
+        title={full ? undefined : t('admin.dashboard')}
+      >
         <Icon name="dashboard" />
         <span class="label" class:visually-hidden={!full}>{t('admin.dashboard')}</span>
+      </a>
+      <a
+        class="item"
+        href={href.adminTasks()}
+        aria-current={section === 'tasks' ? 'page' : undefined}
+        title={full ? undefined : t('admin.tasks')}
+      >
+        <Icon name="tasks" />
+        <span class="label" class:visually-hidden={!full}>{t('admin.tasks')}</span>
       </a>
       <a class="item back" href={href.home()} title={full ? undefined : t('admin.back')}>
         <Icon name="back" />
@@ -92,7 +113,13 @@
     </nav>
 
     <main id="main" tabindex="-1">
-      <DashboardPage />
+      {#if route.page === 'run'}
+        <RunPage id={route.id} />
+      {:else if route.page === 'tasks'}
+        <TasksPage />
+      {:else}
+        <DashboardPage />
+      {/if}
     </main>
   </div>
 {/if}

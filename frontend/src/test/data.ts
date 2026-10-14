@@ -7,6 +7,8 @@ import type {
   Dashboard,
   ImportHistory,
   Page,
+  Run,
+  Tasks,
   VideoCard,
   VideoDetail,
 } from '../lib/api/types'
@@ -164,6 +166,71 @@ export function importHistory(overrides: Partial<ImportHistory> = {}): ImportHis
       { start: '2026-10-09T22:00:00Z', total: 40_000, byType: none, notRecorded: 40_000 },
       { start: '2026-10-10T22:00:00Z', total: 0, byType: none, notRecorded: 0 },
       { start: '2026-10-11T22:00:00Z', total: 12, byType: { videos: 8, shorts: 3, streams: 1 }, notRecorded: 0 },
+    ],
+    ...overrides,
+  }
+}
+
+/** A run of the history (1.4): an incremental sync, succeeded. */
+export function run(overrides: Partial<Run> = {}): Run {
+  return {
+    id: 'run-20261012T120000Z-3f9a1c',
+    task: 'incremental',
+    trigger: 'scheduler',
+    startedBy: null,
+    state: 'succeeded',
+    startedAt: '2026-10-12T12:00:00Z',
+    finishedAt: '2026-10-12T12:00:07Z',
+    error: null,
+    counts: {
+      videosRead: 61,
+      channelsRead: 0,
+      created: 8,
+      updated: 3,
+      unchanged: 50,
+      rejected: 0,
+      corrected: 0,
+      artCopied: 8,
+      artFailed: 0,
+      artResized: 24,
+      artResizeFailed: 0,
+      mediaMissing: 0,
+      deleted: 0,
+      kept: 0,
+    },
+    deletionsPlanned: 0,
+    deletionsBlocked: false,
+    appliesTo: null,
+    indexRebuild: false,
+    notes: [],
+    cancellable: false,
+    ...overrides,
+  }
+}
+
+/** The Tasks page (1.4): nothing going on, a full run's list of 312 waiting. */
+export function tasks(overrides: Partial<Tasks> = {}): Tasks {
+  const full = run({
+    id: 'run-20261009T230000Z-d3a2c7',
+    task: 'full',
+    startedAt: '2026-10-09T23:00:00Z',
+    finishedAt: '2026-10-10T00:08:12Z',
+    deletionsPlanned: 312,
+    deletionsBlocked: true,
+  })
+  return {
+    lock: null,
+    runningHere: null,
+    tasks: [
+      { task: 'incremental', schedule: '0 7-23 * * *', next: '2026-10-12T13:00:00Z', lastRun: run(), waiting: null },
+      { task: 'full', schedule: '0 1 * * 6', next: '2026-10-16T23:00:00Z', lastRun: full, waiting: null },
+      {
+        task: 'applyDeletions',
+        schedule: null,
+        next: null,
+        lastRun: null,
+        waiting: { runId: full.id, startedAt: full.startedAt, count: 312 },
+      },
     ],
     ...overrides,
   }

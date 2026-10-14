@@ -61,6 +61,11 @@ public sealed record SyncProgress(
 public interface ISyncProgressReporter
 {
     void Report(SyncProgress progress);
+
+    /// <summary>Told once, when the run has started (its record exists), with its id.</summary>
+    void Started(string runId)
+    {
+    }
 }
 
 /// <summary>Nobody watches: the scheduled and startup runs.</summary>

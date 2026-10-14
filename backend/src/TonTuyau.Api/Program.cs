@@ -15,16 +15,22 @@ if (CliRunner.IsCommand(args))
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddTonTuyauConfiguration();
+// The command line reaches the backend through a Unix socket (1.4), besides the backend's own address.
+CliSocket.ListenAlso(builder);
 // EF Core logs every SQL command it runs, and as an error the query it expects to fail at the very first start (no
 // migration history yet). A real database error reaches the error middleware's log anyway.
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
 builder.Services.AddTonTuyau();
+builder.Services.AddSingleton<SyncRunner>();
 builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(sp =>
-    (mode, ct) => sp.GetRequiredService<SyncService>().RunAsync(mode, SyncTrigger.Scheduler, ct));
+    (mode, ct) => sp.GetRequiredService<SyncRunner>().RunAsync(mode, SyncTrigger.Scheduler, ct));
 builder.Services.AddHostedService<SyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddTonTuyauApi();
 builder.Services.AddTonTuyauAuth();
+builder.Services.AddRunLogs();
+// After the runs' log writer: hosted services stop in reverse order, so the run going on ends before its log does.
+builder.Services.AddHostedService<SyncRunnerLifetime>();
 builder.Services.AddHealthChecks();
 
 WebApplication app = builder.Build();

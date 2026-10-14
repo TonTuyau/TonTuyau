@@ -17,13 +17,14 @@ public interface IDashboardRepository
         IReadOnlyCollection<string> channelIds,
         CancellationToken cancellationToken);
 
-    /// <returns>The latest run that succeeded, or null when none did.</returns>
+    /// <returns>The latest sync (incremental or full run) that succeeded, or null when none did.</returns>
     Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken);
 
     /// <param name="since">Null for every run.</param>
     /// <returns>
-    /// The runs started from <paramref name="since"/> on, oldest first, with only what the import history reads: when
-    /// they started and finished, whether they rebuilt the indices, their new videos.
+    /// The syncs (incremental and full runs, not the runs that applied deletions) started from <paramref name="since"/>
+    /// on, oldest first, with only what the import history reads: when they started and finished, whether they rebuilt
+    /// the indices, their new videos.
     /// </returns>
     Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(DateTimeOffset? since, CancellationToken cancellationToken);
 }

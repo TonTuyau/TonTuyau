@@ -92,7 +92,7 @@
 
 <a class="skip" href="#main">{t('a11y.skipToContent')}</a>
 {#if route.name === 'admin'}
-  <AdminShell />
+  <AdminShell {route} />
 {:else}
   <TopBar {onmenu} menu={!phone} />
 

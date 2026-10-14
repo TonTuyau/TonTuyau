@@ -1,6 +1,7 @@
 @elasticsearch @api
 Feature: The admin dashboard's import history
-  The new videos of the finished sync runs (never an index rebuild, which writes every video again), over a period:
+  The new videos of the finished sync runs (never an index rebuild, which writes every video again, nor a run that
+  only applied a deletion list), over a period:
   the last day a bar per sync (an empty one too), the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
   every month since the first import. Days are those of the sync's time zone (Europe/Paris here: UTC+2 in summer,
   UTC+1 in winter). Every step has its bar, an empty one too. Runs of 1.1 didn't record the types.
@@ -18,6 +19,7 @@ Feature: The admin dashboard's import history
       | 2026-10-14T08:00:00Z | succeeded | 6     | 3      | 2      | 1       | false   |
       | 2026-10-14T09:00:00Z | running   | 2     | 2      | 0      | 0       | false   |
       | 2026-10-14T09:30:00Z | succeeded | 0     | 0      | 0      | 0       | false   |
+    And a run applied a deletion list at "2026-10-14T09:45:00Z"
 
   # 1.2.1: every sync of the last day has its bar, an empty one for a sync that brought nothing.
   Scenario: The last day: a bar per sync of the last 24 hours, an empty one too

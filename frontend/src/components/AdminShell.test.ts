@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../App.svelte'
 import { ADMIN_GUIDE_STORAGE_KEY, adminGuide } from '../lib/adminGuide.svelte'
-import { dashboard } from '../test/data'
+import { dashboard, page, run, tasks } from '../test/data'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 
 const shell = () => document.querySelector('[data-guide]')
@@ -74,6 +74,33 @@ describe('the admin area', () => {
     expect(within(nav).getByRole('link', { name: 'Back to TonTuyau' })).toHaveAttribute('href', '/')
     expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull()
     expect(screen.getByText('Admin')).toBeInTheDocument()
+  })
+
+  it('goes to the Tasks page (1.4), which its menu then shows as the current one', async () => {
+    fakeApi({ '/api/auth/me': loggedIn(), '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
+    goTo('/admin/tasks')
+    render(App)
+
+    expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Administration' })
+    expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/admin/tasks')
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('shows a run’s page as part of the Tasks', async () => {
+    const one = run()
+    fakeApi({
+      '/api/auth/me': loggedIn(),
+      [`/api/admin/runs/${one.id}`]: one,
+      [`/api/admin/runs/${one.id}/log`]: { lines: [], complete: true },
+    })
+    goTo(`/admin/runs/${one.id}`)
+    render(App)
+
+    expect(await screen.findByRole('heading', { name: 'Incremental sync', level: 1 })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Administration' })
+    expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('collapses its menu to the icons with ☰, and remembers it', async () => {

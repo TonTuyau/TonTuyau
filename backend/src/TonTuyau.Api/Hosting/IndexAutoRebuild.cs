@@ -46,7 +46,8 @@ internal sealed partial class IndexAutoRebuild(
             }
             else
             {
-                LogFailed(run.Id, run.Error ?? "unknown error");
+                // No error: canceled, i.e. the backend stopped.
+                LogFailed(run.Id, run.Error ?? "canceled: the backend stopped");
             }
         }
         catch (SyncBusyException ex)

@@ -88,6 +88,15 @@ Feature: Sync from TubeArchivist
     When an incremental sync runs
     Then TonTuyau has 40 videos
 
+  Scenario: A sync its caller cancels ends canceled, not failed, and frees the lock
+    Given a first sync has run
+    And TubeArchivist downloads 15 new videos in "alpha"
+    And the caller cancels the sync right before TubeArchivist answers page 2
+    When an incremental sync runs
+    Then the run was canceled, not failed
+    And the stored run is canceled too
+    And the sync lock is free
+
   Scenario: A video downloaded while the sync is paging is not lost
     Given a first sync has run
     And TubeArchivist downloads 15 new videos in "alpha"
@@ -310,6 +319,8 @@ Feature: Sync from TubeArchivist
     When the deletions of that run are applied
     Then 5 items were deleted by the apply
     And TonTuyau has 23 videos
+    And the apply is a run of its own, for the list of 5 entries of that full run
+    And the full run's record is as that run left it
 
   Scenario: Applying an outdated deletion list is refused
     Given the deletion limit is 3
@@ -329,6 +340,7 @@ Feature: Sync from TubeArchivist
     And TubeArchivist gets the video "alpha-02" back
     When the deletions of that run are applied
     Then 1 item was deleted by the apply
+    And 1 item was kept by the apply, still in TubeArchivist
     And TonTuyau has the video "alpha-02"
 
   # ---------------------------------------------------------------- media share

@@ -7,6 +7,7 @@ import {
   formatDuration,
   formatNumber,
   formatPlayTime,
+  formatRunTime,
 } from './format'
 
 // Intl output uses narrow / non-breaking spaces in French: compare with normal spaces.
@@ -34,6 +35,15 @@ describe('format', () => {
     [12_345 * 3600, '12,345 h'],
   ])('formats a play time of %d seconds as %s', (seconds, expected) => {
     expect(formatPlayTime(seconds, 'en')).toBe(expected)
+  })
+
+  it.each([
+    [7.4, '7 s'],
+    [272, '4 min 32 s'],
+    [67, '1 min 07 s'],
+    [4092, '1 h 08 min'],
+  ])('formats a run of %d seconds as %s', (seconds, expected) => {
+    expect(formatRunTime(seconds)).toBe(expected)
   })
 
   it('formats long play times per language', () => {

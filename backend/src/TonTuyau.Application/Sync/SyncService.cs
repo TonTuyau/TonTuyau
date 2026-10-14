@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.TubeArchivist;
 using TonTuyau.Application.Validation;
@@ -32,16 +33,18 @@ public sealed partial class SyncService(
     /// <summary>A run nobody watches (the scheduler).</summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     public Task<SyncRun> RunAsync(SyncMode mode, SyncTrigger trigger, CancellationToken cancellationToken) =>
-        RunAsync(mode, trigger, NoSyncProgress.Instance, cancellationToken);
+        RunAsync(mode, trigger, null, NoSyncProgress.Instance, cancellationToken);
 
+    /// <param name="startedBy">The account that started it from the Tasks page; null otherwise.</param>
     /// <param name="progress">Told where the run is as it goes (the CLI shows it).</param>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     public Task<SyncRun> RunAsync(
         SyncMode mode,
         SyncTrigger trigger,
+        string? startedBy,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken) =>
-        WithLockAsync(mode, trigger, rebuild: false, progress, cancellationToken);
+        WithLockAsync(mode, trigger, startedBy, rebuild: false, progress, cancellationToken);
 
     /// <summary>Re-imports everything into a new index generation and switches users to it at the end.</summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
@@ -54,18 +57,24 @@ public sealed partial class SyncService(
         SyncTrigger trigger,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken) =>
-        WithLockAsync(SyncMode.Full, trigger, rebuild: true, progress, cancellationToken);
+        WithLockAsync(SyncMode.Full, trigger, null, rebuild: true, progress, cancellationToken);
 
-    /// <summary>Deletes, after confirming each one with TubeArchivist, the list a blocked full run wrote.</summary>
+    /// <summary>
+    /// Deletes, after confirming each one with TubeArchivist, the list a blocked full run wrote. A run of its own
+    /// (<see cref="SyncMode.ApplyDeletions"/>, 1.4): the full run's record stays as that run left it.
+    /// </summary>
     /// <exception cref="SyncBusyException">Another sync holds the lock.</exception>
     /// <exception cref="SyncRefusedException">Not the latest full run, or no list for it.</exception>
-    public Task<SyncRun> ApplyDeletionsAsync(string runId, CancellationToken cancellationToken) =>
-        ApplyDeletionsAsync(runId, NoSyncProgress.Instance, cancellationToken);
+    public Task<SyncRun> ApplyDeletionsAsync(string runId, SyncTrigger trigger, CancellationToken cancellationToken) =>
+        ApplyDeletionsAsync(runId, trigger, null, NoSyncProgress.Instance, cancellationToken);
 
-    /// <inheritdoc cref="ApplyDeletionsAsync(string, CancellationToken)"/>
+    /// <inheritdoc cref="ApplyDeletionsAsync(string, SyncTrigger, CancellationToken)"/>
+    /// <param name="startedBy">The account that started it from the Tasks page; null otherwise.</param>
     /// <param name="progress">Told where it is as it goes (the CLI shows it).</param>
     public async Task<SyncRun> ApplyDeletionsAsync(
         string runId,
+        SyncTrigger trigger,
+        string? startedBy,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken)
     {
@@ -74,7 +83,7 @@ public sealed partial class SyncService(
             throw new SyncRefusedException($"'{runId}' isn't a run id (expected run-YYYYMMDDTHHMMSSZ-xxxxxx).");
         }
 
-        ISyncLease lease = await state.TryAcquireLockAsync(SyncMode.Full, SyncTrigger.Cli, cancellationToken)
+        ISyncLease lease = await state.TryAcquireLockAsync(SyncMode.ApplyDeletions, trigger, cancellationToken)
             .ConfigureAwait(false)
             ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
         await using (lease.ConfigureAwait(false))
@@ -93,31 +102,61 @@ public sealed partial class SyncService(
                 .ConfigureAwait(false)
                 ?? throw new SyncRefusedException($"There's no deletion list for {runId}.");
 
-            RunContext context = NewContext(latest, new HashSet<string>(), progress, linked.Token);
-            SyncCounts before = context.Run.Counts;
-            context.BeginPhase(SyncPhase.DeletionList, entries.Count);
-            List<DeletionEntry> stillStored = new();
-            int lookedUp = 0;
-            foreach (DeletionEntry entry in entries)
+            SyncRun run = new()
             {
-                bool stored = entry.Kind == "channel"
-                    ? await channels.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null
-                    : await videos.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null;
-                if (stored)
+                Id = SyncRun.NewId(clock.GetUtcNow()),
+                Mode = SyncMode.ApplyDeletions,
+                Trigger = trigger,
+                StartedAt = clock.GetUtcNow(),
+                StartedBy = startedBy,
+                AppliesTo = runId,
+                DeletionsPlanned = entries.Count,
+            };
+            using ProgressLines logged = new(LogProgress, clock);
+            RunContext context = NewContext(
+                run,
+                new HashSet<string>(),
+                new BothProgress(progress, logged),
+                linked.Token);
+            await context.SaveAsync().ConfigureAwait(false);
+            using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
+            LogStarted(run.Id, run.Mode, trigger);
+            progress.Started(run.Id);
+            try
+            {
+                context.BeginPhase(SyncPhase.DeletionList, entries.Count);
+                List<DeletionEntry> stillStored = new();
+                int lookedUp = 0;
+                foreach (DeletionEntry entry in entries)
                 {
-                    stillStored.Add(entry);
+                    bool stored = entry.Kind == "channel"
+                        ? await channels.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null
+                        : await videos.GetAsync(entry.Id, linked.Token).ConfigureAwait(false) is not null;
+                    if (stored)
+                    {
+                        stillStored.Add(entry);
+                    }
+
+                    context.Progressed(++lookedUp);
                 }
 
-                context.Progressed(++lookedUp);
+                await ConfirmAndDeleteAsync(stillStored, context).ConfigureAwait(false);
+                await indices.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
+                context.Update(r => r with { Outcome = SyncOutcome.Succeeded });
+            }
+            catch (Exception ex) when (IsRunFailure(ex))
+            {
+                // What was deleted until then stays deleted, and is counted.
+                Stopped(context, ex, lease, cancellationToken);
+            }
+            finally
+            {
+                context.Update(r => r with { FinishedAt = clock.GetUtcNow() });
+                await context.SaveAsync().ConfigureAwait(false);
             }
 
-            await ConfirmAndDeleteAsync(stillStored, context).ConfigureAwait(false);
-            int deleted = context.Run.Counts.Deleted - before.Deleted;
-            int kept = context.Run.Counts.KeptStillInTubeArchivist - before.KeptStillInTubeArchivist;
-            context.Note(
-                $"apply-deletions {clock.GetUtcNow():u}: {deleted} deleted, {kept} kept (still in TubeArchivist).");
-            await indices.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
-            await context.SaveAsync().ConfigureAwait(false);
+            logged.Finish();
+            LogFinished(context.Run.Id, context.Run.Outcome);
             return context.Run;
         }
     }
@@ -147,6 +186,7 @@ public sealed partial class SyncService(
     private async Task<SyncRun> WithLockAsync(
         SyncMode mode,
         SyncTrigger trigger,
+        string? startedBy,
         bool rebuild,
         ISyncProgressReporter progress,
         CancellationToken cancellationToken)
@@ -164,11 +204,16 @@ public sealed partial class SyncService(
                 Mode = mode,
                 Trigger = trigger,
                 StartedAt = clock.GetUtcNow(),
+                StartedBy = startedBy,
             };
             IReadOnlySet<string> pending = await state.GetPendingArtAsync(linked.Token).ConfigureAwait(false);
-            RunContext context = NewContext(run, pending, progress, linked.Token);
+            using ProgressLines logged = new(LogProgress, clock);
+            RunContext context = NewContext(run, pending, new BothProgress(progress, logged), linked.Token);
             await context.SaveAsync().ConfigureAwait(false);
+            // From here on, every line logged (from any class) is also this run's log (1.4).
+            using IDisposable? scope = logger.BeginScope(new RunLogScope(run.Id));
             LogStarted(run.Id, mode, trigger);
+            progress.Started(run.Id);
 
             IndexRebuild? rebuilding = null;
             try
@@ -211,11 +256,7 @@ public sealed partial class SyncService(
             }
             catch (Exception ex) when (IsRunFailure(ex))
             {
-                string reason = ex is OperationCanceledException && lease.Lost.IsCancellationRequested
-                    ? "The sync lock was lost (another process holds it): stopped."
-                    : ex.Message;
-                context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
-                LogFailed(run.Id, reason);
+                Stopped(context, ex, lease, cancellationToken);
                 if (rebuilding is not null)
                 {
                     await indices.AbortRebuildAsync(rebuilding, CancellationToken.None).ConfigureAwait(false);
@@ -234,6 +275,7 @@ public sealed partial class SyncService(
                 await context.SaveAsync().ConfigureAwait(false);
             }
 
+            logged.Finish();
             LogFinished(context.Run.Id, context.Run.Outcome);
             return context.Run;
         }
@@ -690,6 +732,26 @@ public sealed partial class SyncService(
         }
     }
 
+    /// <summary>
+    /// Records how a run that threw ended: Canceled when its caller asked it to stop (<paramref name="caller"/>), else
+    /// Failed and why. Whatever the exception then: a request cut short doesn't always say it was canceled (the
+    /// Elasticsearch client reports it as "can't be reached"). Losing the lock to another process is a failure, even
+    /// when the caller stops too.
+    /// </summary>
+    private void Stopped(RunContext context, Exception ex, ISyncLease lease, CancellationToken caller)
+    {
+        bool lockLost = lease.Lost.IsCancellationRequested;
+        if (caller.IsCancellationRequested && !lockLost)
+        {
+            context.Update(r => r with { Outcome = SyncOutcome.Canceled });
+            return;
+        }
+
+        string reason = lockLost ? "The sync lock was lost (another process holds it): stopped." : ex.Message;
+        context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
+        LogFailed(context.Run.Id, reason);
+    }
+
     private static bool IsRunFailure(Exception ex) =>
         ex is TubeArchivistException
             or SearchStoreException
@@ -948,6 +1010,10 @@ public sealed partial class SyncService(
         Level = LogLevel.Warning,
         Message = "Sync {RunId}: the index definitions changed, so this {Mode} run rebuilds the indices instead.")]
     private partial void LogRebuildInstead(string runId, SyncMode mode);
+
+    /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Line}")]
+    private partial void LogProgress(string line);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sync {RunId} started: {Mode} by {Trigger}.")]
     private partial void LogStarted(string runId, SyncMode mode, SyncTrigger trigger);

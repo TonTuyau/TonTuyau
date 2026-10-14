@@ -5,7 +5,10 @@ using TonTuyau.Application.Validation;
 
 namespace TonTuyau.Api.Cli;
 
-/// <summary>A host without web server or scheduler, for one CLI command; shares the backend's services and lock.</summary>
+/// <summary>
+/// A host without web server or scheduler, for one CLI command: <c>sync status</c> reads Elasticsearch itself, the
+/// others ask the backend through its Unix socket (<see cref="CliSocket"/>).
+/// </summary>
 internal static class CliHost
 {
     public static async Task<int> RunAsync(string[] args)
@@ -34,17 +37,32 @@ internal static class CliHost
             return CliRunner.Usage;
         }
 
+        // The first Ctrl-C cancels the run (the backend stops it, the report comes); a second one leaves at once.
         using CancellationTokenSource cancel = new();
+        int presses = 0;
         Console.CancelKeyPress += (_, e) =>
         {
-            e.Cancel = true;
-            cancel.Cancel();
+            if (Interlocked.Increment(ref presses) == 1)
+            {
+                e.Cancel = true;
+                cancel.Cancel();
+            }
         };
 
+        string? socket = CliSocket.PathFrom(builder.Configuration);
+        using HttpClient http = socket is null ? new HttpClient() : CliSocket.Client(socket);
+        CliRunner runner = new(host.Services, Console.Out, new BackendClient(http));
         if (!CliRunner.NeedsStore(args))
         {
-            // Help or a usage error: never wait for Elasticsearch to say so.
-            return await new CliRunner(host.Services, Console.Out).RunAsync(args, cancel.Token).ConfigureAwait(false);
+            if (socket is null && CliRunner.IsCommand(args) && args.Length > 1)
+            {
+                await Console.Error.WriteLineAsync("The command line's socket is off (TONTUYAU_CLI_SOCKET is empty).")
+                    .ConfigureAwait(false);
+                return CliRunner.Usage;
+            }
+
+            // The backend does the work, or it's help or a usage error: never wait for Elasticsearch.
+            return await runner.RunAsync(args, cancel.Token).ConfigureAwait(false);
         }
 
         try
@@ -59,8 +77,6 @@ internal static class CliHost
             return CliRunner.RunFailed;
         }
 
-        // The progress is plain lines, terminal or not (QA16-1).
-        CliRunner runner = new(host.Services, Console.Out);
         return await runner.RunAsync(args, cancel.Token).ConfigureAwait(false);
     }
 }

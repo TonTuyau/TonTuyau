@@ -435,7 +435,8 @@ public sealed class ApiSteps(ScenarioState state, LibrarySteps library)
         return null;
     }
 
-    private JsonNode? At(string path) => At(Json, path);
+    /// <summary>The value at a path such as <c>tasks[2].waiting.runId</c> in the last answer.</summary>
+    public JsonNode? At(string path) => At(Json, path);
 
     private static JsonNode? At(JsonNode root, string path)
     {
@@ -459,7 +460,7 @@ public sealed class ApiSteps(ScenarioState state, LibrarySteps library)
         return node;
     }
 
-    private static string Scalar(JsonNode? node) => node switch
+    public static string Scalar(JsonNode? node) => node switch
     {
         null => "null",
         JsonValue value when value.TryGetValue(out string? text) => text,

@@ -36,5 +36,8 @@ public static class ConfigKeys
     public const string CookieSecure = "COOKIE_SECURE";
     public const string TrustedProxies = "TRUSTED_PROXIES";
 
+    /// <summary>The Unix socket the command line reaches the backend through (1.4); empty: none.</summary>
+    public const string CliSocket = "CLI_SOCKET";
+
     public static string EnvironmentName(string key) => EnvironmentPrefix + key;
 }

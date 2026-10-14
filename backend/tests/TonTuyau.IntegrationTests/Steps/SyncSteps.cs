@@ -19,6 +19,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     private FakeTubeArchivist? _fake;
     private SyncRun? _run;
     private SyncRun? _applied;
+    private readonly CancellationTokenSource _caller = new();
     private long? _watermarkBefore;
     private int _listRequestsBefore;
     private string? _lastDeletedVideo;
@@ -26,7 +27,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     private bool _countedBeforeRestart;
     private ISyncLease? _otherProcessLease;
 
-    private FakeTubeArchivist Fake => _fake!;
+    public FakeTubeArchivist Fake => _fake!;
 
     private IServiceProvider Services => state.Backend.Services;
 
@@ -103,6 +104,11 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
             name,
             channel,
             NextDownload());
+
+    /// <summary>As the CLI's Ctrl-C (or, in 1.4, the Tasks page) does: the run's caller asks it to stop.</summary>
+    [Given("the caller cancels the sync right before TubeArchivist answers page {int}")]
+    public void CancelWhilePaging(int page) =>
+        Fake.BeforeAnswer[$"page={page.ToString(CultureInfo.InvariantCulture)}"] = () => _caller.Cancel();
 
     [Given("TubeArchivist deletes {int} videos of {string}")]
     public void DeleteMany(int count, string channel) => Fake.Mutate(() =>
@@ -308,7 +314,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 
     [When("an incremental sync runs")]
     public Task Incremental()
-        => RunAsync(() => Sync.RunAsync(SyncMode.Incremental, SyncTrigger.Scheduler, CancellationToken.None));
+        => RunAsync(() => Sync.RunAsync(SyncMode.Incremental, SyncTrigger.Scheduler, _caller.Token));
 
     [Given("a full sync has run")]
     [Given("another full sync has run")]
@@ -338,6 +344,27 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 
     [Then("the run failed")]
     public void Failed() => Assert.True(_run?.Outcome == SyncOutcome.Failed, Describe());
+
+    [Then("the run was canceled, not failed")]
+    public void Canceled()
+    {
+        Assert.True(_run?.Outcome == SyncOutcome.Canceled, Describe());
+        Assert.Null(_run.Error);
+        Assert.NotNull(_run.FinishedAt);
+    }
+
+    [Then("the stored run is canceled too")]
+    public async Task StoredCanceled()
+    {
+        SyncRun? stored = await Services
+            .GetRequiredService<ISyncStateStore>()
+            .GetRunAsync(_run!.Id, CancellationToken.None);
+        Assert.Equal(SyncOutcome.Canceled, stored?.Outcome);
+    }
+
+    [Then("the sync lock is free")]
+    public async Task LockFree() =>
+        Assert.Null(await Services.GetRequiredService<ISyncStateStore>().GetLockAsync(CancellationToken.None));
 
     [Then("the run failed because {string}")]
     public void FailedBecause(string reason)
@@ -417,8 +444,38 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     }
 
     [Then("{int} item(s) was/were deleted by the apply")]
-    public void DeletedByApply(int count) =>
-        Assert.Equal(count, _applied!.Counts.Deleted - _fullRuns[^1].Counts.Deleted);
+    public void DeletedByApply(int count) => Assert.Equal(count, _applied!.Counts.Deleted);
+
+    [Then("{int} item(s) was/were kept by the apply, still in TubeArchivist")]
+    public void KeptByApply(int count) => Assert.Equal(count, _applied!.Counts.KeptStillInTubeArchivist);
+
+    [Then("the apply is a run of its own, for the list of {int} entries of that full run")]
+    public async Task ApplyIsItsOwnRun(int planned)
+    {
+        Assert.Equal(SyncMode.ApplyDeletions, _applied!.Mode);
+        Assert.Equal(SyncTrigger.Cli, _applied.Trigger);
+        Assert.Equal(SyncOutcome.Succeeded, _applied.Outcome);
+        Assert.NotNull(_applied.FinishedAt);
+        Assert.Equal(_fullRuns[^1].Id, _applied.AppliesTo);
+        Assert.Equal(planned, _applied.DeletionsPlanned);
+        Assert.NotEqual(_fullRuns[^1].Id, _applied.Id);
+        SyncRun? stored = await Services
+            .GetRequiredService<ISyncStateStore>()
+            .GetRunAsync(_applied.Id, CancellationToken.None);
+        Assert.Equal(_applied.Counts.Deleted, stored?.Counts.Deleted);
+    }
+
+    [Then("the full run's record is as that run left it")]
+    public async Task FullRunUntouched()
+    {
+        SyncRun full = _fullRuns[^1];
+        SyncRun? stored = await Services
+            .GetRequiredService<ISyncStateStore>()
+            .GetRunAsync(full.Id, CancellationToken.None);
+        Assert.Equal(full.Counts, stored?.Counts);
+        Assert.Equal(full.Notes, stored?.Notes);
+        Assert.Equal(full.FinishedAt, stored?.FinishedAt);
+    }
 
     [Then("the run counted {int} missing media file(s)")]
     public void MissingMedia(int count) => Assert.Equal(count, _run!.Counts.MediaMissing);
@@ -610,6 +667,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _caller.Dispose();
         if (_otherProcessLease is not null)
         {
             await _otherProcessLease.DisposeAsync();
@@ -760,7 +818,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     {
         try
         {
-            _applied = await Sync.ApplyDeletionsAsync(runId, CancellationToken.None);
+            _applied = await Sync.ApplyDeletionsAsync(runId, SyncTrigger.Cli, CancellationToken.None);
         }
         catch (SyncRefusedException ex)
         {
