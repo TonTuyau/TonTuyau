@@ -29,8 +29,11 @@ public sealed class TaskService(
     public const int DefaultLogLinesPerPage = 500;
     public const int MaxLogLinesPerPage = 2000;
 
-    /// <summary>How long after a run's end its log is surely all written (a batch a second, see the run log).</summary>
-    public static readonly TimeSpan LogSettles = TimeSpan.FromSeconds(5);
+    /// <summary>
+    /// How long after a run's end its log is all written (the writer writes a batch a second): the command line waits
+    /// that long at the end of each run.
+    /// </summary>
+    public static readonly TimeSpan LogSettles = TimeSpan.FromSeconds(2);
 
     public async Task<TasksView> GetTasksAsync(CancellationToken cancellationToken)
     {

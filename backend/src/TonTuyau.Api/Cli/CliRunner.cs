@@ -1,5 +1,8 @@
 using System.Globalization;
+using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Hosting;
+using TonTuyau.Application.Library;
+using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 
@@ -7,10 +10,16 @@ namespace TonTuyau.Api.Cli;
 
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
-/// Exit codes: 0 done, 1 the run failed, 2 usage error, 3 another sync is running, 4 refused.
-/// The commands that run a sync print its progress while it runs (see <see cref="ProgressLines"/>), then the report.
+/// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 3 another
+/// sync is running, 4 refused.
+/// <para>
+/// Since 1.4 the commands that run something ask the backend to (<see cref="BackendClient"/>, through its Unix socket):
+/// the run is in the backend's log and on the Tasks page. They print its log as it comes (its start, progress lines,
+/// warnings, errors, end), then the report. Ctrl-C cancels the run; a second Ctrl-C leaves without waiting for it.
+/// <c>sync status</c> reads Elasticsearch itself.
+/// </para>
 /// </summary>
-internal sealed class CliRunner(IServiceProvider services, TextWriter output)
+internal sealed class CliRunner(IServiceProvider services, TextWriter output, BackendClient backend)
 {
     public const int Ok = 0;
     public const int RunFailed = 1;
@@ -18,7 +27,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     public const int Busy = 3;
     public const int Refused = 4;
 
-    private const SyncTrigger Cli = SyncTrigger.Cli;
+    /// <summary>How often the run's log is asked for while it goes on.</summary>
+    private static readonly TimeSpan PollEvery = TimeSpan.FromMilliseconds(500);
 
     public const string Help = """
         Usage: tontuyau <command>
@@ -43,14 +53,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
     /// <summary><c>tontuyau --version</c>: answered without configuration or Elasticsearch.</summary>
     public static bool IsVersion(string[] args) => args is ["--version" or "version"];
 
-    /// <summary>A command that does real work (needs Elasticsearch), as opposed to help or a usage error.</summary>
-    public static bool NeedsStore(string[] args) => args switch
-    {
-        ["sync", "incremental" or "full" or "status"] => true,
-        ["sync", "apply-deletions", _] => true,
-        ["index", "rebuild"] => true,
-        _ => false,
-    };
+    /// <summary>The command that reads Elasticsearch itself (the others go through the backend).</summary>
+    public static bool NeedsStore(string[] args) => args is ["sync", "status"];
 
     public async Task<int> RunAsync(string[] args, CancellationToken cancellationToken)
     {
@@ -59,45 +63,72 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output)
         {
             return args switch
             {
-                ["sync", "incremental"] => ReportSync(await WithProgressAsync(
-                    progress => Sync.RunAsync(SyncMode.Incremental, Cli, null, progress, cancellationToken))),
-                ["sync", "full"] => ReportSync(await WithProgressAsync(
-                    progress => Sync.RunAsync(SyncMode.Full, Cli, null, progress, cancellationToken))),
+                ["sync", "incremental"] => ReportSync(await FollowAsync("cli/sync/incremental", cancellationToken)),
+                ["sync", "full"] => ReportSync(await FollowAsync("cli/sync/full", cancellationToken)),
                 ["sync", "status"] => Status(await Sync.GetStatusAsync(cancellationToken)),
-                ["sync", "apply-deletions", string run] => Report(await WithProgressAsync(
-                    progress => Sync.ApplyDeletionsAsync(run, Cli, null, progress, cancellationToken))),
-                ["index", "rebuild"] => Report(await WithProgressAsync(
-                    progress => Sync.RebuildAsync(SyncTrigger.Cli, progress, cancellationToken))),
+                ["sync", "apply-deletions", string run] => LibraryPaths.IsRunId(run)
+                    ? Report(await FollowAsync($"cli/sync/apply-deletions/{run}", cancellationToken))
+                    : Write($"Refused: '{run}' isn't a run id (expected run-YYYYMMDDTHHMMSSZ-xxxxxx).", Refused),
+                ["index", "rebuild"] => Report(await FollowAsync("cli/index/rebuild", cancellationToken)),
                 ["help" or "--help" or "-h"] => Write(Help, Ok),
                 ["--version" or "version"] => Write(VersionLine, Ok),
                 _ => Write(Help, Usage),
             };
         }
-        catch (SyncBusyException ex)
+        catch (CliRefusalException ex)
         {
-            return Write(ex.Message, Busy);
+            return Write(ex.Message, ex.ExitCode);
         }
-        catch (SyncRefusedException ex)
+        catch (HttpRequestException ex)
         {
-            return Write("Refused: " + ex.Message, Refused);
+            return Write(
+                $"Can't reach the TonTuyau backend ({ex.Message}): the command line goes through it, is it running?",
+                RunFailed);
         }
     }
 
-    /// <summary>Runs a sync with its progress shown, and ends the progress (even on an error) before the report.</summary>
-    private async Task<SyncRun> WithProgressAsync(Func<ISyncProgressReporter, Task<SyncRun>> sync)
+    /// <summary>
+    /// Starts the run in the backend and prints its log until it's over and all written, then gives the run back.
+    /// Ctrl-C (<paramref name="cancellationToken"/>) asks the backend to cancel it, and the log goes on to its end.
+    /// </summary>
+    /// <param name="path">The command's endpoint in the backend.</param>
+    private async Task<SyncRun> FollowAsync(string path, CancellationToken cancellationToken)
     {
-        using ProgressLines progress = new(Print, services.GetService<TimeProvider>() ?? TimeProvider.System);
-        try
+        string id = await backend.StartAsync(path, CancellationToken.None);
+        bool cancelAsked = false;
+        long after = 0;
+        while (true)
         {
-            return await sync(progress);
-        }
-        finally
-        {
-            progress.Finish();
+            if (cancellationToken.IsCancellationRequested && !cancelAsked)
+            {
+                cancelAsked = true;
+                Print("Ctrl-C: canceling the run (Ctrl-C again to leave without waiting).");
+                await backend.CancelAsync(id, CancellationToken.None);
+            }
+
+            RunLogResponse log = await backend.GetLogAsync(id, after, CancellationToken.None);
+            foreach (RunLogLineResponse line in log.Lines)
+            {
+                Print(line.Level switch
+                {
+                    RunLogLevel.Warning => "warning: " + line.Message,
+                    RunLogLevel.Error => "error: " + line.Message,
+                    _ => line.Message,
+                });
+                after = line.Id;
+            }
+
+            if (log.Complete)
+            {
+                return await backend.GetRunAsync(id, CancellationToken.None);
+            }
+
+            // Not with Ctrl-C's token: Ctrl-C is seen at the next turn, and the log still followed.
+            await Task.Delay(PollEvery, CancellationToken.None);
         }
     }
 
-    /// <summary>A progress line, at once (a pipe, e.g. to <c>tee</c>, gets it as it comes).</summary>
+    /// <summary>A line, at once (a pipe, e.g. to <c>tee</c>, gets it as it comes).</summary>
     private void Print(string line)
     {
         output.WriteLine(line);

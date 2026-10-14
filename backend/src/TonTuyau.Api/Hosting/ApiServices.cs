@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
 using Microsoft.AspNetCore.Mvc;
+using TonTuyau.Api.Cli;
 using TonTuyau.Api.OpenApi;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Dashboard;
@@ -34,6 +35,8 @@ internal static class ApiServices
         services.AddSingleton<DashboardService>();
         // Scoped: it reads the runs' logs through the database context.
         services.AddScoped<TaskService>();
+        services.AddSingleton<ICliGate, SocketCliGate>();
+        services.AddSingleton<CliOnlyFilter>();
 
         services
             .AddControllers(o =>
