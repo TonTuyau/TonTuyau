@@ -65,3 +65,8 @@ p {
   white-space: nowrap;
   border: 0;
 }
+
+/* Commands, run ids (1.4): the theme's monospace. */
+code {
+  font-family: var(--font-mono);
+}
