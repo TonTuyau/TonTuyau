@@ -6,13 +6,20 @@ public sealed record TonTuyauOptions(
     StorageOptions Storage,
     SyncOptions Sync,
     DatabaseOptions Database,
-    AccountOptions Accounts)
+    AccountOptions Accounts,
+    YouTubeOptions YouTube)
 {
     /// <summary>Values the reader couldn't parse (e.g. a number that isn't one); reported by the validator.</summary>
     public IReadOnlyList<Validation.ValidationError> Unparsable { get; init; } = [];
 }
 
 public sealed record TubeArchivistOptions(string BaseUrl, string Token);
+
+/// <param name="YtdlpPath">The yt-dlp program (1.5): a path, or a name found on the PATH (the image's).</param>
+/// <param name="DenoPath">The Deno program yt-dlp runs YouTube's JavaScript with; only its version is read here.</param>
+public sealed record YouTubeOptions(
+    string YtdlpPath = TonTuyauOptionsReader.DefaultYtdlpPath,
+    string DenoPath = TonTuyauOptionsReader.DefaultDenoPath);
 
 /// <param name="IndexPrefix">Prefix of every TonTuyau index and alias, e.g. <c>tontuyau</c> → <c>tontuyau-videos</c>.</param>
 public sealed record ElasticsearchOptions(

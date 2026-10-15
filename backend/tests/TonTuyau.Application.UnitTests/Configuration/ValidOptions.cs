@@ -12,5 +12,6 @@ internal static class ValidOptions
         new StorageOptions("/youtube", "/data/art"),
         new SyncOptions("0 1 * * *", "0 1 * * 0", "Europe/Paris"),
         new DatabaseOptions("tontuyau-db", "tontuyau", "tontuyau", "db-password"),
-        new AccountOptions("admin", "admin-password", true));
+        new AccountOptions("admin", "admin-password", true),
+        new YouTubeOptions());
 }

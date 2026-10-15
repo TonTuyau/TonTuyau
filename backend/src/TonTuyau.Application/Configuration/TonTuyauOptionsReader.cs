@@ -9,6 +9,8 @@ public static class TonTuyauOptionsReader
     public const string DefaultEsUsername = "elastic";
     public const string DefaultIndexPrefix = "tontuyau";
     public const string DefaultMediaRoot = "/youtube";
+    public const string DefaultYtdlpPath = "yt-dlp";
+    public const string DefaultDenoPath = "deno";
     public const string DefaultArtRoot = "/data/art";
     public const string DefaultIncrementalCron = "0 7-23 * * *";
     public const string DefaultFullCron = "0 1 * * 6";
@@ -99,7 +101,10 @@ public static class TonTuyauOptionsReader
                 Get(ConfigKeys.AdminUser, DefaultAdminUser),
                 Get(ConfigKeys.AdminPassword),
                 GetBool(ConfigKeys.CookieSecure, true),
-                Get(ConfigKeys.TrustedProxies)))
+                Get(ConfigKeys.TrustedProxies)),
+            new YouTubeOptions(
+                Get(ConfigKeys.YtdlpPath, DefaultYtdlpPath),
+                Get(ConfigKeys.DenoPath, DefaultDenoPath)))
         {
             Unparsable = unparsable,
         };
