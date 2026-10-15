@@ -25,7 +25,6 @@ public static class ServiceCollectionExtensions
             client => client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent));
         services.AddSingleton<IYtdlpReleases>(sp => new GitHubYtdlpReleases(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(GitHubClientName),
-            sp.GetRequiredService<TonTuyauOptions>(),
             sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IYtdlpInstaller>(sp => new YtdlpInstaller(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(GitHubClientName),

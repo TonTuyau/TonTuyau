@@ -134,7 +134,7 @@ internal sealed class YtdlpInstaller(HttpClient http, TonTuyauOptions options) :
     /// <summary>The program's SHA-256, from the release's <c>SHA2-256SUMS</c> ("&lt;hash&gt;  yt-dlp_linux").</summary>
     private async Task<string> ChecksumAsync(YtdlpRelease release, CancellationToken cancellationToken)
     {
-        Uri url = YtdlpRepositories.FileUrl(options.YouTube.DownloadsUrl, release, YtdlpRepositories.Checksums);
+        Uri url = YtdlpRepositories.FileUrl(release, YtdlpRepositories.Checksums);
         string sums = await GetAsync(url, cancellationToken).ConfigureAwait(false);
         foreach (string line in sums.Split('\n'))
         {
@@ -151,7 +151,7 @@ internal sealed class YtdlpInstaller(HttpClient http, TonTuyauOptions options) :
     /// <returns>The file's SHA-256, hex.</returns>
     private async Task<string> DownloadAsync(YtdlpRelease release, string file, CancellationToken cancellationToken)
     {
-        Uri url = YtdlpRepositories.FileUrl(options.YouTube.DownloadsUrl, release, YtdlpRepositories.LinuxProgram);
+        Uri url = YtdlpRepositories.FileUrl(release, YtdlpRepositories.LinuxProgram);
         try
         {
             using HttpResponseMessage response = await http
