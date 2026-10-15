@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "deno 2.9.7 (stable, release, x86_64-unknown-linux-gnu)"
+echo "v8 14.2.231.17-rusty"
