@@ -112,6 +112,21 @@ export type ApiKeyKind = ApiKey['kind']
 /** A key just created: its secret, given this once. */
 export type CreatedApiKey = Schemas['CreatedApiKeyResponse']
 
+/** The admin's YouTube page (1.5): the cookie (null: none) and the tools' versions. */
+export type YouTubeOverview = Schemas['YouTubeResponse']
+
+export type YouTubeCookie = Schemas['YouTubeCookieResponse']
+
+export type YouTubeCookieState = YouTubeCookie['state']
+
+/** Which yt-dlp is chosen and runs (1.5). */
+export type YtdlpState = Schemas['YtdlpStateResponse']
+
+export type YtdlpChoiceKind = YtdlpState['choice']['kind']
+
+/** The yt-dlp versions that can be chosen, the latest first. */
+export type YtdlpVersions = Schemas['YtdlpVersionsResponse']
+
 /** RFC 9457 ProblemDetails, as the backend sends it (`errors` on a 400). */
 export type ProblemDetails = Schemas['HttpValidationProblemDetails']
 
