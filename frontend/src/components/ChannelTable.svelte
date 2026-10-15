@@ -1,7 +1,8 @@
 <script lang="ts">
-  // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube and the total. Sorted by a
-  // column's button (again: the other way), filtered by name (accents and case ignored) and to the channels with videos
-  // gone from YouTube. All in the page: the API sent every channel.
+  // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube, to retry or not checked yet
+  // (1.5), and the total; and a link to its admin page. Sorted by a column's button (again: the other way), filtered
+  // by name (accents and case ignored) and to the channels with videos gone from YouTube. All in the page: the API sent
+  // every channel.
   import type { ChannelTotals } from '../lib/api/types'
   import { formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -11,7 +12,7 @@
 
   let { channels }: { channels: ChannelTotals[] } = $props()
 
-  type Column = 'name' | 'videos' | 'shorts' | 'streams' | 'gone' | 'total'
+  type Column = 'name' | 'videos' | 'shorts' | 'streams' | 'gone' | 'retryLater' | 'notChecked' | 'total'
 
   const columns: { key: Column; label: TextKey }[] = [
     { key: 'name', label: 'dashboard.channel' },
@@ -19,6 +20,8 @@
     { key: 'shorts', label: 'type.short' },
     { key: 'streams', label: 'type.stream' },
     { key: 'gone', label: 'dashboard.gone' },
+    { key: 'retryLater', label: 'dashboard.retryLater' },
+    { key: 'notChecked', label: 'dashboard.notChecked' },
     { key: 'total', label: 'dashboard.total' },
   ]
 
@@ -41,6 +44,10 @@
         return channel.counts[column]
       case 'gone':
         return channel.gone
+      case 'retryLater':
+        return channel.retryLater
+      case 'notChecked':
+        return channel.notChecked
       default:
         return channel.total
     }
@@ -103,6 +110,7 @@
             </button>
           </th>
         {/each}
+        <th><span class="visually-hidden">{t('dashboard.manage')}</span></th>
       </tr>
     </thead>
     <tbody>
@@ -118,11 +126,18 @@
           <td class="num" class:zero={channel.counts.shorts === 0}>{number(channel.counts.shorts)}</td>
           <td class="num" class:zero={channel.counts.streams === 0}>{number(channel.counts.streams)}</td>
           <td class="num"><span class="gone" class:some={channel.gone > 0}>{number(channel.gone)}</span></td>
+          <td class="num" class:zero={channel.retryLater === 0}>{number(channel.retryLater)}</td>
+          <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
           <td class="num"><b>{number(channel.total)}</b></td>
+          <td>
+            <a class="manage" href={href.adminChannel(channel.id)}
+              >{t('dashboard.manage')} <span class="visually-hidden">{channel.name}</span></a
+            >
+          </td>
         </tr>
       {:else}
         <tr>
-          <td class="empty" colspan={columns.length}>{t('dashboard.noChannel')}</td>
+          <td class="empty" colspan={columns.length + 1}>{t('dashboard.noChannel')}</td>
         </tr>
       {/each}
     </tbody>

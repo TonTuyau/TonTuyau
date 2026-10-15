@@ -4,6 +4,143 @@
  */
 
 export interface paths {
+  '/api/admin/channels/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AdminChannelResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/channels/{id}/videos': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description notChecked | onYouTube | retryLater | gone; every state when absent. */
+          state?: string
+          /** @description Words of the title, tags or description, 1–100 characters. */
+          q?: string
+          /** @description The previous page's nextCursor. */
+          cursor?: string
+          /** @description 1–100 (default 24). */
+          size?: number
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['PageOfAdminVideoResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/dashboard': {
     parameters: {
       query?: never
@@ -2629,6 +2766,15 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    AdminChannelResponse: {
+      channel: components['schemas']['ChannelCard']
+      youTube: components['schemas']['YouTubeStatusResponse']
+      videos: components['schemas']['YouTubeStateCounts']
+    }
+    AdminVideoResponse: {
+      video: components['schemas']['VideoCard']
+      youTube: components['schemas']['YouTubeStatusResponse']
+    }
     /** @enum {string} */
     ApiKeyKind: 'browserExtension'
     ApiKeyResponse: {
@@ -2675,6 +2821,10 @@ export interface components {
       counts: components['schemas']['VideoCounts']
       /** Format: int64 */
       gone: number
+      /** Format: int64 */
+      retryLater: number
+      /** Format: int64 */
+      notChecked: number
       /** Format: int64 */
       total: number
     }
@@ -2768,6 +2918,12 @@ export interface components {
     MediaTrackKind: 'video' | 'audio'
     MeResponse: {
       username: string
+    }
+    PageOfAdminVideoResponse: {
+      items: components['schemas']['AdminVideoResponse'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
     }
     PageOfChannelCard: {
       items: components['schemas']['ChannelCard'][]
@@ -3042,6 +3198,26 @@ export interface components {
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string
+    }
+    /** @enum {string} */
+    YouTubeState: 'notChecked' | 'onYouTube' | 'retryLater' | 'gone'
+    YouTubeStateCounts: {
+      /** Format: int64 */
+      notChecked: number
+      /** Format: int64 */
+      onYouTube: number
+      /** Format: int64 */
+      retryLater: number
+      /** Format: int64 */
+      gone: number
+    }
+    YouTubeStatusResponse: {
+      state: components['schemas']['YouTubeState']
+      /** Format: date-time */
+      checkedAt: null | string
+      reason: null | string
+      /** Format: date-time */
+      refreshedAt: null | string
     }
     /** @enum {string} */
     YtdlpChoiceKind: 'latest' | 'official' | 'nightly'

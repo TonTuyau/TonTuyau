@@ -26,6 +26,7 @@ describe('routes', () => {
     ['/admin/runs', { name: 'notFound' }],
     ['/admin/api-keys', { name: 'admin', page: 'apiKeys' }],
     ['/admin/youtube', { name: 'admin', page: 'youTube' }],
+    ['/admin/channels/UCx7Lm2QpB0vK9sTq4aZ1wYc', { name: 'admin', page: 'channel', id: 'UCx7Lm2QpB0vK9sTq4aZ1wYc' }],
     ['/admin/api-keys/1', { name: 'notFound' }],
     ['/admin/runs/a/b', { name: 'notFound' }],
     ['/admin/runs/%E0%A4%A', { name: 'notFound' }],

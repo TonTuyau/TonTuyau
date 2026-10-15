@@ -46,10 +46,10 @@ Feature: The admin dashboard
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then the dashboard's channels are:
-      | name      | videos | shorts | streams | gone | total |
-      | ARTE      | 1      | 1      | 1       | 2    | 3     |
-      | Tom Cooks | 2      | 1      | 0       | 1    | 3     |
-      | Zeste     | 0      | 0      | 0       | 0    | 0     |
+      | name      | videos | shorts | streams | gone | retryLater | notChecked | total |
+      | ARTE      | 1      | 1      | 1       | 2    | 1          | 0          | 3     |
+      | Tom Cooks | 2      | 1      | 0       | 1    | 1          | 1          | 3     |
+      | Zeste     | 0      | 0      | 0       | 0    | 0          | 0          | 0     |
     And "channels[1].id" is "{channel:tomcooks}"
     And "channels[1].thumbnailUrl" is "/art/channels/{channel:tomcooks}/thumb"
     And "channels[1].thumbnails" lists the widths "88, 176, 900"

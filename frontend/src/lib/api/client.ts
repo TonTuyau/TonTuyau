@@ -1,6 +1,8 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  AdminChannel,
+  AdminVideo,
   ApiKey,
   ApiKeyKind,
   ChannelCard,
@@ -27,10 +29,11 @@ import type {
   VideoCard,
   VideoDetail,
   VideoListParams,
+  YouTubeCommentsChoice,
   YouTubeCookie,
   YouTubeOverview,
-  YouTubeCommentsChoice,
   YouTubeSettings,
+  YouTubeState,
   YtdlpChoiceKind,
   YtdlpState,
   YtdlpVersions,
@@ -291,6 +294,20 @@ export const api = {
   /** The versions that can be chosen (from GitHub; 502 when it can't be reached). */
   ytdlpVersions(signal?: AbortSignal): Promise<YtdlpVersions> {
     return get('/api/admin/youtube/ytdlp/versions', {}, signal)
+  },
+
+  /** A channel's admin page (1.5): the channel, its state on YouTube, how many of its videos are in each state. */
+  adminChannel(id: string, signal?: AbortSignal): Promise<AdminChannel> {
+    return get(`/api/admin/channels/${segment(id)}`, {}, signal)
+  },
+
+  /** Its videos with their state on YouTube, latest first; by state or words, page by page. */
+  adminChannelVideos(
+    id: string,
+    query: { state?: YouTubeState; q?: string; cursor?: string },
+    signal?: AbortSignal,
+  ): Promise<Page<AdminVideo>> {
+    return get(`/api/admin/channels/${segment(id)}/videos`, query, signal)
   },
 
   /** How YouTube is read (1.5): which comments the refreshes read (none, the top N, all). */

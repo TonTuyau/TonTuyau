@@ -71,15 +71,15 @@ public sealed class DashboardServiceTests
             0,
             new Dictionary<string, ChannelStats>
             {
-                ["a"] = new(new TypeCounts(3, 1, 0), 1),
-                ["c"] = new(new TypeCounts(10, 0, 2), 4),
+                ["a"] = new(new TypeCounts(3, 1, 0), 1, 2, 0),
+                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 5),
             });
 
         IReadOnlyList<ChannelTotalsView> channels = (await Service().GetAsync(Ct)).Channels;
 
         Assert.Equal(
-            [("c", 12L, 4L), ("a", 4L, 1L), ("b", 0L, 0L)],
-            channels.Select(c => (c.Id, c.Total, c.Gone)));
+            [("c", 12L, 4L, 0L, 5L), ("a", 4L, 1L, 2L, 0L), ("b", 0L, 0L, 0L, 0L)],
+            channels.Select(c => (c.Id, c.Total, c.Gone, c.RetryLater, c.NotChecked)));
         Assert.Equal(new TypeCounts(10, 0, 2), channels[0].Counts);
         Assert.Equal(TypeCounts.None, channels[2].Counts);
         Assert.Equal(["a", "b", "c"], _store.CountedChannels);

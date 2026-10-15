@@ -1,5 +1,6 @@
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Store;
 
@@ -63,6 +64,11 @@ public interface IVideoRepository
     Task<StorePage<VideoListItem>> FindAsync(VideoQuery query, PageRequest page, CancellationToken cancellationToken);
 
     /// <returns>Per channel id: how many videos, shorts and streams it has. Channels without any are left out.</returns>
+    /// <returns>How many videos of the channel are in each state on YouTube (1.5); a state without any isn't there.</returns>
+    Task<IReadOnlyDictionary<YouTubeState, long>> CountYouTubeStatesAsync(
+        string channelId,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyDictionary<string, TypeCounts>> CountByTypeAsync(
         IReadOnlyCollection<string> channelIds,
         CancellationToken cancellationToken);

@@ -5,6 +5,7 @@ using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.UnitTests.Browse;
 
@@ -177,6 +178,11 @@ public sealed class SearchServiceTests
             IReadOnlyCollection<string> channelIds,
             CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyDictionary<string, TypeCounts>>(new Dictionary<string, TypeCounts>());
+
+        public Task<IReadOnlyDictionary<YouTubeState, long>> CountYouTubeStatesAsync(
+            string channelId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<StoredVideo?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
