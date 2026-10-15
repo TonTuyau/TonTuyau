@@ -10,7 +10,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         settings.GetAsync(cancellationToken);
 
     /// <param name="comments"><c>off</c>, <c>top</c> or <c>all</c>; required.</param>
-    /// <param name="commentsMax">For <c>top</c>: how many (1 to 100,000); absent: the one kept.</param>
+    /// <param name="commentsMax">For <c>top</c>: how many (1 or more); absent: the one kept.</param>
     /// <param name="by">The admin changing them.</param>
     /// <exception cref="ValidationException">A setting is missing or out of bounds.</exception>
     public async Task<YouTubeSettings> SaveAsync(
@@ -26,9 +26,9 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         }
 
         RequestRules.OneOf(errors, "comments", comments, ApiValues.CommentChoices);
-        if (commentsMax is < 1 or > YouTubeSettings.MaxCommentsMax)
+        if (commentsMax is < 1)
         {
-            errors.Add("commentsMax", $"must be from 1 to {YouTubeSettings.MaxCommentsMax}.");
+            errors.Add("commentsMax", "must be 1 or more.");
         }
 
         errors.ThrowIfAny(RequestRules.Subject);

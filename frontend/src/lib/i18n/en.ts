@@ -216,8 +216,8 @@ export const en = {
   'youTube.comments.top': 'The top ones',
   'youTube.comments.topHint': "YouTube's top comments first, answers included, up to:",
   'youTube.comments.max': 'How many comments, at most',
-  'youTube.comments.perVideo': 'per video (1 to 100,000)',
-  'youTube.comments.max.invalid': 'A whole number from 1 to 100,000.',
+  'youTube.comments.perVideo': 'per video',
+  'youTube.comments.max.invalid': 'A whole number, 1 or more.',
   'youTube.comments.all': 'All',
   'youTube.comments.allHint':
     'Every comment and every answer. Slow: YouTube gives about 20 per request, so a video with 50,000 comments takes half an hour or more, and a channel with its videos can take hours. So many requests may make YouTube ask for a bot check.',

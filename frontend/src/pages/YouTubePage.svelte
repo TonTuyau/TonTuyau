@@ -75,8 +75,6 @@
 
   // ---------------------------------------------------------------- reading YouTube
 
-  const MAX_COMMENTS = 100_000
-
   let comments = $state<YouTubeCommentsChoice>('off')
   let commentsMax = $state<number | null>(500)
   let commentsInvalid = $state<string | null>(null)
@@ -98,7 +96,7 @@
   async function saveComments(event: SubmitEvent) {
     event.preventDefault()
     const max = commentsMax
-    if (comments === 'top' && !(max !== null && Number.isInteger(max) && max >= 1 && max <= MAX_COMMENTS)) {
+    if (comments === 'top' && !(max !== null && Number.isInteger(max) && max >= 1)) {
       commentsInvalid = t('youTube.comments.max.invalid')
       return
     }
@@ -428,7 +426,6 @@
               <input
                 type="number"
                 min="1"
-                max={MAX_COMMENTS}
                 step="1"
                 inputmode="numeric"
                 aria-label={t('youTube.comments.max')}

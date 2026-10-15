@@ -126,16 +126,26 @@ public sealed class YtdlpSteps(ScenarioState state, AuthSteps auth) : IAsyncDisp
         Assert.Equal(Split(nightly), Versions("nightly"));
     }
 
+    /// <summary>
+    /// Within a few seconds: the backend switches to the new version first, then removes the others (never one still
+    /// in use), so the page can say it runs a moment before the old program is gone.
+    /// </summary>
     [Then("the tools folder holds yt-dlp {string} only")]
-    public void ToolsHold(string version)
+    public async Task ToolsHold(string version)
     {
         string root = state.Settings.Get(ConfigKeys.EnvironmentName(ConfigKeys.ToolsRoot))!;
-        Assert.Equal(
-            version.Length == 0 ? [] : [$"yt-dlp-{version}"],
-            Directory
-                .EnumerateFiles(root, "yt-dlp-*")
-                .Select(Path.GetFileName)
-                .ToArray());
+        string?[] expected = version.Length == 0 ? [] : [$"yt-dlp-{version}"];
+        string?[] Held() => Directory
+            .EnumerateFiles(root, "yt-dlp-*")
+            .Select(Path.GetFileName)
+            .ToArray();
+        DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!Held().SequenceEqual(expected) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+        }
+
+        Assert.Equal(expected, Held());
     }
 
     [Then("yt-dlp {string} was downloaded {int} time(s)")]

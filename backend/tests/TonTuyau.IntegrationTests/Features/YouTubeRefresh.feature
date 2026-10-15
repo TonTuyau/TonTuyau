@@ -95,18 +95,18 @@ Feature: Refreshing videos and channels on YouTube
     And "comments" is "off"
     And "commentsMax" is "500"
     And "changedBy" is null
-    When I send the YouTube settings '{"comments": "top", "commentsMax": 2000}' with my session
+    When I send the YouTube settings '{"comments": "top", "commentsMax": 250000}' with my session
     Then the response status is 200
     And "comments" is "top"
-    And "commentsMax" is "2000"
+    And "commentsMax" is "250000"
     And "changedBy" is "admin"
     When I send the YouTube settings '{"comments": "all"}' with my session
     Then "comments" is "all"
-    And "commentsMax" is "2000"
+    And "commentsMax" is "250000"
     When I request "/api/admin/youtube/settings" with my session
     Then "comments" is "all"
 
-  Scenario Outline: A setting missing or out of bounds is refused
+  Scenario Outline: A setting missing or wrong is refused
     When I send the YouTube settings '<body>' with my session
     Then the response status is 400
 
@@ -115,7 +115,7 @@ Feature: Refreshing videos and channels on YouTube
       | {}                                         |
       | {"comments": "yes"}                        |
       | {"comments": "top", "commentsMax": 0}      |
-      | {"comments": "top", "commentsMax": 100001} |
+      | {"comments": "top", "commentsMax": -3}     |
       | {"comments": true}                         |
 
   Scenario: A video's comments (answers included) and chapters are kept, replaced at each refresh

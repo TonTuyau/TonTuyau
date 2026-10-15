@@ -93,7 +93,7 @@ describe('YouTubePage', () => {
     ])
   })
 
-  it('refuses a number out of bounds before asking, and shows what is saved after a refusal', async () => {
+  it('refuses a number below 1 before asking, and shows what is saved after a refusal', async () => {
     const user = userEvent.setup()
     const api = routes({
       '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) =>
@@ -107,9 +107,9 @@ describe('YouTubePage', () => {
     await user.click(await within(card).findByRole('radio', { name: /^The top ones/ }))
     const max = within(card).getByRole('spinbutton', { name: 'How many comments, at most' })
     await user.clear(max)
-    await user.type(max, '100001')
+    await user.type(max, '0')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
-    expect(within(card).getByRole('alert')).toHaveTextContent('A whole number from 1 to 100,000.')
+    expect(within(card).getByRole('alert')).toHaveTextContent('A whole number, 1 or more.')
     const puts = () => api.calls.filter((url) => url.pathname === '/api/admin/youtube/settings').length
     const before = puts()
 

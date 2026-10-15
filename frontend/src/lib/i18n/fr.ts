@@ -219,8 +219,8 @@ export const fr: Dictionary = {
   'youTube.comments.top': 'Les meilleurs',
   'youTube.comments.topHint': "Les meilleurs commentaires de YouTube d'abord, réponses comprises, jusqu'à :",
   'youTube.comments.max': 'Combien de commentaires, au plus',
-  'youTube.comments.perVideo': 'par vidéo (de 1 à 100 000)',
-  'youTube.comments.max.invalid': 'Un nombre entier de 1 à 100 000.',
+  'youTube.comments.perVideo': 'par vidéo',
+  'youTube.comments.max.invalid': 'Un nombre entier, 1 ou plus.',
   'youTube.comments.all': 'Tous',
   'youTube.comments.allHint':
     'Chaque commentaire et chaque réponse. Lent : YouTube en donne environ 20 par requête, donc une vidéo de 50 000 commentaires prend une demi-heure ou plus, et une chaîne avec ses vidéos peut prendre des heures. Autant de requêtes peuvent pousser YouTube à demander une vérification anti-robot.',
