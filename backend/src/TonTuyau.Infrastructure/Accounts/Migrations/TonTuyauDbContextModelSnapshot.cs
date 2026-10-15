@@ -213,6 +213,42 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
                     b.ToTable("youtube_cookie", (string)null);
                 });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YtdlpSettingsRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<DateTimeOffset?>("ChosenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("chosen_at");
+
+                    b.Property<string>("ChosenBy")
+                        .HasColumnType("text")
+                        .HasColumnName("chosen_by");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("text")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ytdlp_settings", (string)null);
+                });
 #pragma warning restore 612, 618
         }
     }

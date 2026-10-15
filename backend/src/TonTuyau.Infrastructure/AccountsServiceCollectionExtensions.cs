@@ -13,7 +13,9 @@ namespace TonTuyau.Infrastructure;
 
 public static class AccountsServiceCollectionExtensions
 {
-    /// <summary>TonTuyau's PostgreSQL (EF Core), the accounts, the API keys and the YouTube cookie in it.</summary>
+    /// <summary>
+    /// TonTuyau's PostgreSQL (EF Core), the accounts, the API keys, the YouTube cookie and the yt-dlp chosen in it.
+    /// </summary>
     public static IServiceCollection AddAccounts(this IServiceCollection services)
     {
         services.AddDbContext<TonTuyauDbContext>((sp, o) =>
@@ -26,6 +28,8 @@ public static class AccountsServiceCollectionExtensions
         services.AddScoped<IYouTubeCookieRepository, YouTubeCookieRepository>();
         services.AddSingleton<IYouTubeCookieSource, YouTubeCookieSource>();
         services.AddScoped<YouTubeCookieService>();
+        services.AddScoped<IYtdlpSettingsRepository, YtdlpSettingsRepository>();
+        services.AddScoped<YtdlpService>();
         return services;
     }
 

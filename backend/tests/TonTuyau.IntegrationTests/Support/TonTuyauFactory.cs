@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using TonTuyau.TubeArchivist;
+using YouTubeServices = TonTuyau.YouTube.ServiceCollectionExtensions;
 
 namespace TonTuyau.IntegrationTests.Support;
 
@@ -27,6 +28,10 @@ public sealed class TonTuyauFactory(
                     o.Retry.Delay = TimeSpan.FromMilliseconds(1);
                     o.Retry.UseJitter = false;
                 });
+            // Never the real GitHub: a scenario that starts the fake one points the client there (after this).
+            services
+                .AddHttpClient(YouTubeServices.GitHubClientName)
+                .ConfigurePrimaryHttpMessageHandler(() => new GitHubRedirect(fake: null));
             foreach (Action<IServiceCollection> apply in overrides)
             {
                 apply(services);

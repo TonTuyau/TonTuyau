@@ -102,6 +102,8 @@ services:
           create_host_path: false
       - tontuyau-art:/data/art
       - tontuyau-sync-logs:/data/logs/sync
+      # The yt-dlp versions TonTuyau downloads (1.5): kept across restarts and upgrades.
+      - tontuyau-tools:/data/tools
     healthcheck:
       # The generic /health (QA14-5): the process answers, nothing more. Other clients may use this API, so the
       # container's health doesn't depend on Elasticsearch; /health/ready (Elasticsearch usable, TonTuyau's indices
@@ -147,3 +149,4 @@ volumes:
   tontuyau-es-data:
   tontuyau-art:
   tontuyau-sync-logs:
+  tontuyau-tools:

@@ -51,9 +51,9 @@ LABEL org.opencontainers.image.title="TonTuyau backend" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
-# The image's own non-root user (app, uid 1654) owns the art and the sync logs; volumes mounted there start with
-# this ownership. The media share is mounted read-only at /youtube.
-RUN mkdir -p /data/art /data/logs/sync /youtube \
+# The image's own non-root user (app, uid 1654) owns the art, the sync logs and the yt-dlp versions it downloads
+# (1.5); volumes mounted there start with this ownership. The media share is mounted read-only at /youtube.
+RUN mkdir -p /data/art /data/logs/sync /data/tools /youtube \
  && chown -R "$APP_UID:$APP_UID" /data
 COPY --from=build /app /app
 COPY --from=tools --chmod=755 /tools/yt-dlp /tools/deno /usr/local/bin/
@@ -66,6 +66,7 @@ ENV PATH="/app:${PATH}" \
     TONTUYAU_MEDIA_ROOT=/youtube \
     TONTUYAU_ART_ROOT=/data/art \
     TONTUYAU_SYNC_LOG_ROOT=/data/logs/sync \
+    TONTUYAU_TOOLS_ROOT=/data/tools \
     DENO_DIR=/tmp/deno
 USER $APP_UID
 WORKDIR /app

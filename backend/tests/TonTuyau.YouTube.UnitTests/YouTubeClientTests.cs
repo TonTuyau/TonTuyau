@@ -27,7 +27,11 @@ public sealed class YouTubeClientTests
             })
             .Build();
         TonTuyauOptions options = TonTuyauOptionsReader.Read(configuration);
-        return new YouTubeClient(options, new FixedCookieSource(cookie), NullLogger<YouTubeClient>.Instance);
+        return new YouTubeClient(
+            options,
+            new YtdlpLocator(options.YouTube.YtdlpPath),
+            new FixedCookieSource(cookie),
+            NullLogger<YouTubeClient>.Instance);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;

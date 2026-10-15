@@ -7,8 +7,9 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Api.Controllers;
 
 /// <summary>
-/// The admin's YouTube page (1.5): the cookie TonTuyau signs in with (checking it again, removing it) and the tools'
-/// versions. An admin's session only.
+/// The admin's YouTube page (1.5): the cookie TonTuyau signs in with (checking it again, removing it), the tools'
+/// versions, and which yt-dlp runs (the latest official release by default, or a version chosen). An admin's session
+/// only.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -16,8 +17,11 @@ namespace TonTuyau.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, Problems.ContentType)]
-public sealed class YouTubeController(YouTubeCookieService cookies) : ControllerBase
+public sealed class YouTubeController(YouTubeCookieService cookies, YtdlpService ytdlp) : ControllerBase
 {
+    /// <summary>The largest choice taken: a kind and a version fit in far less.</summary>
+    public const int MaxRequestBytes = 1024;
+
     /// <summary>The cookie (null when there's none) and the versions of yt-dlp and Deno (null when one can't be run).</summary>
     [HttpGet]
     [ProducesResponseType<YouTubeResponse>(StatusCodes.Status200OK)]
@@ -45,6 +49,42 @@ public sealed class YouTubeController(YouTubeCookieService cookies) : Controller
             .DeleteAsync(Account(), cancellationToken)
             .ConfigureAwait(false);
         return NoContent();
+    }
+
+    /// <summary>Which yt-dlp is chosen, which runs, whether another waits for the task going on, the last check.</summary>
+    [HttpGet("ytdlp")]
+    [ProducesResponseType<YtdlpStateResponse>(StatusCodes.Status200OK)]
+    public async Task<YtdlpStateResponse> GetYtdlpAsync(CancellationToken cancellationToken) =>
+        (YtdlpStateResponse)await ytdlp
+            .GetStateAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>The versions that can be chosen (from GitHub, kept an hour). 502 when GitHub can't be reached.</summary>
+    [HttpGet("ytdlp/versions")]
+    [ProducesResponseType<YtdlpVersionsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway, Problems.ContentType)]
+    public async Task<YtdlpVersionsResponse> GetYtdlpVersionsAsync(CancellationToken cancellationToken) =>
+        (YtdlpVersionsResponse)await ytdlp
+            .ListVersionsAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>
+    /// Chooses which yt-dlp runs: 202, it's downloaded, checked and tried in the background, then used from the next
+    /// task (GET ytdlp says where it's at). 400 when the version isn't one offered.
+    /// </summary>
+    [HttpPut("ytdlp")]
+    [Consumes("application/json")]
+    [RequestSizeLimit(MaxRequestBytes)]
+    [ProducesResponseType<YtdlpStateResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway, Problems.ContentType)]
+    public async Task<AcceptedResult> ChooseYtdlpAsync(ChooseYtdlpRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        YtdlpState state = await ytdlp
+            .ChooseAsync(request.Kind, request.Version, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri("/api/admin/youtube/ytdlp", UriKind.Relative), (YtdlpStateResponse)state);
     }
 
     /// <summary>The logged-in account's name ([Authorize]: there is one).</summary>

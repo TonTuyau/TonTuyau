@@ -26,7 +26,7 @@ builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(
     (mode, ct) => sp.GetRequiredService<SyncRunner>().RunAsync(mode, SyncTrigger.Scheduler, ct));
 builder.Services.AddHostedService<SyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
-builder.Services.AddHostedService<YouTubeToolsCheck>();
+builder.Services.AddHostedService<YtdlpUpdater>();
 builder.Services.AddTonTuyauApi();
 builder.Services.AddTonTuyauAuth();
 builder.Services.AddRunLogs();

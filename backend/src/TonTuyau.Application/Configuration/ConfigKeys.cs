@@ -41,6 +41,7 @@ public static class ConfigKeys
 
     public const string YtdlpPath = "YTDLP_PATH";
     public const string DenoPath = "DENO_PATH";
+    public const string ToolsRoot = "TOOLS_ROOT";
 
     public static string EnvironmentName(string key) => EnvironmentPrefix + key;
 }

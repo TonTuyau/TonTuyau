@@ -8,7 +8,7 @@ namespace TonTuyau.Infrastructure.Accounts;
 
 /// <summary>
 /// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
-/// runs' logs (1.4), the API keys and the YouTube cookie (1.5).
+/// runs' logs (1.4), the API keys, the YouTube cookie and the yt-dlp chosen (1.5).
 /// Table and column names are snake_case, as PostgreSQL likes them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
@@ -23,6 +23,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<ApiKeyRow> ApiKeys => Set<ApiKeyRow>();
 
     public DbSet<YouTubeCookieRow> YouTubeCookie => Set<YouTubeCookieRow>();
+
+    public DbSet<YtdlpSettingsRow> YtdlpSettings => Set<YtdlpSettingsRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +99,23 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasConversion<string>();
             cookie.Property(c => c.CheckedAt).HasColumnName("checked_at");
             cookie.Property(c => c.Reason).HasColumnName("reason");
+        });
+        modelBuilder.Entity<YtdlpSettingsRow>(settings =>
+        {
+            settings.ToTable("ytdlp_settings");
+            settings
+                .Property(s => s.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            settings
+                .Property(s => s.Kind)
+                .HasColumnName("kind")
+                .HasConversion<string>();
+            settings.Property(s => s.Version).HasColumnName("version");
+            settings.Property(s => s.ChosenBy).HasColumnName("chosen_by");
+            settings.Property(s => s.ChosenAt).HasColumnName("chosen_at");
+            settings.Property(s => s.CheckedAt).HasColumnName("checked_at");
+            settings.Property(s => s.Error).HasColumnName("error");
         });
     }
 }

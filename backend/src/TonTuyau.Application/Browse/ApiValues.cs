@@ -3,6 +3,7 @@ using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
@@ -103,6 +104,13 @@ public static class ApiValues
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
     {
         ["browserExtension"] = ApiKeyKind.BrowserExtension,
+    };
+
+    public static readonly Table<YtdlpChoiceKind> YtdlpChoices = new()
+    {
+        ["latest"] = YtdlpChoiceKind.Latest,
+        ["official"] = YtdlpChoiceKind.Official,
+        ["nightly"] = YtdlpChoiceKind.Nightly,
     };
 
     public static readonly Table<ImportPeriod> ImportPeriods = new()

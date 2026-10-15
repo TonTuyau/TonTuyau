@@ -72,6 +72,10 @@ internal static class Problems
         "Not for this key",
         "This API key's kind doesn't allow this.");
 
+    /// <summary>GitHub, where yt-dlp's versions come from, can't be reached or answered something unexpected (1.5).</summary>
+    public static ProblemDetails GitHubUnreachable(string detail) =>
+        Of(StatusCodes.Status502BadGateway, "github-unreachable", "GitHub unreachable", detail);
+
     public static ProblemDetails NotLoggedIn() =>
         Of(StatusCodes.Status401Unauthorized, "not-logged-in", "Not logged in", "Nobody is logged in.");
 

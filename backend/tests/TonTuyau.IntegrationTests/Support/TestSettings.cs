@@ -18,9 +18,14 @@ public sealed class TestSettings
         // PostgresHooks points every scenario at a database of its own; the admin is created at its first start.
         [ConfigKeys.EnvironmentName(ConfigKeys.DbPassword)] = "db-password",
         [ConfigKeys.EnvironmentName(ConfigKeys.AdminPassword)] = AdminPassword,
+        // The yt-dlp versions downloaded (1.5) go to a folder of the scenario's own (GitHub: see GitHubRedirect).
+        [ConfigKeys.EnvironmentName(ConfigKeys.ToolsRoot)] =
+            Path.Combine(Path.GetTempPath(), "tontuyau-tools-" + Guid.NewGuid().ToString("N")),
     };
 
     public void Set(string environmentName, string? value) => _values[environmentName] = value;
+
+    public string? Get(string environmentName) => _values.GetValueOrDefault(environmentName);
 
     /// <summary>Configuration keys as the app reads them (prefix stripped, like the env provider does).</summary>
     public IReadOnlyDictionary<string, string?> ToConfiguration() =>
