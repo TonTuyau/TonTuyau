@@ -10,6 +10,9 @@ public sealed class YouTubeVideoRow
 {
     public required string VideoId { get; set; }
 
+    /// <summary>The video's channel in the library: a row of <c>youtube_channels</c>.</summary>
+    public required string ChannelId { get; set; }
+
     /// <summary>Stored as its name (<c>Gone</c>).</summary>
     public YouTubeState State { get; set; }
 
@@ -54,6 +57,6 @@ public sealed class YouTubeVideoRow
                 row.Likes ?? 0,
                 row.CommentCount,
                 row.ThumbnailPath);
-        return new VideoFacts(row.VideoId, status, refreshed);
+        return new VideoFacts(row.VideoId, row.ChannelId, status, refreshed);
     }
 }

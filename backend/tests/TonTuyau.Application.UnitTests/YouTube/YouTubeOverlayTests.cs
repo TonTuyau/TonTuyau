@@ -61,7 +61,7 @@ public sealed class YouTubeOverlayTests
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, gone, Refreshed: null));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, gone, Refreshed: null));
 
         Assert.Same(gone, video.YouTube);
         Assert.True(video.GoneFromYouTube);
@@ -85,7 +85,7 @@ public sealed class YouTubeOverlayTests
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, onYouTube, refreshed));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, onYouTube, refreshed));
 
         Assert.Equal("YouTube's title", video.Title);
         Assert.Equal("Sa chaîne", video.ChannelName);
@@ -105,7 +105,7 @@ public sealed class YouTubeOverlayTests
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, onYouTube, refreshed));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, onYouTube, refreshed));
 
         Assert.Equal("/art/videos/abcdefghijk.jpg", video.ThumbnailPath);
     }
@@ -125,6 +125,18 @@ public sealed class YouTubeOverlayTests
         Assert.Equal("/art/thumb.jpg", channel.ThumbPath);
         Assert.Equal(ChannelFromTubeArchivist.BannerPath, channel.BannerPath);
         Assert.False(channel.GoneFromYouTube);
+    }
+
+    [Fact]
+    public void A_channel_recorded_only_for_its_videos_still_follows_TubeArchivist_s_flag()
+    {
+        YouTubeStatus notChecked = new(YouTubeState.NotChecked, null, null, null);
+
+        Channel channel = YouTubeOverlay.On(
+            ChannelFromTubeArchivist with { Active = false },
+            new ChannelFacts(ChannelFromTubeArchivist.Id, notChecked, Refreshed: null));
+
+        Assert.Equal(YouTubeState.RetryLater, channel.YouTube!.State);
     }
 
     [Fact]

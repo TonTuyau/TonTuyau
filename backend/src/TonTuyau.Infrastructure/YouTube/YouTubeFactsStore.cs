@@ -20,9 +20,24 @@ internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeF
                 .ConfigureAwait(false);
             if (row is null)
             {
-                row = new YouTubeVideoRow { VideoId = facts.VideoId };
+                row = new YouTubeVideoRow { VideoId = facts.VideoId, ChannelId = facts.ChannelId };
                 db.YouTubeVideos.Add(row);
             }
+
+            // Its channel has a row before it (the foreign key): "not checked" until TonTuyau reads the channel.
+            bool channelKnown = await db.YouTubeChannels
+                .AnyAsync(c => c.ChannelId == facts.ChannelId, cancellationToken)
+                .ConfigureAwait(false);
+            if (!channelKnown)
+            {
+                db.YouTubeChannels.Add(new YouTubeChannelRow
+                {
+                    ChannelId = facts.ChannelId,
+                    State = YouTubeState.NotChecked,
+                });
+            }
+
+            row.ChannelId = facts.ChannelId;
 
             row.State = facts.Status.State;
             row.CheckedAt = facts.Status.CheckedAt;

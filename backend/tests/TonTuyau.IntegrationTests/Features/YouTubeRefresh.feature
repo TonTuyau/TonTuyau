@@ -73,6 +73,14 @@ Feature: Refreshing videos and channels on YouTube
     And the stored YouTube state of the video "alpha-02" is "gone"
     And the stored YouTube state of the video "alpha-03" is "retry later"
 
+  Scenario: Refreshing a video records its channel, not checked: its badge still follows TubeArchivist
+    Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has the channel "alpha" as "not checked"
+    When I request the channel "alpha" of TubeArchivist
+    Then "active" is "true"
+
   Scenario: A channel alone leaves its videos as they are
     Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
     When I refresh the channel "alpha" with my session

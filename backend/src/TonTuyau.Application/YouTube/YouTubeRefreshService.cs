@@ -184,15 +184,18 @@ public sealed partial class YouTubeRefreshService(
         {
             YouTubeAnswer.Found => new VideoFacts(
                 videoId,
+                video.ChannelId,
                 new YouTubeStatus(YouTubeState.OnYouTube, now, null, now),
                 RefreshedOf(lookup.Item!, video, known?.Refreshed)),
             YouTubeAnswer.Gone => new VideoFacts(
                 videoId,
+                video.ChannelId,
                 new YouTubeStatus(YouTubeState.Gone, now, lookup.Reason, known?.Status.RefreshedAt),
                 known?.Refreshed),
             _ when IsConfirmed(known?.Status) => known!,
             _ => new VideoFacts(
                 videoId,
+                video.ChannelId,
                 new YouTubeStatus(YouTubeState.RetryLater, now, lookup.Reason, known?.Status.RefreshedAt),
                 known?.Refreshed),
         };

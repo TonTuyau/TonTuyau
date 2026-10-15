@@ -13,8 +13,8 @@ using TonTuyau.Infrastructure.Accounts;
 namespace TonTuyau.Infrastructure.Accounts.Migrations
 {
     [DbContext(typeof(TonTuyauDbContext))]
-    [Migration("20261015191035_YouTubeVideoChannelName")]
-    partial class YouTubeVideoChannelName
+    [Migration("20261015195003_YouTubeVideoChannel")]
+    partial class YouTubeVideoChannel
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -282,6 +282,11 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("categories");
 
+                    b.Property<string>("ChannelId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
                     b.Property<string>("ChannelName")
                         .HasColumnType("text")
                         .HasColumnName("channel_name");
@@ -334,6 +339,8 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
                     b.HasKey("VideoId");
 
+                    b.HasIndex("ChannelId");
+
                     b.ToTable("youtube_videos", (string)null);
                 });
 
@@ -371,6 +378,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ytdlp_settings", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.YouTube.YouTubeChannelRow", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

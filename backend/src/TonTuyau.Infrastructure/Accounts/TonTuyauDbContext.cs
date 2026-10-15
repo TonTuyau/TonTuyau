@@ -127,6 +127,12 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             video.ToTable("youtube_videos");
             video.HasKey(v => v.VideoId);
             video.Property(v => v.VideoId).HasColumnName("video_id");
+            video.Property(v => v.ChannelId).HasColumnName("channel_id");
+            video
+                .HasOne<YouTubeChannelRow>()
+                .WithMany()
+                .HasForeignKey(v => v.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
             video
                 .Property(v => v.State)
                 .HasColumnName("state")

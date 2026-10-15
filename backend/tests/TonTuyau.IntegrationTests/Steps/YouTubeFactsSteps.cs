@@ -25,6 +25,7 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
     public Task VideoGone(string name) => SaveAsync(new YouTubeVideoRow
     {
         VideoId = FakeTubeArchivist.VideoId(name),
+        ChannelId = ChannelOf(name),
         State = YouTubeState.Gone,
         CheckedAt = Checked,
         Reason = "Video unavailable. This video has been removed by the uploader",
@@ -43,6 +44,7 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
     public Task Refreshed(string name, string title, int views) => SaveAsync(new YouTubeVideoRow
     {
         VideoId = FakeTubeArchivist.VideoId(name),
+        ChannelId = ChannelOf(name),
         State = YouTubeState.OnYouTube,
         CheckedAt = Checked,
         RefreshedAt = Checked,
@@ -72,6 +74,18 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         Assert.Equal(expected, Name(video.CurrentYouTube.State));
     }
 
+    [Then("PostgreSQL has the channel {string} as {string}")]
+    public async Task ChannelRow(string name, string expected)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        YouTubeChannelRow? row = await scope.ServiceProvider
+            .GetRequiredService<TonTuyauDbContext>()
+            .YouTubeChannels
+            .FindAsync(FakeTubeArchivist.ChannelId(name));
+        Assert.NotNull(row);
+        Assert.Equal(expected, Name(row.State));
+    }
+
     private static string Name(YouTubeState state) => state switch
     {
         YouTubeState.OnYouTube => "on YouTube",
@@ -80,13 +94,32 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         _ => "not checked",
     };
 
-    /// <summary>Written once the backend made its tables (it migrates PostgreSQL at startup).</summary>
+    /// <summary>"alpha-01" → the channel "alpha".</summary>
+    private static string ChannelOf(string video) => FakeTubeArchivist.ChannelId(video.Split('-')[0]);
+
+    /// <summary>
+    /// Written once the backend made its tables (it migrates PostgreSQL at startup). A video's channel gets a row first
+    /// (the foreign key), "not checked" unless a scenario said more; a channel updates that row.
+    /// </summary>
     private async Task SaveAsync(object row)
     {
-        _ = state.Backend.Services;
         await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
         TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-        db.Add(row);
+        if (row is YouTubeVideoRow video && await db.YouTubeChannels.FindAsync(video.ChannelId) is null)
+        {
+            db.YouTubeChannels.Add(new YouTubeChannelRow { ChannelId = video.ChannelId });
+        }
+
+        if (row is YouTubeChannelRow channel && await db.YouTubeChannels.FindAsync(channel.ChannelId) is { } known)
+        {
+            // Updated, not replaced: deleting it would delete its videos' rows too.
+            db.Entry(known).CurrentValues.SetValues(channel);
+        }
+        else
+        {
+            db.Add(row);
+        }
+
         await db.SaveChangesAsync();
     }
 }
