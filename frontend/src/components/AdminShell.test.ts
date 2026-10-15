@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../App.svelte'
 import { ADMIN_GUIDE_STORAGE_KEY, adminGuide } from '../lib/adminGuide.svelte'
-import { dashboard, page, run, tasks } from '../test/data'
+import { apiKey, dashboard, page, run, tasks } from '../test/data'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 
 const shell = () => document.querySelector('[data-guide]')
@@ -86,6 +86,18 @@ describe('the admin area', () => {
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/admin/tasks')
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('goes to the API keys (1.5), which its menu then shows as the current one', async () => {
+    fakeApi({ '/api/auth/me': loggedIn(), '/api/admin/api-keys': [apiKey()] })
+    goTo('/admin/api-keys')
+    render(App)
+
+    expect(await screen.findByRole('heading', { name: 'API keys', level: 1 })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Administration' })
+    expect(within(nav).getByRole('link', { name: 'API keys' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/admin/api-keys')
+    expect(within(nav).getByRole('link', { name: 'Tasks' })).not.toHaveAttribute('aria-current')
   })
 
   it('shows a run’s page as part of the Tasks', async () => {

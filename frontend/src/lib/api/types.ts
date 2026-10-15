@@ -104,6 +104,14 @@ export type RunLogLine = Schemas['RunLogLineResponse']
 /** `/api/admin/runs`: task, size, before (the previous page's last run). */
 export type RunListParams = QueryOf<'/api/admin/runs'>
 
+/** An API key (1.5), without its secret. */
+export type ApiKey = Schemas['ApiKeyResponse']
+
+export type ApiKeyKind = ApiKey['kind']
+
+/** A key just created: its secret, given this once. */
+export type CreatedApiKey = Schemas['CreatedApiKeyResponse']
+
 /** RFC 9457 ProblemDetails, as the backend sends it (`errors` on a 400). */
 export type ProblemDetails = Schemas['HttpValidationProblemDetails']
 
