@@ -27,6 +27,11 @@ import type {
   VideoCard,
   VideoDetail,
   VideoListParams,
+  YouTubeCookie,
+  YouTubeOverview,
+  YtdlpChoiceKind,
+  YtdlpState,
+  YtdlpVersions,
 } from './types'
 
 /** An API failure. `problem` is the server's ProblemDetails, or one built here when there was none. */
@@ -126,7 +131,17 @@ async function postFor<T>(path: string, body?: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
-/** A DELETE (1.5: an API key): 204, no body. */
+/** A PUT of JSON whose answer has a body (1.5: choosing yt-dlp). */
+async function putFor<T>(path: string, body: unknown): Promise<T> {
+  const response = await send(path, {
+    method: 'PUT',
+    headers: { accept: 'application/json', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return (await response.json()) as T
+}
+
+/** A DELETE (1.5: an API key, the YouTube cookie): 204, no body. */
 async function remove(path: string): Promise<void> {
   await send(path, { method: 'DELETE', headers: { accept: 'application/json' } })
 }
@@ -246,6 +261,35 @@ export const api = {
 
   deleteApiKey(id: number): Promise<void> {
     return remove(`/api/admin/api-keys/${id}`)
+  },
+
+  /** The admin's YouTube page (1.5): the cookie and the tools' versions. */
+  youTube(signal?: AbortSignal): Promise<YouTubeOverview> {
+    return get('/api/admin/youtube', {}, signal)
+  },
+
+  /** Tries the cookie against YouTube again (a few seconds). 404 when there's none. */
+  checkYouTubeCookie(): Promise<YouTubeCookie> {
+    return postFor('/api/admin/youtube/cookie/check')
+  },
+
+  removeYouTubeCookie(): Promise<void> {
+    return remove('/api/admin/youtube/cookie')
+  },
+
+  /** Which yt-dlp is chosen and runs (1.5). */
+  ytdlp(signal?: AbortSignal): Promise<YtdlpState> {
+    return get('/api/admin/youtube/ytdlp', {}, signal)
+  },
+
+  /** The versions that can be chosen (from GitHub; 502 when it can't be reached). */
+  ytdlpVersions(signal?: AbortSignal): Promise<YtdlpVersions> {
+    return get('/api/admin/youtube/ytdlp/versions', {}, signal)
+  },
+
+  /** Chooses which yt-dlp runs: applied in the background, from the next task. */
+  chooseYtdlp(kind: YtdlpChoiceKind, version: string | null): Promise<YtdlpState> {
+    return putFor('/api/admin/youtube/ytdlp', { kind, version })
   },
 }
 

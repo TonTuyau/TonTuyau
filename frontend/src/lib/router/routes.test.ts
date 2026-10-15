@@ -25,6 +25,7 @@ describe('routes', () => {
     ['/admin/runs/run-20261012T120000Z-3f9a1c', { name: 'admin', page: 'run', id: 'run-20261012T120000Z-3f9a1c' }],
     ['/admin/runs', { name: 'notFound' }],
     ['/admin/api-keys', { name: 'admin', page: 'apiKeys' }],
+    ['/admin/youtube', { name: 'admin', page: 'youTube' }],
     ['/admin/api-keys/1', { name: 'notFound' }],
     ['/admin/runs/a/b', { name: 'notFound' }],
     ['/admin/runs/%E0%A4%A', { name: 'notFound' }],

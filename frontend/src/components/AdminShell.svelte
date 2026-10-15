@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), API keys
-  // (1.5), Back to TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
+  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), YouTube and
+  // API keys (1.5), Back to TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
   // The menu: full or icons only with the ☰, remembered (wide screens); icons only under 900 px, the ☰ opening it for
   // the visit; on phones a row of links, no ☰, that scrolls sideways by itself when wider than the screen.
   import { adminGuide } from '../lib/adminGuide.svelte'
@@ -12,6 +12,7 @@
   import DashboardPage from '../pages/DashboardPage.svelte'
   import RunPage from '../pages/RunPage.svelte'
   import TasksPage from '../pages/TasksPage.svelte'
+  import YouTubePage from '../pages/YouTubePage.svelte'
   import AccountMenu from './AccountMenu.svelte'
   import Icon from './Icon.svelte'
   import Logo from './Logo.svelte'
@@ -117,6 +118,15 @@
       </a>
       <a
         class="item"
+        href={href.adminYouTube()}
+        aria-current={section === 'youTube' ? 'page' : undefined}
+        title={full ? undefined : t('admin.youTube')}
+      >
+        <Icon name="smartDisplay" />
+        <span class="label" class:visually-hidden={!full}>{t('admin.youTube')}</span>
+      </a>
+      <a
+        class="item"
         href={href.adminApiKeys()}
         aria-current={section === 'apiKeys' ? 'page' : undefined}
         title={full ? undefined : t('admin.apiKeys')}
@@ -135,6 +145,8 @@
         <RunPage id={route.id} />
       {:else if route.page === 'tasks'}
         <TasksPage />
+      {:else if route.page === 'youTube'}
+        <YouTubePage />
       {:else if route.page === 'apiKeys'}
         <ApiKeysPage />
       {:else}

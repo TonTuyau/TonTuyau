@@ -4,8 +4,9 @@ import type { VideoType } from '../api/types'
 
 export type ChannelTab = 'videos' | 'shorts' | 'streams'
 
-/** The admin area's pages (1.4: the Tasks page, a run's page; 1.5: the API keys). */
-export type AdminRoute = { page: 'dashboard' } | { page: 'tasks' } | { page: 'run'; id: string } | { page: 'apiKeys' }
+/** The admin area's pages (1.4: the Tasks page, a run's page; 1.5: YouTube, the API keys). */
+export type AdminRoute =
+  { page: 'dashboard' } | { page: 'tasks' } | { page: 'run'; id: string } | { page: 'youTube' } | { page: 'apiKeys' }
 
 export type Route =
   | { name: 'home' }
@@ -76,6 +77,9 @@ export function matchRoute(pathname: string): Route {
   if (first === 'admin' && second === 'tasks' && parts.length === 2) {
     return { name: 'admin', page: 'tasks' }
   }
+  if (first === 'admin' && second === 'youtube' && parts.length === 2) {
+    return { name: 'admin', page: 'youTube' }
+  }
   if (first === 'admin' && second === 'api-keys' && parts.length === 2) {
     return { name: 'admin', page: 'apiKeys' }
   }
@@ -130,6 +134,8 @@ export const href = {
   adminTasks: (task?: string | null): string => withQuery('/admin/tasks', { task }),
   /** A run's page (1.4): its facts and its log. */
   adminRun: (id: string): string => `/admin/runs/${encodeURIComponent(id)}`,
+  /** The admin's YouTube page (1.5): the cookie, yt-dlp. */
+  adminYouTube: (): string => '/admin/youtube',
   /** The admin's API keys (1.5). */
   adminApiKeys: (): string => '/admin/api-keys',
 }
