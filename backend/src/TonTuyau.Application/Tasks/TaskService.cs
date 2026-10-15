@@ -87,14 +87,32 @@ public sealed class TaskService(
     }
 
     /// <summary>Starts a task now, in this backend's background: the run, just started.</summary>
+    /// <param name="target">A refresh's video or channel (its YouTube id, 1.5); null for the other tasks.</param>
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
-    /// <exception cref="ValidationException">Not a task.</exception>
-    /// <exception cref="ConflictException">A run is going on, or no deletion list waits to be applied.</exception>
-    public async Task<RunView> StartAsync(string task, string account, CancellationToken cancellationToken)
+    /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
+    /// <exception cref="ConflictException">
+    /// A run is going on, no deletion list waits to be applied, or the target isn't one of the library.
+    /// </exception>
+    public async Task<RunView> StartAsync(
+        string task,
+        string? target,
+        string account,
+        CancellationToken cancellationToken)
     {
         if (!ApiValues.Tasks.TryGet(task, out SyncMode mode))
         {
             throw RequestRules.Invalid("task", $"must be one of {ApiValues.Tasks.Choices}.");
+        }
+
+        bool refresh = mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos;
+        if (refresh && target is null)
+        {
+            throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
+        }
+
+        if (!refresh && target is not null)
+        {
+            throw RequestRules.Invalid("target", "is only for the refreshes.");
         }
 
         string? appliesTo = null;
@@ -108,7 +126,9 @@ public sealed class TaskService(
         StartedRun started;
         try
         {
-            started = await runner.StartAsync(mode, SyncTrigger.Admin, appliesTo, account).ConfigureAwait(false);
+            started = refresh
+                ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
+                : await runner.StartAsync(mode, SyncTrigger.Admin, appliesTo, account).ConfigureAwait(false);
         }
         catch (SyncBusyException ex)
         {

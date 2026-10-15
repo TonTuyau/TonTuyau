@@ -4,15 +4,16 @@ namespace TonTuyau.Application.YouTube;
 
 /// <summary>
 /// TonTuyau's own facts laid over what TubeArchivist says (1.5): the state, and once TonTuyau refreshed it, the metadata
-/// (TubeArchivist still brings the file, its tracks, its dates). Without facts, the state comes from TubeArchivist's
-/// flag (<see cref="YouTubeStatus.FromTubeArchivist"/>).
+/// (TubeArchivist still brings the file, its tracks, its dates). Without facts, or with "not checked" ones (a channel
+/// recorded only for its videos' sake), the state comes from TubeArchivist's flag
+/// (<see cref="YouTubeStatus.FromTubeArchivist"/>).
 /// </summary>
 public static class YouTubeOverlay
 {
     public static Video On(Video video, VideoFacts? facts)
     {
         ArgumentNullException.ThrowIfNull(video);
-        if (facts is null)
+        if (facts is null || facts.Status.State == YouTubeState.NotChecked)
         {
             return video with { YouTube = YouTubeStatus.FromTubeArchivist(video.Active) };
         }
@@ -23,6 +24,7 @@ public static class YouTubeOverlay
             : withStatus with
             {
                 Title = refreshed.Title,
+                ChannelName = refreshed.ChannelName,
                 Description = refreshed.Description,
                 Tags = refreshed.Tags,
                 Categories = refreshed.Categories,
@@ -34,7 +36,7 @@ public static class YouTubeOverlay
     public static Channel On(Channel channel, ChannelFacts? facts)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        if (facts is null)
+        if (facts is null || facts.Status.State == YouTubeState.NotChecked)
         {
             return channel with { YouTube = YouTubeStatus.FromTubeArchivist(channel.Active) };
         }

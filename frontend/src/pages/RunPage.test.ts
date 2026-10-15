@@ -49,6 +49,24 @@ describe('RunPage', () => {
     expect(screen.getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/admin/tasks')
   })
 
+  it('links a refresh to what it read on YouTube, and shows what YouTube answered', async () => {
+    const channel = 'UCmw5b3sYz6v1sFkwM1HLs1g'
+    const refresh = run({ task: 'refreshChannelVideos', target: channel })
+    refresh.counts = { ...refresh.counts, channelsRead: 1, foundOnYouTube: 50, goneFromYouTube: 2, checkFailed: 10 }
+    fakeApi({ [`/api/admin/runs/${refresh.id}`]: refresh, [`/api/admin/runs/${refresh.id}/log`]: log([]) })
+    render(RunPage, { id: refresh.id })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Refresh a channel and its videos', level: 1 }),
+    ).toBeInTheDocument()
+    const result = screen.getByRole('region', { name: 'Result' })
+    expect(within(result).getByRole('link', { name: channel })).toHaveAttribute('href', `/channel/${channel}`)
+    expect(within(result).getByText('Found on YouTube').nextElementSibling).toHaveTextContent('50')
+    expect(within(result).getByText('Gone from YouTube').nextElementSibling).toHaveTextContent('2')
+    expect(within(result).getByText('To retry (no answer to trust)').nextElementSibling).toHaveTextContent('10')
+    expect(within(result).queryByText('Art copied')).not.toBeInTheDocument()
+  })
+
   it('links an apply run to the full run whose list it applied, and shows its own counts', async () => {
     const apply = run({ task: 'applyDeletions', appliesTo: id, deletionsPlanned: 312 })
     apply.counts = { ...apply.counts, deleted: 303, kept: 9 }

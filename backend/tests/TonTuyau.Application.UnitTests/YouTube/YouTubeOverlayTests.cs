@@ -61,7 +61,7 @@ public sealed class YouTubeOverlayTests
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, gone, Refreshed: null));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, gone, Refreshed: null));
 
         Assert.Same(gone, video.YouTube);
         Assert.True(video.GoneFromYouTube);
@@ -72,13 +72,23 @@ public sealed class YouTubeOverlayTests
     public void A_refreshed_video_takes_TonTuyau_s_metadata_and_keeps_TubeArchivist_s_file()
     {
         YouTubeStatus onYouTube = new(YouTubeState.OnYouTube, At, Reason: null, RefreshedAt: At);
-        RefreshedVideo refreshed = new("YouTube's title", "Its description", ["yt"], ["Education"], 999, 42, null);
+        RefreshedVideo refreshed = new(
+            "YouTube's title",
+            "Sa chaîne",
+            "Its description",
+            ["yt"],
+            ["Education"],
+            Views: 999,
+            Likes: 42,
+            CommentCount: 7,
+            ThumbnailPath: null);
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, onYouTube, refreshed));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, onYouTube, refreshed));
 
         Assert.Equal("YouTube's title", video.Title);
+        Assert.Equal("Sa chaîne", video.ChannelName);
         Assert.Equal("Its description", video.Description);
         Assert.Equal(["yt"], video.Tags);
         Assert.Equal(["Education"], video.Categories);
@@ -91,11 +101,11 @@ public sealed class YouTubeOverlayTests
     public void A_refreshed_thumbnail_replaces_TubeArchivist_s()
     {
         YouTubeStatus onYouTube = new(YouTubeState.OnYouTube, At, Reason: null, RefreshedAt: At);
-        RefreshedVideo refreshed = new("T", "D", [], [], 1, 1, "/art/videos/abcdefghijk.jpg");
+        RefreshedVideo refreshed = new("T", "C", "D", [], [], 1, 1, null, "/art/videos/abcdefghijk.jpg");
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,
-            new VideoFacts(FromTubeArchivist.Id, onYouTube, refreshed));
+            new VideoFacts(FromTubeArchivist.Id, FromTubeArchivist.ChannelId, onYouTube, refreshed));
 
         Assert.Equal("/art/videos/abcdefghijk.jpg", video.ThumbnailPath);
     }
@@ -115,6 +125,18 @@ public sealed class YouTubeOverlayTests
         Assert.Equal("/art/thumb.jpg", channel.ThumbPath);
         Assert.Equal(ChannelFromTubeArchivist.BannerPath, channel.BannerPath);
         Assert.False(channel.GoneFromYouTube);
+    }
+
+    [Fact]
+    public void A_channel_recorded_only_for_its_videos_still_follows_TubeArchivist_s_flag()
+    {
+        YouTubeStatus notChecked = new(YouTubeState.NotChecked, null, null, null);
+
+        Channel channel = YouTubeOverlay.On(
+            ChannelFromTubeArchivist with { Active = false },
+            new ChannelFacts(ChannelFromTubeArchivist.Id, notChecked, Refreshed: null));
+
+        Assert.Equal(YouTubeState.RetryLater, channel.YouTube!.State);
     }
 
     [Fact]

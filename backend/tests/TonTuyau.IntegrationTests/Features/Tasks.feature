@@ -107,7 +107,7 @@ Feature: The Tasks page's API
     When I log in as the admin
     And I request the latest run's "" with my session
     Then the response status is 200
-    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, finishedAt, error, counts, deletionsPlanned, deletionsBlocked, appliesTo, indexRebuild, notes, cancellable"
+    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, finishedAt, error, counts, deletionsPlanned, deletionsBlocked, appliesTo, target, indexRebuild, notes, cancellable"
     And "id" is the latest run's id
     And "state" is "succeeded"
     And "trigger" is "scheduler"

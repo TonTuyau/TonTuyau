@@ -1,0 +1,106 @@
+@elasticsearch @sync @api @youtube
+Feature: Refreshing videos and channels on YouTube
+  An admin (or the command line) reads a video, a channel, or a channel and each of its videos on YouTube (1.5): a run
+  like the syncs, in the history and the log. What YouTube answers becomes TonTuyau's facts, then the index shows them:
+  found, its metadata wins over TubeArchivist's; gone (removed, private, terminated), it's flagged; no answer to trust
+  (a bot check, the network), it's to retry, and nothing TonTuyau confirmed before changes. yt-dlp is a fake here.
+
+  Background:
+    Given TubeArchivist has the channel "alpha" with 3 videos
+    And the backend is ready
+    And a first sync has run
+    And I logged in as the admin
+
+  Scenario: A video found on YouTube takes YouTube's metadata
+    Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
+    When I refresh the video "alpha-01" with my session
+    Then the response status is 202
+    And "task" is "refreshVideo"
+    And "target" is "alpha-01___"
+    And the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-01" is "on YouTube"
+    When I request the latest run's "" with my session
+    Then "counts.foundOnYouTube" is "1"
+    And "counts.updated" is "1"
+    When I request the video "alpha-01" of TubeArchivist
+    Then "title" is "Le vrai titre"
+    And "views" is "1234"
+    And "channel.name" is "Alpha on YouTube"
+    And "active" is "true"
+
+  Scenario: A video YouTube says is removed is flagged
+    Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Video unavailable. This video has been removed by the uploader"
+    When I refresh the video "alpha-02" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-02" is "gone"
+    When I request the video "alpha-02" of TubeArchivist
+    Then "active" is "false"
+
+  Scenario: No answer to trust: to retry, never gone
+    Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Sign in to confirm you’re not a bot"
+    When I refresh the video "alpha-02" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-02" is "retry later"
+    When I request the latest run's "" with my session
+    Then "counts.checkFailed" is "1"
+    When I request the video "alpha-02" of TubeArchivist
+    Then "active" is "true"
+
+  Scenario: A failed check changes nothing TonTuyau confirmed
+    Given TonTuyau found the video "alpha-02" gone from YouTube
+    And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: HTTP Error 429: Too Many Requests"
+    When I refresh the video "alpha-02" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-02" is "gone"
+
+  Scenario: A channel and its videos
+    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    And YouTube has the video "alpha-01": the title "Premier", 10 views
+    And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Private video. Sign in if you've been granted access to this video"
+    When I refresh the channel "alpha" and its videos with my session
+    Then the latest run ends succeeded within 30 seconds
+    When I request the latest run's "" with my session
+    Then "counts.channelsRead" is "1"
+    And "counts.videosRead" is "3"
+    And "counts.foundOnYouTube" is "2"
+    And "counts.goneFromYouTube" is "1"
+    And "counts.checkFailed" is "1"
+    When I request the channel "alpha" of TubeArchivist
+    Then "name" is "Alpha officiel"
+    And "subscribers" is "5000"
+    When I request the video "alpha-01" of TubeArchivist
+    Then "title" is "Premier"
+    And the stored YouTube state of the video "alpha-02" is "gone"
+    And the stored YouTube state of the video "alpha-03" is "retry later"
+
+  Scenario: Refreshing a video records its channel, not checked: its badge still follows TubeArchivist
+    Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has the channel "alpha" as "not checked"
+    When I request the channel "alpha" of TubeArchivist
+    Then "active" is "true"
+
+  Scenario: A channel alone leaves its videos as they are
+    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    When I refresh the channel "alpha" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-01" is "not checked"
+
+  Scenario: Only what the library has, with its target
+    When I send POST "/api/admin/tasks/refreshVideo/runs?target=zzzzzzzzzzz" with my session
+    Then the response status is 409
+    When I send POST "/api/admin/tasks/refreshChannel/runs?target=not-a-channel" with my session
+    Then the response status is 409
+    When I send POST "/api/admin/tasks/refreshVideo/runs" with my session
+    Then the response status is 400
+    When I send POST "/api/admin/tasks/full/runs?target=alpha-01___" with my session
+    Then the response status is 400
+
+  Scenario: From the command line
+    Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
+    When I run "tontuyau youtube video alpha-01___"
+    Then the command exits with code 0
+    And the output mentions "youtube   1 found, 0 gone, 0 to retry"
+    When I run "tontuyau youtube channel nope"
+    Then the command exits with code 4

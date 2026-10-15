@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # A stand-in for yt-dlp in the integration tests (1.5): its version, and the Liked videos ("LL") the cookie check
 # reads: they answer a cookie holding SIGNED_IN; BOT_CHECK gets a bot check; anything else, or no cookie, is refused.
+# A video or channel is answered from the scenario's answers/ folder, next to this program (a link to it):
+# <id>.json is its metadata, <id>.err what yt-dlp says when it fails.
 if [[ "$*" == *--version* ]]; then
   echo "2026.08.19"
   exit 0
@@ -20,6 +22,17 @@ if [[ "${@: -1}" == *list=LL ]]; then
     exit 1
   fi
   echo "ERROR: [youtube:tab] LL: The playlist does not exist." >&2
+  exit 1
+fi
+id="${@: -1}"
+id="${id##*[=/]}"
+answers="$(dirname "$0")/answers"
+if [[ -f "$answers/$id.json" ]]; then
+  cat "$answers/$id.json"
+  exit 0
+fi
+if [[ -f "$answers/$id.err" ]]; then
+  cat "$answers/$id.err" >&2
   exit 1
 fi
 echo "ERROR: [youtube] not faked here" >&2

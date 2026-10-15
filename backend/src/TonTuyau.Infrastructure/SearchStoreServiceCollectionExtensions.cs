@@ -42,6 +42,7 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddHostedService<IndexInitializer>();
         // TonTuyau's own facts the sync lays over TubeArchivist's (1.5), read from PostgreSQL (AddAccounts).
         services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();
+        services.AddSingleton<IYouTubeFactsStore, YouTubeFactsStore>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);
         return services;
     }

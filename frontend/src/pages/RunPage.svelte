@@ -19,7 +19,7 @@
   import type { TextKey } from '../lib/i18n/types'
   import { Remote } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
-  import { runSeconds, startedBy } from '../lib/runs'
+  import { isRefresh, runSeconds, startedBy } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   let { id }: { id: string } = $props()
@@ -83,6 +83,16 @@
         ['run.count.planned', r.deletionsPlanned],
         ['run.count.deleted', c.deleted],
         ['run.count.kept', c.kept],
+      ]
+    }
+    if (isRefresh(r)) {
+      return [
+        ['run.count.videosRead', c.videosRead],
+        ['run.count.channelsRead', c.channelsRead],
+        ['run.count.foundOnYouTube', c.foundOnYouTube],
+        ['run.count.goneFromYouTube', c.goneFromYouTube],
+        ['run.count.checkFailed', c.checkFailed],
+        ['run.count.updated', c.updated],
       ]
     }
     const out: [TextKey, number][] = [
@@ -172,6 +182,14 @@
       <h2 id="result-title">{running ? t('run.soFar') : t('run.result')}</h2>
       {#if run.appliesTo}
         <p>{t('run.appliesTo')} <a href={href.adminRun(run.appliesTo)}><code>{run.appliesTo}</code></a></p>
+      {/if}
+      {#if run.target}
+        <p>
+          {t('run.target')}
+          <a href={run.task === 'refreshVideo' ? href.watch(run.target) : href.channel(run.target)}
+            ><code>{run.target}</code></a
+          >
+        </p>
       {/if}
       <dl class="counts">
         {#each counts(run) as [label, value] (label)}
