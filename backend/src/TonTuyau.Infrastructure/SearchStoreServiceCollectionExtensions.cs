@@ -1,6 +1,7 @@
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using Microsoft.Extensions.DependencyInjection;
+using TonTuyau.Application.Comments;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
@@ -43,6 +44,7 @@ public static class SearchStoreServiceCollectionExtensions
         // TonTuyau's own facts the sync lays over TubeArchivist's (1.5), read from PostgreSQL (AddAccounts).
         services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();
         services.AddSingleton<IYouTubeFactsStore, YouTubeFactsStore>();
+        services.AddSingleton<ICommentRepository, CommentRepository>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);
         return services;
     }

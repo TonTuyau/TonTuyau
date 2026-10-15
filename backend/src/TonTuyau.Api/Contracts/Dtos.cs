@@ -104,7 +104,13 @@ public sealed class VideoDetail
 
     /// <summary>False when the full sync found the file missing on the share.</summary>
     public required bool MediaAvailable { get; init; }
+
+    /// <summary>Its chapters, in order (1.5, contract v1.13): none until TonTuyau refreshed it, or when YouTube marks none.</summary>
+    public required IReadOnlyList<Chapter> Chapters { get; init; }
 }
+
+/// <summary>A chapter of a video: from where to where, in seconds, and its title (contract v1.13).</summary>
+public sealed record Chapter(double StartSeconds, double EndSeconds, string Title);
 
 /// <summary>How many videos of each type a channel has (its tabs = the types above 0).</summary>
 public sealed record VideoCounts(long Videos, long Shorts, long Streams);

@@ -753,6 +753,80 @@
         }
       }
     },
+    "/api/videos/{id}/comments": {
+      "get": {
+        "tags": ["Videos"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "top (YouTube's order, the default) | newest.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The previous page's nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Threads per page, 1–100 (default 20).",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/channels": {
       "get": {
         "tags": ["Channels"],
@@ -2785,6 +2859,23 @@
           }
         }
       },
+      "Chapter": {
+        "required": ["startSeconds", "endSeconds", "title"],
+        "type": "object",
+        "properties": {
+          "startSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "endSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "ChooseYtdlpRequest": {
         "required": ["kind", "version"],
         "type": "object",
@@ -2794,6 +2885,84 @@
           },
           "version": {
             "type": ["null", "string"]
+          }
+        }
+      },
+      "CommentResponse": {
+        "required": ["id", "text", "author", "published", "likes", "pinned", "byUploader", "hearted"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "published": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "likes": {
+            "type": ["null", "integer"],
+            "format": "int64"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "byUploader": {
+            "type": "boolean"
+          },
+          "hearted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CommentsResponse": {
+        "required": ["readAt", "youTubeCount", "kept", "items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "readAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "youTubeCount": {
+            "type": ["null", "integer"],
+            "format": "int64"
+          },
+          "kept": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentThreadResponse"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CommentThreadResponse": {
+        "required": ["comment", "replies"],
+        "type": "object",
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/CommentResponse"
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            }
           }
         }
       },
@@ -3684,7 +3853,8 @@
           "tracks",
           "mediaUrl",
           "downloadUrl",
-          "mediaAvailable"
+          "mediaAvailable",
+          "chapters"
         ],
         "type": "object",
         "properties": {
@@ -3768,6 +3938,12 @@
           },
           "mediaAvailable": {
             "type": "boolean"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chapter"
+            }
           }
         }
       },

@@ -78,6 +78,7 @@ public static class ApiMapper
             MediaUrl = ApiUrls.Media(card.Id),
             DownloadUrl = ApiUrls.Download(card.Id),
             MediaAvailable = detail.MediaAvailable,
+            Chapters = [.. detail.Chapters.Select(c => new Chapter(c.StartSeconds, c.EndSeconds, c.Title))],
         };
     }
 

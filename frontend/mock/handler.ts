@@ -3,6 +3,8 @@
 import type {
   ChannelCard,
   ChannelDetail,
+  Comment,
+  Comments,
   Home,
   Page,
   ProblemDetails,
@@ -224,7 +226,12 @@ class Library {
     const { channelId, ...rest } = video
     void channelId // joined into `channel` by card()
     const card = this.card(video)
-    return { ...rest, ...card, channel: { ...card.channel, subscribers: this.channelOf(video).subscribers } }
+    return {
+      ...rest,
+      ...card,
+      channel: { ...card.channel, subscribers: this.channelOf(video).subscribers },
+      chapters: video.id === this.db.videos[0]?.id ? demoChapters(video.durationSeconds) : [],
+    }
   }
 
   channelCard(channel: ChannelFixture): ChannelCard {
@@ -438,6 +445,12 @@ export function handleApi(db: MockDb, method: string, url: URL, now: number = Da
       if (!video) throw new Problem(notFound(`No video with id ${id}.`))
       return json(lib.detail(video))
     }
+    if (resource === 'videos' && id !== undefined && sub === 'comments') {
+      videoId('id', id)
+      const video = db.videos.find((candidate) => candidate.id === id)
+      if (!video) throw new Problem(notFound(`No video with id ${id}.`))
+      return json(video.id === db.videos[0]?.id ? demoComments(params.get('sort') === 'newest') : neverRead)
+    }
     if (resource === 'channels' && id === undefined) return json(listChannels(lib, params, path))
     if (resource === 'channels' && id !== undefined) {
       channelId(lib, 'id', id)
@@ -453,4 +466,69 @@ export function handleApi(db: MockDb, method: string, url: URL, now: number = Da
     if (error instanceof Problem) return problemResponse(error.problem)
     throw error
   }
+}
+
+// ---------------------------------------------------------------- 1.5: the demo video's chapters and comments
+
+/** The first fixture video shows chapters and comments (TonTuyau read them); the others have neither. */
+function demoChapters(duration: number): VideoDetail['chapters'] {
+  const parts: [number, number, string][] = [
+    [0, 0.08, 'Intro'],
+    [0.08, 0.34, 'The ingredients'],
+    [0.34, 0.56, 'Step by step'],
+    [0.56, 0.85, 'Common mistakes'],
+    [0.85, 1, 'Tasting'],
+  ]
+  return parts.map(([from, to, title]) => ({
+    startSeconds: Math.round(duration * from),
+    endSeconds: Math.round(duration * to),
+    title,
+  }))
+}
+
+const neverRead: Comments = { readAt: null, youTubeCount: null, kept: 0, items: [], nextCursor: null, total: 0 }
+
+function demoComments(newest: boolean): Comments {
+  const comment = (id: string, author: string, text: string, days: number, more: Partial<Comment> = {}): Comment => ({
+    id,
+    text,
+    author,
+    published: new Date(Date.UTC(2026, 9, 14) - days * 86_400_000).toISOString(),
+    likes: Math.round(400 / (days + 1)),
+    pinned: false,
+    byUploader: false,
+    hearted: false,
+    ...more,
+  })
+  const items: Comments['items'] = [
+    {
+      comment: comment('d1', 'Tom Cooks', 'Thanks for watching! The trick is at 1:23, take your time there.', 30, {
+        pinned: true,
+        byUploader: true,
+      }),
+      replies: [comment('d1r', '@jeanne', 'Tried it last night, it worked first time.', 29)],
+    },
+    {
+      comment: comment('d2', '@hydro', 'I always wondered why mine split. Now I know: too hot, too fast.', 12, {
+        hearted: true,
+      }),
+      replies: [],
+    },
+    {
+      comment: comment(
+        'd3',
+        '@clara',
+        'Long story: my grandmother made this every Sunday and never wrote anything down. '.repeat(5),
+        3,
+      ),
+      replies: [
+        comment('d3r1', 'Tom Cooks', 'That is the best kind of recipe.', 2, { byUploader: true }),
+        comment('d3r2', '@pipe', 'Same with mine!', 1),
+      ],
+    },
+  ]
+  const ordered = newest
+    ? [...items].sort((a, b) => (b.comment.published ?? '').localeCompare(a.comment.published ?? ''))
+    : items
+  return { readAt: '2026-10-14T08:00:00Z', youTubeCount: 1284, kept: 500, items: ordered, nextCursor: null, total: 3 }
 }

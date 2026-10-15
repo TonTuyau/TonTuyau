@@ -1,4 +1,5 @@
 using TonTuyau.Application.ApiKeys;
+using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
@@ -102,6 +103,13 @@ public static class ApiValues
         ["refreshVideo"] = SyncMode.RefreshVideo,
         ["refreshChannel"] = SyncMode.RefreshChannel,
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
+    };
+
+    /// <summary>How a video's comments are listed (1.5, the watch page).</summary>
+    public static readonly Table<CommentSort> CommentSorts = new()
+    {
+        ["top"] = CommentSort.Top,
+        ["newest"] = CommentSort.Newest,
     };
 
     /// <summary>The states of a video or channel on YouTube (1.5, the admin pages' filter).</summary>

@@ -6,6 +6,7 @@ using TonTuyau.Application.Browse;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.UnitTests;
 
@@ -95,7 +96,8 @@ public sealed class ApiMapperTests
                 new MediaTrack(MediaTrackKind.Video, "av1", 5370710, 3840, 2160),
                 new MediaTrack(MediaTrackKind.Audio, "opus", 110978, null, null),
             ],
-            false);
+            false,
+            [new YouTubeChapter(0, 95.5, "Intro")]);
 
         JsonObject json = Serialize(ApiMapper.ToDto(view));
 
@@ -122,6 +124,7 @@ public sealed class ApiMapperTests
                 "mediaUrl",
                 "downloadUrl",
                 "mediaAvailable",
+                "chapters",
             ],
             json.Select(kv => kv.Key));
         Assert.Equal("2026-10-01T07:13:01Z", json["downloaded"]!.GetValue<string>());

@@ -1,4 +1,4 @@
-# TonTuyau — REST API contract (v1.12)
+# TonTuyau — REST API contract (v1.13)
 
 > 2026-10-03. The shared contract between the backend (M4) and the frontend (M5a mockup, then M5/M6). Both sides build against this file; a change goes through you and is written here first.
 > Decisions: [QA_SESSION_05.md](QA_SESSION_05.md), [QA_SESSION_06.md](QA_SESSION_06.md), [QA_SESSION_07.md](QA_SESSION_07.md).
@@ -26,6 +26,8 @@
 > **v1.11 (2026-10-15, TonTuyau 1.5)**: a refresh reads the videos' chapters, and their comments when the YouTube settings say so (`GET`/`PUT /api/admin/youtube/settings`: `comments` = `off` (the default) | `top` (up to `commentsMax`) | `all`): a run's counts gain `commentsRead`. (They're shown on the watch page next.)
 >
 > **v1.12 (2026-10-16, TonTuyau 1.5)**: a channel's admin page: `GET /api/admin/channels/{id}` and `GET /api/admin/channels/{id}/videos` (by state on YouTube or words, page by page). The dashboard's channels gain `retryLater` and `notChecked`.
+>
+> **v1.13 (2026-10-16, TonTuyau 1.5)**: the watch page's comments and chapters: `GET /api/videos/{id}/comments`, and `chapters` in `VideoDetail` (`startSeconds`, `endSeconds`, `title`).
 
 ## Rules
 
@@ -106,6 +108,7 @@ Sizes made by the sync (Q9-2, Q9-3), WebP: video thumbnails 360 and 720 px wide 
 ```
 - `mimeType`: what the front passes to `video.canPlayType()` / `MediaSource.isTypeSupported()` to decide whether to show the player or the "this browser can't play <codec>" message + download button (R2-13). Built by the backend from the tracks (container from the file extension, a representative codec string per codec family).
 - `mediaAvailable: false` when the full sync found the file missing on the share: the front shows "file unavailable" instead of the player.
+- `chapters` (v1.13): `[ { "startSeconds", "endSeconds", "title" } ]`, in order; empty until TonTuyau refreshed the video on YouTube, or when YouTube marks none.
 
 ### `ChannelCard` (lists)
 
@@ -141,6 +144,7 @@ Tabs to show = the types whose `videoCounts` are > 0 (counted by the backend).
 | `GET /api/home` | `{ "sections": [ { "type": "video" \| "short" \| "stream", "items": VideoCard[] } ] }` | `size` per section (default 24). Latest **published** first (R2-19); sections in the order video, short, stream; empty sections omitted |
 | `GET /api/videos` | page of `VideoCard` | `type`, `sort` = `latest` (published desc, default) \| `popular` (views desc) \| `oldest`, `exclude` (a video id left out of the list and of `total`: the short being watched, for the shorts player), `cursor`, `size` |
 | `GET /api/videos/{id}` | `VideoDetail` | 404 if unknown |
+| `GET /api/videos/{id}/comments` | `CommentsResponse` (v1.13): `readAt` (when TonTuyau read them on YouTube; null: never, then `items` is empty and the page shows no comments), `youTubeCount` (YouTube's count, or null), `kept` (how many TonTuyau keeps, answers included), `items` (threads: `comment` and its `replies`, each `id`, `text`, `author`, `published`, `likes`, `pinned`, `byUploader`, `hearted`), `nextCursor`, `total` (threads in all) | `sort` = `top` \| `newest` (default `top`: YouTube's order), `cursor`, `size` (threads, 1–100, default 20); 400 otherwise, 404 if the video is unknown |
 | `GET /api/channels` | page of `ChannelCard` | `q` (name, as-you-type, up to 100 characters), `sort` = `name` (default) \| `subscribers`, `cursor`, `size` |
 | `GET /api/channels/{id}` | `ChannelDetail` | 404 if unknown |
 | `GET /api/channels/{id}/videos` | page of `VideoCard` | `type` (default `video`), `sort` = `latest` \| `popular` \| `oldest`, `exclude` (a video id left out of the list and of `total`: the one being watched, for "More from <channel>"), `cursor`, `size` |

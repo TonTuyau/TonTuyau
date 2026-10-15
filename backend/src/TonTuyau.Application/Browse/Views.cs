@@ -1,5 +1,6 @@
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
@@ -34,7 +35,8 @@ public sealed record VideoDetailView(
     long FileSize,
     string MimeType,
     IReadOnlyList<MediaTrack> Tracks,
-    bool MediaAvailable);
+    bool MediaAvailable,
+    IReadOnlyList<YouTubeChapter> Chapters);
 
 public sealed record ChannelCardView(
     string Id,

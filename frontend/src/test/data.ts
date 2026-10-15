@@ -62,6 +62,7 @@ export function videoDetail(overrides: Partial<VideoDetail> = {}): VideoDetail {
     mediaUrl: '/media/from-the-api/vid00000001',
     downloadUrl: '/media/from-the-api/vid00000001/download',
     mediaAvailable: true,
+    chapters: [],
     ...overrides,
   }
 }

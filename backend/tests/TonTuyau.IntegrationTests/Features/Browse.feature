@@ -127,7 +127,7 @@ Feature: Browsing the library
   Scenario: The watch page has everything about the video and its file, URLs included
     When I request "/api/videos/{video:huiles}"
     Then the response status is 200
-    And the answer has exactly the fields "id, title, type, published, durationSeconds, views, active, thumbnailUrl, thumbnails, channel, description, downloaded, likes, tags, categories, fileSize, mimeType, tracks, mediaUrl, downloadUrl, mediaAvailable"
+    And the answer has exactly the fields "id, title, type, published, durationSeconds, views, active, thumbnailUrl, thumbnails, channel, description, downloaded, likes, tags, categories, fileSize, mimeType, tracks, mediaUrl, downloadUrl, mediaAvailable, chapters"
     And "title" is "Huiles et cuisson"
     And "type" is "video"
     And "published" is "2026-04-24T00:00:00Z"
