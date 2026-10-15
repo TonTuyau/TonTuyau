@@ -92,6 +92,7 @@
         ['run.count.foundOnYouTube', c.foundOnYouTube],
         ['run.count.goneFromYouTube', c.goneFromYouTube],
         ['run.count.checkFailed', c.checkFailed],
+        ['run.count.commentsRead', c.commentsRead],
         ['run.count.updated', c.updated],
       ]
     }

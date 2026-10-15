@@ -19,16 +19,24 @@ namespace TonTuyau.Application.YouTube;
 /// changes nothing it confirmed (the index is still written with it).</item>
 /// </list>
 /// </summary>
+/// <remarks>
+/// A video's chapters are read with it; its comments too when the YouTube settings say so (up to
+/// <see cref="CommentsKept"/>, answers included, YouTube's top comments first), replacing the ones read before.
+/// </remarks>
 public sealed partial class YouTubeRefreshService(
     IYouTubeClient youTube,
     IYouTubeFactsSource facts,
     IYouTubeFactsStore store,
+    IYouTubeSettingsRepository settings,
     IVideoRepository videos,
     IChannelRepository channels,
     ISyncStateStore state,
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
 {
+    /// <summary>How many comments of a video TonTuyau reads and keeps, answers included (1.5).</summary>
+    public const int CommentsKept = 500;
+
     /// <param name="mode">A refresh: <see cref="SyncMode.RefreshVideo"/>, <see cref="SyncMode.RefreshChannel"/> or
     /// <see cref="SyncMode.RefreshChannelVideos"/>.</param>
     /// <param name="target">The video's or channel's YouTube id: one of the library.</param>
@@ -77,10 +85,16 @@ public sealed partial class YouTubeRefreshService(
             progress.Started(run.Id);
             try
             {
+                // Read once: a change on the YouTube page applies from the next run.
+                YouTubeCommentsRequest? comments = (await settings.GetAsync(linked.Token).ConfigureAwait(false))
+                    .ReadComments
+                    ? new YouTubeCommentsRequest(CommentsKept)
+                    : null;
+                LogComments(comments is not null);
                 if (mode == SyncMode.RefreshVideo)
                 {
                     context.BeginPhase(SyncPhase.YouTubeVideos, 1);
-                    await RefreshVideoAsync(target, context).ConfigureAwait(false);
+                    await RefreshVideoAsync(target, comments, context).ConfigureAwait(false);
                     context.Progressed(1);
                 }
                 else
@@ -89,7 +103,7 @@ public sealed partial class YouTubeRefreshService(
                     await RefreshChannelAsync(target, context).ConfigureAwait(false);
                     if (mode == SyncMode.RefreshChannelVideos)
                     {
-                        await RefreshVideosOfAsync(target, context).ConfigureAwait(false);
+                        await RefreshVideosOfAsync(target, comments, context).ConfigureAwait(false);
                     }
                 }
 
@@ -147,7 +161,7 @@ public sealed partial class YouTubeRefreshService(
         }
     }
 
-    private async Task RefreshVideosOfAsync(string channelId, RunContext context)
+    private async Task RefreshVideosOfAsync(string channelId, YouTubeCommentsRequest? comments, RunContext context)
     {
         CancellationToken ct = context.CancellationToken;
         IReadOnlyList<VideoSummary> ofChannel = await videos
@@ -158,12 +172,13 @@ public sealed partial class YouTubeRefreshService(
         foreach (VideoSummary video in ofChannel.OrderByDescending(v => v.Downloaded))
         {
             ct.ThrowIfCancellationRequested();
-            await RefreshVideoAsync(video.Id, context).ConfigureAwait(false);
+            await RefreshVideoAsync(video.Id, comments, context).ConfigureAwait(false);
             context.Progressed(++done);
         }
     }
 
-    private async Task RefreshVideoAsync(string videoId, RunContext context)
+    /// <param name="comments">Its comments too (the YouTube settings); null: not read, those read before stay.</param>
+    private async Task RefreshVideoAsync(string videoId, YouTubeCommentsRequest? comments, RunContext context)
     {
         CancellationToken ct = context.CancellationToken;
         // Read again: a video deleted since the run started is skipped.
@@ -174,7 +189,7 @@ public sealed partial class YouTubeRefreshService(
         }
 
         YouTubeLookup<YouTubeVideo> lookup = await youTube
-            .GetVideoAsync(videoId, comments: null, ct)
+            .GetVideoAsync(videoId, comments, ct)
             .ConfigureAwait(false);
         context.Count(c => c with { VideosRead = c.VideosRead + 1 });
         VideoFacts? known = (await facts.GetVideosAsync([videoId], ct).ConfigureAwait(false))
@@ -207,6 +222,13 @@ public sealed partial class YouTubeRefreshService(
         else
         {
             await store.SaveVideoAsync(learned, ct).ConfigureAwait(false);
+        }
+
+        // Null: yt-dlp couldn't read them; those read before stay.
+        if (lookup.Item?.Comments is { } read)
+        {
+            await store.SaveCommentsAsync(videoId, read, now, ct).ConfigureAwait(false);
+            context.Count(c => c with { CommentsRead = c.CommentsRead + read.Count });
         }
 
         UpsertResult written = await videos
@@ -272,6 +294,7 @@ public sealed partial class YouTubeRefreshService(
             item.Views ?? video.Stats.Views,
             item.Likes ?? video.Stats.Likes,
             item.CommentCount ?? known?.CommentCount,
+            item.Chapters,
             known?.ThumbnailPath);
 
     private static RefreshedChannel RefreshedOf(YouTubeChannel item, Channel channel, RefreshedChannel? known) =>
@@ -327,6 +350,9 @@ public sealed partial class YouTubeRefreshService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Refresh {RunId} started: {Mode} of {Target} by {Trigger}.")]
     private partial void LogStarted(string runId, SyncMode mode, string target, SyncTrigger trigger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Comments read: {Read} (the YouTube page's settings).")]
+    private partial void LogComments(bool read);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Id}: gone from YouTube ({Reason}).")]
     private partial void LogGone(string id, string? reason);

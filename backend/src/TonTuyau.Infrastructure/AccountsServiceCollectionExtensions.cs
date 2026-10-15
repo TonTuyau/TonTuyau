@@ -30,6 +30,8 @@ public static class AccountsServiceCollectionExtensions
         services.AddScoped<YouTubeCookieService>();
         services.AddScoped<IYtdlpSettingsRepository, YtdlpSettingsRepository>();
         services.AddScoped<YtdlpService>();
+        services.AddSingleton<IYouTubeSettingsRepository, YouTubeSettingsRepository>();
+        services.AddSingleton<YouTubeSettingsService>();
         return services;
     }
 

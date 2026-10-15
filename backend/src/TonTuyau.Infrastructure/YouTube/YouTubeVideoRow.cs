@@ -38,6 +38,11 @@ public sealed class YouTubeVideoRow
 
     public long? CommentCount { get; set; }
 
+    public List<VideoChapterRow> Chapters { get; set; } = [];
+
+    /// <summary>When TonTuyau last read its comments (<c>video_comments</c>); null: never.</summary>
+    public DateTimeOffset? CommentsReadAt { get; set; }
+
     /// <summary>The thumbnail TonTuyau stored in its art volume (its path there); null: TubeArchivist's stays.</summary>
     public string? ThumbnailPath { get; set; }
 
@@ -56,6 +61,8 @@ public sealed class YouTubeVideoRow
                 row.Views ?? 0,
                 row.Likes ?? 0,
                 row.CommentCount,
+                // NULL for rows from before the chapters (EF then leaves the list null).
+                [.. (row.Chapters ?? []).Select(c => new YouTubeChapter(c.Start, c.End, c.Title))],
                 row.ThumbnailPath);
         return new VideoFacts(row.VideoId, row.ChannelId, status, refreshed);
     }

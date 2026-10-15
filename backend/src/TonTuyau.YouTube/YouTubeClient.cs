@@ -155,7 +155,8 @@ internal sealed partial class YouTubeClient(
         ThumbnailsOf(info.Thumbnails),
         info.LiveStatus,
         info.CommentCount,
-        withComments ? CommentsOf(info.Comments) : null);
+        withComments ? CommentsOf(info.Comments) : null,
+        ChaptersOf(info.Chapters));
 
     internal static YouTubeChannel ChannelOf(ChannelInfoDto info) => new(
         info.ChannelId!,
@@ -178,9 +179,13 @@ internal sealed partial class YouTubeClient(
                 CultureInfo.InvariantCulture,
                 $"--write-comments --extractor-args youtube:max_comments={comments.Max},all,all,all ");
 
-    private static List<YouTubeComment> CommentsOf(IReadOnlyList<CommentDto>? comments) =>
+    /// <returns>Null when yt-dlp gave none at all (it couldn't read them): not the same as a video without any.</returns>
+    private static List<YouTubeComment>? CommentsOf(IReadOnlyList<CommentDto>? comments) =>
+        comments is null
+            ? null
+            :
         [
-            .. (comments ?? [])
+            .. comments
                 .Where(c => !string.IsNullOrEmpty(c.Id))
                 .Select(c => new YouTubeComment(
                     c.Id!,
@@ -194,6 +199,15 @@ internal sealed partial class YouTubeClient(
                     c.IsPinned == true,
                     c.AuthorIsUploader == true,
                     c.IsFavorited == true)),
+        ];
+
+    /// <summary>The chapters with a title and a start, in order; one without an end ends where it starts.</summary>
+    private static List<YouTubeChapter> ChaptersOf(IReadOnlyList<ChapterDto>? chapters) =>
+        [
+            .. (chapters ?? [])
+                .Where(c => c.StartTime is not null && !string.IsNullOrWhiteSpace(c.Title))
+                .OrderBy(c => c.StartTime)
+                .Select(c => new YouTubeChapter(c.StartTime!.Value, c.EndTime ?? c.StartTime.Value, c.Title!.Trim())),
         ];
 
     /// <summary>To the second (<c>timestamp</c>) when YouTube says, else the day (<c>upload_date</c>), else unknown.</summary>

@@ -19,5 +19,11 @@
   ],
   "availability": "public",
   "live_status": "not_live",
+  "chapters": [
+    { "start_time": 0.0, "end_time": 95.0, "title": "A street drain" },
+    { "start_time": 95.0, "end_time": 640.5, "title": " Belgrand's galleries " },
+    { "start_time": 640.5, "end_time": 1192.4, "title": "" },
+    { "start_time": 700.0, "title": "Today" }
+  ],
   "formats": [{ "format_id": "18", "ext": "mp4" }]
 }

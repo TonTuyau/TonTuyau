@@ -369,6 +369,7 @@ export const en = {
   'run.count.foundOnYouTube': 'Found on YouTube',
   'run.count.goneFromYouTube': 'Gone from YouTube',
   'run.count.checkFailed': 'To retry (no answer to trust)',
+  'run.count.commentsRead': 'Comments read',
   'run.log': 'Log',
   'run.log.lines': 'Lines',
   'run.log.all': 'All lines',
