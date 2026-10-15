@@ -18,6 +18,7 @@ namespace TonTuyau.YouTube;
 /// </summary>
 internal sealed partial class YouTubeClient(
     TonTuyauOptions options,
+    YtdlpLocator ytdlp,
     IYouTubeCookieSource cookies,
     ILogger<YouTubeClient> logger) : IYouTubeClient
 {
@@ -96,7 +97,7 @@ internal sealed partial class YouTubeClient(
 
     public async Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken)
     {
-        string? ytdlp = null;
+        string? running = null;
         if (Start(new YtdlpLog(logger)) is { } program)
         {
             try
@@ -104,15 +105,15 @@ internal sealed partial class YouTubeClient(
                 string version = await program
                     .VersionAsync(cancellationToken)
                     .ConfigureAwait(false);
-                ytdlp = string.IsNullOrWhiteSpace(version) ? null : version.Trim();
+                running = string.IsNullOrWhiteSpace(version) ? null : version.Trim();
             }
             catch (Exception ex) when (IsMissingProgram(ex))
             {
-                LogToolMissing(options.YouTube.YtdlpPath, ex.Message);
+                LogToolMissing(ytdlp.Path, ex.Message);
             }
         }
 
-        return new YouTubeTools(ytdlp, await DenoVersionAsync(cancellationToken).ConfigureAwait(false));
+        return new YouTubeTools(running, await DenoVersionAsync(cancellationToken).ConfigureAwait(false));
     }
 
     public async Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken)
@@ -291,7 +292,7 @@ internal sealed partial class YouTubeClient(
         }
         catch (Exception ex) when (IsMissingProgram(ex))
         {
-            LogToolMissing(options.YouTube.YtdlpPath, ex.Message);
+            LogToolMissing(ytdlp.Path, ex.Message);
             return YtdlpRun.Failed(YouTubeAnswer.CheckFailed, "yt-dlp can't be run here.");
         }
 
@@ -311,11 +312,11 @@ internal sealed partial class YouTubeClient(
     {
         try
         {
-            return new Ytdlp(options.YouTube.YtdlpPath, log);
+            return new Ytdlp(ytdlp.Path, log);
         }
         catch (Exception ex) when (IsMissingProgram(ex))
         {
-            LogToolMissing(options.YouTube.YtdlpPath, ex.Message);
+            LogToolMissing(ytdlp.Path, ex.Message);
             return null;
         }
     }

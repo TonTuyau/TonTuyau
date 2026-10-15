@@ -147,6 +147,7 @@ services:
 | `tontuyau-es-data` | TonTuyau's index (Elasticsearch) | Not needed: a full sync rebuilds it from TubeArchivist (about 13 minutes) |
 | `tontuyau-art` | the images copied from TubeArchivist and their resized versions (about 6 GB) | Optional: the next full sync copies and resizes what's missing (about 20 minutes) |
 | `tontuyau-sync-logs` | full runs' deletion lists | Optional, small |
+| `tontuyau-tools` | the yt-dlp versions TonTuyau downloaded (1.5), about 40 MB | Not needed: downloaded again |
 | `TONTUYAU_MEDIA_PATH` (a folder, not a volume) | your videos | Yours: TonTuyau never writes there |
 | `.env` | the settings and secrets | **Yes** (it holds the TubeArchivist token and the passwords: keep the copy private) |
 
@@ -243,6 +244,7 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_CLI_SOCKET` | no | `/tmp/tontuyau.sock`: the Unix socket the command line reaches the backend through, inside the container (empty: none, and the command line can't run anything) |
 | `TONTUYAU_YTDLP_PATH` | no | `yt-dlp`: the yt-dlp program TonTuyau reads YouTube with (1.5); the image has it, pinned |
 | `TONTUYAU_DENO_PATH` | no | `deno`: the Deno program yt-dlp runs YouTube's JavaScript with; the image has it, pinned |
+| `TONTUYAU_TOOLS_ROOT` | no | `/data/tools`: where the yt-dlp versions TonTuyau downloads go (a volume in the stack) |
 | `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 | `TONTUYAU_PUBLIC_URL` | no | empty: no link previews. The address people reach TonTuyau at (`https://tontuyau.example.net`, no path), read by the front server: a link shared in Discord, Messenger… then shows the channel, the title and the video. Their servers fetch the page and the video there |
 

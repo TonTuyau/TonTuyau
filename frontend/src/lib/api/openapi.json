@@ -2178,6 +2178,160 @@
           }
         }
       }
+    },
+    "/api/admin/youtube/ytdlp": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpStateResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["YouTube"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseYtdlpRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseYtdlpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/ytdlp/versions": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpVersionsResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2337,6 +2491,18 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ChooseYtdlpRequest": {
+        "required": ["kind", "version"],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": ["null", "string"]
+          },
+          "version": {
+            "type": ["null", "string"]
           }
         }
       },
@@ -3363,6 +3529,85 @@
           },
           "deno": {
             "type": ["null", "string"]
+          }
+        }
+      },
+      "YtdlpChoiceKind": {
+        "enum": ["latest", "official", "nightly"],
+        "type": "string"
+      },
+      "YtdlpChoiceResponse": {
+        "required": ["kind", "version", "chosenBy", "chosenAt"],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/YtdlpChoiceKind"
+          },
+          "version": {
+            "type": ["null", "string"]
+          },
+          "chosenBy": {
+            "type": ["null", "string"]
+          },
+          "chosenAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
+      "YtdlpStateResponse": {
+        "required": ["choice", "running", "bundled", "waiting", "checkedAt", "error"],
+        "type": "object",
+        "properties": {
+          "choice": {
+            "$ref": "#/components/schemas/YtdlpChoiceResponse"
+          },
+          "running": {
+            "type": ["null", "string"]
+          },
+          "bundled": {
+            "type": "boolean"
+          },
+          "waiting": {
+            "type": ["null", "string"]
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "error": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "YtdlpVersionResponse": {
+        "required": ["version", "publishedAt"],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "YtdlpVersionsResponse": {
+        "required": ["official", "nightly"],
+        "type": "object",
+        "properties": {
+          "official": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YtdlpVersionResponse"
+            }
+          },
+          "nightly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YtdlpVersionResponse"
+            }
           }
         }
       }

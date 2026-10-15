@@ -15,11 +15,17 @@ public sealed record TonTuyauOptions(
 
 public sealed record TubeArchivistOptions(string BaseUrl, string Token);
 
-/// <param name="YtdlpPath">The yt-dlp program (1.5): a path, or a name found on the PATH (the image's).</param>
+/// <param name="YtdlpPath">The image's yt-dlp (1.5): a path, or a name found on the PATH; the default and fallback.</param>
 /// <param name="DenoPath">The Deno program yt-dlp runs YouTube's JavaScript with; only its version is read here.</param>
+/// <param name="ToolsRoot">TonTuyau's own folder for the yt-dlp versions it downloads (a volume in the stack).</param>
+/// <param name="ReleasesApiUrl">GitHub's API, where yt-dlp's releases are listed (another only in tests).</param>
+/// <param name="DownloadsUrl">GitHub, where yt-dlp's release files are downloaded from (another only in tests).</param>
 public sealed record YouTubeOptions(
     string YtdlpPath = TonTuyauOptionsReader.DefaultYtdlpPath,
-    string DenoPath = TonTuyauOptionsReader.DefaultDenoPath);
+    string DenoPath = TonTuyauOptionsReader.DefaultDenoPath,
+    string ToolsRoot = TonTuyauOptionsReader.DefaultToolsRoot,
+    string ReleasesApiUrl = TonTuyauOptionsReader.DefaultReleasesApiUrl,
+    string DownloadsUrl = TonTuyauOptionsReader.DefaultDownloadsUrl);
 
 /// <param name="IndexPrefix">Prefix of every TonTuyau index and alias, e.g. <c>tontuyau</c> → <c>tontuyau-videos</c>.</param>
 public sealed record ElasticsearchOptions(
