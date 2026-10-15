@@ -172,8 +172,9 @@ public sealed class AuthSteps(ScenarioState state)
     }
 
     /// <summary>Sends the cookie if there is one, and keeps whatever the answer does to it.</summary>
-    private async Task SendAsync(HttpRequestMessage request)
+    public async Task SendAsync(HttpRequestMessage request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         if (_cookie is not null)
         {
             request.Headers.Add("Cookie", _cookie);

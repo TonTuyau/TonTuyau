@@ -1,3 +1,4 @@
+using TonTuyau.Application.ApiKeys;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
@@ -97,6 +98,11 @@ public static class ApiValues
         ["incremental"] = SyncMode.Incremental,
         ["full"] = SyncMode.Full,
         ["applyDeletions"] = SyncMode.ApplyDeletions,
+    };
+
+    public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
+    {
+        ["browserExtension"] = ApiKeyKind.BrowserExtension,
     };
 
     public static readonly Table<ImportPeriod> ImportPeriods = new()

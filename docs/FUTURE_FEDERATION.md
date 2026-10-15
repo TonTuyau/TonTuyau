@@ -36,3 +36,10 @@ One central TonTuyau instance handles **login**; a signed-in user can reach the 
 | after M8 | TubeArchivist replacement (LDAP admin, admin UI, own downloader) + TubeArchivist Companion compatibility |
 | then | **Private federation** (between TonTuyau instances) |
 | then | **Public federation** (central login instance), once the private one and the legal question are settled |
+
+## 2026-10-15: syncing between instances, after 1.7 (your idea)
+
+An instance registers another one with its URL and an API key made on that other instance, for one purpose: downloading any of its channels (videos and metadata) into its own library.
+
+- Such a key must not be able to do what the browser extension's can (send a YouTube cookie, add downloads), let alone an admin's. Decided: **API keys have a kind** (1.5), and a key opens only the endpoints of its kind; 1.5 has only `browserExtension`.
+- How instances sync (a new key kind, or "linked instances" with their own credentials and a pairing step; any channel or only shared ones; whether browsing stays public) is sorted out when this work starts, after 1.7.
