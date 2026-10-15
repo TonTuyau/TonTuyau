@@ -56,10 +56,9 @@ export const en = {
 
   'card.duration': 'Duration',
   'badge.inactive': 'Unavailable on YouTube',
-  'badge.inactiveHint': 'TubeArchivist can no longer reach this video on YouTube; this is the archived copy.',
+  'badge.inactiveHint': 'YouTube says this video was removed or made private; this is the archived copy.',
   'badge.channelInactive': 'Channel unavailable on YouTube',
-  'badge.channelInactiveHint':
-    'TubeArchivist can no longer reach this channel on YouTube; these are the archived copies.',
+  'badge.channelInactiveHint': 'YouTube says this channel was removed or terminated; these are the archived copies.',
 
   'sort.label': 'Sort by',
   'sort.latest': 'Latest',

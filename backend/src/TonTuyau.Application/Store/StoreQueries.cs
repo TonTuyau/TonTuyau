@@ -120,6 +120,7 @@ public sealed record VideoQuery(SearchText? Text, VideoFilter Filter, VideoListS
 public sealed record ChannelQuery(string? NamePrefix, SearchText? Text, ChannelListSort Sort);
 
 /// <summary>What a list needs to know about a video (no description, no tracks).</summary>
+/// <param name="Active">False only when TonTuyau confirmed the video is gone from YouTube (1.5).</param>
 /// <param name="ThumbnailArt">The thumbnail's versions as the sync recorded them; null when not recorded (yet).</param>
 public sealed record VideoListItem(
     string Id,

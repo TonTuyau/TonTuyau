@@ -6,8 +6,10 @@ using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.Infrastructure.Storage;
+using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure;
 
@@ -38,6 +40,8 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IDeletionLog>(
             sp => new DeletionLog(sp.GetRequiredService<TonTuyauOptions>().Sync.LogRoot));
         services.AddHostedService<IndexInitializer>();
+        // TonTuyau's own facts the sync lays over TubeArchivist's (1.5), read from PostgreSQL (AddAccounts).
+        services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);
         return services;
     }

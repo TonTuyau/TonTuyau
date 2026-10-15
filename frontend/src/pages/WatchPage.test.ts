@@ -25,7 +25,7 @@ describe('WatchPage', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Crème brûlée : la recette')
     expect(screen.getByText('Unavailable on YouTube')).toHaveAttribute(
       'title',
-      'TubeArchivist can no longer reach this video on YouTube; this is the archived copy.',
+      'YouTube says this video was removed or made private; this is the archived copy.',
     )
     expect(screen.getByText(/this is the archived copy/, { selector: '.hint' })).toBeInTheDocument()
     expect(screen.getByText(/74,198 views/)).toBeInTheDocument()

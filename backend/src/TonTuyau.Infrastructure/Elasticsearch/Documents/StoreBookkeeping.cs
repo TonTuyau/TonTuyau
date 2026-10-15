@@ -53,7 +53,7 @@ internal sealed record VideoListDocument(
     string ChannelName,
     string Title,
     string Type,
-    bool Active,
+    string? YoutubeState,
     DateTimeOffset Published,
     double DurationSeconds,
     long Views,

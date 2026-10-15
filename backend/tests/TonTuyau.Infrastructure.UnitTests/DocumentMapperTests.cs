@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Elasticsearch.Documents;
 
 namespace TonTuyau.Infrastructure.UnitTests;
@@ -36,7 +37,8 @@ public sealed class DocumentMapperTests
             Active = active,
             MediaPathCorrected
             = corrected,
-            LastRefreshed = refreshed ? DateTimeOffset.UnixEpoch : null
+            LastRefreshed = refreshed ? DateTimeOffset.UnixEpoch : null,
+            YouTube = StatusOf(active),
         };
 
         string json = JsonSerializer.Serialize(DocumentMapper.ToDocument(video), StoreJson.Options);
@@ -53,7 +55,8 @@ public sealed class DocumentMapperTests
             Active = active,
             BannerPath = withArt
             ? "/cache/channels/UCaaaaaaaaaaaaaaaaaaaaaa_banner.jpg"
-            : null
+            : null,
+            YouTube = StatusOf(active),
         };
 
         string json = JsonSerializer.Serialize(DocumentMapper.ToDocument(channel), StoreJson.Options);
@@ -61,6 +64,12 @@ public sealed class DocumentMapperTests
 
         Assert.Equal(Canonical(channel), Canonical(back));
     }
+
+    /// <summary>A document always has a state (the sync lays TonTuyau's facts first): every field filled, or none.</summary>
+    private static YouTubeStatus StatusOf(bool active) =>
+        active
+            ? new YouTubeStatus(YouTubeState.OnYouTube, DateTimeOffset.UnixEpoch, null, DateTimeOffset.UnixEpoch)
+            : new YouTubeStatus(YouTubeState.Gone, DateTimeOffset.UnixEpoch, "Video unavailable", RefreshedAt: null);
 
     [Fact]
     public void Same_content_gives_the_same_hash()
