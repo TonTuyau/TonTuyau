@@ -159,18 +159,18 @@ public sealed class YouTubeClientTests
             video.Comments);
     }
 
-    [Fact]
-    public async Task Yt_dlp_is_asked_for_that_many_comments_answers_included()
+    [Theory]
+    [InlineData(250, "max_comments=250,all,all,all")]
+    [InlineData(null, "max_comments=all,all,all,all")]
+    public async Task Yt_dlp_is_asked_for_that_many_comments_answers_included(int? max, string asked)
     {
-        await Client().GetVideoAsync("Comments001", new YouTubeCommentsRequest(250), Token);
+        await Client().GetVideoAsync("Comments001", new YouTubeCommentsRequest(max), Token);
 
         Assert.Contains(
             File
                 .ReadAllLines(Path.Combine(Fixtures, "calls.log"))
                 .Where(l => l.Contains("watch?v=Comments001", StringComparison.Ordinal)),
-            l => l.Contains(
-                "--write-comments --extractor-args youtube:max_comments=250,all,all,all",
-                StringComparison.Ordinal));
+            l => l.Contains($"--write-comments --extractor-args youtube:{asked}", StringComparison.Ordinal));
     }
 
     [Fact]

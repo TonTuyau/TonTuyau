@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.RunLogs;
@@ -20,10 +21,10 @@ namespace TonTuyau.Application.YouTube;
 /// </list>
 /// </summary>
 /// <remarks>
-/// A video's chapters are read with it; its comments too when the YouTube settings say so (up to
-/// <see cref="CommentsKept"/>, answers included, YouTube's top comments first), replacing the ones read before. Its
-/// thumbnail, a channel's avatar and banner, go to TonTuyau's art volume, replacing TubeArchivist's copies; a picture
-/// that fails never fails the refresh (the one there stays).
+/// A video's chapters are read with it; its comments too when the YouTube settings say so (the top ones, answers
+/// included, YouTube's order, or all of them), replacing the ones read before. Its thumbnail, a channel's avatar and
+/// banner, go to TonTuyau's art volume, replacing TubeArchivist's copies; a picture that fails never fails the
+/// refresh (the one there stays).
 /// </remarks>
 public sealed partial class YouTubeRefreshService(
     IYouTubeClient youTube,
@@ -39,9 +40,6 @@ public sealed partial class YouTubeRefreshService(
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
 {
-    /// <summary>How many comments of a video TonTuyau reads and keeps, answers included (1.5).</summary>
-    public const int CommentsKept = 500;
-
     /// <param name="mode">A refresh: <see cref="SyncMode.RefreshVideo"/>, <see cref="SyncMode.RefreshChannel"/> or
     /// <see cref="SyncMode.RefreshChannelVideos"/>.</param>
     /// <param name="target">The video's or channel's YouTube id: one of the library.</param>
@@ -92,10 +90,8 @@ public sealed partial class YouTubeRefreshService(
             {
                 // Read once: a change on the YouTube page applies from the next run.
                 YouTubeCommentsRequest? comments = (await settings.GetAsync(linked.Token).ConfigureAwait(false))
-                    .ReadComments
-                    ? new YouTubeCommentsRequest(CommentsKept)
-                    : null;
-                LogComments(comments is not null);
+                    .CommentsRequest;
+                LogComments(comments is null ? "none" : comments.Max?.ToString(CultureInfo.InvariantCulture) ?? "all");
                 if (mode == SyncMode.RefreshVideo)
                 {
                     context.BeginPhase(SyncPhase.YouTubeVideos, 1);
@@ -469,7 +465,7 @@ public sealed partial class YouTubeRefreshService(
     private partial void LogStarted(string runId, SyncMode mode, string target, SyncTrigger trigger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Comments read: {Read} (the YouTube page's settings).")]
-    private partial void LogComments(bool read);
+    private partial void LogComments(string read);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Id}: gone from YouTube ({Reason}).")]
     private partial void LogGone(string id, string? reason);

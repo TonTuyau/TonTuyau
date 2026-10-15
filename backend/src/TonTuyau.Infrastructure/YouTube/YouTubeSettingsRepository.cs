@@ -41,7 +41,8 @@ internal sealed class YouTubeSettingsRepository(IServiceScopeFactory scopes) : I
                 db.YouTubeSettings.Add(row);
             }
 
-            row.ReadComments = settings.ReadComments;
+            row.Comments = settings.Comments;
+            row.CommentsMax = settings.CommentsMax;
             row.ChangedBy = settings.ChangedBy;
             row.ChangedAt = settings.ChangedAt;
             await db

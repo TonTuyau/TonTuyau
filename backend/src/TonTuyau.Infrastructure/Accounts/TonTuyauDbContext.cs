@@ -190,7 +190,11 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .Property(s => s.Id)
                 .HasColumnName("id")
                 .ValueGeneratedNever();
-            settings.Property(s => s.ReadComments).HasColumnName("read_comments");
+            settings
+                .Property(s => s.Comments)
+                .HasColumnName("comments")
+                .HasConversion<string>();
+            settings.Property(s => s.CommentsMax).HasColumnName("comments_max");
             settings.Property(s => s.ChangedBy).HasColumnName("changed_by");
             settings.Property(s => s.ChangedAt).HasColumnName("changed_at");
         });

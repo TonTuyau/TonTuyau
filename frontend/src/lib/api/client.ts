@@ -29,6 +29,7 @@ import type {
   VideoListParams,
   YouTubeCookie,
   YouTubeOverview,
+  YouTubeCommentsChoice,
   YouTubeSettings,
   YtdlpChoiceKind,
   YtdlpState,
@@ -292,13 +293,13 @@ export const api = {
     return get('/api/admin/youtube/ytdlp/versions', {}, signal)
   },
 
-  /** How YouTube is read (1.5): whether the refreshes read the videos' comments. */
+  /** How YouTube is read (1.5): which comments the refreshes read (none, the top N, all). */
   youTubeSettings(signal?: AbortSignal): Promise<YouTubeSettings> {
     return get('/api/admin/youtube/settings', {}, signal)
   },
 
-  saveYouTubeSettings(readComments: boolean): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { readComments })
+  saveYouTubeSettings(comments: YouTubeCommentsChoice, commentsMax: number): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

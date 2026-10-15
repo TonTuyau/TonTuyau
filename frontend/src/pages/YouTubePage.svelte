@@ -2,15 +2,22 @@
   // The admin's YouTube page (1.5): the YouTube cookie TonTuyau signs in with (its state, checking it again, removing
   // it, asked first), the tools' versions, and which yt-dlp runs: the latest official release by default, or one
   // official release, or one nightly build of the last 2 months. A version chosen is applied in the background; the
-  // page asks again every 3 s while it's on its way (downloaded, or waiting for the task going on to end). And what a
-  // refresh reads: the comments, or not (off by default). A refusal says why; a 401 ends the session.
+  // page asks again every 3 s while it's on its way (downloaded, or waiting for the task going on to end). And which
+  // comments a refresh reads: none (the default), the top N, or all. A refusal says why; a 401 ends the session.
   import Button from '../components/Button.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { YouTubeOverview, YouTubeSettings, YtdlpChoiceKind, YtdlpState, YtdlpVersions } from '../lib/api/types'
+  import type {
+    YouTubeCommentsChoice,
+    YouTubeOverview,
+    YouTubeSettings,
+    YtdlpChoiceKind,
+    YtdlpState,
+    YtdlpVersions,
+  } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
-  import { formatAge, formatDate } from '../lib/format'
+  import { formatAge, formatDate, formatNumber } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { Remote } from '../lib/remote.svelte'
   import { pageTitle } from '../lib/title.svelte'
@@ -68,20 +75,54 @@
 
   // ---------------------------------------------------------------- reading YouTube
 
-  async function readComments(event: Event) {
-    const input = event.currentTarget as HTMLInputElement
+  const MAX_COMMENTS = 100_000
+
+  let comments = $state<YouTubeCommentsChoice>('off')
+  let commentsMax = $state<number | null>(500)
+  let commentsInvalid = $state<string | null>(null)
+
+  // The form starts on what's saved, and comes back to it after each save (or refusal).
+  function showSaved(saved: YouTubeSettings) {
+    comments = saved.comments
+    commentsMax = saved.commentsMax
+  }
+
+  let settingsShown = false
+  $effect(() => {
+    if (!settingsShown && settings.data) {
+      settingsShown = true
+      showSaved(settings.data)
+    }
+  })
+
+  async function saveComments(event: SubmitEvent) {
+    event.preventDefault()
+    const max = commentsMax
+    if (comments === 'top' && !(max !== null && Number.isInteger(max) && max >= 1 && max <= MAX_COMMENTS)) {
+      commentsInvalid = t('youTube.comments.max.invalid')
+      return
+    }
+    commentsInvalid = null
     pending = true
     refused = null
     try {
-      await api.saveYouTubeSettings(input.checked)
+      // Off and all keep the number for the next time the top ones are chosen.
+      await api.saveYouTubeSettings(comments, commentsMax ?? settings.data?.commentsMax ?? 500)
     } catch (error) {
       refused = t('youTube.refused', { reason: reasonOf(error) })
     } finally {
       pending = false
       await settings.refresh()
-      // The switch shows what's saved, also after a refusal (then nothing changed for Svelte to redraw).
-      input.checked = settings.data?.readComments ?? false
+      if (settings.data) {
+        showSaved(settings.data)
+      }
     }
+  }
+
+  function savedComments(saved: YouTubeSettings): string {
+    return saved.comments === 'top'
+      ? t('youTube.comments.savedTop', { max: formatNumber(saved.commentsMax, i18n.lang) })
+      : t(`youTube.comments.saved.${saved.comments}`)
   }
 
   // ---------------------------------------------------------------- yt-dlp
@@ -371,27 +412,53 @@
       <ErrorState error={settings.error} onretry={() => settings.retry()} />
     {:else if settings.data}
       {@const current = settings.data}
-      <label class="switch">
-        <span>
-          <b>{t('youTube.comments')}</b>
-          <small>{t('youTube.comments.what')}</small>
-        </span>
-        <input
-          type="checkbox"
-          role="switch"
-          checked={current.readComments}
-          disabled={pending}
-          onchange={readComments}
-        />
-      </label>
+      <form class="choose" onsubmit={saveComments} novalidate>
+        <fieldset>
+          <legend>{t('youTube.comments')}</legend>
+          <label class="choice">
+            <input type="radio" name="{uid}-comments" value="off" bind:group={comments} />
+            <b>{t('youTube.comments.off')}</b>
+            <small>{t('youTube.comments.offHint')}</small>
+          </label>
+          <label class="choice">
+            <input type="radio" name="{uid}-comments" value="top" bind:group={comments} />
+            <b>{t('youTube.comments.top')}</b>
+            <small>{t('youTube.comments.topHint')}</small>
+            <span class="max">
+              <input
+                type="number"
+                min="1"
+                max={MAX_COMMENTS}
+                step="1"
+                inputmode="numeric"
+                aria-label={t('youTube.comments.max')}
+                aria-invalid={commentsInvalid !== null}
+                bind:value={commentsMax}
+                disabled={comments !== 'top'}
+              />
+              <small>{t('youTube.comments.perVideo')}</small>
+            </span>
+            {#if commentsInvalid}
+              <small class="invalid" role="alert">{commentsInvalid}</small>
+            {/if}
+          </label>
+          <label class="choice">
+            <input type="radio" name="{uid}-comments" value="all" bind:group={comments} />
+            <b>{t('youTube.comments.all')}</b>
+            <small>{t('youTube.comments.allHint')}</small>
+          </label>
+        </fieldset>
+        <div class="actions">
+          <Button type="submit" variant="filled" disabled={pending}>{t('youTube.comments.save')}</Button>
+        </div>
+      </form>
       <p class="hint">
+        {savedComments(current)}
         {#if current.changedBy && current.changedAt}
-          {t(current.readComments ? 'youTube.comments.onBy' : 'youTube.comments.offBy', {
+          · {t('youTube.comments.changedBy', {
             by: current.changedBy,
             ago: formatAge(current.changedAt, i18n.lang),
           })}
-        {:else}
-          {t('youTube.comments.default')}
         {/if}
       </p>
     {/if}
@@ -477,29 +544,32 @@
     color: var(--color-error);
   }
 
-  .switch {
+  .max {
+    grid-column: 2;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    max-width: 72ch;
+    gap: var(--space-2);
   }
 
-  .switch span {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
+  .max input {
+    width: 8rem;
+    height: var(--button-height);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    font: inherit;
   }
 
-  .switch b {
-    font-weight: var(--font-weight-medium);
+  .max input[aria-invalid='true'] {
+    border-color: var(--color-error);
   }
 
-  .switch input {
-    flex: none;
-    width: 2.25rem;
-    height: 1.25rem;
-    accent-color: var(--color-brand);
+  .invalid {
+    grid-column: 2;
+    color: var(--color-error);
   }
 
   .pill {
