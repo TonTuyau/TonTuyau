@@ -1,7 +1,8 @@
 namespace TonTuyau.Application.YouTube;
 
 /// <summary>
-/// Reads YouTube (1.5), through yt-dlp: a video's or a channel's metadata as it is now, and whether it's still there.
+/// Reads YouTube (1.5), through yt-dlp: a video's or a channel's metadata as it is now, and whether it's still there;
+/// signed in with the YouTube cookie when there is one (<see cref="IYouTubeCookieSource"/>).
 /// Never throws for YouTube's or the network's sake: a failure is a <see cref="YouTubeAnswer.CheckFailed"/> answer.
 /// </summary>
 public interface IYouTubeClient
@@ -17,4 +18,10 @@ public interface IYouTubeClient
     Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(string channelId, CancellationToken cancellationToken);
 
     Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Tries the stored cookie (<see cref="IYouTubeCookieSource"/>): reads the account's Liked videos with it, as
+    /// TubeArchivist does.
+    /// </summary>
+    Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken);
 }

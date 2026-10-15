@@ -1,8 +1,8 @@
 # Development: Elasticsearch and PostgreSQL alone, on localhost:9200 and localhost:5432 for a backend run with
 # `dotnet run` (README).
-#   docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-es tontuyau-db
+#   docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-reservoir tontuyau-db
 services:
-  tontuyau-es:
+  tontuyau-reservoir:
     ports:
       - "127.0.0.1:9200:9200"
   tontuyau-db:

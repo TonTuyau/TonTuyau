@@ -4,14 +4,16 @@ using Npgsql;
 using TonTuyau.Application.Accounts;
 using TonTuyau.Application.ApiKeys;
 using TonTuyau.Application.Configuration;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
 using TonTuyau.Infrastructure.ApiKeys;
+using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure;
 
 public static class AccountsServiceCollectionExtensions
 {
-    /// <summary>TonTuyau's PostgreSQL (EF Core), the accounts and the API keys in it.</summary>
+    /// <summary>TonTuyau's PostgreSQL (EF Core), the accounts, the API keys and the YouTube cookie in it.</summary>
     public static IServiceCollection AddAccounts(this IServiceCollection services)
     {
         services.AddDbContext<TonTuyauDbContext>((sp, o) =>
@@ -21,6 +23,9 @@ public static class AccountsServiceCollectionExtensions
         services.AddScoped<AccountService>();
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
         services.AddScoped<ApiKeyService>();
+        services.AddScoped<IYouTubeCookieRepository, YouTubeCookieRepository>();
+        services.AddSingleton<IYouTubeCookieSource, YouTubeCookieSource>();
+        services.AddScoped<YouTubeCookieService>();
         return services;
     }
 

@@ -28,7 +28,7 @@ Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#i
 
 ## Install with Docker
 
-TonTuyau runs as four containers: `tontuyau-es` (its own Elasticsearch), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
+TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
 
 ### Prerequisites
 
@@ -130,7 +130,7 @@ Rather than editing `docker-compose.yml`, you can name the folders in a `docker-
 
 ```yaml
 services:
-  tontuyau-es:
+  tontuyau-reservoir:
     volumes:
       - /srv/tontuyau/es:/usr/share/elasticsearch/data
   tontuyau-backend:
@@ -189,7 +189,7 @@ cp .env.example .env    # then fill in the values, and uncomment the "Developmen
 Run locally:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-es tontuyau-db   # localhost:9200, :5432
+docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-reservoir tontuyau-db   # localhost:9200, :5432
 set -a; . ./.env; set +a; cd backend && dotnet run --project src/TonTuyau.Api   # http://localhost:5080
 cd frontend && pnpm install && pnpm dev                              # http://localhost:5173, proxies /api /media /art
 ```
@@ -210,7 +210,7 @@ The front's API types are generated from the backend's OpenAPI document: `fronte
 
 ## Configuration
 
-All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](.env.example)). The backend **refuses to start** with a missing or invalid value and says which one. In the Docker stack, `.env` holds them; the compose file fixes `TONTUYAU_ES_URL` (`http://tontuyau-es:9200`) and the three paths (`/youtube`, `/data/art`, `/data/logs/sync`), and passes every other one through (empty = the default below).
+All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](.env.example)). The backend **refuses to start** with a missing or invalid value and says which one. In the Docker stack, `.env` holds them; the compose file fixes `TONTUYAU_ES_URL` (`http://tontuyau-reservoir:9200`) and the three paths (`/youtube`, `/data/art`, `/data/logs/sync`), and passes every other one through (empty = the default below).
 
 | Variable | Required | Default |
 |---|---|---|

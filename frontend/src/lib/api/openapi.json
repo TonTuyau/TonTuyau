@@ -846,6 +846,103 @@
         }
       }
     },
+    "/api/extension/youtube-cookie": {
+      "get": {
+        "tags": ["Extension"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionCookieResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Extension"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCookieRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCookieRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeCookieResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/media/{id}": {
       "get": {
         "tags": ["Media"],
@@ -1957,6 +2054,130 @@
           }
         }
       }
+    },
+    "/api/admin/youtube": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/cookie/check": {
+      "post": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeCookieResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/cookie": {
+      "delete": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2174,6 +2395,22 @@
             "items": {
               "$ref": "#/components/schemas/ChannelTotals"
             }
+          }
+        }
+      },
+      "ExtensionCookieResponse": {
+        "required": ["cookie"],
+        "type": "object",
+        "properties": {
+          "cookie": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/YouTubeCookieResponse"
+              }
+            ]
           }
         }
       },
@@ -2671,6 +2908,15 @@
           }
         }
       },
+      "SendCookieRequest": {
+        "required": ["cookies"],
+        "type": "object",
+        "properties": {
+          "cookies": {
+            "type": ["null", "string"]
+          }
+        }
+      },
       "Suggestion": {
         "required": ["text", "kind", "id"],
         "type": "object",
@@ -3070,6 +3316,55 @@
             "format": "int32"
           }
         }
+      },
+      "YouTubeCookieResponse": {
+        "required": ["receivedAt", "receivedBy", "state", "checkedAt", "reason"],
+        "type": "object",
+        "properties": {
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/YouTubeCookieState"
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "YouTubeCookieState": {
+        "enum": ["unchecked", "works", "refused"],
+        "type": "string"
+      },
+      "YouTubeResponse": {
+        "required": ["cookie", "ytdlp", "deno"],
+        "type": "object",
+        "properties": {
+          "cookie": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/YouTubeCookieResponse"
+              }
+            ]
+          },
+          "ytdlp": {
+            "type": ["null", "string"]
+          },
+          "deno": {
+            "type": ["null", "string"]
+          }
+        }
       }
     }
   },
@@ -3106,6 +3401,9 @@
     },
     {
       "name": "Tasks"
+    },
+    {
+      "name": "YouTube"
     }
   ]
 }

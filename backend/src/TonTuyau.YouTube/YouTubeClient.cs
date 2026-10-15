@@ -16,7 +16,10 @@ namespace TonTuyau.YouTube;
 /// prints is read here, and its error lines too (<see cref="YtdlpLog"/>): Ytdlp.NET's typed metadata gives no reason
 /// when it fails, and the reason is what tells "gone" from "try again" (<see cref="YtdlpErrors"/>).
 /// </summary>
-internal sealed partial class YouTubeClient(TonTuyauOptions options, ILogger<YouTubeClient> logger) : IYouTubeClient
+internal sealed partial class YouTubeClient(
+    TonTuyauOptions options,
+    IYouTubeCookieSource cookies,
+    ILogger<YouTubeClient> logger) : IYouTubeClient
 {
     /// <summary>The longest one question may take; past it, the check failed (yt-dlp is stopped).</summary>
     public static readonly TimeSpan CallTimeout = TimeSpan.FromMinutes(2);
@@ -112,6 +115,29 @@ internal sealed partial class YouTubeClient(TonTuyauOptions options, ILogger<You
         return new YouTubeTools(ytdlp, await DenoVersionAsync(cancellationToken).ConfigureAwait(false));
     }
 
+    public async Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken)
+    {
+        if (await cookies.GetAsync(cancellationToken).ConfigureAwait(false) is null)
+        {
+            return new YouTubeCookieCheck(YouTubeCookieState.Unchecked, "There's no YouTube cookie.");
+        }
+
+        // The account's Liked videos ("LL"): only a signed-in session sees them. One entry is enough.
+        string arguments = $"{CommonArguments} --dump-single-json --flat-playlist --playlist-items 1 "
+            + "https://www.youtube.com/playlist?list=LL";
+        YtdlpRun run = await RunAsync(arguments, CallTimeout, cancellationToken).ConfigureAwait(false);
+        if (run.Failure is null)
+        {
+            return new YouTubeCookieCheck(YouTubeCookieState.Works, null);
+        }
+
+        // Signed out, expired, not a session: refused. A bot check or the network: nothing to conclude.
+        (YouTubeAnswer answer, string reason) = run.Failure.Value;
+        return answer == YouTubeAnswer.CheckFailed && (YtdlpErrors.DidntAnswer(reason) || run.Silent)
+            ? new YouTubeCookieCheck(YouTubeCookieState.Unchecked, reason)
+            : new YouTubeCookieCheck(YouTubeCookieState.Refused, reason);
+    }
+
     /// <param name="withComments">Whether comments were asked for: then a video without any has an empty list.</param>
     internal static YouTubeVideo VideoOf(VideoInfoDto info, bool withComments) => new(
         info.Id!,
@@ -196,9 +222,52 @@ internal sealed partial class YouTubeClient(TonTuyauOptions options, ILogger<You
 
     /// <summary>
     /// One run of yt-dlp: its output, or why it failed. A new Ytdlp.NET instance and log each time, so the error lines
-    /// are this run's only.
+    /// are this run's only. Signed in with the cookie when there's one: a file of this run's, readable by the backend
+    /// only, deleted at the end.
     /// </summary>
     private async Task<YtdlpRun> RunAsync(string arguments, TimeSpan limit, CancellationToken cancellationToken)
+    {
+        string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (cookie is null)
+        {
+            return await RunOnceAsync(arguments, limit, cancellationToken).ConfigureAwait(false);
+        }
+
+        string file = Path.Combine(Path.GetTempPath(), $"tontuyau-cookies-{Guid.NewGuid():N}.txt");
+        try
+        {
+            await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
+            return await RunOnceAsync($"--cookies {file} {arguments}", limit, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    /// <summary>Created readable and writable by its owner only, before the content is written.</summary>
+    private static async Task WriteCookieAsync(string file, string cookie, CancellationToken cancellationToken)
+    {
+        FileStreamOptions privately = new() { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            privately.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        FileStream stream = new(file, privately);
+        await using (stream.ConfigureAwait(false))
+        {
+            StreamWriter writer = new(stream);
+            await using (writer.ConfigureAwait(false))
+            {
+                await writer
+                    .WriteAsync(cookie.AsMemory(), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<YtdlpRun> RunOnceAsync(string arguments, TimeSpan limit, CancellationToken cancellationToken)
     {
         YtdlpLog log = new(logger);
         if (Start(log) is not { } program)
@@ -234,7 +303,7 @@ internal sealed partial class YouTubeClient(TonTuyauOptions options, ILogger<You
 
         (YouTubeAnswer answer, string reason) = YtdlpErrors.Classify(log.Errors, result.ExitCode);
         LogRefused(answer, reason);
-        return YtdlpRun.Failed(answer, reason);
+        return YtdlpRun.Failed(answer, reason) with { Silent = YtdlpErrors.ReasonOf(log.Errors).Length == 0 };
     }
 
     /// <summary>Ytdlp.NET over the configured program, or null (logged) when it's not there or can't be run.</summary>
@@ -319,9 +388,11 @@ internal sealed partial class YouTubeClient(TonTuyauOptions options, ILogger<You
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp answered, but not with {Id}'s metadata.")]
     private partial void LogUnexpectedAnswer(string id);
 
-    /// <summary>A run's output, or why it failed.</summary>
+    /// <summary>A run's output, or why it failed; <see cref="Silent"/>: it failed without an error line.</summary>
     private readonly record struct YtdlpRun(string Output, (YouTubeAnswer Answer, string Reason)? Failure)
     {
+        public bool Silent { get; init; }
+
         public static YtdlpRun Failed(YouTubeAnswer answer, string reason) => new("", (answer, reason));
     }
 }
