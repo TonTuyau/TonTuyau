@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.YouTube;
+using TonTuyau.YouTube.UnitTests.Support;
 
 namespace TonTuyau.YouTube.UnitTests;
 
@@ -13,7 +14,10 @@ public sealed class YouTubeClientTests
 {
     private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
 
-    private static YouTubeClient Client(string ytdlp = "fake-yt-dlp.sh", string deno = "fake-deno.sh")
+    private static YouTubeClient Client(
+        string ytdlp = "fake-yt-dlp.sh",
+        string deno = "fake-deno.sh",
+        string? cookie = null)
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -23,7 +27,7 @@ public sealed class YouTubeClientTests
             })
             .Build();
         TonTuyauOptions options = TonTuyauOptionsReader.Read(configuration);
-        return new YouTubeClient(options, NullLogger<YouTubeClient>.Instance);
+        return new YouTubeClient(options, new FixedCookieSource(cookie), NullLogger<YouTubeClient>.Instance);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -250,5 +254,56 @@ public sealed class YouTubeClientTests
         YouTubeTools tools = await Client(ytdlp: "no-such-program", deno: "no-such-deno").GetToolsAsync(Token);
 
         Assert.Equal(new YouTubeTools(null, null), tools);
+    }
+
+    // ---------------------------------------------------------------- the cookie (1.5)
+
+    private static readonly string SignedIn = Cookie("SIGNED_IN");
+
+    /// <summary>A one-cookie file; the fake yt-dlp answers by its value (SIGNED_IN, BOT_CHECK, anything else).</summary>
+    private static string Cookie(string value) =>
+        $"# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tLOGIN_INFO\t{value}\n";
+
+    [Fact]
+    public async Task With_a_cookie_yt_dlp_gets_it_as_a_file_only_the_backend_reads_deleted_afterwards()
+    {
+        await Client(cookie: SignedIn).GetVideoAsync("k3Fq8xZ0aQw", null, Token);
+
+        Assert.Equal(SignedIn, File.ReadAllText(Path.Combine(Fixtures, "last-cookie.txt")));
+        Assert.Equal("600", File.ReadAllText(Path.Combine(Fixtures, "last-cookie.mode")).Trim());
+        Assert.False(File.Exists(File.ReadAllText(Path.Combine(Fixtures, "last-cookie.path")).Trim()));
+    }
+
+    [Fact]
+    public async Task A_cookie_that_reads_the_liked_videos_works()
+    {
+        Assert.Equal(
+            new YouTubeCookieCheck(YouTubeCookieState.Works, null),
+            await Client(cookie: SignedIn).CheckCookieAsync(Token));
+    }
+
+    [Fact]
+    public async Task A_cookie_yt_dlp_is_refused_with_is_refused()
+    {
+        YouTubeCookieCheck check = await Client(cookie: Cookie("EXPIRED")).CheckCookieAsync(Token);
+
+        Assert.Equal(new YouTubeCookieCheck(YouTubeCookieState.Refused, "The playlist does not exist."), check);
+    }
+
+    [Fact]
+    public async Task A_bot_check_tells_nothing_about_the_cookie()
+    {
+        YouTubeCookieCheck check = await Client(cookie: Cookie("BOT_CHECK")).CheckCookieAsync(Token);
+
+        Assert.Equal(YouTubeCookieState.Unchecked, check.State);
+        Assert.StartsWith("Sign in to confirm you’re not a bot", check.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Without_a_cookie_there_is_nothing_to_check()
+    {
+        Assert.Equal(
+            new YouTubeCookieCheck(YouTubeCookieState.Unchecked, "There's no YouTube cookie."),
+            await Client().CheckCookieAsync(Token));
     }
 }

@@ -150,6 +150,14 @@ public sealed class ApiKeySteps(ScenarioState state, AuthSteps auth)
         await auth.SendAsync(request);
     }
 
+    /// <summary>Sends <paramref name="request"/> with the key made in this scenario under that name.</summary>
+    public Task SendWithKeyAsync(HttpRequestMessage request, string name)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret(name));
+        return state.SendAsync(request);
+    }
+
     private async Task SendWithBearerAsync(HttpMethod method, string path, string bearer)
     {
         using HttpRequestMessage request = new(method, new Uri(TestIds.Expand(path), UriKind.Relative));

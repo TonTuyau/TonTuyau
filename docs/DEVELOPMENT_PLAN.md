@@ -87,7 +87,7 @@ From the TA docs/source and **read-only probes of your instance (v0.5.12)**. Ful
                  │   └─ CLI: `tontuyau sync …` (docker exec)                                             │
                  │              │                                                                       │
                  │              ▼                                                                       │
-                 │  tontuyau-es (Elasticsearch 9.x, single node, security on)  ◀── volume tontuyau-es    │
+                 │  tontuyau-reservoir (Elasticsearch 9.x, single node, security on) ◀── volume tontuyau-es│
                  └──────────────┬───────────────────────────────────────────────────────────────────────┘
                                 │ GET/HEAD only + Token
                                 ▼

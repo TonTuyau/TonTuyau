@@ -10,6 +10,30 @@ if [[ "$*" == *--version* ]]; then
 fi
 url="${@: -1}"
 id="${url##*[=/]}"
+# The cookie file it was given: its content and mode kept as last-cookie.txt / last-cookie.mode, for the tests.
+cookies=""
+args=("$@")
+for i in "${!args[@]}"; do
+  if [[ "${args[$i]}" == "--cookies" ]]; then cookies="${args[$((i + 1))]}"; fi
+done
+if [[ -n "$cookies" ]]; then
+  cp "$cookies" "$here/last-cookie.txt"
+  stat -c '%a' "$cookies" > "$here/last-cookie.mode"
+  echo "$cookies" > "$here/last-cookie.path"
+fi
+# The Liked videos ("LL") answer like YouTube: only to a signed-in cookie (SIGNED_IN), a bot check to BOT_CHECK.
+if [[ "$id" == "LL" ]]; then
+  if [[ -n "$cookies" ]] && grep -q SIGNED_IN "$cookies"; then
+    echo '{"id": "LL", "title": "Liked videos", "_type": "playlist", "entries": [{"id": "k3Fq8xZ0aQw"}]}'
+    exit 0
+  fi
+  if [[ -n "$cookies" ]] && grep -q BOT_CHECK "$cookies"; then
+    echo "ERROR: [youtube:tab] LL: Sign in to confirm you’re not a bot." >&2
+    exit 1
+  fi
+  echo "ERROR: [youtube:tab] LL: The playlist does not exist." >&2
+  exit 1
+fi
 if [[ -f "$here/$id.sleep" ]]; then
   sleep "$(cat "$here/$id.sleep")"
 fi

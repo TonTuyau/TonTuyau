@@ -58,7 +58,7 @@ internal static class YtdlpErrors
         }
 
         string reason = string.Join(" ", errors);
-        if (NotAnAnswer.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase)))
+        if (DidntAnswer(reason))
         {
             return (YouTubeAnswer.CheckFailed, reason);
         }
@@ -67,6 +67,21 @@ internal static class YtdlpErrors
             ? (YouTubeAnswer.Gone, reason)
             : (YouTubeAnswer.CheckFailed, reason);
     }
+
+    /// <summary>The error lines alone, without their prefix; empty when yt-dlp wrote none.</summary>
+    public static string ReasonOf(IReadOnlyList<string> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        return string.Join(
+            " ",
+            lines
+                .Where(l => l.StartsWith("ERROR:", StringComparison.Ordinal))
+                .Select(Clean));
+    }
+
+    /// <summary>YouTube didn't really answer (a bot check, too many requests, the network…): nothing to conclude.</summary>
+    public static bool DidntAnswer(string reason) =>
+        NotAnAnswer.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>"ERROR: [youtube] k3Fq8xZ0aQw: Private video. …" → "Private video. …".</summary>
     private static string Clean(string line)

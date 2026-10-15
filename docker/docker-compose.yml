@@ -1,6 +1,6 @@
-# TonTuyau stack (M7): Elasticsearch, PostgreSQL (the accounts, 1.2), the backend (API + sync + `tontuyau` CLI) and the
-# front (the web app + a small server forwarding /api, /media, /art to the backend). Only the front is reachable from
-# the LAN.
+# TonTuyau stack (M7): the Reservoir (Elasticsearch, 1.5), PostgreSQL (the accounts, 1.2), the backend (API + sync +
+# `tontuyau` CLI) and the front (the web app + a small server forwarding /api, /media, /art to the backend). Only the
+# front is reachable from the LAN.
 #
 # On the VM (README, "Install with Docker"): this file and `.env` side by side, then
 #   docker compose pull && docker compose up -d
@@ -11,9 +11,10 @@
 name: tontuyau
 
 services:
-  tontuyau-es:
+  # The Reservoir: TonTuyau's Elasticsearch (named tontuyau-es before 1.5; its data volume keeps its name).
+  tontuyau-reservoir:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4
-    container_name: tontuyau-es
+    container_name: tontuyau-reservoir
     restart: unless-stopped
     environment:
       discovery.type: single-node
@@ -58,12 +59,12 @@ services:
     container_name: tontuyau-backend
     restart: unless-stopped
     depends_on:
-      tontuyau-es: { condition: service_healthy }
+      tontuyau-reservoir: { condition: service_healthy }
       tontuyau-db: { condition: service_healthy }
     networks: [default, tontuyau-db]
     environment:
       # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art, logs /data/logs/sync).
-      TONTUYAU_ES_URL: http://tontuyau-es:9200
+      TONTUYAU_ES_URL: http://tontuyau-reservoir:9200
       TONTUYAU_ES_USERNAME: elastic
       TONTUYAU_ES_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
       TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:?set TONTUYAU_TA_URL in .env}

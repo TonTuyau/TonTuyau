@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# A stand-in for yt-dlp in the integration tests (1.5): its version, and the Liked videos ("LL") the cookie check
+# reads: they answer a cookie holding SIGNED_IN; BOT_CHECK gets a bot check; anything else, or no cookie, is refused.
+if [[ "$*" == *--version* ]]; then
+  echo "2026.08.19"
+  exit 0
+fi
+cookies=""
+args=("$@")
+for i in "${!args[@]}"; do
+  if [[ "${args[$i]}" == "--cookies" ]]; then cookies="${args[$((i + 1))]}"; fi
+done
+if [[ "${@: -1}" == *list=LL ]]; then
+  if [[ -n "$cookies" ]] && grep -q SIGNED_IN "$cookies"; then
+    echo '{"id": "LL", "title": "Liked videos", "_type": "playlist", "entries": [{"id": "k3Fq8xZ0aQw"}]}'
+    exit 0
+  fi
+  if [[ -n "$cookies" ]] && grep -q BOT_CHECK "$cookies"; then
+    echo "ERROR: [youtube:tab] LL: Sign in to confirm you’re not a bot." >&2
+    exit 1
+  fi
+  echo "ERROR: [youtube:tab] LL: The playlist does not exist." >&2
+  exit 1
+fi
+echo "ERROR: [youtube] not faked here" >&2
+exit 1
