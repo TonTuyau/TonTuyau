@@ -215,6 +215,9 @@ public sealed class ApiSteps(ScenarioState state, LibrarySteps library)
     [Then("{string} is null")]
     public void ValueIsNull(string path) => Assert.Null(At(path));
 
+    [Then("{string} is not null")]
+    public void ValueIsNotNull(string path) => Assert.NotNull(At(path));
+
     [Then("{string} lists {string}")]
     public void ValueLists(string path, string expected) =>
         Assert.Equal(

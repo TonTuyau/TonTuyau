@@ -834,6 +834,68 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/videos/{id}/comments': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description top (YouTube's order, the default) | newest. */
+          sort?: string
+          /** @description The previous page's nextCursor. */
+          cursor?: string
+          /** @description Threads per page, 1–100 (default 20). */
+          size?: number
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['CommentsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/channels': {
     parameters: {
       query?: never
@@ -2828,9 +2890,44 @@ export interface components {
       /** Format: int64 */
       total: number
     }
+    Chapter: {
+      /** Format: double */
+      startSeconds: number
+      /** Format: double */
+      endSeconds: number
+      title: string
+    }
     ChooseYtdlpRequest: {
       kind: null | string
       version: null | string
+    }
+    CommentResponse: {
+      id: string
+      text: string
+      author: string
+      /** Format: date-time */
+      published: null | string
+      /** Format: int64 */
+      likes: null | number
+      pinned: boolean
+      byUploader: boolean
+      hearted: boolean
+    }
+    CommentsResponse: {
+      /** Format: date-time */
+      readAt: null | string
+      /** Format: int64 */
+      youTubeCount: null | number
+      /** Format: int64 */
+      kept: number
+      items: components['schemas']['CommentThreadResponse'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
+    }
+    CommentThreadResponse: {
+      comment: components['schemas']['CommentResponse']
+      replies: components['schemas']['CommentResponse'][]
     }
     ConnectionResponse: {
       version: string
@@ -3150,6 +3247,7 @@ export interface components {
       mediaUrl: string
       downloadUrl: string
       mediaAvailable: boolean
+      chapters: components['schemas']['Chapter'][]
     }
     VideoDetailChannel: {
       id: string

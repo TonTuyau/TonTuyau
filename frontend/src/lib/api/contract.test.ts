@@ -54,6 +54,11 @@ const contract: Endpoint[] = [
   },
   { doc: '/api/videos/{id}', path: new RegExp(`^/api/videos/${segment}$`), params: {} },
   {
+    doc: '/api/videos/{id}/comments',
+    path: new RegExp(`^/api/videos/${segment}/comments$`),
+    params: { sort: { kind: 'enum', values: ['top', 'newest'] }, cursor: { kind: 'cursor' }, size: size(100) },
+  },
+  {
     doc: '/api/channels',
     path: /^\/api\/channels$/,
     params: {

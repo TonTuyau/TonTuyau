@@ -9,6 +9,7 @@ import type {
   ChannelDetail,
   ChannelListParams,
   ChannelVideoListParams,
+  Comments,
   CreatedApiKey,
   Dashboard,
   Home,
@@ -294,6 +295,15 @@ export const api = {
   /** The versions that can be chosen (from GitHub; 502 when it can't be reached). */
   ytdlpVersions(signal?: AbortSignal): Promise<YtdlpVersions> {
     return get('/api/admin/youtube/ytdlp/versions', {}, signal)
+  },
+
+  /** A video's comments as TonTuyau read them (1.5): a page of threads; `readAt` null when never read. */
+  videoComments(
+    id: string,
+    query: { sort?: 'top' | 'newest'; cursor?: string },
+    signal?: AbortSignal,
+  ): Promise<Comments> {
+    return get(`/api/videos/${segment(id)}/comments`, query, signal)
   },
 
   /** A channel's admin page (1.5): the channel, its state on YouTube, how many of its videos are in each state. */

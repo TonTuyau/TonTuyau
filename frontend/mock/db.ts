@@ -9,7 +9,8 @@ import type { ChannelDetail, VideoCounts, VideoDetail } from '../src/lib/api/typ
 export type ChannelFixture = Omit<ChannelDetail, 'videoCounts'>
 
 /** A video as stored: the channel by id; the mock joins it into `channel` like the backend does. */
-export type VideoFixture = Omit<VideoDetail, 'channel'> & { channelId: string }
+/** `chapters`: the fixtures have none (TonTuyau 1.5 reads them on YouTube); the mock adds a demo's (handler.ts). */
+export type VideoFixture = Omit<VideoDetail, 'channel' | 'chapters'> & { channelId: string }
 
 export interface MockDb {
   channels: ChannelFixture[]

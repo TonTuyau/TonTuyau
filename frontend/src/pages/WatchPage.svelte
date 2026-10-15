@@ -3,6 +3,7 @@
   // download, expandable description with tags and file details, and the channel's latest uploads beside it (or below
   // it with the large player), scrolling on page after page. `&t=` (front-only routing) starts the video at that time;
   // the description's timecodes are links to their time, and a plain click seeks the player there and plays (1.1.0).
+  // 1.5: the chapters (always shown in the description box, the one playing outlined) and the comments TonTuyau read.
   import { api } from '../lib/api/client'
   import type { Playability } from '../lib/codec'
   import type { VideoCard as Video, VideoDetail } from '../lib/api/types'
@@ -18,6 +19,8 @@
   import Badge from '../components/Badge.svelte'
   import Button from '../components/Button.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import Chapters from '../components/Chapters.svelte'
+  import Comments from '../components/Comments.svelte'
   import ExpandableText from '../components/ExpandableText.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import MissingState from '../components/MissingState.svelte'
@@ -71,6 +74,8 @@
   const lang = $derived(i18n.lang)
 
   let player: Player | undefined = $state()
+  /** Where the video is (seconds), for the chapter playing. */
+  let time = $state(0)
   let stage: HTMLElement | undefined = $state()
 
   // A timecode's click: seek and play, and bring the player back into view if the page was scrolled away from it.
@@ -108,6 +113,7 @@
         size={playerSize.size}
         onsizechange={(size) => playerSize.set(size)}
         onunavailable={() => (fileMissing = true)}
+        ontime={(seconds) => (time = seconds)}
       />
     </div>
     <div class="primary">
@@ -195,7 +201,21 @@
             </dl>
           {/snippet}
         </ExpandableText>
+        {#if video.chapters.length > 0}
+          <Chapters
+            chapters={video.chapters}
+            {time}
+            hrefFor={(seconds) => href.watch(video.id, seconds)}
+            onseek={seek}
+          />
+        {/if}
       </section>
+
+      <Comments
+        videoId={video.id}
+        channelName={video.channel.name}
+        timecodes={{ duration: video.durationSeconds, href: (seconds) => href.watch(video.id, seconds), onseek: seek }}
+      />
     </div>
 
     <aside class="secondary" aria-label={t('watch.moreFrom', { channel: video.channel.name })}>

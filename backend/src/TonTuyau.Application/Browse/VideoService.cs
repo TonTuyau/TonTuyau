@@ -3,12 +3,14 @@ using TonTuyau.Application.Media;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
 /// <summary>Home page, the video lists and the watch page.</summary>
 public sealed class VideoService(
     IVideoRepository videos,
+    IYouTubeFactsSource facts,
     CardBuilder cards,
     IValidator<HomeRequest> homeValidator,
     IValidator<VideoListRequest> listValidator)
@@ -88,8 +90,16 @@ public sealed class VideoService(
             video.MediaSize,
             MediaTypes.PlaybackType(MediaTypes.ExtensionOf(video.MediaPath), video.Tracks),
             video.Tracks,
-            !stored.MediaMissing);
+            !stored.MediaMissing,
+            await ChaptersAsync(video.Id, cancellationToken).ConfigureAwait(false));
     }
+
+    /// <summary>Its chapters as TonTuyau read them on YouTube (1.5, PostgreSQL); none until it refreshed the video.</summary>
+    private async Task<IReadOnlyList<YouTubeChapter>> ChaptersAsync(string id, CancellationToken cancellationToken) =>
+        (await facts.GetVideosAsync([id], cancellationToken).ConfigureAwait(false))
+            .GetValueOrDefault(id)
+            ?.Refreshed
+            ?.Chapters ?? [];
 
     /// <summary>A page of a plain (not searched) video list: the shared part of /api/videos and a channel's tabs.</summary>
     internal async Task<ResultPage<VideoCardView>> ListAsync(
