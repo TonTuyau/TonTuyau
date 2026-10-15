@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
-import type { YouTubeCookie, YouTubeOverview, YtdlpState, YtdlpVersions } from '../lib/api/types'
+import type { YouTubeCookie, YouTubeOverview, YouTubeSettings, YtdlpState, YtdlpVersions } from '../lib/api/types'
 import { auth } from '../lib/auth.svelte'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 import YouTubePage from './YouTubePage.svelte'
@@ -48,12 +48,77 @@ function routes(given: Record<string, unknown> = {}) {
     '/api/admin/youtube': overview(),
     '/api/admin/youtube/ytdlp': ytdlp(),
     '/api/admin/youtube/ytdlp/versions': versions,
+    '/api/admin/youtube/settings': { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null },
     ...given,
   })
 }
 
 describe('YouTubePage', () => {
   beforeEach(() => goTo('/admin/youtube'))
+
+  it('reads no comments by default; the top N or all once saved, with who changed it', async () => {
+    const user = userEvent.setup()
+    let saved: YouTubeSettings = { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null }
+    const sent: unknown[] = []
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as Pick<YouTubeSettings, 'comments' | 'commentsMax'>
+          sent.push(body)
+          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    expect(await within(card).findByRole('radio', { name: /^Off/ })).toBeChecked()
+    expect(within(card).getByText('Off: no comments are read.')).toBeInTheDocument()
+    const max = within(card).getByRole('spinbutton', { name: 'How many comments, at most' })
+    expect(max).toBeDisabled()
+
+    await user.click(within(card).getByRole('radio', { name: /^The top ones/ }))
+    await user.clear(max)
+    await user.type(max, '2000')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await within(card).findByText(/^The top 2,000 are read\. · changed by admin/)).toBeInTheDocument()
+
+    await user.click(within(card).getByRole('radio', { name: /^All/ }))
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await within(card).findByText(/^All the comments are read\./)).toBeInTheDocument()
+    expect(sent).toEqual([
+      { comments: 'top', commentsMax: 2000 },
+      { comments: 'all', commentsMax: 2000 },
+    ])
+  })
+
+  it('refuses a number below 1 before asking, and shows what is saved after a refusal', async () => {
+    const user = userEvent.setup()
+    const api = routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) =>
+        init?.method === 'PUT'
+          ? problemResponse(400, 'comments is required.', 'Invalid request')
+          : { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    await user.click(await within(card).findByRole('radio', { name: /^The top ones/ }))
+    const max = within(card).getByRole('spinbutton', { name: 'How many comments, at most' })
+    await user.clear(max)
+    await user.type(max, '0')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(within(card).getByRole('alert')).toHaveTextContent('A whole number, 1 or more.')
+    const puts = () => api.calls.filter((url) => url.pathname === '/api/admin/youtube/settings').length
+    const before = puts()
+
+    await user.click(within(card).getByRole('radio', { name: /^All/ }))
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(/comments is required/)).toBeInTheDocument()
+    expect(puts()).toBeGreaterThan(before)
+    expect(within(card).getByRole('radio', { name: /^Off/ })).toBeChecked()
+  })
 
   it('shows the cookie, who sent it, the tools, and which yt-dlp runs and was chosen', async () => {
     routes()

@@ -29,6 +29,15 @@ internal sealed partial class YouTubeClient(
     public static readonly TimeSpan CommentsTimeout = TimeSpan.FromMinutes(10);
 
     /// <summary>
+    /// For more than <see cref="QuickComments"/> comments, or all of them: YouTube gives about 20 a request, so a video
+    /// with many takes long (the run can still be canceled).
+    /// </summary>
+    public static readonly TimeSpan ManyCommentsTimeout = TimeSpan.FromHours(6);
+
+    /// <summary>Up to this many comments, <see cref="CommentsTimeout"/> is enough.</summary>
+    public const int QuickComments = 500;
+
+    /// <summary>
     /// Every run: no user config file, no cache (the image's home isn't writable), plain text, nothing downloaded.
     /// </summary>
     private const string CommonArguments = "--ignore-config --no-cache-dir --color never --skip-download";
@@ -41,14 +50,19 @@ internal sealed partial class YouTubeClient(
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(videoId);
-        if (comments is not null)
+        if (comments?.Max is { } max)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(comments.Max, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(max, 1);
         }
 
         string arguments = $"{CommonArguments} --dump-single-json --no-playlist {CommentArguments(comments)}"
             + $"https://www.youtube.com/watch?v={videoId}";
-        TimeSpan limit = comments is null ? CallTimeout : CommentsTimeout;
+        TimeSpan limit = comments switch
+        {
+            null => CallTimeout,
+            { Max: <= QuickComments } => CommentsTimeout,
+            _ => ManyCommentsTimeout,
+        };
         YtdlpRun run = await RunAsync(arguments, limit, cancellationToken).ConfigureAwait(false);
         if (run.Failure is not null)
         {
@@ -175,9 +189,9 @@ internal sealed partial class YouTubeClient(
     private static string CommentArguments(YouTubeCommentsRequest? comments) =>
         comments is null
             ? ""
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"--write-comments --extractor-args youtube:max_comments={comments.Max},all,all,all ");
+            : "--write-comments --extractor-args youtube:max_comments="
+                + (comments.Max?.ToString(CultureInfo.InvariantCulture) ?? "all")
+                + ",all,all,all ";
 
     /// <returns>Null when yt-dlp gave none at all (it couldn't read them): not the same as a video without any.</returns>
     private static List<YouTubeComment>? CommentsOf(IReadOnlyList<CommentDto>? comments) =>

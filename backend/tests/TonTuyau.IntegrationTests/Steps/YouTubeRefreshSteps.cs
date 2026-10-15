@@ -137,9 +137,9 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     public Task ChannelFails(string name, string error) =>
         File.WriteAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.ChannelId(name) + ".err"), error);
 
-    /// <summary>The YouTube page's setting (off by default), sent with the admin's session.</summary>
+    /// <summary>The YouTube page's setting (off by default): the top 500, sent with the admin's session.</summary>
     [Given("reading comments is on")]
-    public Task CommentsOn() => SendSettingsAsync("{\"readComments\":true}");
+    public Task CommentsOn() => SendSettingsAsync("{\"comments\":\"top\",\"commentsMax\":500}");
 
     [When("I send the YouTube settings {string} with my session")]
     public async Task SendSettingsAsync(string body)

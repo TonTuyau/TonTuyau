@@ -8,7 +8,7 @@
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
-  import { runSeconds } from '../lib/runs'
+  import { runSeconds, taskCommands } from '../lib/runs'
   import Button from './Button.svelte'
   import RunStatePill from './RunStatePill.svelte'
 
@@ -53,15 +53,6 @@
     }
   }
 
-  const commands: Record<RunTask, string> = {
-    incremental: 'tontuyau sync incremental',
-    full: 'tontuyau sync full',
-    applyDeletions: 'tontuyau sync apply-deletions <run>',
-    refreshVideo: 'tontuyau youtube video <id>',
-    refreshChannel: 'tontuyau youtube channel <id>',
-    refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
-  }
-
   const last = $derived(info.lastRun)
   const titleId = $props.id()
 </script>
@@ -69,7 +60,7 @@
 <article class="card" aria-labelledby={titleId}>
   <header>
     <h2 id={titleId}>{t(`task.${info.task}`)}</h2>
-    <code>{commands[info.task]}</code>
+    <code>{taskCommands[info.task]}</code>
   </header>
   <p class="what">{t(`task.${info.task}.what`)}</p>
   <dl>

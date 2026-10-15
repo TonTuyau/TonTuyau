@@ -9,7 +9,10 @@ public sealed class YouTubeSettingsRow
 
     public int Id { get; set; } = OnlyId;
 
-    public bool ReadComments { get; set; }
+    /// <summary>Stored as its name (<c>Top</c>).</summary>
+    public YouTubeCommentsChoice Comments { get; set; }
+
+    public int CommentsMax { get; set; } = YouTubeSettings.DefaultCommentsMax;
 
     public string? ChangedBy { get; set; }
 
@@ -18,6 +21,6 @@ public sealed class YouTubeSettingsRow
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        return new YouTubeSettings(row.ReadComments, row.ChangedBy, row.ChangedAt);
+        return new YouTubeSettings(row.Comments, row.CommentsMax, row.ChangedBy, row.ChangedAt);
     }
 }

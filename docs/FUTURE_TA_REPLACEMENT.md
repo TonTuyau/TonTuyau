@@ -69,6 +69,23 @@ The replacement starts with 1.5 (decided in chat, 2026-10-14):
 
 TonTuyau is meant to be shared: it can't assume which TubeArchivist version someone runs, or that their TubeArchivist stopped downloading.
 
+### Decided on 2026-10-15: PostgreSQL becomes the library's only source of truth (first step of 1.6)
+
+In 1.5, Elasticsearch is a derived copy, rebuilt from two sources: TubeArchivist (what it imported) and PostgreSQL
+(what TonTuyau learned itself: `youtube_videos`, `youtube_channels`, `video_comments`). Two shortcuts remain: a refresh
+starts from the Elasticsearch document (its TubeArchivist part is a copy), and the API reads everything from
+Elasticsearch, detail pages included.
+
+1.6 starts by moving the whole library into PostgreSQL: a row per video and channel (metadata, file, tracks, state),
+the TubeArchivist import becoming one way to fill it, TonTuyau's downloads another. Elasticsearch then is only an
+index for search and lists, rebuilt from PostgreSQL alone. The downloads need those rows anyway.
+
+### Later: chapters in the player
+
+1.5 shows a video's chapters in its description (always visible), since the player is the browser's own. A later
+version puts them in the player itself, like YouTube (marks on the bar, the chapter's name), with TonTuyau's own
+player controls.
+
 ## Open (later, not now)
 
 - The exact list of TubeArchivist indices and fields to bring over (read on its exposed Elasticsearch when it's available).

@@ -91,19 +91,32 @@ Feature: Refreshing videos and channels on YouTube
   Scenario: The YouTube settings, off by default, changed by an admin
     When I request "/api/admin/youtube/settings" with my session
     Then the response status is 200
-    And the answer has exactly the fields "readComments, changedBy, changedAt"
-    And "readComments" is "false"
+    And the answer has exactly the fields "comments, commentsMax, changedBy, changedAt"
+    And "comments" is "off"
+    And "commentsMax" is "500"
     And "changedBy" is null
-    When I send the YouTube settings '{"readComments": true}' with my session
+    When I send the YouTube settings '{"comments": "top", "commentsMax": 250000}' with my session
     Then the response status is 200
-    And "readComments" is "true"
+    And "comments" is "top"
+    And "commentsMax" is "250000"
     And "changedBy" is "admin"
+    When I send the YouTube settings '{"comments": "all"}' with my session
+    Then "comments" is "all"
+    And "commentsMax" is "250000"
     When I request "/api/admin/youtube/settings" with my session
-    Then "readComments" is "true"
-    When I send the YouTube settings "{}" with my session
+    Then "comments" is "all"
+
+  Scenario Outline: A setting missing or wrong is refused
+    When I send the YouTube settings '<body>' with my session
     Then the response status is 400
-    When I send the YouTube settings '{"readComments": "yes"}' with my session
-    Then the response status is 400
+
+    Examples:
+      | body                                       |
+      | {}                                         |
+      | {"comments": "yes"}                        |
+      | {"comments": "top", "commentsMax": 0}      |
+      | {"comments": "top", "commentsMax": -3}     |
+      | {"comments": true}                         |
 
   Scenario: A video's comments (answers included) and chapters are kept, replaced at each refresh
     Given reading comments is on

@@ -103,12 +103,16 @@ const contract: Endpoint[] = [
     doc: '/api/admin/runs',
     path: /^\/api\/admin\/runs$/,
     params: {
-      task: { kind: 'enum', values: ['incremental', 'full', 'applyDeletions'] },
+      task: {
+        kind: 'enum',
+        values: ['incremental', 'full', 'applyDeletions', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
+      },
       before: { kind: 'cursor' },
       size: size(100),
     },
   },
   { doc: '/api/admin/runs/{id}', path: new RegExp(`^/api/admin/runs/${segment}$`), params: {} },
+  { doc: '/api/admin/youtube', path: /^\/api\/admin\/youtube$/, params: {} },
   {
     doc: '/api/admin/runs/{id}/log',
     path: new RegExp(`^/api/admin/runs/${segment}/log$`),

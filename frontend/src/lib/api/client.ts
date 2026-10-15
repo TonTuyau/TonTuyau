@@ -9,9 +9,9 @@ import type {
   ChannelVideoListParams,
   CreatedApiKey,
   Dashboard,
+  Home,
   ImportHistory,
   ImportPeriod,
-  Home,
   LoginRequest,
   Me,
   Page,
@@ -29,6 +29,8 @@ import type {
   VideoListParams,
   YouTubeCookie,
   YouTubeOverview,
+  YouTubeCommentsChoice,
+  YouTubeSettings,
   YtdlpChoiceKind,
   YtdlpState,
   YtdlpVersions,
@@ -226,9 +228,13 @@ export const api = {
     return get(`/api/admin/runs/${segment(id)}`, {}, signal)
   },
 
-  /** Starts a task now (1.4): the run, just started. 409 when a run is going on, or no deletion list waits. */
-  startTask(task: RunTask): Promise<Run> {
-    return postFor(`/api/admin/tasks/${segment(task)}/runs`)
+  /**
+   * Starts a task now (1.4): the run, just started. A refresh (1.5) takes its `target`, a video's or channel's id.
+   * 409 when a run is going on, no deletion list waits, or the target isn't one of the library.
+   */
+  startTask(task: RunTask, target?: string): Promise<Run> {
+    const query = target === undefined ? '' : `?target=${encodeURIComponent(target)}`
+    return postFor(`/api/admin/tasks/${segment(task)}/runs${query}`)
   },
 
   /** Asks the run going on to stop (1.4): it ends canceled soon after. 409 when it's over or runs elsewhere. */
@@ -285,6 +291,15 @@ export const api = {
   /** The versions that can be chosen (from GitHub; 502 when it can't be reached). */
   ytdlpVersions(signal?: AbortSignal): Promise<YtdlpVersions> {
     return get('/api/admin/youtube/ytdlp/versions', {}, signal)
+  },
+
+  /** How YouTube is read (1.5): which comments the refreshes read (none, the top N, all). */
+  youTubeSettings(signal?: AbortSignal): Promise<YouTubeSettings> {
+    return get('/api/admin/youtube/settings', {}, signal)
+  },
+
+  saveYouTubeSettings(comments: YouTubeCommentsChoice, commentsMax: number): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

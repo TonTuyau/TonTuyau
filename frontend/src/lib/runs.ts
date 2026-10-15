@@ -1,5 +1,5 @@
 // What the Tasks page shows of a run (1.4), from what the API gave: never a count it didn't send.
-import type { Run } from './api/types'
+import type { Run, RunTask } from './api/types'
 import { formatNumber } from './format'
 import { i18n, t } from './i18n/i18n.svelte'
 
@@ -13,6 +13,19 @@ export function runSeconds(run: Run, now: number): number {
 export function startedBy(run: Run): string {
   return run.trigger === 'admin' ? (run.startedBy ?? 'admin') : t(`run.by.${run.trigger}`)
 }
+
+/** The command line that does the same as each task. */
+export const taskCommands: Record<RunTask, string> = {
+  incremental: 'tontuyau sync incremental',
+  full: 'tontuyau sync full',
+  applyDeletions: 'tontuyau sync apply-deletions <run>',
+  refreshVideo: 'tontuyau youtube video <id>',
+  refreshChannel: 'tontuyau youtube channel <id>',
+  refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
+}
+
+/** The refreshes on YouTube (1.5), as the Tasks page shows them. */
+export const refreshTasks: RunTask[] = ['refreshVideo', 'refreshChannel', 'refreshChannelVideos']
 
 /** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
 export function isRefresh(run: Run): boolean {

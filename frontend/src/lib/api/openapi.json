@@ -3612,6 +3612,10 @@
           }
         }
       },
+      "YouTubeCommentsChoice": {
+        "enum": ["off", "top", "all"],
+        "type": "string"
+      },
       "YouTubeCookieResponse": {
         "required": ["receivedAt", "receivedBy", "state", "checkedAt", "reason"],
         "type": "object",
@@ -3662,20 +3666,28 @@
         }
       },
       "YouTubeSettingsRequest": {
-        "required": ["readComments"],
+        "required": ["comments", "commentsMax"],
         "type": "object",
         "properties": {
-          "readComments": {
-            "type": ["null", "boolean"]
+          "comments": {
+            "type": ["null", "string"]
+          },
+          "commentsMax": {
+            "type": ["null", "integer"],
+            "format": "int32"
           }
         }
       },
       "YouTubeSettingsResponse": {
-        "required": ["readComments", "changedBy", "changedAt"],
+        "required": ["comments", "commentsMax", "changedBy", "changedAt"],
         "type": "object",
         "properties": {
-          "readComments": {
-            "type": "boolean"
+          "comments": {
+            "$ref": "#/components/schemas/YouTubeCommentsChoice"
+          },
+          "commentsMax": {
+            "type": "integer",
+            "format": "int32"
           },
           "changedBy": {
             "type": ["null", "string"]

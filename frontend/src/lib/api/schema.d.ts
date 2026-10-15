@@ -3012,6 +3012,8 @@ export interface components {
       /** Format: int32 */
       count: number
     }
+    /** @enum {string} */
+    YouTubeCommentsChoice: 'off' | 'top' | 'all'
     YouTubeCookieResponse: {
       /** Format: date-time */
       receivedAt: string
@@ -3029,10 +3031,14 @@ export interface components {
       deno: null | string
     }
     YouTubeSettingsRequest: {
-      readComments: null | boolean
+      comments: null | string
+      /** Format: int32 */
+      commentsMax: null | number
     }
     YouTubeSettingsResponse: {
-      readComments: boolean
+      comments: components['schemas']['YouTubeCommentsChoice']
+      /** Format: int32 */
+      commentsMax: number
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string

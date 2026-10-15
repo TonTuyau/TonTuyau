@@ -345,9 +345,14 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("changed_by");
 
-                    b.Property<bool>("ReadComments")
-                        .HasColumnType("boolean")
-                        .HasColumnName("read_comments");
+                    b.Property<string>("Comments")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("comments");
+
+                    b.Property<int>("CommentsMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("comments_max");
 
                     b.HasKey("Id");
 

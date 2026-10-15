@@ -90,7 +90,7 @@ public sealed class YouTubeController(
         return Accepted(new Uri("/api/admin/youtube/ytdlp", UriKind.Relative), (YtdlpStateResponse)state);
     }
 
-    /// <summary>How YouTube is read: whether the refreshes read the videos' comments (off by default).</summary>
+    /// <summary>How YouTube is read: which comments the refreshes read (none by default, the top N, or all).</summary>
     [HttpGet("settings")]
     [ProducesResponseType<YouTubeSettingsResponse>(StatusCodes.Status200OK)]
     public async Task<YouTubeSettingsResponse> GetSettingsAsync(CancellationToken cancellationToken) =>
@@ -98,7 +98,7 @@ public sealed class YouTubeController(
             .GetAsync(cancellationToken)
             .ConfigureAwait(false);
 
-    /// <summary>Changes how YouTube is read, from the next refresh on. 400 when a setting is missing.</summary>
+    /// <summary>Changes how YouTube is read, from the next refresh on. 400 when a setting is missing or wrong.</summary>
     [HttpPut("settings")]
     [Consumes("application/json")]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -110,7 +110,7 @@ public sealed class YouTubeController(
     {
         ArgumentNullException.ThrowIfNull(request);
         return (YouTubeSettingsResponse)await settings
-            .SaveAsync(request.ReadComments, Account(), cancellationToken)
+            .SaveAsync(request.Comments, request.CommentsMax, Account(), cancellationToken)
             .ConfigureAwait(false);
     }
 

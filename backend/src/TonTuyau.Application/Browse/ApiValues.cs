@@ -104,6 +104,14 @@ public static class ApiValues
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
     };
 
+    /// <summary>Which comments a refresh reads (1.5, the YouTube page).</summary>
+    public static readonly Table<YouTubeCommentsChoice> CommentChoices = new()
+    {
+        ["off"] = YouTubeCommentsChoice.Off,
+        ["top"] = YouTubeCommentsChoice.Top,
+        ["all"] = YouTubeCommentsChoice.All,
+    };
+
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
     {
         ["browserExtension"] = ApiKeyKind.BrowserExtension,
