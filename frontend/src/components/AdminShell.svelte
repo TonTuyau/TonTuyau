@@ -9,6 +9,7 @@
   import { router } from '../lib/router/router.svelte'
   import { href, type AdminRoute } from '../lib/router/routes'
   import ApiKeysPage from '../pages/ApiKeysPage.svelte'
+  import ChannelAdminPage from '../pages/ChannelAdminPage.svelte'
   import DashboardPage from '../pages/DashboardPage.svelte'
   import RunPage from '../pages/RunPage.svelte'
   import TasksPage from '../pages/TasksPage.svelte'
@@ -21,7 +22,7 @@
   let { route }: { route: AdminRoute } = $props()
 
   // A run's page is part of the Tasks (the menu says so).
-  const section = $derived(route.page === 'run' ? 'tasks' : route.page)
+  const section = $derived(route.page === 'run' ? 'tasks' : route.page === 'channel' ? 'dashboard' : route.page)
 
   const uid = $props.id()
   const navId = `${uid}-nav`
@@ -149,6 +150,8 @@
         <YouTubePage />
       {:else if route.page === 'apiKeys'}
         <ApiKeysPage />
+      {:else if route.page === 'channel'}
+        <ChannelAdminPage id={route.id} />
       {:else}
         <DashboardPage />
       {/if}

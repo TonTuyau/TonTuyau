@@ -11,9 +11,9 @@ namespace TonTuyau.IntegrationTests.Steps;
 [Binding]
 public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 {
-    private readonly string _root = Path.Combine(
+    private readonly string _root = state.Temporary(Path.Combine(
         Path.GetTempPath(),
-        "tontuyau-sync-" + Guid.NewGuid().ToString("N")[..8]);
+        "tontuyau-sync-" + Guid.NewGuid().ToString("N")[..8]));
     private readonly List<SyncRun> _fullRuns = [];
     private readonly Dictionary<string, FakeVideo> _removed = new(StringComparer.Ordinal);
     private FakeTubeArchivist? _fake;

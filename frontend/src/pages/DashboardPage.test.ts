@@ -12,7 +12,7 @@ const names = () =>
   within(screen.getByRole('table', { name: 'Channels' }))
     .getAllByRole('row')
     .slice(1)
-    .map((row) => within(row).queryByRole('link')?.textContent?.trim() ?? row.textContent?.trim())
+    .map((row) => within(row).queryAllByRole('link')[0]?.textContent?.trim() ?? row.textContent?.trim())
 
 /** Moves the pointer over the bar at this index (its whole column is the hover zone). */
 async function hover(index: number) {
@@ -207,6 +207,7 @@ describe('DashboardPage', () => {
     await user.click(within(screen.getByRole('table', { name: 'Channels' })).getByRole('button', { name: 'Shorts' }))
     expect(names()).toEqual(['Écoles du Goût', 'Atelier Bois', 'Vinyl Archive'])
     expect(screen.getByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
+    expect(screen.getByRole('link', { name: 'Manage Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
   })
 
   it('finds a channel by name (accents and case ignored) and keeps those with videos gone from YouTube', async () => {

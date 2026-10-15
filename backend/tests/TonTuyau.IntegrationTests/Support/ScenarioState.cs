@@ -55,6 +55,16 @@ public sealed class ScenarioState : IDisposable
     /// <summary>The backend under test, created on first use with the scenario's settings.</summary>
     public TonTuyauFactory Backend => _factory ??= new TonTuyauFactory(Settings.ToConfiguration(), ServiceOverrides);
 
+    /// <summary>The scenario's temporary folders: deleted once its backend has stopped (it may write to them).</summary>
+    public List<string> TempFolders { get; } = [];
+
+    /// <summary>A temporary folder of the scenario (<see cref="TempFolders"/>): its path, given back.</summary>
+    public string Temporary(string folder)
+    {
+        TempFolders.Add(folder);
+        return folder;
+    }
+
     /// <summary>Stops the backend; the next use of <see cref="Backend"/> starts a new one with the same settings.</summary>
     public void StopBackend()
     {
@@ -66,5 +76,20 @@ public sealed class ScenarioState : IDisposable
     {
         Response?.Dispose();
         _factory?.Dispose();
+        foreach (string folder in TempFolders.Append(Settings.ToolsRoot))
+        {
+            try
+            {
+                if (Directory.Exists(folder))
+                {
+                    Directory.Delete(folder, recursive: true);
+                }
+            }
+            catch (IOException ex)
+            {
+                // A folder left over only costs space (in /tmp): the run goes on.
+                Console.WriteLine($"Couldn't delete {folder}: {ex.Message}");
+            }
+        }
     }
 }

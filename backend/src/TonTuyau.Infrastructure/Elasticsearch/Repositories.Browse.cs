@@ -32,7 +32,9 @@ internal sealed partial class VideoRepository
         v => v.DurationSeconds,
         v => v.Views,
         v => v.ThumbnailPath,
-        v => v.ThumbnailArt!);
+        v => v.ThumbnailArt!,
+        v => v.YoutubeCheckedAt!,
+        v => v.YoutubeReason!);
 
     /// <summary>
     /// Searched fields, French analysis + English sub-field (M2). The title counts most, then the channel name and
@@ -149,6 +151,33 @@ internal sealed partial class VideoRepository
         return counts;
     }
 
+    public async Task<IReadOnlyDictionary<YouTubeState, long>> CountYouTubeStatesAsync(
+        string channelId,
+        CancellationToken cancellationToken)
+    {
+        const string ByState = "by_state";
+        SearchRequest<VideoDocument> request = new(ReadAlias)
+        {
+            Size = 0,
+            Query = InChannels([channelId]),
+            Aggregations = new Dictionary<string, Aggregation>
+            {
+                [ByState] = new TermsAggregation
+                {
+                    Field = Infer.Field<VideoDocument>(v => v.YoutubeState!),
+                    Size = Enum.GetValues<YouTubeState>().Length,
+                },
+            },
+        };
+        SearchResponse<VideoDocument> response = (await Client
+            .SearchAsync<VideoDocument>(request, cancellationToken)
+            .ConfigureAwait(false))
+            .Ensure($"Count by YouTube state in {ReadAlias}");
+        StringTermsAggregate states = response.Aggregations?.GetStringTerms(ByState)
+            ?? throw new SearchStoreException($"Count by YouTube state in {ReadAlias}: no '{ByState}' aggregation.");
+        return states.Buckets.ToDictionary(b => DocumentMapper.ParseState((string)b.Key.Value!), b => b.DocCount);
+    }
+
     public async Task<IReadOnlyList<TextMatch>> SuggestTitlesAsync(
         string prefix,
         int size,
@@ -201,6 +230,15 @@ internal sealed partial class VideoRepository
             {
                 Field = Infer.Field<VideoDocument>(v => v.ChannelId),
                 Value = filter.ChannelId,
+            });
+        }
+
+        if (filter.YouTube is not null)
+        {
+            filters.Add(new TermQuery
+            {
+                Field = Infer.Field<VideoDocument>(v => v.YoutubeState!),
+                Value = DocumentMapper.StateName(filter.YouTube.Value),
             });
         }
 
@@ -280,18 +318,23 @@ internal sealed partial class VideoRepository
         };
     }
 
-    private static VideoListItem ToListItem(VideoListDocument d) => new(
-        d.Id,
-        d.ChannelId,
-        d.ChannelName,
-        d.Title,
-        DocumentMapper.ParseType(d.Type),
-        DocumentMapper.ParseState(d.YoutubeState) != YouTubeState.Gone,
-        d.Published,
-        TimeSpan.FromSeconds(d.DurationSeconds),
-        d.Views,
-        d.ThumbnailPath,
-        DocumentMapper.ToArt(d.ThumbnailArt));
+    private static VideoListItem ToListItem(VideoListDocument d)
+    {
+        YouTubeState state = DocumentMapper.ParseState(d.YoutubeState);
+        return new VideoListItem(
+            d.Id,
+            d.ChannelId,
+            d.ChannelName,
+            d.Title,
+            DocumentMapper.ParseType(d.Type),
+            state != YouTubeState.Gone,
+            d.Published,
+            TimeSpan.FromSeconds(d.DurationSeconds),
+            d.Views,
+            d.ThumbnailPath,
+            DocumentMapper.ToArt(d.ThumbnailArt),
+            new YouTubeStatus(state, d.YoutubeCheckedAt, d.YoutubeReason, RefreshedAt: null));
+    }
 }
 
 internal sealed partial class ChannelRepository

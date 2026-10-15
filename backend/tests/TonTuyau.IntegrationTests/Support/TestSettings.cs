@@ -23,6 +23,9 @@ public sealed class TestSettings
             Path.Combine(Path.GetTempPath(), "tontuyau-tools-" + Guid.NewGuid().ToString("N")),
     };
 
+    /// <summary>The scenario's own folder for the yt-dlp versions downloaded.</summary>
+    public string ToolsRoot => _values[ConfigKeys.EnvironmentName(ConfigKeys.ToolsRoot)]!;
+
     public void Set(string environmentName, string? value) => _values[environmentName] = value;
 
     public string? Get(string environmentName) => _values.GetValueOrDefault(environmentName);

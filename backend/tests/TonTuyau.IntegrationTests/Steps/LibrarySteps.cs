@@ -19,9 +19,9 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
     /// <summary>Default publication date of a seeded video when the table doesn't give one.</summary>
     public static readonly DateTimeOffset DefaultPublished = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly string _root = Path.Combine(
+    private readonly string _root = state.Temporary(Path.Combine(
         Path.GetTempPath(),
-        "tontuyau-api-" + Guid.NewGuid().ToString("N")[..8]);
+        "tontuyau-api-" + Guid.NewGuid().ToString("N")[..8]));
     private readonly Dictionary<string, Video> _videos = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Channel> _channels = new(StringComparer.Ordinal);
 

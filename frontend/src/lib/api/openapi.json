@@ -6,6 +6,157 @@
     "version": "v1"
   },
   "paths": {
+    "/api/admin/channels/{id}": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminChannelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/channels/{id}/videos": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "notChecked | onYouTube | retryLater | gone; every state when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words of the title, tags or description, 1–100 characters.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The previous page's nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "1–100 (default 24).",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAdminVideoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/dashboard": {
       "get": {
         "tags": ["Admin"],
@@ -2441,6 +2592,33 @@
   },
   "components": {
     "schemas": {
+      "AdminChannelResponse": {
+        "required": ["channel", "youTube", "videos"],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/ChannelCard"
+          },
+          "youTube": {
+            "$ref": "#/components/schemas/YouTubeStatusResponse"
+          },
+          "videos": {
+            "$ref": "#/components/schemas/YouTubeStateCounts"
+          }
+        }
+      },
+      "AdminVideoResponse": {
+        "required": ["video", "youTube"],
+        "type": "object",
+        "properties": {
+          "video": {
+            "$ref": "#/components/schemas/VideoCard"
+          },
+          "youTube": {
+            "$ref": "#/components/schemas/YouTubeStatusResponse"
+          }
+        }
+      },
       "ApiKeyKind": {
         "enum": ["browserExtension"],
         "type": "string"
@@ -2568,7 +2746,7 @@
         }
       },
       "ChannelTotals": {
-        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "total"],
+        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "retryLater", "notChecked", "total"],
         "type": "object",
         "properties": {
           "id": {
@@ -2590,6 +2768,14 @@
             "$ref": "#/components/schemas/VideoCounts"
           },
           "gone": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retryLater": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "notChecked": {
             "type": "integer",
             "format": "int64"
           },
@@ -2858,6 +3044,25 @@
         "properties": {
           "username": {
             "type": "string"
+          }
+        }
+      },
+      "PageOfAdminVideoResponse": {
+        "required": ["items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminVideoResponse"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -3698,6 +3903,52 @@
           }
         }
       },
+      "YouTubeState": {
+        "enum": ["notChecked", "onYouTube", "retryLater", "gone"],
+        "type": "string"
+      },
+      "YouTubeStateCounts": {
+        "required": ["notChecked", "onYouTube", "retryLater", "gone"],
+        "type": "object",
+        "properties": {
+          "notChecked": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onYouTube": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retryLater": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "YouTubeStatusResponse": {
+        "required": ["state", "checkedAt", "reason", "refreshedAt"],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/YouTubeState"
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": ["null", "string"]
+          },
+          "refreshedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
       "YtdlpChoiceKind": {
         "enum": ["latest", "official", "nightly"],
         "type": "string"
@@ -3780,6 +4031,9 @@
     }
   },
   "tags": [
+    {
+      "name": "AdminChannels"
+    },
     {
       "name": "Admin"
     },

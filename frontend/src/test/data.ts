@@ -108,6 +108,8 @@ export function channelTotals(overrides: Partial<ChannelTotals> = {}): ChannelTo
     thumbnails: [{ width: 900, url: '/art/from-the-api/UCtest-thumb' }],
     counts: { videos: 120, shorts: 14, streams: 0 },
     gone: 3,
+    retryLater: 5,
+    notChecked: 0,
     total: 134,
     ...overrides,
   }

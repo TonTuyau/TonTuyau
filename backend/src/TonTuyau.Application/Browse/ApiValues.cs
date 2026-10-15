@@ -104,6 +104,15 @@ public static class ApiValues
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
     };
 
+    /// <summary>The states of a video or channel on YouTube (1.5, the admin pages' filter).</summary>
+    public static readonly Table<YouTubeState> YouTubeStates = new()
+    {
+        ["notChecked"] = YouTubeState.NotChecked,
+        ["onYouTube"] = YouTubeState.OnYouTube,
+        ["retryLater"] = YouTubeState.RetryLater,
+        ["gone"] = YouTubeState.Gone,
+    };
+
     /// <summary>Which comments a refresh reads (1.5, the YouTube page).</summary>
     public static readonly Table<YouTubeCommentsChoice> CommentChoices = new()
     {

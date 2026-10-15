@@ -28,6 +28,8 @@ internal sealed class DashboardRepository(
     private const string ByChannel = "by_channel";
     private const string Duration = "duration";
     private const string Gone = "gone";
+    private const string RetryLater = "retry_later";
+    private const string NotChecked = "not_checked";
 
     private static readonly Fields ChannelFields = Infer.Fields<ChannelListDocument>(
         c => c.Id,
@@ -50,12 +52,11 @@ internal sealed class DashboardRepository(
         r => r.Counts.Created,
         r => r.Counts.CreatedByType!);
 
-    private static readonly Query GoneQuery =
-        new TermQuery
-        {
-            Field = Infer.Field<VideoDocument>(v => v.YoutubeState),
-            Value = DocumentMapper.StateName(YouTubeState.Gone),
-        };
+    private static readonly Query GoneQuery = StateQuery(YouTubeState.Gone);
+
+    private static readonly Query RetryLaterQuery = StateQuery(YouTubeState.RetryLater);
+
+    private static readonly Query NotCheckedQuery = StateQuery(YouTubeState.NotChecked);
 
     private string Videos => names.ReadAlias(StoreIndex.Videos);
 
@@ -124,6 +125,8 @@ internal sealed class DashboardRepository(
                 {
                     [ByType] = new TermsAggregation { Field = Infer.Field<VideoDocument>(v => v.Type), Size = types },
                     [Gone] = new Aggregation { Filter = GoneQuery },
+                    [RetryLater] = new Aggregation { Filter = RetryLaterQuery },
+                    [NotChecked] = new Aggregation { Filter = NotCheckedQuery },
                 },
             };
         }
@@ -154,7 +157,9 @@ internal sealed class DashboardRepository(
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Video)),
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Short)),
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Stream))),
-                    channel.Aggregations?.GetFilter(Gone)?.DocCount ?? 0);
+                    channel.Aggregations?.GetFilter(Gone)?.DocCount ?? 0,
+                    channel.Aggregations?.GetFilter(RetryLater)?.DocCount ?? 0,
+                    channel.Aggregations?.GetFilter(NotChecked)?.DocCount ?? 0);
             }
         }
 
@@ -247,4 +252,10 @@ internal sealed class DashboardRepository(
     private static IReadOnlyCollection<StringTermsBucket> Buckets(AggregateDictionary? aggregations, string name) =>
         aggregations?.GetStringTerms(name)?.Buckets
             ?? throw new SearchStoreException($"Count the library: no '{name}' aggregation.");
+
+    private static TermQuery StateQuery(YouTubeState state) => new()
+    {
+        Field = Infer.Field<VideoDocument>(v => v.YoutubeState),
+        Value = DocumentMapper.StateName(state),
+    };
 }
