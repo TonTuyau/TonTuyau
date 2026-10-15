@@ -58,21 +58,42 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
         return WriteAsync(name, answer);
     }
 
-    private static Dictionary<string, object> VideoAnswer(string name, string title, int views) => new()
+    /// <summary>A video's metadata; its best thumbnail is a WebP when its title says "WebP", else a JPEG.</summary>
+    private static Dictionary<string, object> VideoAnswer(string name, string title, int views)
     {
-        ["id"] = FakeTubeArchivist.VideoId(name),
-        ["title"] = title,
-        ["description"] = "From YouTube",
-        ["channel_id"] = FakeTubeArchivist.ChannelId(name.Split('-')[0]),
-        ["channel"] = "Alpha on YouTube",
-        ["timestamp"] = 1_790_000_000,
-        ["duration"] = 120,
-        ["view_count"] = views,
-        ["like_count"] = 12,
-        ["tags"] = Tags,
-        ["categories"] = Categories,
-        ["comment_count"] = 3,
-    };
+        string id = FakeTubeArchivist.VideoId(name);
+        string best = title.Contains("WebP", StringComparison.Ordinal) ? "maxresdefault.webp" : "maxresdefault.jpg";
+        return new Dictionary<string, object>
+        {
+            ["id"] = id,
+            ["title"] = title,
+            ["description"] = "From YouTube",
+            ["channel_id"] = FakeTubeArchivist.ChannelId(name.Split('-')[0]),
+            ["channel"] = "Alpha on YouTube",
+            ["timestamp"] = 1_790_000_000,
+            ["duration"] = 120,
+            ["view_count"] = views,
+            ["like_count"] = 12,
+            ["tags"] = Tags,
+            ["categories"] = Categories,
+            ["comment_count"] = 3,
+            ["thumbnails"] = new object[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["url"] = $"https://i.ytimg.com/vi/{id}/default.jpg",
+                    ["width"] = 120,
+                    ["id"] = "0",
+                },
+                new Dictionary<string, object>
+                {
+                    ["url"] = $"https://i.ytimg.com/vi/{id}/{best}",
+                    ["width"] = 1280,
+                    ["id"] = "40",
+                },
+            },
+        };
+    }
 
     private Task WriteAsync(string video, Dictionary<string, object> answer) =>
         File.WriteAllTextAsync(
@@ -92,6 +113,19 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
                 ["description"] = "From YouTube",
                 ["channel_follower_count"] = subscribers,
                 ["tags"] = Tags,
+                ["thumbnails"] = new object[]
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["url"] = "https://yt3.googleusercontent.com/avatar=s900",
+                        ["id"] = "avatar_uncropped",
+                    },
+                    new Dictionary<string, object>
+                    {
+                        ["url"] = "https://yt3.googleusercontent.com/missing-banner",
+                        ["id"] = "banner_uncropped",
+                    },
+                },
             }));
     }
 

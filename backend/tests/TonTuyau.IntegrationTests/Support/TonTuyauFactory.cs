@@ -28,10 +28,13 @@ public sealed class TonTuyauFactory(
                     o.Retry.Delay = TimeSpan.FromMilliseconds(1);
                     o.Retry.UseJitter = false;
                 });
-            // Never the real GitHub: a scenario that starts the fake one points the client there (after this).
+            // Never the real GitHub nor YouTube: a scenario that starts a fake points the client there (after this).
             services
                 .AddHttpClient(YouTubeServices.GitHubClientName)
-                .ConfigurePrimaryHttpMessageHandler(() => new GitHubRedirect(fake: null));
+                .ConfigurePrimaryHttpMessageHandler(() => new OutsideRedirect("GitHub", fake: null));
+            services
+                .AddHttpClient(YouTubeServices.ImagesClientName)
+                .ConfigurePrimaryHttpMessageHandler(() => new OutsideRedirect("YouTube's pictures", fake: null));
             foreach (Action<IServiceCollection> apply in overrides)
             {
                 apply(services);

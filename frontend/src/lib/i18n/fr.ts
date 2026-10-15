@@ -378,6 +378,7 @@ export const fr: Dictionary = {
   'run.count.goneFromYouTube': 'Disparues de YouTube',
   'run.count.checkFailed': 'À réessayer (pas de réponse fiable)',
   'run.count.commentsRead': 'Commentaires lus',
+  'run.count.picturesStored': 'Images enregistrées',
   'run.log': 'Journal',
   'run.log.lines': 'Lignes',
   'run.log.all': 'Toutes les lignes',

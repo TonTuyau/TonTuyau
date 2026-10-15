@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.YouTube;
 using TonTuyau.YouTube.Releases;
@@ -8,6 +9,7 @@ namespace TonTuyau.YouTube;
 public static class ServiceCollectionExtensions
 {
     public const string GitHubClientName = "yt-dlp-releases";
+    public const string ImagesClientName = "youtube-images";
     public const string UserAgent = "TonTuyau (+https://github.com/Eclegv/TonTuyau)";
 
     /// <summary>
@@ -26,6 +28,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IYtdlpReleases>(sp => new GitHubYtdlpReleases(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(GitHubClientName),
             sp.GetRequiredService<TimeProvider>()));
+        services.AddHttpClient(
+            ImagesClientName,
+            client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        services.AddSingleton<IYouTubeImages>(sp => new YouTubeImages(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(ImagesClientName),
+            sp.GetRequiredService<ILogger<YouTubeImages>>()));
         services.AddSingleton<IYtdlpInstaller>(sp => new YtdlpInstaller(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(GitHubClientName),
             sp.GetRequiredService<TonTuyauOptions>()));

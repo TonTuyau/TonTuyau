@@ -93,6 +93,7 @@
         ['run.count.goneFromYouTube', c.goneFromYouTube],
         ['run.count.checkFailed', c.checkFailed],
         ['run.count.commentsRead', c.commentsRead],
+        ['run.count.picturesStored', c.artCopied],
         ['run.count.updated', c.updated],
       ]
     }

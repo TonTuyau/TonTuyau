@@ -232,7 +232,7 @@ internal sealed partial class YouTubeClient(
         [
             .. (thumbnails ?? [])
                 .Where(t => !string.IsNullOrEmpty(t.Url))
-                .Select(t => new YouTubeThumbnail(t.Url!, t.Width, t.Height)),
+                .Select(t => new YouTubeThumbnail(t.Url!, t.Width, t.Height, t.Id)),
         ];
 
     /// <summary>
