@@ -6,4 +6,5 @@ namespace TonTuyau.YouTube.Dtos;
 internal sealed record ThumbnailDto(
     [property: JsonPropertyName("url")] string? Url,
     [property: JsonPropertyName("width")] int? Width,
-    [property: JsonPropertyName("height")] int? Height);
+    [property: JsonPropertyName("height")] int? Height,
+    [property: JsonPropertyName("id")] string? Id);

@@ -370,6 +370,7 @@ export const en = {
   'run.count.goneFromYouTube': 'Gone from YouTube',
   'run.count.checkFailed': 'To retry (no answer to trust)',
   'run.count.commentsRead': 'Comments read',
+  'run.count.picturesStored': 'Pictures stored',
   'run.log': 'Log',
   'run.log.lines': 'Lines',
   'run.log.all': 'All lines',

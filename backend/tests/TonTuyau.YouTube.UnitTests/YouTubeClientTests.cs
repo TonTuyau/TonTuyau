@@ -60,8 +60,8 @@ public sealed class YouTubeClientTests
         // An entry without a URL is left out.
         Assert.Equal(
             [
-                new YouTubeThumbnail("https://i.ytimg.com/vi/k3Fq8xZ0aQw/default.jpg", 120, 90),
-                new YouTubeThumbnail("https://i.ytimg.com/vi_webp/k3Fq8xZ0aQw/maxresdefault.webp", 1280, 720),
+                new YouTubeThumbnail("https://i.ytimg.com/vi/k3Fq8xZ0aQw/default.jpg", 120, 90, "0"),
+                new YouTubeThumbnail("https://i.ytimg.com/vi_webp/k3Fq8xZ0aQw/maxresdefault.webp", 1280, 720, "40"),
             ],
             video.Thumbnails);
     }

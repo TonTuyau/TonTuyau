@@ -171,7 +171,7 @@ public sealed class YtdlpSteps(ScenarioState state, AuthSteps auth) : IAsyncDisp
             Uri fake = new(_gitHub.Url);
             state.ServiceOverrides.Add(services => services
                 .AddHttpClient(YouTubeServices.GitHubClientName)
-                .ConfigurePrimaryHttpMessageHandler(() => new GitHubRedirect(fake)));
+                .ConfigurePrimaryHttpMessageHandler(() => new OutsideRedirect("GitHub", fake)));
         }
 
         return _gitHub;

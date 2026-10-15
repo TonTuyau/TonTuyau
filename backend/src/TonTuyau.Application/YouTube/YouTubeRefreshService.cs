@@ -21,13 +21,18 @@ namespace TonTuyau.Application.YouTube;
 /// </summary>
 /// <remarks>
 /// A video's chapters are read with it; its comments too when the YouTube settings say so (up to
-/// <see cref="CommentsKept"/>, answers included, YouTube's top comments first), replacing the ones read before.
+/// <see cref="CommentsKept"/>, answers included, YouTube's top comments first), replacing the ones read before. Its
+/// thumbnail, a channel's avatar and banner, go to TonTuyau's art volume, replacing TubeArchivist's copies; a picture
+/// that fails never fails the refresh (the one there stays).
 /// </remarks>
 public sealed partial class YouTubeRefreshService(
     IYouTubeClient youTube,
     IYouTubeFactsSource facts,
     IYouTubeFactsStore store,
     IYouTubeSettingsRepository settings,
+    IYouTubeImages images,
+    IArtStore art,
+    IArtResizer resizer,
     IVideoRepository videos,
     IChannelRepository channels,
     ISyncStateStore state,
@@ -195,13 +200,23 @@ public sealed partial class YouTubeRefreshService(
         VideoFacts? known = (await facts.GetVideosAsync([videoId], ct).ConfigureAwait(false))
             .GetValueOrDefault(videoId);
         DateTimeOffset now = clock.GetUtcNow();
+        SavedPicture? thumbnail = null;
+        if (lookup.Item is { } found)
+        {
+            Picture wanted = new(
+                YouTubePictures.Thumbnail(found.Thumbnails),
+                video.ThumbnailPath,
+                YouTubePictures.VideoStem(videoId),
+                ArtSubject.VideoThumbnail);
+            thumbnail = await SavePictureAsync(wanted, context).ConfigureAwait(false);
+        }
         VideoFacts learned = lookup.Answer switch
         {
             YouTubeAnswer.Found => new VideoFacts(
                 videoId,
                 video.ChannelId,
                 new YouTubeStatus(YouTubeState.OnYouTube, now, null, now),
-                RefreshedOf(lookup.Item!, video, known?.Refreshed)),
+                RefreshedOf(lookup.Item!, video, known?.Refreshed, thumbnail?.Path)),
             YouTubeAnswer.Gone => new VideoFacts(
                 videoId,
                 video.ChannelId,
@@ -235,6 +250,12 @@ public sealed partial class YouTubeRefreshService(
             .UpsertAsync([YouTubeOverlay.On(video, learned)], runId: null, ct)
             .ConfigureAwait(false);
         context.Count(c => Add(c, written));
+        if (thumbnail?.Versions is { } versions)
+        {
+            await videos
+                .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = versions }, ct)
+                .ConfigureAwait(false);
+        }
     }
 
     private async Task RefreshChannelAsync(string channelId, RunContext context)
@@ -251,12 +272,30 @@ public sealed partial class YouTubeRefreshService(
         ChannelFacts? known = (await facts.GetChannelsAsync([channelId], ct).ConfigureAwait(false))
             .GetValueOrDefault(channelId);
         DateTimeOffset now = clock.GetUtcNow();
+        SavedPicture? avatar = null;
+        SavedPicture? banner = null;
+        if (lookup.Item is { } found)
+        {
+            Picture wantedAvatar = new(
+                YouTubePictures.Avatar(found.Thumbnails),
+                channel.ThumbPath,
+                YouTubePictures.ChannelStem(channelId, "thumb"),
+                ArtSubject.ChannelThumb);
+            Picture wantedBanner = new(
+                YouTubePictures.Banner(found.Thumbnails),
+                channel.BannerPath,
+                YouTubePictures.ChannelStem(channelId, "banner"),
+                ArtSubject.ChannelBanner);
+            avatar = await SavePictureAsync(wantedAvatar, context).ConfigureAwait(false);
+            banner = await SavePictureAsync(wantedBanner, context).ConfigureAwait(false);
+        }
+
         ChannelFacts learned = lookup.Answer switch
         {
             YouTubeAnswer.Found => new ChannelFacts(
                 channelId,
                 new YouTubeStatus(YouTubeState.OnYouTube, now, null, now),
-                RefreshedOf(lookup.Item!, channel, known?.Refreshed)),
+                RefreshedOf(lookup.Item!, channel, known?.Refreshed, avatar?.Path, banner?.Path)),
             YouTubeAnswer.Gone => new ChannelFacts(
                 channelId,
                 new YouTubeStatus(YouTubeState.Gone, now, lookup.Reason, known?.Status.RefreshedAt),
@@ -281,10 +320,83 @@ public sealed partial class YouTubeRefreshService(
             .UpsertAsync([YouTubeOverlay.On(channel, learned)], runId: null, ct)
             .ConfigureAwait(false);
         context.Count(c => Add(c, written));
+        foreach ((ArtSubject subject, SavedPicture? picture) in new[]
+        {
+            (ArtSubject.ChannelThumb, avatar),
+            (ArtSubject.ChannelBanner, banner),
+        })
+        {
+            if (picture?.Versions is { } versions)
+            {
+                await channels
+                    .SetArtAsync(subject, new Dictionary<string, ArtVersions> { [channelId] = versions }, ct)
+                    .ConfigureAwait(false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Downloads a picture into the art volume (<see cref="YouTubePictures.PathFor"/>), and makes its resized versions.
+    /// </summary>
+    /// <returns>Where it went and its versions; null when it couldn't be had (the current one stays).</returns>
+    private async Task<SavedPicture?> SavePictureAsync(Picture wanted, RunContext context)
+    {
+        if (wanted.Url is null)
+        {
+            return null;
+        }
+
+        YouTubeImage? image = await images.GetAsync(wanted.Url, context.CancellationToken).ConfigureAwait(false);
+        string? replaced = LibraryPaths.IsArtPath(wanted.Current) ? wanted.Current : null;
+        string path = YouTubePictures.PathFor(replaced, wanted.Stem, image?.Extension ?? "jpg");
+        if (image is null || !LibraryPaths.IsArtPath(path))
+        {
+            context.Count(c => c with { ArtFailed = c.ArtFailed + 1 });
+            return null;
+        }
+
+        try
+        {
+            // The versions of the previous picture go with it.
+            art.Delete(path);
+            using MemoryStream content = new(image.Content);
+            await art.SaveAsync(path, content, context.CancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            LogPictureFailed(ex, path);
+            context.Count(c => c with { ArtFailed = c.ArtFailed + 1 });
+            return null;
+        }
+
+        if (replaced is not null && replaced != path)
+        {
+            // Another format than the one it replaces: the old file isn't used any more.
+            art.Delete(replaced);
+        }
+
+        context.Count(c => c with { ArtCopied = c.ArtCopied + 1 });
+        IReadOnlyList<int> widths = ArtSizes.For(wanted.Subject);
+        try
+        {
+            ArtResizeResult? resized = resizer.EnsureVersions(path, widths);
+            context.Count(c => c with { ArtResized = c.ArtResized + (resized?.Made ?? 0) });
+            return new SavedPicture(path, resized?.Versions);
+        }
+        catch (ArtResizeException ex)
+        {
+            LogPictureFailed(ex, path);
+            context.Count(c => c with { ArtResizeFailed = c.ArtResizeFailed + ex.Missing });
+            return new SavedPicture(path, art.Describe(path, widths));
+        }
     }
 
     /// <summary>YouTube's metadata; what it doesn't say (views, likes hidden) stays as known.</summary>
-    private static RefreshedVideo RefreshedOf(YouTubeVideo item, Video video, RefreshedVideo? known) =>
+    private static RefreshedVideo RefreshedOf(
+        YouTubeVideo item,
+        Video video,
+        RefreshedVideo? known,
+        string? thumbnail) =>
         new(
             item.Title,
             item.ChannelName,
@@ -295,16 +407,21 @@ public sealed partial class YouTubeRefreshService(
             item.Likes ?? video.Stats.Likes,
             item.CommentCount ?? known?.CommentCount,
             item.Chapters,
-            known?.ThumbnailPath);
+            thumbnail ?? known?.ThumbnailPath);
 
-    private static RefreshedChannel RefreshedOf(YouTubeChannel item, Channel channel, RefreshedChannel? known) =>
+    private static RefreshedChannel RefreshedOf(
+        YouTubeChannel item,
+        Channel channel,
+        RefreshedChannel? known,
+        string? thumb,
+        string? banner) =>
         new(
             item.Name,
             item.Description,
             item.Subscribers ?? channel.Subscribers,
             item.Tags,
-            known?.ThumbPath,
-            known?.BannerPath);
+            thumb ?? known?.ThumbPath,
+            banner ?? known?.BannerPath);
 
     private static bool IsConfirmed(YouTubeStatus? status) =>
         status?.State is YouTubeState.OnYouTube or YouTubeState.Gone;
@@ -363,9 +480,21 @@ public sealed partial class YouTubeRefreshService(
     [LoggerMessage(Level = LogLevel.Information, Message = "{Id}: what TonTuyau confirmed before stays.")]
     private partial void LogKept(string id);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The picture {Path} can't be stored: tried again next time.")]
+    private partial void LogPictureFailed(Exception exception, string path);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Refresh {RunId} failed: {Reason}")]
     private partial void LogFailed(string runId, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Refresh {RunId} finished: {Outcome}.")]
     private partial void LogFinished(string runId, SyncOutcome outcome);
+
+    /// <summary>A picture to store.</summary>
+    /// <param name="Url">The picture YouTube offers; null when it offers none (nothing changes).</param>
+    /// <param name="Current">The picture there now (TubeArchivist's copy, or a previous refresh's).</param>
+    /// <param name="Stem">Its name in the art volume, without the format (<see cref="YouTubePictures.PathFor"/>).</param>
+    private sealed record Picture(string? Url, string? Current, string Stem, ArtSubject Subject);
+
+    /// <summary>A picture stored by a refresh: where, and its resized versions (null when none could be read).</summary>
+    private sealed record SavedPicture(string Path, ArtVersions? Versions);
 }
