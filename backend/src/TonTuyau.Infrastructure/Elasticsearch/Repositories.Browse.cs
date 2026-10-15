@@ -5,6 +5,7 @@ using Elastic.Clients.Elasticsearch.Core.Search;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Elasticsearch.Documents;
 
 namespace TonTuyau.Infrastructure.Elasticsearch;
@@ -26,7 +27,7 @@ internal sealed partial class VideoRepository
         v => v.ChannelName,
         v => v.Title,
         v => v.Type,
-        v => v.Active,
+        v => v.YoutubeState!,
         v => v.Published,
         v => v.DurationSeconds,
         v => v.Views,
@@ -285,7 +286,7 @@ internal sealed partial class VideoRepository
         d.ChannelName,
         d.Title,
         DocumentMapper.ParseType(d.Type),
-        d.Active,
+        DocumentMapper.ParseState(d.YoutubeState) != YouTubeState.Gone,
         d.Published,
         TimeSpan.FromSeconds(d.DurationSeconds),
         d.Views,

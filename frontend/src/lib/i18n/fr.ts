@@ -56,10 +56,10 @@ export const fr: Dictionary = {
   'card.duration': 'Durée',
   'badge.inactive': 'Indisponible sur YouTube',
   'badge.inactiveHint':
-    'TubeArchivist ne parvient plus à accéder à cette vidéo sur YouTube ; ceci est la copie archivée.',
+    'YouTube indique que cette vidéo a été supprimée ou rendue privée ; ceci est la copie archivée.',
   'badge.channelInactive': 'Chaîne indisponible sur YouTube',
   'badge.channelInactiveHint':
-    'TubeArchivist ne parvient plus à accéder à cette chaîne sur YouTube ; ce sont les copies archivées.',
+    'YouTube indique que cette chaîne a été supprimée ou fermée ; ce sont les copies archivées.',
 
   'sort.label': 'Trier par',
   'sort.latest': 'Plus récentes',

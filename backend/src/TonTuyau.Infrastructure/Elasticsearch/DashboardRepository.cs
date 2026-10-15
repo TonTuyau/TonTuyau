@@ -6,6 +6,7 @@ using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Elasticsearch.Documents;
 
 namespace TonTuyau.Infrastructure.Elasticsearch;
@@ -50,7 +51,11 @@ internal sealed class DashboardRepository(
         r => r.Counts.CreatedByType!);
 
     private static readonly Query GoneQuery =
-        new TermQuery { Field = Infer.Field<VideoDocument>(v => v.Active), Value = false };
+        new TermQuery
+        {
+            Field = Infer.Field<VideoDocument>(v => v.YoutubeState),
+            Value = DocumentMapper.StateName(YouTubeState.Gone),
+        };
 
     private string Videos => names.ReadAlias(StoreIndex.Videos);
 

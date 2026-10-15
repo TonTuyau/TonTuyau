@@ -4,6 +4,7 @@ using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -42,7 +43,10 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         Set(ConfigKeys.SyncLogRoot, Path.Combine(_root, "logs"));
     }
 
-    /// <summary>Columns: key, name, subscribers, tags (comma-separated), description, active. Art is copied.</summary>
+    /// <summary>
+    /// Columns: key, name, subscribers, tags (comma-separated), description, active (TubeArchivist's flag), youtube
+    /// (TonTuyau's state: not checked, on YouTube, retry later, gone). Art is copied.
+    /// </summary>
     [Given("the channels:")]
     public async Task TheChannels(DataTable table)
     {
@@ -61,7 +65,8 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                 [VideoType.Video, VideoType.Short, VideoType.Stream],
                 $"/cache/channels/{id}_thumb.jpg",
                 $"/cache/channels/{id}_banner.jpg",
-                $"/cache/channels/{id}_tvart.jpg");
+                $"/cache/channels/{id}_tvart.jpg",
+                YouTubeOf(Get(row, "youtube")));
             _channels[key] = channel;
             foreach (string art in (string[])[channel.ThumbPath!, channel.BannerPath!, channel.TvArtPath!])
             {
@@ -78,7 +83,8 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
 
     /// <summary>
     /// Columns: key, title, channel (a channel key), type (video/short/stream), published (ISO date), views,
-    /// duration (seconds), tags, description, active, file (extension), codecs (e.g. <c>av1+opus</c>).
+    /// duration (seconds), tags, description, active (TubeArchivist's flag), youtube (TonTuyau's state: not checked, on
+    /// YouTube, retry later, gone), file (extension), codecs (e.g. <c>av1+opus</c>).
     /// Thumbnails are copied; media files are not (see the "on the media share" step).
     /// </summary>
     [Given("the videos:")]
@@ -118,7 +124,8 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                     .. codecs
                         .Skip(1)
                         .Select(c => new MediaTrack(MediaTrackKind.Audio, c, 128_000, null, null)),
-                ]);
+                ],
+                YouTubeOf(Get(row, "youtube")));
             _videos[key] = video;
             added.Add(video);
             WriteArt(video.ThumbnailPath);
@@ -258,6 +265,17 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
             .RefreshAsync(default);
 
     private void Set(string key, string value) => state.Settings.Set(ConfigKeys.EnvironmentName(key), value);
+
+    /// <summary>"gone", "retry later", "on YouTube", "not checked": TonTuyau's state, checked a day ago; empty: none.</summary>
+    private static YouTubeStatus? YouTubeOf(string? state) => state switch
+    {
+        null => null,
+        "gone" => new YouTubeStatus(YouTubeState.Gone, DefaultPublished.AddDays(40), "Video unavailable", null),
+        "retry later" => new YouTubeStatus(YouTubeState.RetryLater, DefaultPublished.AddDays(40), "Sign in", null),
+        "on YouTube" => new YouTubeStatus(YouTubeState.OnYouTube, DefaultPublished.AddDays(40), null, null),
+        "not checked" => new YouTubeStatus(YouTubeState.NotChecked, null, null, null),
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "gone, retry later, on YouTube, not checked"),
+    };
 
     private static string? Get(DataTableRow row, string column) =>
         row.TryGetValue(column, out string? value) && value.Length > 0 ? value : null;

@@ -1,4 +1,4 @@
-# TonTuyau — REST API contract (v1.8)
+# TonTuyau — REST API contract (v1.9)
 
 > 2026-10-03. The shared contract between the backend (M4) and the frontend (M5a mockup, then M5/M6). Both sides build against this file; a change goes through you and is written here first.
 > Decisions: [QA_SESSION_05.md](QA_SESSION_05.md), [QA_SESSION_06.md](QA_SESSION_06.md), [QA_SESSION_07.md](QA_SESSION_07.md).
@@ -18,6 +18,8 @@
 > **v1.7 (2026-10-13, TonTuyau 1.4)**: the admin's Tasks page: `GET /api/admin/tasks`, `GET /api/admin/runs`, `GET /api/admin/runs/{id}`, `GET /api/admin/runs/{id}/log` read the runs; `POST /api/admin/tasks/{task}/runs` starts a task, `POST /api/admin/runs/{id}/cancel` cancels a run. Logged-in accounts only (401 otherwise).
 >
 > **v1.8 (2026-10-15, TonTuyau 1.5)**: API keys, for programs: `GET /api/admin/api-keys`, `POST /api/admin/api-keys` (the secret given once), `POST /api/admin/api-keys/{id}/enable`, `POST /api/admin/api-keys/{id}/disable`, `DELETE /api/admin/api-keys/{id}`, managed by a logged-in admin. A key has a **kind** and opens only the endpoints that take it: `browserExtension` (the only kind in 1.5) opens `/api/extension/…`: `GET /api/extension/connection`, and the YouTube cookie `GET`/`PUT /api/extension/youtube-cookie`. Every other logged-in endpoint is an admin's session only. The admin's YouTube page: `GET /api/admin/youtube`, `POST /api/admin/youtube/cookie/check`, `DELETE /api/admin/youtube/cookie`; which yt-dlp runs: `GET`/`PUT /api/admin/youtube/ytdlp`, `GET /api/admin/youtube/ytdlp/versions`.
+>
+> **v1.9 (2026-10-15, TonTuyau 1.5)**: `active` on videos and channels is TonTuyau's own word: `false` only once TonTuyau itself found the video or channel gone from YouTube (removed, private, terminated). TubeArchivist's "unavailable" alone no longer makes it `false` (it's a check to retry). Same shape.
 
 ## Rules
 
@@ -73,7 +75,7 @@ Sizes made by the sync (Q9-2, Q9-3), WebP: video thumbnails 360 and 720 px wide 
   }
 }
 ```
-`type`: `video` | `short` | `stream`. `active: false` = unavailable on YouTube (TubeArchivist can no longer reach it), still archived ("Unavailable on YouTube" badge, R2-9). `thumbnailUrl` / `channel.thumbnailUrl` may be `null` when there's no image (then `thumbnails` is `[]`).
+`type`: `video` | `short` | `stream`. `active: false` = gone from YouTube (YouTube says it was removed, made private or terminated), as TonTuyau itself found it (v1.9), still archived ("Unavailable on YouTube" badge, R2-9). TubeArchivist's "unavailable" alone keeps `active: true`. `thumbnailUrl` / `channel.thumbnailUrl` may be `null` when there's no image (then `thumbnails` is `[]`).
 
 ### `VideoDetail` (`/api/videos/{id}`)
 

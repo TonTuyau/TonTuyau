@@ -8,7 +8,8 @@ namespace TonTuyau.Infrastructure.Accounts;
 
 /// <summary>
 /// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
-/// runs' logs (1.4), the API keys, the YouTube cookie and the yt-dlp chosen (1.5).
+/// runs' logs (1.4), the API keys, the YouTube cookie, the yt-dlp chosen, and TonTuyau's own facts about videos and
+/// channels (1.5: their YouTube state and refreshed metadata; Elasticsearch is rebuilt with them).
 /// Table and column names are snake_case, as PostgreSQL likes them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
@@ -25,6 +26,10 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<YouTubeCookieRow> YouTubeCookie => Set<YouTubeCookieRow>();
 
     public DbSet<YtdlpSettingsRow> YtdlpSettings => Set<YtdlpSettingsRow>();
+
+    public DbSet<YouTubeVideoRow> YouTubeVideos => Set<YouTubeVideoRow>();
+
+    public DbSet<YouTubeChannelRow> YouTubeChannels => Set<YouTubeChannelRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -116,6 +121,46 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             settings.Property(s => s.ChosenAt).HasColumnName("chosen_at");
             settings.Property(s => s.CheckedAt).HasColumnName("checked_at");
             settings.Property(s => s.Error).HasColumnName("error");
+        });
+        modelBuilder.Entity<YouTubeVideoRow>(video =>
+        {
+            video.ToTable("youtube_videos");
+            video.HasKey(v => v.VideoId);
+            video.Property(v => v.VideoId).HasColumnName("video_id");
+            video
+                .Property(v => v.State)
+                .HasColumnName("state")
+                .HasConversion<string>();
+            video.Property(v => v.CheckedAt).HasColumnName("checked_at");
+            video.Property(v => v.Reason).HasColumnName("reason");
+            video.Property(v => v.RefreshedAt).HasColumnName("refreshed_at");
+            video.Property(v => v.Title).HasColumnName("title");
+            video.Property(v => v.Description).HasColumnName("description");
+            video.Property(v => v.Tags).HasColumnName("tags");
+            video.Property(v => v.Categories).HasColumnName("categories");
+            video.Property(v => v.Views).HasColumnName("views");
+            video.Property(v => v.Likes).HasColumnName("likes");
+            video.Property(v => v.CommentCount).HasColumnName("comment_count");
+            video.Property(v => v.ThumbnailPath).HasColumnName("thumbnail_path");
+        });
+        modelBuilder.Entity<YouTubeChannelRow>(channel =>
+        {
+            channel.ToTable("youtube_channels");
+            channel.HasKey(c => c.ChannelId);
+            channel.Property(c => c.ChannelId).HasColumnName("channel_id");
+            channel
+                .Property(c => c.State)
+                .HasColumnName("state")
+                .HasConversion<string>();
+            channel.Property(c => c.CheckedAt).HasColumnName("checked_at");
+            channel.Property(c => c.Reason).HasColumnName("reason");
+            channel.Property(c => c.RefreshedAt).HasColumnName("refreshed_at");
+            channel.Property(c => c.Name).HasColumnName("name");
+            channel.Property(c => c.Description).HasColumnName("description");
+            channel.Property(c => c.Subscribers).HasColumnName("subscribers");
+            channel.Property(c => c.Tags).HasColumnName("tags");
+            channel.Property(c => c.ThumbPath).HasColumnName("thumb_path");
+            channel.Property(c => c.BannerPath).HasColumnName("banner_path");
         });
     }
 }

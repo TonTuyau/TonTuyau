@@ -106,7 +106,7 @@ public sealed class CardBuilder(IVideoRepository videos, IChannelRepository chan
             video.ChannelName,
             video.Title,
             video.Type,
-            video.Active,
+            !video.GoneFromYouTube,
             video.Published,
             video.Duration,
             video.Stats.Views,

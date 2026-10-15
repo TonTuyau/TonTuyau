@@ -165,13 +165,31 @@ Feature: Browsing the library
     When I request "/api/videos/{video:huiles}"
     Then "mediaAvailable" is "false"
 
-  Scenario: A video removed from YouTube is still listed, flagged inactive
+  Scenario: A video TonTuyau confirmed gone from YouTube is still listed, flagged
     Given the videos:
-      | key  | title    | channel | active | published  |
-      | gone | Disparue | zeste   | false  | 2026-11-01 |
+      | key  | title    | channel | youtube | published  |
+      | gone | Disparue | zeste   | gone    | 2026-11-01 |
     When I list "/api/videos?size=1"
     Then the titles are "Disparue"
     And "items[0].active" is "false"
+    When I request "/api/videos/{video:gone}"
+    Then "active" is "false"
+
+  Scenario Outline: Anything short of confirmed gone isn't flagged (1.5): TubeArchivist's flag alone never is
+    Given the videos:
+      | key   | title  | channel | active   | youtube   | published  |
+      | maybe | Peut-ê | zeste   | <active> | <youtube> | 2026-11-01 |
+    When I list "/api/videos?size=1"
+    Then "items[0].active" is "true"
+    When I request "/api/videos/{video:maybe}"
+    Then "active" is "true"
+
+    Examples:
+      | active | youtube     |
+      | false  |             |
+      | false  | retry later |
+      | true   | not checked |
+      | true   | on YouTube  |
 
   Scenario: No URL is given for an image that was never copied
     Given the thumbnail of the video "huiles" was never copied
