@@ -2521,6 +2521,110 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/youtube/settings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeSettingsResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['YouTubeSettingsRequest']
+          'application/*+json': components['schemas']['YouTubeSettingsRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeSettingsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -2732,6 +2836,8 @@ export interface components {
       goneFromYouTube: number
       /** Format: int32 */
       checkFailed: number
+      /** Format: int32 */
+      commentsRead: number
     }
     RunLock: {
       task: components['schemas']['SyncMode']
@@ -2921,6 +3027,15 @@ export interface components {
       cookie: null | components['schemas']['YouTubeCookieResponse']
       ytdlp: null | string
       deno: null | string
+    }
+    YouTubeSettingsRequest: {
+      readComments: null | boolean
+    }
+    YouTubeSettingsResponse: {
+      readComments: boolean
+      changedBy: null | string
+      /** Format: date-time */
+      changedAt: null | string
     }
     /** @enum {string} */
     YtdlpChoiceKind: 'latest' | 'official' | 'nightly'

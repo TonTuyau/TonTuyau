@@ -199,6 +199,39 @@ public sealed class YouTubeClientTests
     }
 
     [Fact]
+    public async Task Asked_for_comments_yt_dlp_giving_none_at_all_is_not_a_video_without_any()
+    {
+        YouTubeVideo video = (await Client().GetVideoAsync(
+            "k3Fq8xZ0aQw",
+            new YouTubeCommentsRequest(500),
+            Token)).Item!;
+
+        Assert.Null(video.Comments);
+    }
+
+    [Fact]
+    public async Task Chapters_come_in_order_titled_an_untitled_one_left_out()
+    {
+        YouTubeVideo video = (await Client().GetVideoAsync("k3Fq8xZ0aQw", null, Token)).Item!;
+
+        Assert.Equal(
+            [
+                new YouTubeChapter(0, 95, "A street drain"),
+                new YouTubeChapter(95, 640.5, "Belgrand's galleries"),
+                new YouTubeChapter(700, 700, "Today"),
+            ],
+            video.Chapters);
+    }
+
+    [Fact]
+    public async Task A_video_without_chapters_has_none()
+    {
+        YouTubeVideo video = (await Client().GetVideoAsync("NoComment01", null, Token)).Item!;
+
+        Assert.Empty(video.Chapters);
+    }
+
+    [Fact]
     public async Task Without_yt_dlp_the_check_failed()
     {
         YouTubeLookup<YouTubeVideo> lookup = await Client(ytdlp: "no-such-program")

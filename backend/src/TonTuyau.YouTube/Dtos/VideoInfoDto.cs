@@ -23,4 +23,5 @@ internal sealed record VideoInfoDto(
     [property: JsonPropertyName("thumbnails")] IReadOnlyList<ThumbnailDto>? Thumbnails,
     [property: JsonPropertyName("live_status")] string? LiveStatus,
     [property: JsonPropertyName("comment_count")] long? CommentCount,
-    [property: JsonPropertyName("comments")] IReadOnlyList<CommentDto>? Comments);
+    [property: JsonPropertyName("comments")] IReadOnlyList<CommentDto>? Comments,
+    [property: JsonPropertyName("chapters")] IReadOnlyList<ChapterDto>? Chapters);

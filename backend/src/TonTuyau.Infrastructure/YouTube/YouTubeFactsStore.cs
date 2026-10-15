@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
@@ -52,10 +53,57 @@ internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeF
             row.Views = refreshed?.Views;
             row.Likes = refreshed?.Likes;
             row.CommentCount = refreshed?.CommentCount;
+            row.Chapters =
+            [
+                .. (refreshed?.Chapters ?? []).Select(c => new VideoChapterRow
+                {
+                    Start = c.StartSeconds,
+                    End = c.EndSeconds,
+                    Title = c.Title,
+                }),
+            ];
             row.ThumbnailPath = refreshed?.ThumbnailPath;
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    public async Task SaveCommentsAsync(
+        string videoId,
+        IReadOnlyList<YouTubeComment> comments,
+        DateTimeOffset readAt,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(comments);
+        AsyncServiceScope scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            YouTubeVideoRow row = await db.YouTubeVideos
+                .FirstAsync(v => v.VideoId == videoId, cancellationToken)
+                .ConfigureAwait(false);
+            IDbContextTransaction transaction = await db.Database
+                .BeginTransactionAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await using (transaction.ConfigureAwait(false))
+            {
+                await db.VideoComments
+                    .Where(c => c.VideoId == videoId)
+                    .ExecuteDeleteAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                // yt-dlp may list a comment twice (a pinned one, again in its place): the first one is kept.
+                db.VideoComments.AddRange(comments
+                    .DistinctBy(c => c.Id, StringComparer.Ordinal)
+                    .Select((c, position) => VideoCommentRow.Of(videoId, position, c)));
+                row.CommentsReadAt = readAt;
+                await db
+                    .SaveChangesAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                await transaction
+                    .CommitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
     }
 

@@ -4,7 +4,11 @@ namespace TonTuyau.Application.YouTube;
 /// <param name="Published">When it was published (to the second when YouTube says, else the day at midnight UTC).</param>
 /// <param name="LiveStatus">yt-dlp's <c>live_status</c>: <c>not_live</c>, <c>was_live</c>, <c>is_live</c>, <c>is_upcoming</c>…</param>
 /// <param name="CommentCount">How many comments YouTube counts, asked for them or not.</param>
-/// <param name="Comments">The comments read, when asked for (<see cref="YouTubeCommentsRequest"/>); null otherwise.</param>
+/// <param name="Comments">
+/// The comments read, when asked for (<see cref="YouTubeCommentsRequest"/>); null otherwise, or when yt-dlp couldn't
+/// read them.
+/// </param>
+/// <param name="Chapters">Its chapters, in order; none when YouTube marks none.</param>
 public sealed record YouTubeVideo(
     string Id,
     string Title,
@@ -20,4 +24,5 @@ public sealed record YouTubeVideo(
     IReadOnlyList<YouTubeThumbnail> Thumbnails,
     string? LiveStatus,
     long? CommentCount,
-    IReadOnlyList<YouTubeComment>? Comments);
+    IReadOnlyList<YouTubeComment>? Comments,
+    IReadOnlyList<YouTubeChapter> Chapters);

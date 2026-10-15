@@ -8,8 +8,8 @@ namespace TonTuyau.Api.Controllers;
 
 /// <summary>
 /// The admin's YouTube page (1.5): the cookie TonTuyau signs in with (checking it again, removing it), the tools'
-/// versions, and which yt-dlp runs (the latest official release by default, or a version chosen). An admin's session
-/// only.
+/// versions, which yt-dlp runs (the latest official release by default, or a version chosen), and how YouTube is read
+/// (the comments or not). An admin's session only.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -17,7 +17,10 @@ namespace TonTuyau.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, Problems.ContentType)]
-public sealed class YouTubeController(YouTubeCookieService cookies, YtdlpService ytdlp) : ControllerBase
+public sealed class YouTubeController(
+    YouTubeCookieService cookies,
+    YtdlpService ytdlp,
+    YouTubeSettingsService settings) : ControllerBase
 {
     /// <summary>The largest choice taken: a kind and a version fit in far less.</summary>
     public const int MaxRequestBytes = 1024;
@@ -85,6 +88,30 @@ public sealed class YouTubeController(YouTubeCookieService cookies, YtdlpService
             .ChooseAsync(request.Kind, request.Version, Account(), cancellationToken)
             .ConfigureAwait(false);
         return Accepted(new Uri("/api/admin/youtube/ytdlp", UriKind.Relative), (YtdlpStateResponse)state);
+    }
+
+    /// <summary>How YouTube is read: whether the refreshes read the videos' comments (off by default).</summary>
+    [HttpGet("settings")]
+    [ProducesResponseType<YouTubeSettingsResponse>(StatusCodes.Status200OK)]
+    public async Task<YouTubeSettingsResponse> GetSettingsAsync(CancellationToken cancellationToken) =>
+        (YouTubeSettingsResponse)await settings
+            .GetAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>Changes how YouTube is read, from the next refresh on. 400 when a setting is missing.</summary>
+    [HttpPut("settings")]
+    [Consumes("application/json")]
+    [RequestSizeLimit(MaxRequestBytes)]
+    [ProducesResponseType<YouTubeSettingsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    public async Task<YouTubeSettingsResponse> SaveSettingsAsync(
+        YouTubeSettingsRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (YouTubeSettingsResponse)await settings
+            .SaveAsync(request.ReadComments, Account(), cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>The logged-in account's name ([Authorize]: there is one).</summary>

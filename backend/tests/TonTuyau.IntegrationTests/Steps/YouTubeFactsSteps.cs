@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
@@ -72,6 +74,49 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
             .GetAsync(FakeTubeArchivist.VideoId(name), default);
         Assert.NotNull(video);
         Assert.Equal(expected, Name(video.CurrentYouTube.State));
+    }
+
+    /// <summary>The comments as kept, in YouTube's order: "text by author", answers marked "↳".</summary>
+    [Then("PostgreSQL has the comments of the video {string}: {string}")]
+    public async Task Comments(string name, string expected)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+        string videoId = FakeTubeArchivist.VideoId(name);
+        List<VideoCommentRow> rows = await db.VideoComments
+            .Where(c => c.VideoId == videoId)
+            .OrderBy(c => c.Position)
+            .ToListAsync();
+        Assert.Equal(
+            expected,
+            string.Join(" | ", rows.Select(c => (c.ParentId is null ? "" : "↳") + c.Text + " by " + c.Author)));
+        YouTubeVideoRow? video = await db.YouTubeVideos.FindAsync(videoId);
+        Assert.NotNull(video?.CommentsReadAt);
+    }
+
+    [Then("PostgreSQL has no comments of the video {string}, never read")]
+    public async Task NoComments(string name)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+        string videoId = FakeTubeArchivist.VideoId(name);
+        Assert.False(await db.VideoComments.AnyAsync(c => c.VideoId == videoId));
+        YouTubeVideoRow? video = await db.YouTubeVideos.FindAsync(videoId);
+        Assert.Null(video?.CommentsReadAt);
+    }
+
+    [Then("PostgreSQL has the chapters of the video {string}: {string}")]
+    public async Task Chapters(string name, string expected)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        YouTubeVideoRow? video = await scope.ServiceProvider
+            .GetRequiredService<TonTuyauDbContext>()
+            .YouTubeVideos
+            .FindAsync(FakeTubeArchivist.VideoId(name));
+        Assert.NotNull(video);
+        IEnumerable<string> chapters = video.Chapters
+            .Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Start}-{c.End} {c.Title}"));
+        Assert.Equal(expected, string.Join(" | ", chapters));
     }
 
     [Then("PostgreSQL has the channel {string} as {string}")]

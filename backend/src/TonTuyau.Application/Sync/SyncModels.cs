@@ -109,6 +109,9 @@ public sealed record SyncCounts
 
     /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
     public int CheckFailed { get; init; }
+
+    /// <summary>A refresh: the comments read with the videos (answers included).</summary>
+    public int CommentsRead { get; init; }
 }
 
 /// <summary>One sync run, as kept in the run history.</summary>

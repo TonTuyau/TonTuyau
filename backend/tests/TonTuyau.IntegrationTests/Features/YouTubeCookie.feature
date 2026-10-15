@@ -95,3 +95,5 @@ Feature: The YouTube cookie
     Then the answer is a problem 401
     When I request "/api/admin/youtube" with my session
     Then the answer is a problem 401
+    When I request "/api/admin/youtube/settings" with my session
+    Then the answer is a problem 401

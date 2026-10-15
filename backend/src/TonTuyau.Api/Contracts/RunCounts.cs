@@ -7,6 +7,7 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="FoundOnYouTube">A refresh (1.5): videos and channels YouTube answered with their metadata.</param>
 /// <param name="GoneFromYouTube">A refresh: those YouTube says are removed, private or terminated.</param>
 /// <param name="CheckFailed">A refresh: checks without an answer to trust (a bot check, the network…).</param>
+/// <param name="CommentsRead">A refresh: the comments read with the videos, answers included.</param>
 public sealed record RunCounts(
     int VideosRead,
     int ChannelsRead,
@@ -24,7 +25,8 @@ public sealed record RunCounts(
     int Kept,
     int FoundOnYouTube,
     int GoneFromYouTube,
-    int CheckFailed)
+    int CheckFailed,
+    int CommentsRead)
 {
     public static explicit operator RunCounts(SyncCounts counts)
     {
@@ -46,6 +48,7 @@ public sealed record RunCounts(
             counts.KeptStillInTubeArchivist,
             counts.FoundOnYouTube,
             counts.GoneFromYouTube,
-            counts.CheckFailed);
+            counts.CheckFailed,
+            counts.CommentsRead);
     }
 }

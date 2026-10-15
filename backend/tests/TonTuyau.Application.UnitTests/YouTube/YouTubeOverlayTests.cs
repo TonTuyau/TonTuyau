@@ -81,6 +81,7 @@ public sealed class YouTubeOverlayTests
             Views: 999,
             Likes: 42,
             CommentCount: 7,
+            Chapters: [],
             ThumbnailPath: null);
 
         Video video = YouTubeOverlay.On(
@@ -101,7 +102,7 @@ public sealed class YouTubeOverlayTests
     public void A_refreshed_thumbnail_replaces_TubeArchivist_s()
     {
         YouTubeStatus onYouTube = new(YouTubeState.OnYouTube, At, Reason: null, RefreshedAt: At);
-        RefreshedVideo refreshed = new("T", "C", "D", [], [], 1, 1, null, "/art/videos/abcdefghijk.jpg");
+        RefreshedVideo refreshed = new("T", "C", "D", [], [], 1, 1, null, [], "/art/videos/abcdefghijk.jpg");
 
         Video video = YouTubeOverlay.On(
             FromTubeArchivist,

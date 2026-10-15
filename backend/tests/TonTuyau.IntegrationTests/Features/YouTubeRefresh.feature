@@ -81,6 +81,55 @@ Feature: Refreshing videos and channels on YouTube
     When I request the channel "alpha" of TubeArchivist
     Then "active" is "true"
 
+  Scenario: Comments aren't read by default (the YouTube page's setting); chapters are
+    Given YouTube has the video "alpha-01" with 2 comments and 3 chapters
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has no comments of the video "alpha-01", never read
+    And PostgreSQL has the chapters of the video "alpha-01": "0-30 Part 1 | 30-60 Part 2 | 60-90 Part 3"
+
+  Scenario: The YouTube settings, off by default, changed by an admin
+    When I request "/api/admin/youtube/settings" with my session
+    Then the response status is 200
+    And the answer has exactly the fields "readComments, changedBy, changedAt"
+    And "readComments" is "false"
+    And "changedBy" is null
+    When I send the YouTube settings '{"readComments": true}' with my session
+    Then the response status is 200
+    And "readComments" is "true"
+    And "changedBy" is "admin"
+    When I request "/api/admin/youtube/settings" with my session
+    Then "readComments" is "true"
+    When I send the YouTube settings "{}" with my session
+    Then the response status is 400
+    When I send the YouTube settings '{"readComments": "yes"}' with my session
+    Then the response status is 400
+
+  Scenario: A video's comments (answers included) and chapters are kept, replaced at each refresh
+    Given reading comments is on
+    And YouTube has the video "alpha-01" with 2 comments and 3 chapters
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has the comments of the video "alpha-01": "Comment 1 by @viewer1 | ↳Reply 1 by @alpha | Comment 2 by @viewer2 | ↳Reply 2 by @alpha"
+    And PostgreSQL has the chapters of the video "alpha-01": "0-30 Part 1 | 30-60 Part 2 | 60-90 Part 3"
+    When I request the latest run's "" with my session
+    Then "counts.commentsRead" is "4"
+    Given YouTube has the video "alpha-01" with 1 comments and 0 chapters
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has the comments of the video "alpha-01": "Comment 1 by @viewer1 | ↳Reply 1 by @alpha"
+    And PostgreSQL has the chapters of the video "alpha-01": ""
+
+  Scenario: Comments yt-dlp couldn't read: those read before stay
+    Given reading comments is on
+    And YouTube has the video "alpha-01" with 1 comments and 0 chapters
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    Given YouTube has the video "alpha-01": the title "Sans commentaires lus", 10 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And PostgreSQL has the comments of the video "alpha-01": "Comment 1 by @viewer1 | ↳Reply 1 by @alpha"
+
   Scenario: A channel alone leaves its videos as they are
     Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
     When I refresh the channel "alpha" with my session

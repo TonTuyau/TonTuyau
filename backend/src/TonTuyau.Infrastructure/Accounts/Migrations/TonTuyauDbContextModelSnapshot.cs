@@ -177,6 +177,69 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("run_log_lines", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
+                {
+                    b.Property<string>("VideoId")
+                        .HasColumnType("text")
+                        .HasColumnName("video_id");
+
+                    b.Property<string>("CommentId")
+                        .HasColumnType("text")
+                        .HasColumnName("comment_id");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("author");
+
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("text")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("AuthorThumbnail")
+                        .HasColumnType("text")
+                        .HasColumnName("author_thumbnail");
+
+                    b.Property<bool>("ByUploader")
+                        .HasColumnType("boolean")
+                        .HasColumnName("by_uploader");
+
+                    b.Property<bool>("Hearted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("hearted");
+
+                    b.Property<long?>("Likes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("likes");
+
+                    b.Property<string>("ParentId")
+                        .HasColumnType("text")
+                        .HasColumnName("parent_id");
+
+                    b.Property<bool>("Pinned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pinned");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<DateTimeOffset?>("Published")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("VideoId", "CommentId");
+
+                    b.HasIndex("VideoId", "Position");
+
+                    b.ToTable("video_comments", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YouTubeChannelRow", b =>
                 {
                     b.Property<string>("ChannelId")
@@ -268,6 +331,29 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("youtube_cookie", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YouTubeSettingsRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("ReadComments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("read_comments");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("youtube_settings", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", b =>
                 {
                     b.Property<string>("VideoId")
@@ -295,6 +381,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<long?>("CommentCount")
                         .HasColumnType("bigint")
                         .HasColumnName("comment_count");
+
+                    b.Property<DateTimeOffset?>("CommentsReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("comments_read_at");
 
                     b.Property<string>("Description")
                         .HasColumnType("text")
@@ -377,6 +467,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("ytdlp_settings", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", null)
+                        .WithMany()
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", b =>
                 {
                     b.HasOne("TonTuyau.Infrastructure.YouTube.YouTubeChannelRow", null)
@@ -384,6 +483,37 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasForeignKey("ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.OwnsMany("TonTuyau.Infrastructure.YouTube.VideoChapterRow", "Chapters", b1 =>
+                        {
+                            b1.Property<string>("YouTubeVideoRowVideoId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<double>("End")
+                                .HasJsonPropertyName("end");
+
+                            b1.Property<double>("Start")
+                                .HasJsonPropertyName("start");
+
+                            b1.Property<string>("Title")
+                                .IsRequired()
+                                .HasJsonPropertyName("title");
+
+                            b1.HasKey("YouTubeVideoRowVideoId", "__synthesizedOrdinal");
+
+                            b1.ToTable("youtube_videos");
+
+                            b1
+                                .ToJson("chapters")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("YouTubeVideoRowVideoId");
+                        });
+
+                    b.Navigation("Chapters");
                 });
 #pragma warning restore 612, 618
         }

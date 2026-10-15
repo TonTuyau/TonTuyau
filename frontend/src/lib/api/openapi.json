@@ -2340,6 +2340,103 @@
           }
         }
       }
+    },
+    "/api/admin/youtube/settings": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["YouTube"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YouTubeSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YouTubeSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2880,7 +2977,8 @@
           "kept",
           "foundOnYouTube",
           "goneFromYouTube",
-          "checkFailed"
+          "checkFailed",
+          "commentsRead"
         ],
         "type": "object",
         "properties": {
@@ -2949,6 +3047,10 @@
             "format": "int32"
           },
           "checkFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commentsRead": {
             "type": "integer",
             "format": "int32"
           }
@@ -3556,6 +3658,31 @@
           },
           "deno": {
             "type": ["null", "string"]
+          }
+        }
+      },
+      "YouTubeSettingsRequest": {
+        "required": ["readComments"],
+        "type": "object",
+        "properties": {
+          "readComments": {
+            "type": ["null", "boolean"]
+          }
+        }
+      },
+      "YouTubeSettingsResponse": {
+        "required": ["readComments", "changedBy", "changedAt"],
+        "type": "object",
+        "properties": {
+          "readComments": {
+            "type": "boolean"
+          },
+          "changedBy": {
+            "type": ["null", "string"]
+          },
+          "changedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
           }
         }
       },
