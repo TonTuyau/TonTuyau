@@ -3,8 +3,10 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.IntegrationTests.Support;
+using YouTubeServices = TonTuyau.YouTube.ServiceCollectionExtensions;
 
 namespace TonTuyau.IntegrationTests.Steps;
 
@@ -160,14 +162,16 @@ public sealed class YtdlpSteps(ScenarioState state, AuthSteps auth) : IAsyncDisp
             .AsArray()
             .Select(v => v!["version"]!.GetValue<string>())];
 
-    /// <summary>The fake GitHub, started once, before the backend (which reads its address at startup).</summary>
+    /// <summary>The fake GitHub, started once, before the backend (whose GitHub client is pointed there).</summary>
     private async Task<FakeGitHub> GitHubAsync()
     {
         if (_gitHub is null)
         {
             _gitHub = await FakeGitHub.StartAsync();
-            state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.YtdlpReleasesApiUrl), _gitHub.Url);
-            state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.YtdlpDownloadsUrl), _gitHub.Url);
+            Uri fake = new(_gitHub.Url);
+            state.ServiceOverrides.Add(services => services
+                .AddHttpClient(YouTubeServices.GitHubClientName)
+                .ConfigurePrimaryHttpMessageHandler(() => new GitHubRedirect(fake)));
         }
 
         return _gitHub;

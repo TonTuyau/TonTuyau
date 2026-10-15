@@ -12,8 +12,6 @@ public static class TonTuyauOptionsReader
     public const string DefaultYtdlpPath = "yt-dlp";
     public const string DefaultDenoPath = "deno";
     public const string DefaultToolsRoot = "/data/tools";
-    public const string DefaultReleasesApiUrl = "https://api.github.com";
-    public const string DefaultDownloadsUrl = "https://github.com";
     public const string DefaultArtRoot = "/data/art";
     public const string DefaultIncrementalCron = "0 7-23 * * *";
     public const string DefaultFullCron = "0 1 * * 6";
@@ -108,9 +106,7 @@ public static class TonTuyauOptionsReader
             new YouTubeOptions(
                 Get(ConfigKeys.YtdlpPath, DefaultYtdlpPath),
                 Get(ConfigKeys.DenoPath, DefaultDenoPath),
-                Get(ConfigKeys.ToolsRoot, DefaultToolsRoot),
-                Get(ConfigKeys.YtdlpReleasesApiUrl, DefaultReleasesApiUrl),
-                Get(ConfigKeys.YtdlpDownloadsUrl, DefaultDownloadsUrl)))
+                Get(ConfigKeys.ToolsRoot, DefaultToolsRoot)))
         {
             Unparsable = unparsable,
         };

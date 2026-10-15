@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using TonTuyau.Application.Configuration;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.YouTube.Releases;
@@ -8,7 +7,7 @@ namespace TonTuyau.YouTube.Releases;
 /// yt-dlp's releases, listed by GitHub's API (no token: 60 requests an hour per address, so the lists are kept an hour).
 /// Only releases with a Linux program and checksums count; the latest first.
 /// </summary>
-internal sealed class GitHubYtdlpReleases(HttpClient http, TonTuyauOptions options, TimeProvider clock)
+internal sealed class GitHubYtdlpReleases(HttpClient http, TimeProvider clock)
     : IYtdlpReleases
 {
     public static readonly TimeSpan KeptFor = TimeSpan.FromHours(1);
@@ -70,7 +69,7 @@ internal sealed class GitHubYtdlpReleases(HttpClient http, TonTuyauOptions optio
         CancellationToken cancellationToken)
     {
         Uri url = new(
-            $"{options.YouTube.ReleasesApiUrl.TrimEnd('/')}/repos/{YtdlpRepositories.Repository(channel)}/releases"
+            $"{YtdlpRepositories.ApiUrl}/repos/{YtdlpRepositories.Repository(channel)}/releases"
             + $"?per_page={PageSize}&page={page}");
         try
         {

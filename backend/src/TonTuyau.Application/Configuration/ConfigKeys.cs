@@ -43,10 +43,5 @@ public static class ConfigKeys
     public const string DenoPath = "DENO_PATH";
     public const string ToolsRoot = "TOOLS_ROOT";
 
-    /// <summary>Tests only: a fake GitHub (its API, its downloads).</summary>
-    public const string YtdlpReleasesApiUrl = "YTDLP_RELEASES_API_URL";
-
-    public const string YtdlpDownloadsUrl = "YTDLP_DOWNLOADS_URL";
-
     public static string EnvironmentName(string key) => EnvironmentPrefix + key;
 }
