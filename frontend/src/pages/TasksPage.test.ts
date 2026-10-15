@@ -177,6 +177,53 @@ describe('TasksPage', () => {
   describe('starting and canceling', () => {
     const started = run({ id: 'run-20261014T090000Z-aaaaaa', state: 'running', finishedAt: null, trigger: 'admin' })
 
+    it('refreshes a video pasted as a link, with its id, then shows its run', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/refreshVideo/runs': started,
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Refresh a video' })
+      expect(within(card).getByText('tontuyau youtube video <id>')).toBeInTheDocument()
+      await user.type(within(card).getByLabelText('Video link or id'), 'https://youtu.be/k3Fq8xZ0aQw?si=x')
+      await user.click(within(card).getByRole('button', { name: 'Refresh' }))
+
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+      const [request] = api.requests('/api/admin/tasks/refreshVideo/runs')
+      expect(request?.searchParams.get('target')).toBe('k3Fq8xZ0aQw')
+    })
+
+    it('refuses what isn’t a video or a channel, without asking', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
+      render(TasksPage)
+
+      const video = await screen.findByRole('article', { name: 'Refresh a video' })
+      await user.click(within(video).getByRole('button', { name: 'Refresh' }))
+      expect(within(video).getByRole('alert')).toHaveTextContent('Paste a link or an id first.')
+
+      const channel = screen.getByRole('article', { name: 'Refresh a channel and its videos' })
+      await user.type(within(channel).getByLabelText('Channel link or id'), '@underthecity')
+      await user.click(within(channel).getByRole('button', { name: 'Refresh them' }))
+      expect(within(channel).getByRole('alert')).toHaveTextContent(/An @handle can't be read yet/)
+      expect(api.calls.filter((url) => url.pathname.endsWith('/runs') && url.pathname.includes('refresh'))).toEqual([])
+    })
+
+    it('warns when there is no YouTube cookie', async () => {
+      fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/youtube': { cookie: null, ytdlp: '2026.09.30', deno: '2.9.7' },
+      })
+      render(TasksPage)
+
+      expect(await screen.findByText(/^No YouTube cookie: YouTube may refuse/)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute('href', '/admin/youtube')
+    })
+
     it('starts the incremental sync at once, then shows its run', async () => {
       const user = userEvent.setup()
       const api = fakeApi({

@@ -2,13 +2,13 @@
   // The admin's YouTube page (1.5): the YouTube cookie TonTuyau signs in with (its state, checking it again, removing
   // it, asked first), the tools' versions, and which yt-dlp runs: the latest official release by default, or one
   // official release, or one nightly build of the last 2 months. A version chosen is applied in the background; the
-  // page asks again every 3 s while it's on its way (downloaded, or waiting for the task going on to end). A refusal
-  // says why; a 401 ends the session.
+  // page asks again every 3 s while it's on its way (downloaded, or waiting for the task going on to end). And what a
+  // refresh reads: the comments, or not (off by default). A refusal says why; a 401 ends the session.
   import Button from '../components/Button.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { YouTubeOverview, YtdlpChoiceKind, YtdlpState, YtdlpVersions } from '../lib/api/types'
+  import type { YouTubeOverview, YouTubeSettings, YtdlpChoiceKind, YtdlpState, YtdlpVersions } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDate } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
@@ -20,10 +20,12 @@
   const overview = new Remote<YouTubeOverview>()
   const ytdlp = new Remote<YtdlpState>()
   const versions = new Remote<YtdlpVersions>()
+  const settings = new Remote<YouTubeSettings>()
 
   $effect(() => overview.run((signal) => api.youTube(signal)))
   $effect(() => ytdlp.run((signal) => api.ytdlp(signal)))
   $effect(() => versions.run((signal) => api.ytdlpVersions(signal)))
+  $effect(() => settings.run((signal) => api.youTubeSettings(signal)))
 
   $effect(() => {
     if (overview.error?.status === 401 || ytdlp.error?.status === 401) {
@@ -61,6 +63,24 @@
     } finally {
       pending = false
       await overview.refresh()
+    }
+  }
+
+  // ---------------------------------------------------------------- reading YouTube
+
+  async function readComments(event: Event) {
+    const input = event.currentTarget as HTMLInputElement
+    pending = true
+    refused = null
+    try {
+      await api.saveYouTubeSettings(input.checked)
+    } catch (error) {
+      refused = t('youTube.refused', { reason: reasonOf(error) })
+    } finally {
+      pending = false
+      await settings.refresh()
+      // The switch shows what's saved, also after a refusal (then nothing changed for Svelte to redraw).
+      input.checked = settings.data?.readComments ?? false
     }
   }
 
@@ -339,6 +359,43 @@
       <p class="hint">{t('ytdlp.hint')}</p>
     {/if}
   </section>
+
+  <section class="card" aria-labelledby="{uid}-reading">
+    <div>
+      <h2 id="{uid}-reading">{t('youTube.reading')}</h2>
+      <p class="hint">{t('youTube.reading.intro')}</p>
+    </div>
+    {#if settings.status === 'loading'}
+      <Skeleton layout="page" />
+    {:else if settings.status === 'error' && settings.error}
+      <ErrorState error={settings.error} onretry={() => settings.retry()} />
+    {:else if settings.data}
+      {@const current = settings.data}
+      <label class="switch">
+        <span>
+          <b>{t('youTube.comments')}</b>
+          <small>{t('youTube.comments.what')}</small>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={current.readComments}
+          disabled={pending}
+          onchange={readComments}
+        />
+      </label>
+      <p class="hint">
+        {#if current.changedBy && current.changedAt}
+          {t(current.readComments ? 'youTube.comments.onBy' : 'youTube.comments.offBy', {
+            by: current.changedBy,
+            ago: formatAge(current.changedAt, i18n.lang),
+          })}
+        {:else}
+          {t('youTube.comments.default')}
+        {/if}
+      </p>
+    {/if}
+  </section>
 </div>
 
 <style>
@@ -418,6 +475,31 @@
 
   .missing {
     color: var(--color-error);
+  }
+
+  .switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    max-width: 72ch;
+  }
+
+  .switch span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .switch b {
+    font-weight: var(--font-weight-medium);
+  }
+
+  .switch input {
+    flex: none;
+    width: 2.25rem;
+    height: 1.25rem;
+    accent-color: var(--color-brand);
   }
 
   .pill {

@@ -121,6 +121,7 @@ export type YouTubeCookieState = YouTubeCookie['state']
 
 /** Which yt-dlp is chosen and runs (1.5). */
 export type YtdlpState = Schemas['YtdlpStateResponse']
+export type YouTubeSettings = Schemas['YouTubeSettingsResponse']
 
 export type YtdlpChoiceKind = YtdlpState['choice']['kind']
 

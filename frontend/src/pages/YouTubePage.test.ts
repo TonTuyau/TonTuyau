@@ -48,12 +48,57 @@ function routes(given: Record<string, unknown> = {}) {
     '/api/admin/youtube': overview(),
     '/api/admin/youtube/ytdlp': ytdlp(),
     '/api/admin/youtube/ytdlp/versions': versions,
+    '/api/admin/youtube/settings': { readComments: false, changedBy: null, changedAt: null },
     ...given,
   })
 }
 
 describe('YouTubePage', () => {
   beforeEach(() => goTo('/admin/youtube'))
+
+  it('reads the comments only once switched on: off by default, then saved with who changed it', async () => {
+    const user = userEvent.setup()
+    let saved = { readComments: false, changedBy: null as string | null, changedAt: null as string | null }
+    const api = routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as { readComments: boolean }
+          saved = { readComments: body.readComments, changedBy: 'admin', changedAt: new Date().toISOString() }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    const comments = await within(card).findByRole('switch', { name: /Read the comments/ })
+    expect(comments).not.toBeChecked()
+    expect(within(card).getByText('Off: the default. Chapters are always read.')).toBeInTheDocument()
+
+    await user.click(comments)
+
+    expect(await within(card).findByText(/^On · changed by admin/)).toBeInTheDocument()
+    expect(within(card).getByRole('switch', { name: /Read the comments/ })).toBeChecked()
+    const puts = api.calls.filter((url) => url.pathname === '/api/admin/youtube/settings')
+    expect(puts.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('says why the setting was refused, and shows what is saved', async () => {
+    const user = userEvent.setup()
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) =>
+        init?.method === 'PUT'
+          ? problemResponse(400, 'readComments is required: true or false.', 'Invalid request')
+          : { readComments: false, changedBy: null, changedAt: null },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    await user.click(await within(card).findByRole('switch', { name: /Read the comments/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/readComments is required/)
+    expect(within(card).getByRole('switch', { name: /Read the comments/ })).not.toBeChecked()
+  })
 
   it('shows the cookie, who sent it, the tools, and which yt-dlp runs and was chosen', async () => {
     routes()

@@ -190,7 +190,7 @@ export const fr: Dictionary = {
   'admin.tasks': 'Tâches',
   'admin.youTube': 'YouTube',
   'youTube.intro':
-    'Comment TonTuyau lit YouTube : le cookie avec lequel il se connecte, et le yt-dlp avec lequel il lit.',
+    "Comment TonTuyau lit YouTube : le cookie avec lequel il se connecte, le yt-dlp avec lequel il lit, et ce qu'il lit.",
   'youTube.cookie': 'Cookie YouTube',
   'youTube.cookie.state': 'État',
   'youTube.cookie.state.works': 'Fonctionne',
@@ -210,6 +210,15 @@ export const fr: Dictionary = {
   'youTube.cookie.confirmRemove':
     'Supprimer le cookie ? TonTuyau lit YouTube déconnecté jusqu’à ce que l’extension en envoie un autre.',
   'youTube.cookie.keep': 'Le garder',
+  'youTube.reading': 'Lecture de YouTube',
+  'youTube.reading.intro':
+    "Ce qu'une actualisation lit en plus des métadonnées. S'applique dès la prochaine actualisation.",
+  'youTube.comments': 'Lire les commentaires',
+  'youTube.comments.what':
+    "Jusqu'à 500 par vidéo, réponses comprises, les meilleurs commentaires de YouTube d'abord ; affichés sous la vidéo. Plus lent : jusqu'à quelques dizaines de secondes par vidéo.",
+  'youTube.comments.default': 'Désactivé : par défaut. Les chapitres sont toujours lus.',
+  'youTube.comments.onBy': 'Activé · changé par {by} {ago}. Les chapitres sont toujours lus.',
+  'youTube.comments.offBy': 'Désactivé · changé par {by} {ago}. Les chapitres sont toujours lus.',
   'youTube.refused': 'Ça n’a pas marché : {reason}',
   'youTube.tools': 'Outils',
   'youTube.tools.image': 'dans l’image',
@@ -284,6 +293,9 @@ export const fr: Dictionary = {
     'Une clé n’est affichée qu’une fois, à sa création : TonTuyau n’en garde que l’empreinte. Une clé désactivée est refusée jusqu’à ce que vous la réactiviez. Clé perdue ? Supprimez-la et créez-en une autre.',
   'tasks.intro': 'Les tâches de TonTuyau : quand elles tournent, et ce que chaque exécution a fait.',
   'tasks.busy': '{task} en cours, lancée par {by} {ago}.',
+  'tasks.youTube.intro':
+    "Lu directement sur YouTube avec yt-dlp, connecté avec le cookie envoyé par votre extension de navigateur. Rien n'est téléchargé en 1.5 : seulement ce que YouTube en dit.",
+  'tasks.youTube.noCookie': "Pas de cookie YouTube : YouTube peut refuser. L'extension en envoie un ; voir",
   'task.incremental': 'Synchronisation incrémentale',
   'task.full': 'Synchronisation complète',
   'task.applyDeletions': 'Appliquer les suppressions',
@@ -322,6 +334,14 @@ export const fr: Dictionary = {
   'task.cancelRun': "Annuler l'exécution",
   'task.keepRunning': 'La laisser tourner',
   'task.refused': 'Pas lancée : {reason}',
+  'task.target.video': "Lien ou id d'une vidéo",
+  'task.target.channel': "Lien ou id d'une chaîne",
+  'task.target.empty': "Collez d'abord un lien ou un id.",
+  'task.target.notVideo': "Ce n'est pas un lien ou un id de vidéo YouTube.",
+  'task.target.notChannel':
+    "Ce n'est pas un id de chaîne (UC…) ni son lien /channel/. Un @pseudo ne peut pas encore être lu.",
+  'task.refresh': 'Actualiser',
+  'task.refreshThem': 'Les actualiser',
   'task.cancelRefused': 'Pas annulée : {reason}',
   'run.state.running': 'En cours',
   'run.state.succeeded': 'Réussie',
