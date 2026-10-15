@@ -3,7 +3,8 @@ import { router } from '../lib/router/router.svelte'
 // A fake backend for component tests: maps a path to the JSON the test wants the API to return, and records
 // every request so tests can check the exact parameters sent.
 
-type Answer = unknown | Response | ((url: URL) => unknown)
+/** A fixed answer, or one computed from the request (its method and body are in `init`). */
+type Answer = unknown | Response | ((url: URL, init?: RequestInit) => unknown)
 
 export function problemResponse(status: number, detail: string, title = 'Problem'): Response {
   return new Response(JSON.stringify({ type: 'https://tontuyau/errors/test', title, status, detail }), {
@@ -14,14 +15,14 @@ export function problemResponse(status: number, detail: string, title = 'Problem
 
 export function fakeApi(routes: Record<string, Answer>) {
   const calls: URL[] = []
-  const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+  const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), 'http://localhost')
     calls.push(url)
     const route = routes[url.pathname]
     if (route === undefined) {
       return problemResponse(404, `No fake for ${url.pathname}`, 'Not found')
     }
-    const answer = typeof route === 'function' ? (route as (url: URL) => unknown)(url) : route
+    const answer = typeof route === 'function' ? (route as (url: URL, init?: RequestInit) => unknown)(url, init) : route
     if (answer instanceof Response) {
       return answer.clone()
     }

@@ -1,6 +1,7 @@
 // Small API-shaped objects for component tests. Values are deliberately odd (URLs the front could never
 // guess, counts that don't match list lengths) so a test fails if a component computes instead of displaying.
 import type {
+  ApiKey,
   ChannelCard,
   ChannelDetail,
   ChannelTotals,
@@ -172,6 +173,20 @@ export function importHistory(overrides: Partial<ImportHistory> = {}): ImportHis
 }
 
 /** A run of the history (1.4): an incremental sync, succeeded. */
+export function apiKey(overrides: Partial<ApiKey> = {}): ApiKey {
+  return {
+    id: 7,
+    name: 'Firefox, laptop',
+    prefix: 'tt_k7Qm',
+    kind: 'browserExtension',
+    enabled: true,
+    createdAt: '2026-10-02T08:30:00Z',
+    createdBy: 'claire',
+    lastUsedAt: null,
+    ...overrides,
+  }
+}
+
 export function run(overrides: Partial<Run> = {}): Run {
   return {
     id: 'run-20261012T120000Z-3f9a1c',

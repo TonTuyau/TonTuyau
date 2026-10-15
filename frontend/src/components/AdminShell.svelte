@@ -1,13 +1,14 @@
 <script lang="ts">
-  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), Back to
-  // TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
+  // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), API keys
+  // (1.5), Back to TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
   // The menu: full or icons only with the ☰, remembered (wide screens); icons only under 900 px, the ☰ opening it for
-  // the visit; on phones a row of links, no ☰.
+  // the visit; on phones a row of links, no ☰, that scrolls sideways by itself when wider than the screen.
   import { adminGuide } from '../lib/adminGuide.svelte'
   import { auth } from '../lib/auth.svelte'
   import { t } from '../lib/i18n/i18n.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href, type AdminRoute } from '../lib/router/routes'
+  import ApiKeysPage from '../pages/ApiKeysPage.svelte'
   import DashboardPage from '../pages/DashboardPage.svelte'
   import RunPage from '../pages/RunPage.svelte'
   import TasksPage from '../pages/TasksPage.svelte'
@@ -19,7 +20,7 @@
   let { route }: { route: AdminRoute } = $props()
 
   // A run's page is part of the Tasks (the menu says so).
-  const section = $derived(route.page === 'dashboard' ? 'dashboard' : 'tasks')
+  const section = $derived(route.page === 'run' ? 'tasks' : route.page)
 
   const uid = $props.id()
   const navId = `${uid}-nav`
@@ -52,6 +53,14 @@
   })
 
   const full = $derived(phone || (narrow ? opened : !adminGuide.collapsed))
+
+  // On phones the menu row may be wider than the screen: the current page's link is scrolled into sight.
+  let nav = $state<HTMLElement>()
+  $effect(() => {
+    if (phone && section) {
+      nav?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    }
+  })
 
   function onmenu() {
     if (narrow) {
@@ -87,7 +96,7 @@
   </header>
 
   <div class="shell" class:full class:phone data-guide={phone ? 'row' : full ? 'full' : 'icons'}>
-    <nav id={navId} class="guide" aria-label={t('admin.nav')}>
+    <nav id={navId} class="guide" aria-label={t('admin.nav')} bind:this={nav}>
       <a
         class="item"
         href={href.admin()}
@@ -106,6 +115,15 @@
         <Icon name="tasks" />
         <span class="label" class:visually-hidden={!full}>{t('admin.tasks')}</span>
       </a>
+      <a
+        class="item"
+        href={href.adminApiKeys()}
+        aria-current={section === 'apiKeys' ? 'page' : undefined}
+        title={full ? undefined : t('admin.apiKeys')}
+      >
+        <Icon name="key" />
+        <span class="label" class:visually-hidden={!full}>{t('admin.apiKeys')}</span>
+      </a>
       <a class="item back" href={href.home()} title={full ? undefined : t('admin.back')}>
         <Icon name="back" />
         <span class="label" class:visually-hidden={!full}>{t('admin.back')}</span>
@@ -117,6 +135,8 @@
         <RunPage id={route.id} />
       {:else if route.page === 'tasks'}
         <TasksPage />
+      {:else if route.page === 'apiKeys'}
+        <ApiKeysPage />
       {:else}
         <DashboardPage />
       {/if}
@@ -221,7 +241,8 @@
     outline: none;
   }
 
-  /* Phones: one column, the menu a row of links above the page. */
+  /* Phones: one column, the menu a row of links above the page. Wider than the screen (1.5: four links), the row
+     scrolls sideways by itself, never the page. */
   .shell.phone {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -233,6 +254,13 @@
     padding: var(--space-2) var(--space-4);
     border-right: none;
     border-bottom: var(--border-width) solid var(--color-divider);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .phone .item {
+    flex: none;
   }
 
   .phone .back {

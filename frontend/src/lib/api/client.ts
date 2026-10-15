@@ -1,10 +1,13 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  ApiKey,
+  ApiKeyKind,
   ChannelCard,
   ChannelDetail,
   ChannelListParams,
   ChannelVideoListParams,
+  CreatedApiKey,
   Dashboard,
   ImportHistory,
   ImportPeriod,
@@ -113,10 +116,19 @@ async function post(path: string, body?: unknown): Promise<void> {
   })
 }
 
-/** A POST without a body whose answer has one (1.4: starting a task, canceling a run: 202 and the run). */
-async function postFor<T>(path: string): Promise<T> {
-  const response = await send(path, { method: 'POST', headers: { accept: 'application/json' } })
+/** A POST whose answer has a body (1.4: starting a task, canceling a run: 202 and the run; 1.5: a key). */
+async function postFor<T>(path: string, body?: unknown): Promise<T> {
+  const response = await send(path, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
   return (await response.json()) as T
+}
+
+/** A DELETE (1.5: an API key): 204, no body. */
+async function remove(path: string): Promise<void> {
+  await send(path, { method: 'DELETE', headers: { accept: 'application/json' } })
 }
 
 const segment = encodeURIComponent
@@ -212,6 +224,28 @@ export const api = {
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
   runLog(id: string, after: number, signal?: AbortSignal): Promise<RunLog> {
     return get(`/api/admin/runs/${segment(id)}/log`, { after: after > 0 ? after : undefined }, signal)
+  },
+
+  /** The API keys (1.5), the latest created first; never their secrets. */
+  apiKeys(signal?: AbortSignal): Promise<ApiKey[]> {
+    return get('/api/admin/api-keys', {}, signal)
+  },
+
+  /** Creates a key: its secret comes this once. 409 when a key has the name already, whatever the case. */
+  createApiKey(name: string, kind: ApiKeyKind): Promise<CreatedApiKey> {
+    return postFor('/api/admin/api-keys', { name, kind })
+  },
+
+  enableApiKey(id: number): Promise<ApiKey> {
+    return postFor(`/api/admin/api-keys/${id}/enable`)
+  },
+
+  disableApiKey(id: number): Promise<ApiKey> {
+    return postFor(`/api/admin/api-keys/${id}/disable`)
+  },
+
+  deleteApiKey(id: number): Promise<void> {
+    return remove(`/api/admin/api-keys/${id}`)
   },
 }
 
