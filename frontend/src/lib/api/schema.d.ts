@@ -1866,10 +1866,13 @@ export interface paths {
     put?: never
     post: {
       parameters: {
-        query?: never
+        query?: {
+          /** @description For the refreshes only: the video's or channel's YouTube id. */
+          target?: string
+        }
         header?: never
         path: {
-          /** @description incremental | full | applyDeletions. */
+          /** @description incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos. */
           task: string
         }
         cookie?: never
@@ -1994,7 +1997,7 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          /** @description incremental | full | applyDeletions; every task when absent. */
+          /** @description A task's name (see POST tasks/{task}/runs); every task when absent. */
           task?: string
           /** @description The previous page's nextCursor: the runs started before that one. */
           before?: string
@@ -2723,6 +2726,12 @@ export interface components {
       deleted: number
       /** Format: int32 */
       kept: number
+      /** Format: int32 */
+      foundOnYouTube: number
+      /** Format: int32 */
+      goneFromYouTube: number
+      /** Format: int32 */
+      checkFailed: number
     }
     RunLock: {
       task: components['schemas']['SyncMode']
@@ -2760,6 +2769,7 @@ export interface components {
       deletionsPlanned: number
       deletionsBlocked: boolean
       appliesTo: null | string
+      target: null | string
       indexRebuild: boolean
       notes: string[]
       cancellable: boolean
@@ -2782,7 +2792,7 @@ export interface components {
       suggestions: components['schemas']['Suggestion'][]
     }
     /** @enum {string} */
-    SyncMode: 'incremental' | 'full' | 'applyDeletions'
+    SyncMode: 'incremental' | 'full' | 'applyDeletions' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled'
     /** @enum {string} */

@@ -23,6 +23,7 @@ public static class YouTubeOverlay
             : withStatus with
             {
                 Title = refreshed.Title,
+                ChannelName = refreshed.ChannelName,
                 Description = refreshed.Description,
                 Tags = refreshed.Tags,
                 Categories = refreshed.Categories,

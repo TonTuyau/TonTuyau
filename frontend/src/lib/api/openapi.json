@@ -1757,8 +1757,16 @@
           {
             "name": "task",
             "in": "path",
-            "description": "incremental | full | applyDeletions.",
+            "description": "incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "description": "For the refreshes only: the video's or channel's YouTube id.",
             "schema": {
               "type": "string"
             }
@@ -1872,7 +1880,7 @@
           {
             "name": "task",
             "in": "query",
-            "description": "incremental | full | applyDeletions; every task when absent.",
+            "description": "A task's name (see POST tasks/{task}/runs); every task when absent.",
             "schema": {
               "type": "string"
             }
@@ -2869,7 +2877,10 @@
           "artResizeFailed",
           "mediaMissing",
           "deleted",
-          "kept"
+          "kept",
+          "foundOnYouTube",
+          "goneFromYouTube",
+          "checkFailed"
         ],
         "type": "object",
         "properties": {
@@ -2926,6 +2937,18 @@
             "format": "int32"
           },
           "kept": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foundOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "goneFromYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checkFailed": {
             "type": "integer",
             "format": "int32"
           }
@@ -3000,6 +3023,7 @@
           "deletionsPlanned",
           "deletionsBlocked",
           "appliesTo",
+          "target",
           "indexRebuild",
           "notes",
           "cancellable"
@@ -3043,6 +3067,9 @@
             "type": "boolean"
           },
           "appliesTo": {
+            "type": ["null", "string"]
+          },
+          "target": {
             "type": ["null", "string"]
           },
           "indexRebuild": {
@@ -3115,7 +3142,7 @@
         }
       },
       "SyncMode": {
-        "enum": ["incremental", "full", "applyDeletions"],
+        "enum": ["incremental", "full", "applyDeletions", "refreshVideo", "refreshChannel", "refreshChannelVideos"],
         "type": "string"
       },
       "SyncOutcome": {

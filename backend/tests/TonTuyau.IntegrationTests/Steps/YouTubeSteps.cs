@@ -19,11 +19,30 @@ public sealed class YouTubeSteps(ScenarioState state, AuthSteps auth, ApiKeyStep
 {
     private static readonly string FakeTools = Path.Combine(AppContext.BaseDirectory, "FakeTools");
 
+    private string? _folder;
+
+    /// <summary>What the fake yt-dlp answers for a video or channel: <c>&lt;id&gt;.json</c> or <c>&lt;id&gt;.err</c>.</summary>
+    public string Answers => Path.Combine(_folder!, "answers");
+
+    /// <summary>A folder of the scenario's own, with a link to the fake yt-dlp and its answers next to it.</summary>
     [BeforeScenario("youtube")]
     public void UseFakeTools()
     {
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.YtdlpPath), Path.Combine(FakeTools, "yt-dlp"));
+        _folder = Path.Combine(Path.GetTempPath(), "tontuyau-yt-dlp-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Answers);
+        string ytdlp = Path.Combine(_folder, "yt-dlp");
+        File.CreateSymbolicLink(ytdlp, Path.Combine(FakeTools, "yt-dlp"));
+        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.YtdlpPath), ytdlp);
         state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.DenoPath), Path.Combine(FakeTools, "deno"));
+    }
+
+    [AfterScenario("youtube")]
+    public void RemoveFakeTools()
+    {
+        if (_folder is not null && Directory.Exists(_folder))
+        {
+            Directory.Delete(_folder, recursive: true);
+        }
     }
 
     /// <summary>A browser's cookie file: a Google cookie, and the YouTube session whose value is given.</summary>

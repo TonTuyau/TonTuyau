@@ -11,6 +11,15 @@ public enum SyncMode
     /// Applies the deletion list a full run wrote but didn't apply (over the limit): a run of its own, since 1.4.
     /// </summary>
     ApplyDeletions,
+
+    /// <summary>Reads one video on YouTube (1.5): its state, and its metadata when it's there.</summary>
+    RefreshVideo,
+
+    /// <summary>Reads one channel on YouTube (1.5): its state, and its metadata when it's there.</summary>
+    RefreshChannel,
+
+    /// <summary>Reads one channel on YouTube, then each of its videos in the library (1.5).</summary>
+    RefreshChannelVideos,
 }
 
 public enum SyncTrigger
@@ -91,6 +100,15 @@ public sealed record SyncCounts
     public int Deleted { get; init; }
 
     public int KeptStillInTubeArchivist { get; init; }
+
+    /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
+    public int FoundOnYouTube { get; init; }
+
+    /// <summary>A refresh: videos and channels YouTube says are removed, private or terminated.</summary>
+    public int GoneFromYouTube { get; init; }
+
+    /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
+    public int CheckFailed { get; init; }
 }
 
 /// <summary>One sync run, as kept in the run history.</summary>
@@ -115,6 +133,9 @@ public sealed record SyncRun
 
     /// <summary>For an <see cref="SyncMode.ApplyDeletions"/> run: the full run whose deletion list it applied.</summary>
     public string? AppliesTo { get; init; }
+
+    /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
+    public string? Target { get; init; }
 
     public SyncCounts Counts { get; init; } = new();
 

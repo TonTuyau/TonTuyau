@@ -29,6 +29,12 @@ public enum SyncPhase
 
     /// <summary>Index rebuild: switching readers to the new indices.</summary>
     IndexSwitch,
+
+    /// <summary>A refresh (1.5): reading the channel on YouTube.</summary>
+    YouTubeChannel,
+
+    /// <summary>A refresh: reading the videos on YouTube, one by one.</summary>
+    YouTubeVideos,
 }
 
 /// <summary>

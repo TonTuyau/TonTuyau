@@ -21,6 +21,8 @@ public sealed class YouTubeVideoRow
 
     public string? Title { get; set; }
 
+    public string? ChannelName { get; set; }
+
     public string? Description { get; set; }
 
     public List<string> Tags { get; set; } = [];
@@ -44,11 +46,13 @@ public sealed class YouTubeVideoRow
             ? null
             : new RefreshedVideo(
                 row.Title,
+                row.ChannelName ?? "",
                 row.Description ?? "",
                 row.Tags,
                 row.Categories,
                 row.Views ?? 0,
                 row.Likes ?? 0,
+                row.CommentCount,
                 row.ThumbnailPath);
         return new VideoFacts(row.VideoId, status, refreshed);
     }

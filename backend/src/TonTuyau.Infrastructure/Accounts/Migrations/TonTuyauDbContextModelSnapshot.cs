@@ -279,6 +279,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("categories");
 
+                    b.Property<string>("ChannelName")
+                        .HasColumnType("text")
+                        .HasColumnName("channel_name");
+
                     b.Property<DateTimeOffset?>("CheckedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("checked_at");

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.RunLogs;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Sync;
 
@@ -9,7 +10,7 @@ namespace TonTuyau.Application.Sync;
 /// runs, canceled when the backend stops (<see cref="StopAsync"/>). The startup index rebuild isn't one of them.
 /// It owns nothing to dispose: each run's cancellation source is disposed when the run ends.
 /// </summary>
-public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> logger)
+public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService refresh, ILogger<SyncRunner> logger)
 {
     private readonly Lock _gate = new();
     private Running? _current;
@@ -53,6 +54,19 @@ public sealed partial class SyncRunner(SyncService sync, ILogger<SyncRunner> log
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public Task<StartedRun> StartRebuildAsync(SyncTrigger trigger) =>
         StartAsync((progress, token) => sync.RebuildAsync(trigger, progress, token));
+
+    /// <summary>Starts a refresh on YouTube (1.5): a video, a channel, or a channel and its videos.</summary>
+    /// <param name="target">The video's or channel's YouTube id.</param>
+    /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
+    /// <exception cref="SyncRefusedException">Not one of the library.</exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public Task<StartedRun> StartRefreshAsync(
+        SyncMode mode,
+        string target,
+        SyncTrigger trigger,
+        string? startedBy = null) =>
+        StartAsync((progress, token) => refresh.RunAsync(mode, target, trigger, startedBy, progress, token));
 
     private async Task<StartedRun> StartAsync(Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work)
     {

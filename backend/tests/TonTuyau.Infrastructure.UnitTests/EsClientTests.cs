@@ -18,6 +18,9 @@ public sealed class EsClientTests
         [SyncMode.Incremental] = "incremental",
         [SyncMode.Full] = "full",
         [SyncMode.ApplyDeletions] = "apply_deletions",
+        [SyncMode.RefreshVideo] = "refresh_video",
+        [SyncMode.RefreshChannel] = "refresh_channel",
+        [SyncMode.RefreshChannelVideos] = "refresh_channel_videos",
     };
 
     private static readonly Dictionary<SyncOutcome, string> Outcomes = new()

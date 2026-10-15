@@ -14,6 +14,11 @@ export function startedBy(run: Run): string {
   return run.trigger === 'admin' ? (run.startedBy ?? 'admin') : t(`run.by.${run.trigger}`)
 }
 
+/** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
+export function isRefresh(run: Run): boolean {
+  return run.task === 'refreshVideo' || run.task === 'refreshChannel' || run.task === 'refreshChannelVideos'
+}
+
 /** Its result in a few words: what it changed, or why it stopped. */
 export function runResult(run: Run): string {
   const n = (value: number) => formatNumber(value, i18n.lang)
@@ -30,6 +35,13 @@ export function runResult(run: Run): string {
   }
   if (run.task === 'applyDeletions') {
     return t('run.result.apply', { deleted: n(counts.deleted), kept: n(counts.kept) })
+  }
+  if (isRefresh(run)) {
+    return t('run.result.refresh', {
+      found: n(counts.foundOnYouTube),
+      gone: n(counts.goneFromYouTube),
+      failed: n(counts.checkFailed),
+    })
   }
   const sync = t('run.result.sync', { created: n(counts.created), updated: n(counts.updated) })
   if (run.task === 'incremental') {

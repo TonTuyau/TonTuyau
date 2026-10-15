@@ -163,6 +163,9 @@ docker exec tontuyau-backend tontuyau sync incremental
 docker exec tontuyau-backend tontuyau sync full
 docker exec tontuyau-backend tontuyau sync apply-deletions <run>
 docker exec tontuyau-backend tontuyau index rebuild
+docker exec tontuyau-backend tontuyau youtube video <id>
+docker exec tontuyau-backend tontuyau youtube channel <id>
+docker exec tontuyau-backend tontuyau youtube channel-videos <id>
 docker exec tontuyau-backend tontuyau --version
 ```
 
@@ -302,7 +305,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `sync status` reads Elasticsearch itself. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it).
+The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `sync status` reads Elasticsearch itself. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it). `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the syncs (one at a time with them).
 
 ## Before going public
 

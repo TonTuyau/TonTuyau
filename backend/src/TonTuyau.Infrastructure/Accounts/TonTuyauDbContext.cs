@@ -135,6 +135,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             video.Property(v => v.Reason).HasColumnName("reason");
             video.Property(v => v.RefreshedAt).HasColumnName("refreshed_at");
             video.Property(v => v.Title).HasColumnName("title");
+            video.Property(v => v.ChannelName).HasColumnName("channel_name");
             video.Property(v => v.Description).HasColumnName("description");
             video.Property(v => v.Tags).HasColumnName("tags");
             video.Property(v => v.Categories).HasColumnName("categories");

@@ -57,6 +57,9 @@
     incremental: 'tontuyau sync incremental',
     full: 'tontuyau sync full',
     applyDeletions: 'tontuyau sync apply-deletions <run>',
+    refreshVideo: 'tontuyau youtube video <id>',
+    refreshChannel: 'tontuyau youtube channel <id>',
+    refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
   }
 
   const last = $derived(info.lastRun)

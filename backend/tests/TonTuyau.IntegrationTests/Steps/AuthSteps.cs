@@ -30,6 +30,7 @@ public sealed class AuthSteps(ScenarioState state)
     public Task LogInRemembered(string username, string password) =>
         LogInAsync(username, password, remember: true, from: null);
 
+    [Given("I logged in as the admin")]
     [When("I log in as the admin")]
     public Task LogInAsAdmin() => LogInAsync(AdminName, TestSettings.AdminPassword, remember: false, from: null);
 

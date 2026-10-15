@@ -99,6 +99,9 @@ public static class ApiValues
         ["incremental"] = SyncMode.Incremental,
         ["full"] = SyncMode.Full,
         ["applyDeletions"] = SyncMode.ApplyDeletions,
+        ["refreshVideo"] = SyncMode.RefreshVideo,
+        ["refreshChannel"] = SyncMode.RefreshChannel,
+        ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
     };
 
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
