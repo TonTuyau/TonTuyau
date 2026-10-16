@@ -231,6 +231,44 @@ describe('RunPage', () => {
     expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
   })
 
+  it('puts a refresh going on on hold by hand, asked first; then it waits for Resume now', async () => {
+    const user = userEvent.setup()
+    const going = run({ task: 'refreshChannelVideos', state: 'running', finishedAt: null, cancellable: true })
+    let held = false
+    const api = fakeApi({
+      [`/api/admin/runs/${going.id}`]: () =>
+        held ? { ...going, state: 'onHold', finishedAt: '2026-10-12T12:00:07Z', resumeAt: null, left: 4 } : going,
+      [`/api/admin/runs/${going.id}/log`]: log([line(1, 'Refresh started.')], false),
+      [`/api/admin/runs/${going.id}/hold`]: () => {
+        held = true
+        return going
+      },
+    })
+    render(RunPage, { id: going.id })
+
+    await user.click(await screen.findByRole('button', { name: 'Put on hold' }))
+    const ask = screen.getByRole('group', { name: 'Put this refresh on hold?' })
+    expect(ask).toHaveTextContent('it never resumes by itself')
+    await user.click(within(ask).getByRole('button', { name: 'Put on hold' }))
+
+    const bar = await screen.findByRole('region', { name: 'On hold' })
+    expect(bar).toHaveTextContent('61 read, 4 left. Put on hold by hand on')
+    expect(bar).toHaveTextContent('it waits for you: Resume now, or cancel it.')
+    expect(api.requests(`/api/admin/runs/${going.id}/hold`)).toHaveLength(1)
+  })
+
+  it('offers no hold for a sync going on: only Cancel', async () => {
+    const going = run({ state: 'running', finishedAt: null, cancellable: true })
+    fakeApi({
+      [`/api/admin/runs/${going.id}`]: going,
+      [`/api/admin/runs/${going.id}/log`]: log([line(1, 'Sync run started.')], false),
+    })
+    render(RunPage, { id: going.id })
+
+    expect(await screen.findByRole('button', { name: 'Cancel the run' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Put on hold' })).not.toBeInTheDocument()
+  })
+
   it('has no Cancel for a run over, or going on elsewhere', async () => {
     fakeApi({ [path]: blocked, [`${path}/log`]: log([]) })
     render(RunPage, { id })

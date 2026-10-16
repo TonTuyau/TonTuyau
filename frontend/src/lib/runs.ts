@@ -44,7 +44,7 @@ export function runResult(run: Run): string {
     case 'canceled':
       return t('run.result.canceled')
     case 'onHold':
-      return t('run.result.onHold', {
+      return t(run.resumeAt ? 'run.result.onHold' : 'run.result.onHoldByHand', {
         at: run.resumeAt ? formatDateTime(run.resumeAt, i18n.lang) : '–',
         read: n(counts.videosRead + counts.channelsRead),
         left: n(run.left),

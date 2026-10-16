@@ -60,6 +60,10 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     public async Task CancelLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
 
+    [When("I put the latest run on hold with my session")]
+    public async Task HoldLatest() =>
+        await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/hold");
+
     [When("I resume the latest run with my session")]
     public async Task ResumeLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/resume");

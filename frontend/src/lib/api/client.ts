@@ -246,6 +246,11 @@ export const api = {
     return postFor(`/api/admin/runs/${segment(id)}/cancel`)
   },
 
+  /** Puts the refresh going on on hold by hand (1.5): it waits for Resume now. 409 when it isn't a refresh going on. */
+  holdRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/hold`)
+  },
+
   /** Resumes a refresh on hold now (1.5): the same run goes on where it stopped. 409 when it isn't on hold, or busy. */
   resumeRun(id: string): Promise<Run> {
     return postFor(`/api/admin/runs/${segment(id)}/resume`)

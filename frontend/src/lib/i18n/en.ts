@@ -381,6 +381,14 @@ export const en = {
   'hold.resume': 'Resume now',
   'hold.cancel': 'Cancel it',
   'hold.resumeRefused': 'Not resumed: {reason}',
+  'hold.textByHand':
+    '{read} read, {left} left. Put on hold by hand on {at}; it waits for you: Resume now, or cancel it.',
+  'hold.put': 'Put on hold',
+  'hold.confirmTitle': 'Put this refresh on hold?',
+  'hold.confirm':
+    'It stops at once and lets the other tasks run. The video it was reading is read again when it resumes. It waits until you resume it: no cool-down, it never resumes by itself.',
+  'hold.refused': 'Not put on hold: {reason}',
+  'run.result.onHoldByHand': 'On hold (by hand): {read} read, {left} left',
   'run.by.scheduler': 'Schedule',
   'run.by.cli': 'Command line',
   'run.by.startup': 'Startup (after an upgrade)',
