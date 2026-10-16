@@ -240,6 +240,18 @@ export const fr: Dictionary = {
   'youTube.comments.allHint':
     'Chaque commentaire et chaque réponse. Lent : YouTube en donne environ 20 par requête, donc une vidéo de 50 000 commentaires prend une demi-heure ou plus, et une chaîne avec ses vidéos peut prendre des heures. Autant de requêtes peuvent pousser YouTube à demander une vérification anti-robot.',
   'youTube.comments.save': 'Enregistrer',
+  'youTube.easy': 'Ménager YouTube',
+  'youTube.easy.pause': 'Pause entre les vidéos',
+  'youTube.easy.pauseHint':
+    "Une attente au hasard, de la moitié à une fois et demie celle-ci, entre deux vidéos d'une actualisation (comme TubeArchivist). 0 : aucune.",
+  'youTube.easy.seconds': 's',
+  'youTube.easy.pause.invalid': 'Un nombre entier de secondes, 0 ou plus.',
+  'youTube.easy.hold': "Après une vérification anti-robot, mettre l'actualisation en attente pendant",
+  'youTube.easy.holdHint':
+    "Quand YouTube demande une vérification anti-robot ou répond « trop de requêtes », l'actualisation s'arrête où elle en est et laisse passer les autres tâches ; elle reprend toute seule après ce délai, ou avec Reprendre maintenant.",
+  'youTube.easy.minutes': 'min',
+  'youTube.easy.hold.invalid': 'Un nombre entier de minutes, 1 ou plus.',
+  'youTube.easy.saved': "Une pause d'environ {pause} s entre les vidéos ; en attente {hold} min après un refus.",
   'youTube.comments.saved.off': "Désactivés : aucun commentaire n'est lu.",
   'youTube.comments.savedTop': 'Les {max} meilleurs sont lus.',
   'youTube.comments.saved.all': 'Tous les commentaires sont lus.',
@@ -373,6 +385,12 @@ export const fr: Dictionary = {
   'run.state.failed': 'Échouée',
   'run.state.canceled': 'Annulée',
   'run.state.onHold': 'En attente',
+  'run.result.onHold': "En attente jusqu'au {at} : {read} lus, {left} restants",
+  'hold.text':
+    '{read} lus, {left} restants. YouTube a refusé le {at} ; reprise toute seule le {resume}, ou maintenant.',
+  'hold.resume': 'Reprendre maintenant',
+  'hold.cancel': "L'annuler",
+  'hold.resumeRefused': 'Pas reprise : {reason}',
   'run.by.scheduler': 'Planification',
   'run.by.cli': 'Ligne de commande',
   'run.by.startup': 'Démarrage (après une mise à jour)',

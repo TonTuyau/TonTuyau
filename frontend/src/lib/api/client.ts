@@ -246,6 +246,11 @@ export const api = {
     return postFor(`/api/admin/runs/${segment(id)}/cancel`)
   },
 
+  /** Resumes a refresh on hold now (1.5): the same run goes on where it stopped. 409 when it isn't on hold, or busy. */
+  resumeRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/resume`)
+  },
+
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
   runLog(id: string, after: number, signal?: AbortSignal): Promise<RunLog> {
     return get(`/api/admin/runs/${segment(id)}/log`, { after: after > 0 ? after : undefined }, signal)
@@ -325,8 +330,13 @@ export const api = {
     return get('/api/admin/youtube/settings', {}, signal)
   },
 
-  saveYouTubeSettings(comments: YouTubeCommentsChoice, commentsMax: number): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, commentsMax })
+  saveYouTubeSettings(
+    comments: YouTubeCommentsChoice,
+    commentsMax: number,
+    pauseSeconds: number,
+    holdMinutes: number,
+  ): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

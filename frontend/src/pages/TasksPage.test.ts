@@ -303,6 +303,48 @@ describe('TasksPage', () => {
       expect(within(incremental).getByText(/stop it there/)).toBeInTheDocument()
     })
 
+    it('shows a refresh on hold: what it read and has left, Resume now (then its run), Cancel it', async () => {
+      const user = userEvent.setup()
+      const held = run({
+        id: 'run-20261016T140200Z-7c31aa',
+        task: 'refreshChannelVideos',
+        trigger: 'admin',
+        startedBy: 'admin',
+        state: 'onHold',
+        target: 'UCunderTheCity',
+        startedAt: '2026-10-16T14:02:00Z',
+        finishedAt: '2026-10-16T14:20:00Z',
+        resumeAt: '2026-10-16T15:20:00Z',
+        left: 59,
+        cancellable: true,
+        counts: { ...run().counts, videosRead: 58, channelsRead: 0 },
+      })
+      const api = fakeApi({
+        '/api/admin/tasks': tasks({ onHold: [held] }),
+        '/api/admin/runs': page([held]),
+        [`/api/admin/runs/${held.id}/cancel`]: { ...held, state: 'canceled' },
+        [`/api/admin/runs/${held.id}/resume`]: { ...held, state: 'running' },
+      })
+      render(TasksPage)
+
+      const bar = await screen.findByRole('region', { name: 'On hold' })
+      expect(bar).toHaveTextContent('On hold')
+      expect(bar).toHaveTextContent('Refresh a channel and its videos UCunderTheCity')
+      expect(bar).toHaveTextContent('58 read, 59 left.')
+      expect(within(bar).getByRole('link', { name: /Refresh a channel and its videos/ })).toHaveAttribute(
+        'href',
+        `/admin/runs/${held.id}`,
+      )
+      expect(rows()[0]?.[0]).toBe('On hold')
+      expect(rows()[0]?.[5]).toMatch(/^On hold until .*: 58 read, 59 left$/)
+
+      await user.click(within(bar).getByRole('button', { name: 'Cancel it' }))
+      await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${held.id}/cancel`)).toHaveLength(1))
+      await user.click(within(bar).getByRole('button', { name: 'Resume now' }))
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${held.id}`))
+      expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
+    })
+
     it('says why a start was refused', async () => {
       const user = userEvent.setup()
       fakeApi({
