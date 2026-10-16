@@ -10,7 +10,7 @@ public static class ServiceCollectionExtensions
 {
     public const string GitHubClientName = "yt-dlp-releases";
     public const string ImagesClientName = "youtube-images";
-    public const string UserAgent = "TonTuyau (+https://github.com/Eclegv/TonTuyau)";
+    public const string UserAgent = "TonTuyau (+https://github.com/TonTuyau/TonTuyau)";
 
     /// <summary>
     /// Registers <see cref="IYouTubeClient"/> (1.5): yt-dlp, the image's copy (<c>TONTUYAU_YTDLP_PATH</c>) until another

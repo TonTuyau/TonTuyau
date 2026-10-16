@@ -28,7 +28,7 @@ Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#i
 
 ## Install with Docker
 
-TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
+TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/tontuyau/tontuyau-backend` and `ghcr.io/tontuyau/tontuyau-frontend` (`linux/amd64`).
 
 ### Prerequisites
 
@@ -175,9 +175,9 @@ See [Sync and command line](#sync-and-command-line) for what each does and the e
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs only on **pull requests** to `main` and on **version tags** (to save Actions minutes: pushing a branch runs nothing, its pull request does; a newer push to an open pull request cancels the run in progress). Each run does `scripts/check.sh` and builds both images. Images are **published only from a version tag** `vX.Y.Z`, when everything passed, as `X.Y.Z`, `X.Y` and `latest`; a pull request builds them without pushing. There are no `main` or `sha-…` image tags any more.
 
-**One-time step after the first push to GHCR** (GitHub creates a new package as private, the first time a version tag publishes it): for each of `tontuyau-backend` and `tontuyau-frontend`, open github.com → your profile → **Packages** → the package → **Package settings**:
+**One-time step after the first push to GHCR** (GitHub creates a new package as private, the first time a version tag publishes it): for each of `tontuyau-backend` and `tontuyau-frontend`, open github.com/TonTuyau → **Packages** → the package → **Package settings**:
 1. **Danger Zone → Change visibility → Public** (QA13-3), so the VM pulls without logging in.
-2. Check that the package is linked to `Eclegv/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
+2. Check that the package is linked to `TonTuyau/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
 
 Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`. A pre-release tag (`v1.3.0-alpha.1`) publishes only its own `1.3.0-alpha.1`, to try a version before its release.
 

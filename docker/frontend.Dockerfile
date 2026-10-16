@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # TonTuyau front: the built app and the small Node server that serves it and forwards /api, /media, /art to the
 # backend (QA13-6, QA13-9). Built from the repository's root:
-#   docker build -f docker/frontend.Dockerfile -t ghcr.io/eclegv/tontuyau-frontend:dev .
+#   docker build -f docker/frontend.Dockerfile -t ghcr.io/tontuyau/tontuyau-frontend:dev .
 
 FROM node:24-slim AS build
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -18,7 +18,7 @@ ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau front" \
       org.opencontainers.image.description="TonTuyau's web app and its server (a read-only, YouTube-like UI over a TubeArchivist library)" \
-      org.opencontainers.image.source="https://github.com/Eclegv/TonTuyau" \
+      org.opencontainers.image.source="https://github.com/TonTuyau/TonTuyau" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
