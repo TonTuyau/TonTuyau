@@ -195,6 +195,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasColumnName("comments")
                 .HasConversion<string>();
             settings.Property(s => s.CommentsMax).HasColumnName("comments_max");
+            settings.Property(s => s.PauseSeconds).HasColumnName("pause_seconds");
+            settings.Property(s => s.HoldMinutes).HasColumnName("hold_minutes");
             settings.Property(s => s.ChangedBy).HasColumnName("changed_by");
             settings.Property(s => s.ChangedAt).HasColumnName("changed_at");
         });

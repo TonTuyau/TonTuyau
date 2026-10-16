@@ -51,6 +51,25 @@ internal sealed class TaskRepository(ElasticsearchClient client, IndexNames name
         return new ResultPage<SyncRun>(page, next, response.Total);
     }
 
+    public async Task<IReadOnlyList<SyncRun>> GetOnHoldRunsAsync(CancellationToken cancellationToken)
+    {
+        // A handful at most (one refresh at a time is put on hold, and waits to be resumed or canceled).
+        Query onHold = new TermQuery
+        {
+            Field = Infer.Field<SyncRun>(r => r.Outcome),
+            Value = JsonNamingPolicy.SnakeCaseLower.ConvertName(nameof(SyncOutcome.OnHold)),
+        };
+        SearchResponse<SyncRun> response = await SearchAsync(onHold, 100, null, cancellationToken)
+            .ConfigureAwait(false);
+        return
+        [
+            .. response.Hits
+                .Select(h => h.Source)
+                .OfType<SyncRun>()
+                .OrderBy(r => r.ResumeAt),
+        ];
+    }
+
     public async Task<bool> WasAppliedAsync(string fullRunId, CancellationToken cancellationToken)
     {
         // applies_to isn't indexed (the mapping indexes what's searched for, and isn't changed for this): the latest

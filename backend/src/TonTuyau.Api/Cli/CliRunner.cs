@@ -11,7 +11,7 @@ namespace TonTuyau.Api.Cli;
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
 /// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 3 another
-/// sync is running, 4 refused.
+/// sync is running, 4 refused, 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down).
 /// <para>
 /// Since 1.4 the commands that run something ask the backend to (<see cref="BackendClient"/>, through its Unix socket):
 /// the run is in the backend's log and on the Tasks page. They print its log as it comes (its start, progress lines,
@@ -26,6 +26,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     public const int Usage = 2;
     public const int Busy = 3;
     public const int Refused = 4;
+    public const int OnHold = 5;
 
     /// <summary>How often the run's log is asked for while it goes on.</summary>
     private static readonly TimeSpan PollEvery = TimeSpan.FromMilliseconds(500);
@@ -171,7 +172,12 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     private int Report(SyncRun run)
     {
         WriteRun(run);
-        return run.Outcome == SyncOutcome.Succeeded ? Ok : RunFailed;
+        return run.Outcome switch
+        {
+            SyncOutcome.Succeeded => Ok,
+            SyncOutcome.OnHold => OnHold,
+            _ => RunFailed,
+        };
     }
 
     private int Status(SyncStatus status)

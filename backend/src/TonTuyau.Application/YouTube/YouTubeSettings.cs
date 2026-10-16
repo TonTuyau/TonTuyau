@@ -6,16 +6,32 @@ namespace TonTuyau.Application.YouTube;
 /// For <see cref="YouTubeCommentsChoice.Top"/>: how many, answers included (1 or more). Kept
 /// with the other choices, for when Top is chosen again.
 /// </param>
+/// <param name="PauseSeconds">
+/// Between two videos of a refresh: a random wait from half to 1.5 times this (as TubeArchivist does); 0: none.
+/// </param>
+/// <param name="HoldMinutes">
+/// When YouTube refuses (a bot check, too many requests): how long a refresh waits, on hold, before it resumes by itself.
+/// </param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
+    int PauseSeconds,
+    int HoldMinutes,
     string? ChangedBy,
     DateTimeOffset? ChangedAt)
 {
     public const int DefaultCommentsMax = 500;
+    public const int DefaultPauseSeconds = 10;
+    public const int DefaultHoldMinutes = 60;
 
-    public static readonly YouTubeSettings Default = new(YouTubeCommentsChoice.Off, DefaultCommentsMax, null, null);
+    public static readonly YouTubeSettings Default = new(
+        YouTubeCommentsChoice.Off,
+        DefaultCommentsMax,
+        DefaultPauseSeconds,
+        DefaultHoldMinutes,
+        null,
+        null);
 
     /// <summary>What to ask yt-dlp for; null: no comments.</summary>
     public YouTubeCommentsRequest? CommentsRequest => Comments switch

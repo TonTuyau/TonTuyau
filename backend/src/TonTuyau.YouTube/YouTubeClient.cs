@@ -148,7 +148,8 @@ internal sealed partial class YouTubeClient(
 
         // Signed out, expired, not a session: refused. A bot check or the network: nothing to conclude.
         (YouTubeAnswer answer, string reason) = run.Failure.Value;
-        return answer == YouTubeAnswer.CheckFailed && (YtdlpErrors.DidntAnswer(reason) || run.Silent)
+        return answer == YouTubeAnswer.Refused
+            || answer == YouTubeAnswer.CheckFailed && (YtdlpErrors.DidntAnswer(reason) || run.Silent)
             ? new YouTubeCookieCheck(YouTubeCookieState.Unchecked, reason)
             : new YouTubeCookieCheck(YouTubeCookieState.Refused, reason);
     }

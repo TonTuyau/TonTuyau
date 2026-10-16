@@ -42,6 +42,12 @@ public enum SyncOutcome
 
     /// <summary>Stopped because whoever started it asked (1.4): what it did stays, as after a failure.</summary>
     Canceled,
+
+    /// <summary>
+    /// A refresh YouTube refused (1.5: a bot check, too many requests): it waits, without the lock, and resumes by
+    /// itself at <see cref="SyncRun.ResumeAt"/> (or when asked), from <see cref="SyncRun.Remaining"/>.
+    /// </summary>
+    OnHold,
 }
 
 /// <param name="Watermark">
@@ -139,6 +145,12 @@ public sealed record SyncRun
 
     /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
     public string? Target { get; init; }
+
+    /// <summary>A refresh on hold (1.5): when it resumes by itself; null otherwise.</summary>
+    public DateTimeOffset? ResumeAt { get; init; }
+
+    /// <summary>A refresh on hold (1.5): the channels and videos left to read, in order (the one refused first).</summary>
+    public IReadOnlyList<string> Remaining { get; init; } = [];
 
     public SyncCounts Counts { get; init; } = new();
 

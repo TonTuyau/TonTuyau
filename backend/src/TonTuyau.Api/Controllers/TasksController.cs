@@ -49,8 +49,24 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     }
 
     /// <summary>
+    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. 409 when it
+    /// isn't on hold, or a run is going on.
+    /// </summary>
+    [HttpPost("runs/{id}/resume")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> ResumeAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .ResumeAsync(id, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
     /// Asks the run going on to stop: it ends canceled soon after (between two requests), and its log says who asked.
-    /// 409 when it's over, or goes on in another process.
+    /// A refresh on hold (1.5) is canceled at once. 409 when it's over, or goes on in another process.
     /// </summary>
     [HttpPost("runs/{id}/cancel")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]

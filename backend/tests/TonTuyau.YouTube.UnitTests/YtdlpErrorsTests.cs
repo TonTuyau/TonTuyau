@@ -24,6 +24,12 @@ public sealed class YtdlpErrorsTests
     [InlineData("ERROR: [youtube] abcdefghijk: Sign in to confirm you’re not a bot.")]
     [InlineData("ERROR: [youtube] abcdefghijk: Private video. Sign in to confirm you’re not a bot.")]
     [InlineData("ERROR: [youtube] abcdefghijk: Unable to download API page: HTTP Error 429: Too Many Requests")]
+    public void A_bot_check_or_too_many_requests_is_YouTube_refusing_never_gone(string line)
+    {
+        Assert.Equal(YouTubeAnswer.Refused, YtdlpErrors.Classify([line], 1).Answer);
+    }
+
+    [Theory]
     [InlineData(
         "ERROR: [youtube] abcdefghijk: Video unavailable. The uploader has not made this video available in your "
         + "country")]

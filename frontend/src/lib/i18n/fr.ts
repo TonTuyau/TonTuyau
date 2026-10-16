@@ -372,6 +372,7 @@ export const fr: Dictionary = {
   'run.state.succeeded': 'Réussie',
   'run.state.failed': 'Échouée',
   'run.state.canceled': 'Annulée',
+  'run.state.onHold': 'En attente',
   'run.by.scheduler': 'Planification',
   'run.by.cli': 'Ligne de commande',
   'run.by.startup': 'Démarrage (après une mise à jour)',

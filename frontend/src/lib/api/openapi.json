@@ -2041,6 +2041,63 @@
         }
       }
     },
+    "/api/admin/runs/{id}/resume": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/runs/{id}/cancel": {
       "post": {
         "tags": ["Tasks"],
@@ -3500,6 +3557,8 @@
           "deletionsBlocked",
           "appliesTo",
           "target",
+          "resumeAt",
+          "left",
           "indexRebuild",
           "notes",
           "cancellable"
@@ -3547,6 +3606,14 @@
           },
           "target": {
             "type": ["null", "string"]
+          },
+          "resumeAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "left": {
+            "type": "integer",
+            "format": "int32"
           },
           "indexRebuild": {
             "type": "boolean"
@@ -3622,7 +3689,7 @@
         "type": "string"
       },
       "SyncOutcome": {
-        "enum": ["running", "succeeded", "failed", "canceled"],
+        "enum": ["running", "succeeded", "failed", "canceled", "onHold"],
         "type": "string"
       },
       "SyncTrigger": {
@@ -3666,7 +3733,7 @@
         }
       },
       "TasksResponse": {
-        "required": ["lock", "runningHere", "tasks"],
+        "required": ["lock", "runningHere", "tasks", "onHold"],
         "type": "object",
         "properties": {
           "lock": {
@@ -3686,6 +3753,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TaskResponse"
+            }
+          },
+          "onHold": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
             }
           }
         }
@@ -4047,7 +4120,7 @@
         }
       },
       "YouTubeSettingsRequest": {
-        "required": ["comments", "commentsMax"],
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes"],
         "type": "object",
         "properties": {
           "comments": {
@@ -4056,17 +4129,33 @@
           "commentsMax": {
             "type": ["null", "integer"],
             "format": "int32"
+          },
+          "pauseSeconds": {
+            "type": ["null", "integer"],
+            "format": "int32"
+          },
+          "holdMinutes": {
+            "type": ["null", "integer"],
+            "format": "int32"
           }
         }
       },
       "YouTubeSettingsResponse": {
-        "required": ["comments", "commentsMax", "changedBy", "changedAt"],
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "changedBy", "changedAt"],
         "type": "object",
         "properties": {
           "comments": {
             "$ref": "#/components/schemas/YouTubeCommentsChoice"
           },
           "commentsMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pauseSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holdMinutes": {
             "type": "integer",
             "format": "int32"
           },

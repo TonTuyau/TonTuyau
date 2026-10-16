@@ -141,6 +141,10 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [Given("reading comments is on")]
     public Task CommentsOn() => SendSettingsAsync("{\"comments\":\"top\",\"commentsMax\":500}");
 
+    /// <summary>The YouTube page's pause between videos at 0 (10 s by default, about 5 to 15).</summary>
+    [Given("there's no pause between videos")]
+    public Task NoPause() => SendSettingsAsync("{\"comments\":\"off\",\"pauseSeconds\":0}");
+
     [When("I send the YouTube settings {string} with my session")]
     public async Task SendSettingsAsync(string body)
     {

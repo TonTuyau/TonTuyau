@@ -14,6 +14,10 @@ public sealed class YouTubeSettingsRow
 
     public int CommentsMax { get; set; } = YouTubeSettings.DefaultCommentsMax;
 
+    public int PauseSeconds { get; set; } = YouTubeSettings.DefaultPauseSeconds;
+
+    public int HoldMinutes { get; set; } = YouTubeSettings.DefaultHoldMinutes;
+
     public string? ChangedBy { get; set; }
 
     public DateTimeOffset? ChangedAt { get; set; }
@@ -21,6 +25,12 @@ public sealed class YouTubeSettingsRow
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        return new YouTubeSettings(row.Comments, row.CommentsMax, row.ChangedBy, row.ChangedAt);
+        return new YouTubeSettings(
+            row.Comments,
+            row.CommentsMax,
+            row.PauseSeconds,
+            row.HoldMinutes,
+            row.ChangedBy,
+            row.ChangedAt);
     }
 }

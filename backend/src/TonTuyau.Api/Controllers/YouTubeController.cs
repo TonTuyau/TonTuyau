@@ -110,7 +110,13 @@ public sealed class YouTubeController(
     {
         ArgumentNullException.ThrowIfNull(request);
         return (YouTubeSettingsResponse)await settings
-            .SaveAsync(request.Comments, request.CommentsMax, Account(), cancellationToken)
+            .SaveAsync(
+                request.Comments,
+                request.CommentsMax,
+                request.PauseSeconds,
+                request.HoldMinutes,
+                Account(),
+                cancellationToken)
             .ConfigureAwait(false);
     }
 

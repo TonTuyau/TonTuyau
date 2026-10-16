@@ -354,6 +354,14 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("comments_max");
 
+                    b.Property<int>("HoldMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("hold_minutes");
+
+                    b.Property<int>("PauseSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("pause_seconds");
+
                     b.HasKey("Id");
 
                     b.ToTable("youtube_settings", (string)null);

@@ -2122,6 +2122,70 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/runs/{id}/resume': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Accepted */
+        202: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/runs/{id}/cancel': {
     parameters: {
       query?: never
@@ -3129,6 +3193,10 @@ export interface components {
       deletionsBlocked: boolean
       appliesTo: null | string
       target: null | string
+      /** Format: date-time */
+      resumeAt: null | string
+      /** Format: int32 */
+      left: number
       indexRebuild: boolean
       notes: string[]
       cancellable: boolean
@@ -3153,7 +3221,7 @@ export interface components {
     /** @enum {string} */
     SyncMode: 'incremental' | 'full' | 'applyDeletions' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
     /** @enum {string} */
-    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled'
+    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold'
     /** @enum {string} */
     SyncTrigger: 'scheduler' | 'cli' | 'startup' | 'admin'
     TaskResponse: {
@@ -3168,6 +3236,7 @@ export interface components {
       lock: null | components['schemas']['RunLock']
       runningHere: null | string
       tasks: components['schemas']['TaskResponse'][]
+      onHold: components['schemas']['RunResponse'][]
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']
@@ -3288,11 +3357,19 @@ export interface components {
       comments: null | string
       /** Format: int32 */
       commentsMax: null | number
+      /** Format: int32 */
+      pauseSeconds: null | number
+      /** Format: int32 */
+      holdMinutes: null | number
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
       /** Format: int32 */
       commentsMax: number
+      /** Format: int32 */
+      pauseSeconds: number
+      /** Format: int32 */
+      holdMinutes: number
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string

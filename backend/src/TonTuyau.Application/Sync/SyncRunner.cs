@@ -68,6 +68,14 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
         string? startedBy = null) =>
         StartAsync((progress, token) => refresh.RunAsync(mode, target, trigger, startedBy, progress, token));
 
+    /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
+    /// <param name="by">The account asking; null: by itself, after the cool-down.</param>
+    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
+    /// <exception cref="SyncRefusedException">No such run, or it isn't on hold.</exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public Task<StartedRun> StartResumeAsync(string runId, SyncTrigger trigger, string? by = null) =>
+        StartAsync((progress, token) => refresh.ResumeAsync(runId, trigger, by, progress, token));
+
     private async Task<StartedRun> StartAsync(Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work)
     {
         // The run's own: disposed when it ends (RunInBackgroundAsync).

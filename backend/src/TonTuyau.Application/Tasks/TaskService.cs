@@ -5,6 +5,7 @@ using TonTuyau.Application.Paging;
 using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Tasks;
 
@@ -18,6 +19,7 @@ public sealed class TaskService(
     ISyncStateStore state,
     IRunLogRepository logs,
     SyncRunner runner,
+    YouTubeRefreshService refresh,
     SyncSchedule schedule,
     IValidator<RunListRequest> runListValidator,
     IValidator<RunLogRequest> runLogValidator,
@@ -61,7 +63,12 @@ public sealed class TaskService(
             null,
             await LatestAsync(SyncMode.ApplyDeletions, runningHere, cancellationToken).ConfigureAwait(false),
             await WaitingAsync(cancellationToken).ConfigureAwait(false));
-        return new TasksView(holder, runningHere, [incremental, full, deletions]);
+        IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
+        return new TasksView(
+            holder,
+            runningHere,
+            [incremental, full, deletions],
+            [.. onHold.Select(r => new RunView(r, Cancellable: true))]);
     }
 
     /// <exception cref="ValidationException">The request isn't valid.</exception>
@@ -81,7 +88,7 @@ public sealed class TaskService(
             .ConfigureAwait(false);
         string? runningHere = runner.RunningId;
         return new ResultPage<RunView>(
-            [.. page.Items.Select(r => new RunView(r, r.Id == runningHere))],
+            [.. page.Items.Select(r => View(r, runningHere))],
             page.NextCursor,
             page.Total);
     }
@@ -142,13 +149,34 @@ public sealed class TaskService(
         return await GetRunAsync(started.Id, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Asks the run going on to stop: it ends canceled soon after (between two requests).</summary>
+    /// <summary>
+    /// Asks the run going on to stop: it ends canceled soon after (between two requests). A refresh on hold (1.5) is
+    /// canceled at once: it won't resume.
+    /// </summary>
     /// <param name="account">Who asks: the run's log says it.</param>
     /// <exception cref="NotFoundException">No such run.</exception>
     /// <exception cref="ConflictException">It's over, or it goes on in another process.</exception>
     public async Task<RunView> CancelAsync(string id, string account, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        if (run.Outcome == SyncOutcome.OnHold)
+        {
+            try
+            {
+                return new RunView(
+                    await refresh.CancelHeldAsync(run.Id, account, cancellationToken).ConfigureAwait(false),
+                    Cancellable: false);
+            }
+            catch (SyncBusyException ex)
+            {
+                throw new ConflictException(ex.Message, ex);
+            }
+            catch (SyncRefusedException ex)
+            {
+                throw new ConflictException(ex.Message, ex);
+            }
+        }
+
         if (runner.Cancel(run.Id, account))
         {
             return new RunView(run, Cancellable: true);
@@ -159,11 +187,38 @@ public sealed class TaskService(
             : "This run is over.");
     }
 
+    /// <summary>Resumes a refresh on hold now (1.5), instead of at the end of its cool-down: the run, going on again.</summary>
+    /// <param name="account">Who asks: the run's notes say it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It isn't on hold, or a run is going on.</exception>
+    public async Task<RunView> ResumeAsync(string id, string account, CancellationToken cancellationToken)
+    {
+        SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await runner.StartResumeAsync(run.Id, SyncTrigger.Admin, account).ConfigureAwait(false);
+        }
+        catch (SyncBusyException ex)
+        {
+            throw new ConflictException(ex.Message, ex);
+        }
+        catch (SyncRefusedException ex)
+        {
+            throw new ConflictException(ex.Message, ex);
+        }
+
+        return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>A run can be canceled while it goes on here, or while it's on hold (1.5).</summary>
+    private static RunView View(SyncRun run, string? runningHere) =>
+        new(run, run.Id == runningHere || run.Outcome == SyncOutcome.OnHold);
+
     /// <exception cref="NotFoundException">No such run.</exception>
     public async Task<RunView> GetRunAsync(string id, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
-        return new RunView(run, runner.RunningId == run.Id);
+        return View(run, runner.RunningId);
     }
 
     /// <exception cref="NotFoundException">No such run.</exception>
@@ -202,7 +257,7 @@ public sealed class TaskService(
         SyncRun? run = await runs
             .GetLatestRunAsync(mode, cancellationToken)
             .ConfigureAwait(false);
-        return run is null ? null : new RunView(run, run.Id == runningHere);
+        return run is null ? null : View(run, runningHere);
     }
 
     private async Task<SyncRun> FindAsync(string id, CancellationToken cancellationToken)

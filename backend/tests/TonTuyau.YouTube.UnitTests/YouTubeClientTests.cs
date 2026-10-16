@@ -107,7 +107,6 @@ public sealed class YouTubeClientTests
     }
 
     [Theory]
-    [InlineData("BotCheck001", "Sign in to confirm you’re not a bot")]
     [InlineData("Unavail0001", "Video unavailable")]
     [InlineData("Silent00001", "yt-dlp failed without saying why (exit code 1).")]
     [InlineData("Other000001", "yt-dlp's answer isn't this video's metadata.")]
@@ -118,6 +117,15 @@ public sealed class YouTubeClientTests
 
         Assert.Equal(YouTubeAnswer.CheckFailed, lookup.Answer);
         Assert.StartsWith(reason, lookup.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bot_check_is_YouTube_refusing()
+    {
+        YouTubeLookup<YouTubeVideo> lookup = await Client().GetVideoAsync("BotCheck001", null, Token);
+
+        Assert.Equal(YouTubeAnswer.Refused, lookup.Answer);
+        Assert.StartsWith("Sign in to confirm you’re not a bot", lookup.Reason, StringComparison.Ordinal);
     }
 
     [Fact]
