@@ -1,5 +1,5 @@
 <script lang="ts">
-  // A refresh on hold (1.5): YouTube refused, it waits for its cool-down. What it read and has left, when it resumes
+  // A refresh on hold (1.5): YouTube refused, it waits for its cool-down; or put on hold by hand, it waits for you. What it read and has left, when it resumes
   // by itself; Resume now, or Cancel it (it won't resume). On the Tasks page and on the run's page.
   import Button from './Button.svelte'
   import RunStatePill from './RunStatePill.svelte'
@@ -32,7 +32,8 @@
     {#if showTask}
       <a href={href.adminRun(run.id)}><b>{t(`task.${run.task}`)}</b> <code>{run.target}</code></a> ·
     {/if}
-    {t('hold.text', {
+    <!-- No resumeAt: put on hold by hand, it waits for Resume now. -->
+    {t(run.resumeAt ? 'hold.text' : 'hold.textByHand', {
       read: n(run.counts.videosRead + run.counts.channelsRead),
       left: n(run.left),
       at: run.finishedAt ? formatDateTime(run.finishedAt, i18n.lang) : '–',

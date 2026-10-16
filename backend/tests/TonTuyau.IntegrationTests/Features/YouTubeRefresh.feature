@@ -76,6 +76,19 @@ Feature: Refreshing videos and channels on YouTube
     And the stored YouTube state of the video "alpha-02" is "gone"
     And the stored YouTube state of the video "alpha-03" is "retry later"
 
+  Scenario: The run shows what it read so far, while it goes on
+    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    And YouTube says of the video "alpha-01": "ERROR: [youtube] alpha-01___: Video unavailable. This video has been removed by the uploader"
+    And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Video unavailable. This video has been removed by the uploader"
+    And YouTube says of the video "alpha-03": "ERROR: [youtube] alpha-03___: Video unavailable. This video has been removed by the uploader"
+    And the pause between videos is 60 seconds
+    When I refresh the channel "alpha" and its videos with my session
+    Then the latest run's "counts.goneFromYouTube" is "1" within 20 seconds
+    And "state" is "running"
+    And "counts.videosRead" is "1"
+    When I cancel the latest run with my session
+    Then the latest run ends canceled within 20 seconds
+
   Scenario: Refreshing a video records its channel, not checked: its badge still follows TubeArchivist
     Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
     When I refresh the video "alpha-01" with my session

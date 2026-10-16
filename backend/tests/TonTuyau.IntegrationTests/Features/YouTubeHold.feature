@@ -3,7 +3,8 @@ Feature: A refresh on hold when YouTube refuses
   When YouTube refuses TonTuyau (a bot check, too many requests: 1.5), a refresh stops asking, frees the lock, and
   waits: it's on hold, with what it has left to read. It resumes by itself after the YouTube page's cool-down (60 min by
   default), or at once with Resume now: the same run goes on where it stopped. It can be canceled while on hold. What
-  it read before stays; the item refused isn't recorded. The clock is frozen here, and there's no pause between videos.
+  it read before stays; the item refused isn't recorded. An admin can also put a refresh on hold by hand: it then
+  waits for Resume now, without a cool-down. The clock is frozen here, and there's no pause between videos.
 
   Background:
     Given the clock shows "2026-10-16T08:00:00Z"
@@ -84,3 +85,42 @@ Feature: A refresh on hold when YouTube refuses
     And the stored YouTube state of the video "alpha-02" is "on YouTube"
     When I request the latest run's "" with my session
     Then "notes[1]" is "Resumed by itself, after the cool-down."
+
+  Scenario: Put on hold by hand: it stops at once, and waits for Resume now
+    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    And YouTube has the video "alpha-01": the title "Un", 1 views
+    And YouTube has the video "alpha-02": the title "Deux", 2 views
+    And YouTube has the video "alpha-03": the title "Trois", 3 views
+    # The frozen clock never ends the pause after the first video: the run waits there.
+    And the pause between videos is 60 seconds
+    When I refresh the channel "alpha" and its videos with my session
+    Then the latest run's "counts.videosRead" is "1" within 20 seconds
+    When I put the latest run on hold with my session
+    Then the response status is 202
+    And the latest run is onHold within 20 seconds
+    When I request the latest run's "" with my session
+    Then "resumeAt" is null
+    And "left" is "2"
+    And "counts.videosRead" is "1"
+    And "cancellable" is "true"
+    And "notes[1]" mentions "put on hold by admin. It resumes only with Resume now."
+    When I request "/api/admin/tasks" with my session
+    Then "lock" is null
+    And "onHold" has 1 items
+    When the clock moves on 120 minutes
+    Then the latest run is onHold within 2 seconds
+    Given there's no pause between videos
+    When I resume the latest run with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 20 seconds
+    When I request the latest run's "" with my session
+    Then "counts.videosRead" is "3"
+    And "counts.foundOnYouTube" is "3"
+
+  Scenario: Only a refresh going on can be put on hold
+    Given YouTube has the video "alpha-01": the title "Un", 1 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    When I put the latest run on hold with my session
+    Then the response status is 409
+    And "detail" mentions "isn't going on"

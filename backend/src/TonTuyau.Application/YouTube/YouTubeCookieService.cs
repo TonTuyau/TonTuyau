@@ -12,6 +12,7 @@ namespace TonTuyau.Application.YouTube;
 public sealed partial class YouTubeCookieService(
     IYouTubeCookieRepository cookies,
     IYouTubeClient youTube,
+    YouTubeToolsInUse tools,
     TimeProvider clock,
     ILogger<YouTubeCookieService> logger)
 {
@@ -26,10 +27,10 @@ public sealed partial class YouTubeCookieService(
     public async Task<YouTubeOverview> GetOverviewAsync(CancellationToken cancellationToken)
     {
         YouTubeCookieStatus? cookie = await GetStatusAsync(cancellationToken).ConfigureAwait(false);
-        YouTubeTools tools = await youTube
-            .GetToolsAsync(cancellationToken)
+        YouTubeTools inUse = await tools
+            .GetAsync(cancellationToken)
             .ConfigureAwait(false);
-        return new YouTubeOverview(cookie, tools);
+        return new YouTubeOverview(cookie, inUse);
     }
 
     /// <summary>Keeps the cookie sent (its <c>youtube.com</c> lines), then checks it.</summary>

@@ -191,6 +191,25 @@ public sealed class TaskService(
     /// <param name="account">Who asks: the run's notes say it.</param>
     /// <exception cref="NotFoundException">No such run.</exception>
     /// <exception cref="ConflictException">It isn't on hold, or a run is going on.</exception>
+    /// <summary>Puts the refresh going on here on hold by hand (1.5): it waits for Resume now.</summary>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">Not a refresh, over, or going on in another process.</exception>
+    public async Task<RunView> HoldAsync(string id, string account, CancellationToken cancellationToken)
+    {
+        SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        if (refresh.RequestHold(run.Id, account))
+        {
+            return new RunView(run, Cancellable: true);
+        }
+
+        throw new ConflictException(
+            run.Mode is not (SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
+                ? "Only a refresh on YouTube can be put on hold: a sync can be canceled."
+                : run.Outcome == SyncOutcome.Running
+                ? "This run goes on in another process (the command line): stop it there."
+                : "This run isn't going on.");
+    }
+
     public async Task<RunView> ResumeAsync(string id, string account, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);

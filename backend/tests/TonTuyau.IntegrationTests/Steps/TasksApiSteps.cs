@@ -60,6 +60,10 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     public async Task CancelLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
 
+    [When("I put the latest run on hold with my session")]
+    public async Task HoldLatest() =>
+        await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/hold");
+
     [When("I resume the latest run with my session")]
     public async Task ResumeLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/resume");
@@ -122,6 +126,25 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
             }
 
             Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} is {runs[0].Outcome} after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Asks for the latest run until this value of it is the one expected (a run going on, saved as it goes).</summary>
+    [Then("the latest run's {string} is {string} within {int} seconds")]
+    public async Task LatestRunValueWithin(string path, string expected, int seconds)
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (true)
+        {
+            await RequestLatestRun("");
+            string? value = api.At(path) is { } node ? ApiSteps.Scalar(node) : null;
+            if (value == expected)
+            {
+                return;
+            }
+
+            Assert.True(DateTime.UtcNow < deadline, $"{path} is {value ?? "missing"} after {seconds} s.");
             await Task.Delay(250);
         }
     }

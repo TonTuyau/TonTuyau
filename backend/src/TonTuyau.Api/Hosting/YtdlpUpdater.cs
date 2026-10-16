@@ -6,13 +6,13 @@ namespace TonTuyau.Api.Hosting;
 /// Keeps the yt-dlp chosen running (1.5): at startup, the version made active last (from the tools folder, no network
 /// needed) and the image's copy's version; then the choice applied (<see cref="YtdlpService.ApplyAsync"/>): now, once
 /// a day, at once when the admin changes it, and every 30 seconds while a version waits for a task to end. The versions
-/// in use go to the log; a warning when yt-dlp or Deno can't be run (outside the image, for instance).
+/// in use go to the log, and are kept for the YouTube page (<see cref="YouTubeToolsInUse"/>); a warning when yt-dlp or Deno can't be run (outside the image, for instance).
 /// </summary>
 internal sealed partial class YtdlpUpdater(
     IServiceScopeFactory scopes,
     YtdlpLocator locator,
     IYtdlpInstaller installer,
-    IYouTubeClient youTube,
+    YouTubeToolsInUse toolsInUse,
     YtdlpUpdateSignal signal,
     ILogger<YtdlpUpdater> logger) : BackgroundService
 {
@@ -68,8 +68,8 @@ internal sealed partial class YtdlpUpdater(
 
     private async Task LogToolsAsync(CancellationToken stoppingToken)
     {
-        YouTubeTools tools = await youTube
-            .GetToolsAsync(stoppingToken)
+        YouTubeTools tools = await toolsInUse
+            .ReadAsync(stoppingToken)
             .ConfigureAwait(false);
         if (tools.YtdlpVersion is null || tools.DenoVersion is null)
         {

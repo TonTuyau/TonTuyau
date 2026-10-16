@@ -391,6 +391,14 @@ export const fr: Dictionary = {
   'hold.resume': 'Reprendre maintenant',
   'hold.cancel': "L'annuler",
   'hold.resumeRefused': 'Pas reprise : {reason}',
+  'hold.textByHand':
+    '{read} lus, {left} restants. Mise en attente à la main le {at} ; elle attend que vous la repreniez, ou annulez-la.',
+  'hold.put': 'Mettre en attente',
+  'hold.confirmTitle': 'Mettre cette actualisation en attente ?',
+  'hold.confirm':
+    "Elle s'arrête tout de suite et laisse passer les autres tâches. La vidéo en cours de lecture sera relue à la reprise. Elle attend que vous la repreniez : pas de délai, elle ne reprend jamais toute seule.",
+  'hold.refused': 'Pas mise en attente : {reason}',
+  'run.result.onHoldByHand': 'En attente (à la main) : {read} lus, {left} restants',
   'run.by.scheduler': 'Planification',
   'run.by.cli': 'Ligne de commande',
   'run.by.startup': 'Démarrage (après une mise à jour)',

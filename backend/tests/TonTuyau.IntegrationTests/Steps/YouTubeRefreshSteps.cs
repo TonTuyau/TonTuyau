@@ -145,6 +145,11 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [Given("there's no pause between videos")]
     public Task NoPause() => SendSettingsAsync("{\"comments\":\"off\",\"pauseSeconds\":0}");
 
+    /// <summary>A long pause between videos (from half to one and a half times this): time to look at a run going on.</summary>
+    [Given("the pause between videos is {int} seconds")]
+    public Task Pause(int seconds) =>
+        SendSettingsAsync($"{{\"comments\":\"off\",\"pauseSeconds\":{seconds}}}");
+
     [When("I send the YouTube settings {string} with my session")]
     public async Task SendSettingsAsync(string body)
     {

@@ -1,8 +1,9 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
   // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
-  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend. A refresh on
-  // hold (1.5) is asked again every 30 s, with Resume now and Cancel it. A 404: no such run. A 401: the session ended,
+  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend; a refresh can
+  // also be put on hold by hand (1.5, asked first). A refresh on hold is asked again every 30 s, with Resume now and
+  // Cancel it. A 404: no such run. A 401: the session ended,
   // the shell goes to the login page.
   import CopyButton from '../components/CopyButton.svelte'
   import ErrorState from '../components/ErrorState.svelte'
@@ -60,6 +61,7 @@
   })
 
   let asking = $state(false)
+  let askingHold = $state(false)
   let refused = $state<string | null>(null)
 
   async function cancel(runId: string) {
@@ -72,6 +74,19 @@
       })
     }
     asking = false
+    await remote.refresh()
+  }
+
+  async function hold(runId: string) {
+    refused = null
+    try {
+      await api.holdRun(runId)
+    } catch (error) {
+      refused = t('hold.refused', {
+        reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
+      })
+    }
+    askingHold = false
     await remote.refresh()
   }
 
@@ -165,7 +180,18 @@
               <Button onclick={() => (asking = false)}>{t('task.keepRunning')}</Button>
             </div>
           </div>
+        {:else if askingHold}
+          <div class="confirm" role="group" aria-label={t('hold.confirmTitle')}>
+            <p><b>{t('hold.confirmTitle')}</b> {t('hold.confirm')}</p>
+            <div>
+              <Button variant="filled" onclick={() => void hold(run.id)}>{t('hold.put')}</Button>
+              <Button onclick={() => (askingHold = false)}>{t('task.keepRunning')}</Button>
+            </div>
+          </div>
         {:else}
+          {#if isRefresh(run)}
+            <Button onclick={() => (askingHold = true)}>{t('hold.put')}</Button>
+          {/if}
           <Button onclick={() => (asking = true)}>{t('task.cancelRun')}</Button>
         {/if}
       </div>
@@ -331,6 +357,12 @@
 
   .actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .confirm b {
+    font-weight: var(--font-weight-medium);
   }
 
   .confirm {
