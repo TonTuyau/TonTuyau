@@ -80,6 +80,19 @@ Elasticsearch, detail pages included.
 the TubeArchivist import becoming one way to fill it, TonTuyau's downloads another. Elasticsearch then is only an
 index for search and lists, rebuilt from PostgreSQL alone. The downloads need those rows anyway.
 
+### Decided on 2026-10-16: the runs move to PostgreSQL too (same first step of 1.6)
+
+Since Elasticsearch becomes an index that can be rebuilt, nothing may live only there. In 1.5 three things still do,
+and they move to PostgreSQL with the library:
+
+- **the run records** (index `sync-runs`: task, state, counts, notes, and a held refresh's list of what it has left to
+  read); their log lines are in PostgreSQL already (since 1.4), so a run's page then reads one database;
+- **the run lock** (index `sync`): a row taken in a transaction, or a PostgreSQL lock, in place of the lease built on
+  Elasticsearch;
+- **the sync checkpoint** (index `sync`: the watermark, a full run requested).
+
+Open: copy the existing history from `sync-runs` once, at the upgrade, or start the history afresh.
+
 ### Later: chapters in the player
 
 1.5 shows a video's chapters in its description (always visible), since the player is the browser's own. A later
