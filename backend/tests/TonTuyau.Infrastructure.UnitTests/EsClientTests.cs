@@ -50,6 +50,20 @@ public sealed class EsClientTests
         Assert.Contains("\"started_at\":", json, StringComparison.Ordinal);
     }
 
+    [Theory, CombinatorialData]
+    public void The_run_history_looks_for_a_task_as_it_is_stored(SyncMode mode)
+    {
+        SyncRun run = new()
+        {
+            Id = "run-x",
+            Mode = mode,
+            Trigger = SyncTrigger.Cli,
+            StartedAt = DateTimeOffset.UnixEpoch
+        };
+
+        Assert.Contains($"\"mode\":\"{TaskRepository.ModeName(mode)}\"", Serialize(run), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Field_names_inferred_from_expressions_match_the_mappings()
     {

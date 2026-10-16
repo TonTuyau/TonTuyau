@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.Core.Search;
 using Elastic.Clients.Elasticsearch.QueryDsl;
@@ -68,16 +69,13 @@ internal sealed class TaskRepository(ElasticsearchClient client, IndexNames name
     }
 
     private static TermQuery OfMode(SyncMode mode) =>
-        new()
-        {
-            Field = Infer.Field<SyncRun>(r => r.Mode),
-            Value = mode switch
-            {
-                SyncMode.Incremental => "incremental",
-                SyncMode.Full => "full",
-                _ => "apply_deletions",
-            },
-        };
+        new() { Field = Infer.Field<SyncRun>(r => r.Mode), Value = ModeName(mode) };
+
+    /// <summary>
+    /// A task's name as the runs are stored with it (<c>refresh_channel_videos</c>): the same naming as the client's
+    /// (<see cref="EsClient"/>), so a new task can't be stored one way and looked for another.
+    /// </summary>
+    internal static string ModeName(SyncMode mode) => JsonNamingPolicy.SnakeCaseLower.ConvertName(mode.ToString());
 
     /// <summary>Latest first, after <paramref name="before"/> when given.</summary>
     private async Task<SearchResponse<SyncRun>> SearchAsync(

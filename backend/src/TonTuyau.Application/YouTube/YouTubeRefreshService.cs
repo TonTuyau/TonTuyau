@@ -101,7 +101,9 @@ public sealed partial class YouTubeRefreshService(
                 else
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
-                    await RefreshChannelAsync(target, context).ConfigureAwait(false);
+                    // With its videos, the run counts what YouTube answered of them; the channel's answer is a note.
+                    bool alone = mode == SyncMode.RefreshChannel;
+                    await RefreshChannelAsync(target, context, counted: alone).ConfigureAwait(false);
                     if (mode == SyncMode.RefreshChannelVideos)
                     {
                         await RefreshVideosOfAsync(target, comments, context).ConfigureAwait(false);
@@ -254,7 +256,11 @@ public sealed partial class YouTubeRefreshService(
         }
     }
 
-    private async Task RefreshChannelAsync(string channelId, RunContext context)
+    /// <param name="counted">
+    /// Its answer counts with the run's (found, gone, to retry); else it's a note of the run (a channel refreshed with
+    /// its videos: the counts are its videos').
+    /// </param>
+    private async Task RefreshChannelAsync(string channelId, RunContext context, bool counted)
     {
         CancellationToken ct = context.CancellationToken;
         Channel? channel = await channels.GetAsync(channelId, ct).ConfigureAwait(false);
@@ -302,7 +308,20 @@ public sealed partial class YouTubeRefreshService(
                 new YouTubeStatus(YouTubeState.RetryLater, now, lookup.Reason, known?.Status.RefreshedAt),
                 known?.Refreshed),
         };
-        Counted(channelId, lookup, context);
+        if (counted)
+        {
+            Counted(channelId, lookup, context);
+        }
+        else
+        {
+            Logged(channelId, lookup);
+            context.Note(lookup.Answer switch
+            {
+                YouTubeAnswer.Found => "The channel: on YouTube.",
+                YouTubeAnswer.Gone => $"The channel: gone from YouTube ({lookup.Reason}).",
+                _ => $"The channel: no answer to trust from YouTube ({lookup.Reason}), to retry.",
+            });
+        }
         if (ReferenceEquals(learned, known))
         {
             LogKept(channelId);
@@ -422,7 +441,7 @@ public sealed partial class YouTubeRefreshService(
     private static bool IsConfirmed(YouTubeStatus? status) =>
         status?.State is YouTubeState.OnYouTube or YouTubeState.Gone;
 
-    private void Counted<T>(string id, YouTubeLookup<T> lookup, RunContext context)
+    private void Logged<T>(string id, YouTubeLookup<T> lookup)
         where T : class
     {
         if (lookup.Answer == YouTubeAnswer.Gone)
@@ -433,6 +452,12 @@ public sealed partial class YouTubeRefreshService(
         {
             LogCheckFailed(id, lookup.Reason);
         }
+    }
+
+    private void Counted<T>(string id, YouTubeLookup<T> lookup, RunContext context)
+        where T : class
+    {
+        Logged(id, lookup);
 
         context.Count(c => lookup.Answer switch
         {
