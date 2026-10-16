@@ -52,6 +52,16 @@ public sealed class StorageTests : IDisposable
         Assert.False(store.Exists("/cache/videos/a/abcdefghijk.jpg"));
     }
 
+    [Fact]
+    public void Deleting_in_a_folder_that_was_never_made_is_fine()
+    {
+        FileArtStore store = new(_root);
+
+        store.Delete("/cache/videos/Y/YjzFStira-k.webp");
+
+        Assert.False(store.Exists("/cache/videos/Y/YjzFStira-k.webp"));
+    }
+
     [Theory]
     [InlineData("/cache/videos/../../../etc/abcdefghijk.jpg")]
     [InlineData("/etc/passwd")]

@@ -27,7 +27,9 @@ public static class YouTubePictures
     public static string PathFor(string? current, string stem, string extension) =>
         current is not null && SameFormat(Path.GetExtension(current), extension) ? current : $"{stem}.{extension}";
 
-    public static string VideoStem(string videoId) => $"/cache/videos/{videoId[0]}/{videoId}";
+    /// <summary>As TubeArchivist names its own: the folder is the id's first character, in lowercase.</summary>
+    public static string VideoStem(string videoId) =>
+        $"/cache/videos/{char.ToLowerInvariant(videoId[0])}/{videoId}";
 
     public static string ChannelStem(string channelId, string kind) => $"/cache/channels/{channelId}_{kind}";
 
