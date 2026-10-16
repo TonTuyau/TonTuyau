@@ -286,6 +286,9 @@ public sealed partial class YouTubeRefreshService(
                 Hold([.. work.Skip(index)], refused, read.HoldMinutes, context);
                 return false;
             }
+
+            // The run's page shows the run as saved: its counts so far, after each answer.
+            await context.SaveAsync().ConfigureAwait(false);
         }
 
         return true;

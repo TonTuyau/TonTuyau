@@ -126,6 +126,25 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         }
     }
 
+    /// <summary>Asks for the latest run until this value of it is the one expected (a run going on, saved as it goes).</summary>
+    [Then("the latest run's {string} is {string} within {int} seconds")]
+    public async Task LatestRunValueWithin(string path, string expected, int seconds)
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (true)
+        {
+            await RequestLatestRun("");
+            string? value = api.At(path) is { } node ? ApiSteps.Scalar(node) : null;
+            if (value == expected)
+            {
+                return;
+            }
+
+            Assert.True(DateTime.UtcNow < deadline, $"{path} is {value ?? "missing"} after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
     [Then("the Location header is the run's address")]
     public void LocationIsRun() =>
         Assert.Equal(
