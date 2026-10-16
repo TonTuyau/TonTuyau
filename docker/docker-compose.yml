@@ -55,7 +55,7 @@ services:
       retries: 10
 
   tontuyau-backend:
-    image: ghcr.io/eclegv/tontuyau-backend:${TONTUYAU_VERSION:-latest}
+    image: ghcr.io/tontuyau/tontuyau-backend:${TONTUYAU_VERSION:-latest}
     container_name: tontuyau-backend
     restart: unless-stopped
     depends_on:
@@ -120,7 +120,7 @@ services:
       retries: 10
 
   tontuyau-frontend:
-    image: ghcr.io/eclegv/tontuyau-frontend:${TONTUYAU_VERSION:-latest}
+    image: ghcr.io/tontuyau/tontuyau-frontend:${TONTUYAU_VERSION:-latest}
     container_name: tontuyau-frontend
     restart: unless-stopped
     # The backend's process answers (not necessarily Elasticsearch): in the first seconds, or while Elasticsearch is

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # TonTuyau backend: the API and the `tontuyau` command line (QA13-6). Built from the repository's root:
-#   docker build -f docker/backend.Dockerfile -t ghcr.io/eclegv/tontuyau-backend:dev .
+#   docker build -f docker/backend.Dockerfile -t ghcr.io/tontuyau/tontuyau-backend:dev .
 # Only backend/src and the build settings are copied (.dockerignore keeps .env, dev-data/, bin/ and obj/ out).
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -47,7 +47,7 @@ ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau backend" \
       org.opencontainers.image.description="TonTuyau's API and sync (a read-only, YouTube-like UI over a TubeArchivist library)" \
-      org.opencontainers.image.source="https://github.com/Eclegv/TonTuyau" \
+      org.opencontainers.image.source="https://github.com/TonTuyau/TonTuyau" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
