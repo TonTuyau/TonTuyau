@@ -1,10 +1,12 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
   // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
-  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend. A 404: no such
-  // run. A 401: the session ended, the shell goes to the login page.
+  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend. A refresh on
+  // hold (1.5) is asked again every 30 s, with Resume now and Cancel it. A 404: no such run. A 401: the session ended,
+  // the shell goes to the login page.
   import CopyButton from '../components/CopyButton.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HoldBar from '../components/HoldBar.svelte'
   import Icon from '../components/Icon.svelte'
   import RunLogView from '../components/RunLogView.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
@@ -25,6 +27,7 @@
   let { id }: { id: string } = $props()
 
   const EVERY = 2_000
+  const HELD_EVERY = 30_000
 
   const remote = new Remote<Run>()
   $effect(() => {
@@ -34,9 +37,14 @@
 
   const run = $derived(remote.data)
   const running = $derived(run?.state === 'running')
+  const held = $derived(run?.state === 'onHold')
 
   let now = $state(Date.now())
   $effect(() => {
+    if (held) {
+      const timer = setInterval(() => void remote.refresh(), HELD_EVERY)
+      return () => clearInterval(timer)
+    }
     if (!running) {
       return
     }
@@ -64,6 +72,18 @@
       })
     }
     asking = false
+    await remote.refresh()
+  }
+
+  async function resume(runId: string) {
+    refused = null
+    try {
+      await api.resumeRun(runId)
+    } catch (error) {
+      refused = t('hold.resumeRefused', {
+        reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
+      })
+    }
     await remote.refresh()
   }
 
@@ -150,6 +170,14 @@
         {/if}
       </div>
     {/if}
+    {#if held}
+      <HoldBar
+        {run}
+        showTask={false}
+        onresume={(runId) => void resume(runId)}
+        oncancel={(runId) => void cancel(runId)}
+      />
+    {/if}
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
@@ -216,7 +244,10 @@
 
     <!-- The page's own id, not run.id: a prop is read through its expression, and the run is replaced every 2 s
          while it goes on (the log would start over each time). -->
-    <RunLogView runId={id} />
+    <!-- Again from its start when it resumes: its log goes on. -->
+    {#key held}
+      <RunLogView runId={id} />
+    {/key}
   {/if}
 </div>
 

@@ -3,7 +3,8 @@
   // it, asked first), the tools' versions, and which yt-dlp runs: the latest official release by default, or one
   // official release, or one nightly build of the last 2 months. A version chosen is applied in the background; the
   // page asks again every 3 s while it's on its way (downloaded, or waiting for the task going on to end). And which
-  // comments a refresh reads: none (the default), the top N, or all. A refusal says why; a 401 ends the session.
+  // comments a refresh reads: none (the default), the top N, or all; going easy on YouTube (the pause between videos,
+  // how long a refresh YouTube refused waits on hold). A refusal says why; a 401 ends the session.
   import Button from '../components/Button.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -78,11 +79,17 @@
   let comments = $state<YouTubeCommentsChoice>('off')
   let commentsMax = $state<number | null>(500)
   let commentsInvalid = $state<string | null>(null)
+  let pauseSeconds = $state<number | null>(10)
+  let holdMinutes = $state<number | null>(60)
+  let pauseInvalid = $state(false)
+  let holdInvalid = $state(false)
 
   // The form starts on what's saved, and comes back to it after each save (or refusal).
   function showSaved(saved: YouTubeSettings) {
     comments = saved.comments
     commentsMax = saved.commentsMax
+    pauseSeconds = saved.pauseSeconds
+    holdMinutes = saved.holdMinutes
   }
 
   let settingsShown = false
@@ -96,16 +103,22 @@
   async function saveComments(event: SubmitEvent) {
     event.preventDefault()
     const max = commentsMax
-    if (comments === 'top' && !(max !== null && Number.isInteger(max) && max >= 1)) {
-      commentsInvalid = t('youTube.comments.max.invalid')
+    commentsInvalid = comments === 'top' && !wholeFrom(max, 1) ? t('youTube.comments.max.invalid') : null
+    pauseInvalid = !wholeFrom(pauseSeconds, 0)
+    holdInvalid = !wholeFrom(holdMinutes, 1)
+    if (commentsInvalid !== null || pauseInvalid || holdInvalid || pauseSeconds === null || holdMinutes === null) {
       return
     }
-    commentsInvalid = null
     pending = true
     refused = null
     try {
       // Off and all keep the number for the next time the top ones are chosen.
-      await api.saveYouTubeSettings(comments, commentsMax ?? settings.data?.commentsMax ?? 500)
+      await api.saveYouTubeSettings(
+        comments,
+        commentsMax ?? settings.data?.commentsMax ?? 500,
+        pauseSeconds,
+        holdMinutes,
+      )
     } catch (error) {
       refused = t('youTube.refused', { reason: reasonOf(error) })
     } finally {
@@ -115,6 +128,10 @@
         showSaved(settings.data)
       }
     }
+  }
+
+  function wholeFrom(value: number | null, least: number): boolean {
+    return value !== null && Number.isInteger(value) && value >= least
   }
 
   function savedComments(saved: YouTubeSettings): string {
@@ -445,12 +462,56 @@
             <small>{t('youTube.comments.allHint')}</small>
           </label>
         </fieldset>
+        <fieldset>
+          <legend>{t('youTube.easy')}</legend>
+          <label class="easy">
+            <span>
+              <b>{t('youTube.easy.pause')}</b>
+              <small>{t('youTube.easy.pauseHint')}</small>
+            </span>
+            <span class="number">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                aria-invalid={pauseInvalid}
+                bind:value={pauseSeconds}
+              />
+              <small>{t('youTube.easy.seconds')}</small>
+            </span>
+            {#if pauseInvalid}
+              <small class="invalid" role="alert">{t('youTube.easy.pause.invalid')}</small>
+            {/if}
+          </label>
+          <label class="easy">
+            <span>
+              <b>{t('youTube.easy.hold')}</b>
+              <small>{t('youTube.easy.holdHint')}</small>
+            </span>
+            <span class="number">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                aria-invalid={holdInvalid}
+                bind:value={holdMinutes}
+              />
+              <small>{t('youTube.easy.minutes')}</small>
+            </span>
+            {#if holdInvalid}
+              <small class="invalid" role="alert">{t('youTube.easy.hold.invalid')}</small>
+            {/if}
+          </label>
+        </fieldset>
         <div class="actions">
           <Button type="submit" variant="filled" disabled={pending}>{t('youTube.comments.save')}</Button>
         </div>
       </form>
       <p class="hint">
         {savedComments(current)}
+        {t('youTube.easy.saved', { pause: current.pauseSeconds, hold: current.holdMinutes })}
         {#if current.changedBy && current.changedAt}
           · {t('youTube.comments.changedBy', {
             by: current.changedBy,
@@ -541,15 +602,20 @@
     color: var(--color-error);
   }
 
-  .max {
-    grid-column: 2;
+  .max,
+  .number {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
   }
 
-  .max input {
+  .max {
+    grid-column: 2;
+  }
+
+  .max input,
+  .number input {
     width: 8rem;
     height: var(--button-height);
     padding: 0 var(--space-3);
@@ -560,13 +626,42 @@
     font: inherit;
   }
 
-  .max input[aria-invalid='true'] {
+  .max input[aria-invalid='true'],
+  .number input[aria-invalid='true'] {
     border-color: var(--color-error);
   }
 
   .invalid {
     grid-column: 2;
     color: var(--color-error);
+  }
+
+  .easy .invalid {
+    grid-column: 1 / -1;
+  }
+
+  .easy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-4);
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .easy > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .easy b {
+    font-weight: var(--font-weight-medium);
+  }
+
+  .number input {
+    width: 6rem;
   }
 
   .pill {

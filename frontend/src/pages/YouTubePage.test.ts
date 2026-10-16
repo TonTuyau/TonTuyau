@@ -88,7 +88,7 @@ describe('YouTubePage', () => {
 
     const card = await screen.findByRole('region', { name: 'Reading YouTube' })
     expect(await within(card).findByRole('radio', { name: /^Off/ })).toBeChecked()
-    expect(within(card).getByText('Off: no comments are read.')).toBeInTheDocument()
+    expect(within(card).getByText(/^Off: no comments are read\./)).toBeInTheDocument()
     const max = within(card).getByRole('spinbutton', { name: 'How many comments, at most' })
     expect(max).toBeDisabled()
 
@@ -96,15 +96,61 @@ describe('YouTubePage', () => {
     await user.clear(max)
     await user.type(max, '2000')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
-    expect(await within(card).findByText(/^The top 2,000 are read\. · changed by admin/)).toBeInTheDocument()
+    expect(await within(card).findByText(/^The top 2,000 are read\. .* · changed by admin/)).toBeInTheDocument()
 
     await user.click(within(card).getByRole('radio', { name: /^All/ }))
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/^All the comments are read\./)).toBeInTheDocument()
     expect(sent).toEqual([
-      { comments: 'top', commentsMax: 2000 },
-      { comments: 'all', commentsMax: 2000 },
+      { comments: 'top', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60 },
+      { comments: 'all', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60 },
     ])
+  })
+
+  it('goes easy on YouTube: the pause between videos and how long a refused refresh waits, checked first', async () => {
+    const user = userEvent.setup()
+    const sent: unknown[] = []
+    let saved: YouTubeSettings = {
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      changedBy: null,
+      changedAt: null,
+    }
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as YouTubeSettings
+          sent.push(body)
+          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    const easy = await within(card).findByRole('group', { name: 'Going easy on YouTube' })
+    expect(
+      within(card).getByText(/A pause of about 10 s between videos; on hold 60 min after a refusal\./),
+    ).toBeInTheDocument()
+    const pause = within(easy).getByRole('spinbutton', { name: /^Pause between videos/ })
+    const hold = within(easy).getByRole('spinbutton', { name: /^After a bot check, hold the refresh for/ })
+
+    await user.clear(hold)
+    await user.type(hold, '0')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(within(easy).getByRole('alert')).toHaveTextContent('A whole number of minutes, 1 or more.')
+    expect(sent).toEqual([])
+
+    await user.clear(hold)
+    await user.type(hold, '90')
+    await user.clear(pause)
+    await user.type(pause, '0')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await within(card).findByText(/A pause of about 0 s between videos; on hold 90 min/)).toBeInTheDocument()
+    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90 }])
   })
 
   it('refuses a number below 1 before asking, and shows what is saved after a refusal', async () => {
@@ -113,7 +159,7 @@ describe('YouTubePage', () => {
       '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) =>
         init?.method === 'PUT'
           ? problemResponse(400, 'comments is required.', 'Invalid request')
-          : { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null },
+          : { comments: 'off', commentsMax: 500, pauseSeconds: 10, holdMinutes: 60, changedBy: null, changedAt: null },
     })
     render(YouTubePage)
 

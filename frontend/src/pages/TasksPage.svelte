@@ -1,8 +1,8 @@
 <script lang="ts">
   // The admin's Tasks page (1.4): the incremental sync, the full sync and applying deletions (when they run, how they
   // last ran, the deletion list waiting), the refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
-  // pasted as a link or an id; a warning when there's no YouTube cookie), and the run history, all tasks' or one's
-  // (?task=, the chips). Kept up to
+  // pasted as a link or an id; a warning when there's no YouTube cookie; the refreshes on hold, with Resume now and
+  // Cancel it), and the run history, all tasks' or one's (?task=, the chips). Kept up to
   // date by itself: asked again every 3 s while a run goes on, every 30 s else, without redrawing what didn't change
   // (Svelte updates the values that did: a row under the pointer stays); a running duration ticks every second from
   // its start, without asking. Starting a task opens its run's page (its live log); a refusal (409: a run going on,
@@ -11,6 +11,7 @@
   import { untrack } from 'svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HoldBar from '../components/HoldBar.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -93,6 +94,17 @@
     }
   }
 
+  async function onresume(runId: string) {
+    refused = null
+    try {
+      await api.resumeRun(runId)
+      router.navigate(href.adminRun(runId))
+    } catch (error) {
+      refused = t('hold.resumeRefused', { reason: reasonOf(error) })
+      refresh()
+    }
+  }
+
   async function oncancel(runId: string) {
     refused = null
     try {
@@ -154,6 +166,9 @@
       {#if youTube.data && youTube.data.cookie === null}
         <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
       {/if}
+      {#each data.onHold as held (held.id)}
+        <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
+      {/each}
       <div class="tasks">
         {#each refreshTasks as task (task)}
           <YouTubeTaskCard {task} lock={data.lock} {onstart} />

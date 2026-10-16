@@ -1,6 +1,6 @@
 // What the Tasks page shows of a run (1.4), from what the API gave: never a count it didn't send.
 import type { Run, RunTask } from './api/types'
-import { formatNumber } from './format'
+import { formatDateTime, formatNumber } from './format'
 import { i18n, t } from './i18n/i18n.svelte'
 
 /** How long it ran, or has been running (in seconds), at `now`. */
@@ -43,6 +43,12 @@ export function runResult(run: Run): string {
       return run.error ?? ''
     case 'canceled':
       return t('run.result.canceled')
+    case 'onHold':
+      return t('run.result.onHold', {
+        at: run.resumeAt ? formatDateTime(run.resumeAt, i18n.lang) : '–',
+        read: n(counts.videosRead + counts.channelsRead),
+        left: n(run.left),
+      })
     default:
       break
   }

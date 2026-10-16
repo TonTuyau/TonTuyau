@@ -203,6 +203,34 @@ describe('RunPage', () => {
     await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${running.id}/cancel`)).toHaveLength(1))
   })
 
+  it('a refresh on hold: when it resumes by itself, Resume now, and why a resume was refused', async () => {
+    const user = userEvent.setup()
+    const held = run({
+      task: 'refreshVideo',
+      state: 'onHold',
+      target: 'alpha-02___',
+      resumeAt: '2026-10-12T13:00:07Z',
+      left: 1,
+      cancellable: true,
+      notes: ['On hold at 12:00:07 UTC, 1 left to read: YouTube refused (Sign in to confirm you’re not a bot).'],
+    })
+    const api = fakeApi({
+      [`/api/admin/runs/${held.id}`]: held,
+      [`/api/admin/runs/${held.id}/log`]: log([line(1, 'Refresh on hold.')]),
+      [`/api/admin/runs/${held.id}/resume`]: problemResponse(409, 'A sync is already running.', 'Conflict'),
+    })
+    render(RunPage, { id: held.id })
+
+    const bar = await screen.findByRole('region', { name: 'On hold' })
+    expect(bar).toHaveTextContent('61 read, 1 left.')
+    expect(within(bar).queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel the run' })).not.toBeInTheDocument()
+    await user.click(within(bar).getByRole('button', { name: 'Resume now' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not resumed: A sync is already running.')
+    expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
+  })
+
   it('has no Cancel for a run over, or going on elsewhere', async () => {
     fakeApi({ [path]: blocked, [`${path}/log`]: log([]) })
     render(RunPage, { id })
