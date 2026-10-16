@@ -46,6 +46,13 @@ public sealed class YouTubePicturesTests
         Assert.Equal(expected, YouTubePictures.PathFor(current, YouTubePictures.VideoStem("k3Fq8xZ0aQw"), extension));
 
     [Fact]
+    public void A_video_s_folder_is_its_id_s_first_character_in_lowercase_like_TubeArchivist_s()
+    {
+        Assert.Equal("/cache/videos/y/YjzFStira-k", YouTubePictures.VideoStem("YjzFStira-k"));
+        Assert.Equal("/cache/videos/-/-bcdefghijk", YouTubePictures.VideoStem("-bcdefghijk"));
+    }
+
+    [Fact]
     public void A_channel_s_pictures_are_named_like_TubeArchivist_s()
     {
         Assert.Equal(

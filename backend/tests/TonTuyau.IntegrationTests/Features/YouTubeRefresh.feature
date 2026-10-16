@@ -62,9 +62,10 @@ Feature: Refreshing videos and channels on YouTube
     When I request the latest run's "" with my session
     Then "counts.channelsRead" is "1"
     And "counts.videosRead" is "3"
-    And "counts.foundOnYouTube" is "2"
+    And "counts.foundOnYouTube" is "1"
     And "counts.goneFromYouTube" is "1"
     And "counts.checkFailed" is "1"
+    And "notes[0]" is "The channel: on YouTube."
     When I request the channel "alpha" of TubeArchivist
     Then "name" is "Alpha officiel"
     And "subscribers" is "5000"
@@ -143,10 +144,13 @@ Feature: Refreshing videos and channels on YouTube
     Then the latest run ends succeeded within 20 seconds
     And PostgreSQL has the comments of the video "alpha-01": "Comment 1 by @viewer1 | ↳Reply 1 by @alpha"
 
-  Scenario: A channel alone leaves its videos as they are
+  Scenario: A channel alone leaves its videos as they are, and counts its own answer
     Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
     When I refresh the channel "alpha" with my session
     Then the latest run ends succeeded within 20 seconds
+    When I request the latest run's "" with my session
+    Then "counts.foundOnYouTube" is "1"
+    And "notes" has 0 items
     And the stored YouTube state of the video "alpha-01" is "not checked"
 
   Scenario: Only what the library has, with its target
@@ -166,3 +170,15 @@ Feature: Refreshing videos and channels on YouTube
     And the output mentions "youtube   1 found, 0 gone, 0 to retry"
     When I run "tontuyau youtube channel nope"
     Then the command exits with code 4
+
+  Scenario: The run history shows each refresh under its own task
+    Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    When I request "/api/admin/runs?task=refreshVideo" with my session
+    Then "total" is "1"
+    And "items[0].task" is "refreshVideo"
+    When I request "/api/admin/runs?task=refreshChannel" with my session
+    Then "total" is "0"
+    When I request "/api/admin/runs?task=applyDeletions" with my session
+    Then "total" is "0"
