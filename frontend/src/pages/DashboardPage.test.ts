@@ -206,8 +206,8 @@ describe('DashboardPage', () => {
 
     await user.click(within(screen.getByRole('table', { name: 'Channels' })).getByRole('button', { name: 'Shorts' }))
     expect(names()).toEqual(['Écoles du Goût', 'Atelier Bois', 'Vinyl Archive'])
-    expect(screen.getByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
-    expect(screen.getByRole('link', { name: 'Manage Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
+    expect(screen.getByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
+    expect(screen.getByRole('link', { name: 'Go to channel Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
   })
 
   it('finds a channel by name (accents and case ignored) and keeps those with videos gone from YouTube', async () => {

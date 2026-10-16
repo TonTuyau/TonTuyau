@@ -1,6 +1,6 @@
 <script lang="ts">
   // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube, to retry or not checked yet
-  // (1.5), and the total; and a link to its admin page. Sorted by a column's button (again: the other way), filtered
+  // (1.5), and the total. Its name opens its admin page; "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered
   // by name (accents and case ignored) and to the channels with videos gone from YouTube. All in the page: the API sent
   // every channel.
   import type { ChannelTotals } from '../lib/api/types'
@@ -9,6 +9,7 @@
   import type { TextKey } from '../lib/i18n/types'
   import { href } from '../lib/router/routes'
   import Avatar from './Avatar.svelte'
+  import Button from './Button.svelte'
 
   let { channels }: { channels: ChannelTotals[] } = $props()
 
@@ -110,14 +111,14 @@
             </button>
           </th>
         {/each}
-        <th><span class="visually-hidden">{t('dashboard.manage')}</span></th>
+        <th><span class="visually-hidden">{t('dashboard.goToChannel')}</span></th>
       </tr>
     </thead>
     <tbody>
       {#each shown as channel (channel.id)}
         <tr>
           <td>
-            <a class="channel" href={href.channel(channel.id)}>
+            <a class="channel" href={href.adminChannel(channel.id)}>
               <Avatar src={channel.thumbnailUrl} versions={channel.thumbnails} />
               <span class="name">{channel.name}</span>
             </a>
@@ -130,9 +131,9 @@
           <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
           <td class="num"><b>{number(channel.total)}</b></td>
           <td>
-            <a class="manage" href={href.adminChannel(channel.id)}
-              >{t('dashboard.manage')} <span class="visually-hidden">{channel.name}</span></a
-            >
+            <Button href={href.channel(channel.id)}>
+              {t('dashboard.goToChannel')} <span class="visually-hidden">{channel.name}</span>
+            </Button>
           </td>
         </tr>
       {:else}

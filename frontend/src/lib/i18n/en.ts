@@ -457,7 +457,7 @@ export const en = {
   'dashboard.gone': 'Gone from YouTube',
   'dashboard.retryLater': 'Retry later',
   'dashboard.notChecked': 'Not checked',
-  'dashboard.manage': 'Manage',
+  'dashboard.goToChannel': 'Go to channel',
   'youTubeState.notChecked': 'Not checked',
   'youTubeState.onYouTube': 'On YouTube',
   'youTubeState.retryLater': 'Retry later',

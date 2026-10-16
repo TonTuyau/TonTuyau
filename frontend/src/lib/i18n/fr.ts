@@ -467,7 +467,7 @@ export const fr: Dictionary = {
   'dashboard.gone': 'Disparues de YouTube',
   'dashboard.retryLater': 'À réessayer',
   'dashboard.notChecked': 'Pas vérifiées',
-  'dashboard.manage': 'Gérer',
+  'dashboard.goToChannel': 'Aller à la chaîne',
   'youTubeState.notChecked': 'Pas vérifiée',
   'youTubeState.onYouTube': 'Sur YouTube',
   'youTubeState.retryLater': 'À réessayer',
