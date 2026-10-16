@@ -363,6 +363,7 @@ export const en = {
   'run.state.succeeded': 'Succeeded',
   'run.state.failed': 'Failed',
   'run.state.canceled': 'Canceled',
+  'run.state.onHold': 'On hold',
   'run.by.scheduler': 'Schedule',
   'run.by.cli': 'Command line',
   'run.by.startup': 'Startup (after an upgrade)',

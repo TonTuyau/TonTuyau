@@ -7,6 +7,7 @@ namespace TonTuyau.YouTube;
 /// says the video or channel was removed, made private, or its account terminated; anything else (a bot check, too many
 /// requests, a country block, members only, an unknown "unavailable", no error at all) is
 /// <see cref="YouTubeAnswer.CheckFailed"/>: TubeArchivist's false "unavailable" flags came from treating those as gone.
+/// A bot check or "too many requests" is <see cref="YouTubeAnswer.Refused"/>: YouTube refuses TonTuyau for now.
 /// </summary>
 internal static class YtdlpErrors
 {
@@ -25,6 +26,15 @@ internal static class YtdlpErrors
         "Premieres in",
         "Unable to download",
         "timed out",
+    ];
+
+    /// <summary>YouTube refusing TonTuyau itself, whatever the video: these win over everything else.</summary>
+    private static readonly string[] Refusals =
+    [
+        "confirm you’re not a bot",
+        "confirm you're not a bot",
+        "HTTP Error 429",
+        "Too Many Requests",
     ];
 
     /// <summary>YouTube's own words for a video or channel that's gone.</summary>
@@ -58,6 +68,11 @@ internal static class YtdlpErrors
         }
 
         string reason = string.Join(" ", errors);
+        if (Refusals.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (YouTubeAnswer.Refused, reason);
+        }
+
         if (DidntAnswer(reason))
         {
             return (YouTubeAnswer.CheckFailed, reason);

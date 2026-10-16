@@ -23,4 +23,10 @@ public sealed class ClockSteps(ScenarioState state)
     public void ClockMovesOn(int days) =>
         (_clock ?? throw new InvalidOperationException("No frozen clock in this scenario."))
             .Advance(TimeSpan.FromDays(days));
+
+    [Given("the clock moves on {int} minutes")]
+    [When("the clock moves on {int} minutes")]
+    public void ClockMovesOnMinutes(int minutes) =>
+        (_clock ?? throw new InvalidOperationException("No frozen clock in this scenario."))
+            .Advance(TimeSpan.FromMinutes(minutes));
 }

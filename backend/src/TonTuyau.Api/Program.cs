@@ -27,6 +27,7 @@ builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(
 builder.Services.AddHostedService<SyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddHostedService<YtdlpUpdater>();
+builder.Services.AddHostedService<RefreshResumer>();
 builder.Services.AddTonTuyauApi();
 builder.Services.AddTonTuyauAuth();
 builder.Services.AddRunLogs();

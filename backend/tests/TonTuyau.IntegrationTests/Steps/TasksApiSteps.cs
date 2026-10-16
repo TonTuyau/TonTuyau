@@ -60,6 +60,10 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     public async Task CancelLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
 
+    [When("I resume the latest run with my session")]
+    public async Task ResumeLatest() =>
+        await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/resume");
+
     /// <param name="suffix">After the run's path: "" for the run, "/log" for its log.</param>
     [When("I request the latest run's {string} with my session")]
     public async Task RequestLatestRun(string suffix) =>
@@ -99,6 +103,25 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
             }
 
             Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} still runs after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Waits for the latest run to be in this state (a run on hold isn't running, but isn't over either).</summary>
+    [Then("the latest run is {word} within {int} seconds")]
+    public async Task LatestIs(string outcome, int seconds)
+    {
+        SyncOutcome expected = Enum.Parse<SyncOutcome>(outcome, ignoreCase: true);
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (true)
+        {
+            IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(1, CancellationToken.None);
+            if (runs[0].Outcome == expected)
+            {
+                return;
+            }
+
+            Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} is {runs[0].Outcome} after {seconds} s.");
             await Task.Delay(250);
         }
     }

@@ -48,7 +48,14 @@ function routes(given: Record<string, unknown> = {}) {
     '/api/admin/youtube': overview(),
     '/api/admin/youtube/ytdlp': ytdlp(),
     '/api/admin/youtube/ytdlp/versions': versions,
-    '/api/admin/youtube/settings': { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null },
+    '/api/admin/youtube/settings': {
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      changedBy: null,
+      changedAt: null,
+    },
     ...given,
   })
 }
@@ -58,14 +65,21 @@ describe('YouTubePage', () => {
 
   it('reads no comments by default; the top N or all once saved, with who changed it', async () => {
     const user = userEvent.setup()
-    let saved: YouTubeSettings = { comments: 'off', commentsMax: 500, changedBy: null, changedAt: null }
+    let saved: YouTubeSettings = {
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      changedBy: null,
+      changedAt: null,
+    }
     const sent: unknown[] = []
     routes({
       '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
         if (init?.method === 'PUT') {
           const body = JSON.parse(String(init.body)) as Pick<YouTubeSettings, 'comments' | 'commentsMax'>
           sent.push(body)
-          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+          saved = { ...saved, ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
         }
         return saved
       },

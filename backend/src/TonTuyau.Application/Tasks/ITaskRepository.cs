@@ -21,6 +21,9 @@ public interface ITaskRepository
         int count,
         CancellationToken cancellationToken);
 
+    /// <returns>The refreshes on hold (1.5), the first to resume first.</returns>
+    Task<IReadOnlyList<SyncRun>> GetOnHoldRunsAsync(CancellationToken cancellationToken);
+
     /// <returns>Whether a run applied the deletion list of that full run, and succeeded.</returns>
     Task<bool> WasAppliedAsync(string fullRunId, CancellationToken cancellationToken);
 }

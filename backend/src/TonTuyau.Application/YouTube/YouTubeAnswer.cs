@@ -10,8 +10,14 @@ public enum YouTubeAnswer
     Gone,
 
     /// <summary>
-    /// No answer to trust: YouTube refused (a bot check, too many requests), the network failed, yt-dlp failed or
-    /// isn't there. Try again later; never a reason to call it gone.
+    /// No answer to trust: the network failed, yt-dlp failed or isn't there, a country block, an age check… Try again
+    /// later; never a reason to call it gone.
     /// </summary>
     CheckFailed,
+
+    /// <summary>
+    /// YouTube refuses TonTuyau for now: a bot check, or too many requests. Asking again at once only makes it worse: a
+    /// refresh then waits (it's put on hold). Never a reason to call it gone either.
+    /// </summary>
+    Refused,
 }

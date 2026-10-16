@@ -3,7 +3,8 @@ Feature: Refreshing videos and channels on YouTube
   An admin (or the command line) reads a video, a channel, or a channel and each of its videos on YouTube (1.5): a run
   like the syncs, in the history and the log. What YouTube answers becomes TonTuyau's facts, then the index shows them:
   found, its metadata wins over TubeArchivist's; gone (removed, private, terminated), it's flagged; no answer to trust
-  (a bot check, the network), it's to retry, and nothing TonTuyau confirmed before changes. yt-dlp is a fake here.
+  (the network, a timeout), it's to retry, and nothing TonTuyau confirmed before changes; YouTube refusing (a bot check,
+  too many requests) puts the run on hold (YouTubeHold.feature). yt-dlp is a fake here.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 3 videos
@@ -37,7 +38,7 @@ Feature: Refreshing videos and channels on YouTube
     Then "active" is "false"
 
   Scenario: No answer to trust: to retry, never gone
-    Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Sign in to confirm you’re not a bot"
+    Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Unable to download API page: <urlopen error timed out>"
     When I refresh the video "alpha-02" with my session
     Then the latest run ends succeeded within 20 seconds
     And the stored YouTube state of the video "alpha-02" is "retry later"
@@ -48,13 +49,14 @@ Feature: Refreshing videos and channels on YouTube
 
   Scenario: A failed check changes nothing TonTuyau confirmed
     Given TonTuyau found the video "alpha-02" gone from YouTube
-    And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: HTTP Error 429: Too Many Requests"
+    And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Unable to download webpage: HTTP Error 503: Service Unavailable"
     When I refresh the video "alpha-02" with my session
     Then the latest run ends succeeded within 20 seconds
     And the stored YouTube state of the video "alpha-02" is "gone"
 
   Scenario: A channel and its videos
-    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    Given there's no pause between videos
+    And YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
     And YouTube has the video "alpha-01": the title "Premier", 10 views
     And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Private video. Sign in if you've been granted access to this video"
     When I refresh the channel "alpha" and its videos with my session
@@ -92,18 +94,22 @@ Feature: Refreshing videos and channels on YouTube
   Scenario: The YouTube settings, off by default, changed by an admin
     When I request "/api/admin/youtube/settings" with my session
     Then the response status is 200
-    And the answer has exactly the fields "comments, commentsMax, changedBy, changedAt"
+    And the answer has exactly the fields "comments, commentsMax, pauseSeconds, holdMinutes, changedBy, changedAt"
     And "comments" is "off"
     And "commentsMax" is "500"
+    And "pauseSeconds" is "10"
+    And "holdMinutes" is "60"
     And "changedBy" is null
     When I send the YouTube settings '{"comments": "top", "commentsMax": 250000}' with my session
     Then the response status is 200
     And "comments" is "top"
     And "commentsMax" is "250000"
     And "changedBy" is "admin"
-    When I send the YouTube settings '{"comments": "all"}' with my session
+    When I send the YouTube settings '{"comments": "all", "pauseSeconds": 4, "holdMinutes": 15}' with my session
     Then "comments" is "all"
     And "commentsMax" is "250000"
+    And "pauseSeconds" is "4"
+    And "holdMinutes" is "15"
     When I request "/api/admin/youtube/settings" with my session
     Then "comments" is "all"
 
@@ -118,6 +124,8 @@ Feature: Refreshing videos and channels on YouTube
       | {"comments": "top", "commentsMax": 0}      |
       | {"comments": "top", "commentsMax": -3}     |
       | {"comments": true}                         |
+      | {"comments": "off", "pauseSeconds": -1}    |
+      | {"comments": "off", "holdMinutes": 0}      |
 
   Scenario: A video's comments (answers included) and chapters are kept, replaced at each refresh
     Given reading comments is on

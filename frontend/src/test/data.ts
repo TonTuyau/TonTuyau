@@ -224,6 +224,8 @@ export function run(overrides: Partial<Run> = {}): Run {
     deletionsBlocked: false,
     appliesTo: null,
     target: null,
+    resumeAt: null,
+    left: 0,
     indexRebuild: false,
     notes: [],
     cancellable: false,
@@ -255,6 +257,7 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
         waiting: { runId: full.id, startedAt: full.startedAt, count: 312 },
       },
     ],
+    onHold: [],
     ...overrides,
   }
 }

@@ -29,6 +29,7 @@ public sealed class EsClientTests
         [SyncOutcome.Succeeded] = "succeeded",
         [SyncOutcome.Failed] = "failed",
         [SyncOutcome.Canceled] = "canceled",
+        [SyncOutcome.OnHold] = "on_hold",
     };
 
     [Theory, CombinatorialData]
