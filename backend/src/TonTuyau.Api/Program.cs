@@ -43,9 +43,6 @@ app.Services.ValidateTonTuyauOptions();
 // PostgreSQL's schema up to date, and the admin account at the first start: before anything listens too.
 await app.Services.InitializeAccountsAsync();
 
-// First, so it times the whole answer: requests over a second go to the log, to find what's slow.
-app.UseMiddleware<SlowRequestLog>();
-
 // Every answer says which version served it (handy after an upgrade; the same as `tontuyau --version`).
 app.Use(AppVersion.AddHeader);
 
