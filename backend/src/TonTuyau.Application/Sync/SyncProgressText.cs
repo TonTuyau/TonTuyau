@@ -70,7 +70,8 @@ public static class SyncProgressText
 
     /// <summary>What YouTube answered so far (a refresh, 1.5).</summary>
     private static string YouTube(SyncCounts counts) =>
-        $" · {Number(counts.FoundOnYouTube)} found, {Number(counts.GoneFromYouTube)} gone, "
+        $" · {Number(counts.FoundOnYouTube)} found ({Number(counts.UnlistedOnYouTube)} unlisted), "
+        + $"{Number(counts.GoneFromYouTube)} gone, "
         + $"{Number(counts.PrivateOnYouTube)} private, {Number(counts.CheckFailed)} to retry";
 
     /// <summary>The art made so far, once there's some (later full runs mostly have none).</summary>

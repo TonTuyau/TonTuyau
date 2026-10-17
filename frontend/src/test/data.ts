@@ -219,6 +219,7 @@ export function run(overrides: Partial<Run> = {}): Run {
       deleted: 0,
       kept: 0,
       foundOnYouTube: 0,
+      unlistedOnYouTube: 0,
       goneFromYouTube: 0,
       privateOnYouTube: 0,
       checkFailed: 0,

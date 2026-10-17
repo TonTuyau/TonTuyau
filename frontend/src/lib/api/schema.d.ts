@@ -3218,6 +3218,8 @@ export interface components {
       /** Format: int32 */
       foundOnYouTube: number
       /** Format: int32 */
+      unlistedOnYouTube: number
+      /** Format: int32 */
       goneFromYouTube: number
       /** Format: int32 */
       privateOnYouTube: number

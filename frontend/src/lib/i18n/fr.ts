@@ -410,7 +410,8 @@ export const fr: Dictionary = {
   'run.result.deleted': '{count} supprimées',
   'run.result.blocked': '{count} suppressions en attente',
   'run.result.apply': '{deleted} supprimées, {kept} gardées',
-  'run.result.refresh': '{found} trouvées · {gone} disparues · {private} privées · {failed} à réessayer',
+  'run.result.refresh':
+    '{found} trouvées ({unlisted} non répertoriées) · {gone} disparues · {private} privées · {failed} à réessayer',
   'run.result.canceled': 'Arrêtée',
   'run.result.running': 'En cours…',
   'runs.title': 'Historique des exécutions',
@@ -451,6 +452,7 @@ export const fr: Dictionary = {
   'run.count.kept': 'Gardées (encore dans TubeArchivist)',
   'run.count.channelsRead': 'Chaînes lues',
   'run.count.foundOnYouTube': 'Trouvées sur YouTube',
+  'run.count.unlistedOnYouTube': 'Dont non répertoriées',
   'run.count.goneFromYouTube': 'Disparues de YouTube',
   'run.count.privateOnYouTube': 'Privées sur YouTube',
   'run.count.checkFailed': 'À réessayer (pas de réponse fiable)',

@@ -58,6 +58,7 @@ export function runResult(run: Run): string {
   if (isRefresh(run)) {
     return t('run.result.refresh', {
       found: n(counts.foundOnYouTube),
+      unlisted: n(counts.unlistedOnYouTube),
       gone: n(counts.goneFromYouTube),
       private: n(counts.privateOnYouTube),
       failed: n(counts.checkFailed),

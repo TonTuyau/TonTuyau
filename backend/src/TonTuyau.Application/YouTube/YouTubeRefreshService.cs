@@ -782,7 +782,12 @@ public sealed partial class YouTubeRefreshService(
 
         context.Count(c => lookup.Answer switch
         {
-            YouTubeAnswer.Found => c with { FoundOnYouTube = c.FoundOnYouTube + 1 },
+            YouTubeAnswer.Found => c with
+            {
+                FoundOnYouTube = c.FoundOnYouTube + 1,
+                UnlistedOnYouTube = c.UnlistedOnYouTube
+                    + (lookup.Item is YouTubeVideo video && StateOf(video) == YouTubeState.Unlisted ? 1 : 0),
+            },
             YouTubeAnswer.Gone => c with { GoneFromYouTube = c.GoneFromYouTube + 1 },
             YouTubeAnswer.Private => c with { PrivateOnYouTube = c.PrivateOnYouTube + 1 },
             _ => c with { CheckFailed = c.CheckFailed + 1 },

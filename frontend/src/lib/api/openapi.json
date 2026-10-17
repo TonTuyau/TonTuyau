@@ -3484,6 +3484,7 @@
           "deleted",
           "kept",
           "foundOnYouTube",
+          "unlistedOnYouTube",
           "goneFromYouTube",
           "privateOnYouTube",
           "checkFailed",
@@ -3548,6 +3549,10 @@
             "format": "int32"
           },
           "foundOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlistedOnYouTube": {
             "type": "integer",
             "format": "int32"
           },

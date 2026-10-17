@@ -97,6 +97,7 @@ Feature: Refreshing videos and channels on YouTube
     And the stored YouTube state of the video "alpha-01" is "unlisted"
     When I request the latest run's "" with my session
     Then "counts.foundOnYouTube" is "1"
+    And "counts.unlistedOnYouTube" is "1"
     When I request "/api/videos/alpha-01___" with my session
     Then "youTubeState" is "unlisted"
     And "title" is "Par lien"
@@ -237,7 +238,7 @@ Feature: Refreshing videos and channels on YouTube
     Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
     When I run "tontuyau youtube video alpha-01___"
     Then the command exits with code 0
-    And the output mentions "youtube   1 found, 0 gone, 0 private,"
+    And the output mentions "youtube   1 found (0 unlisted), 0 gone,"
     When I run "tontuyau youtube channel nope"
     Then the command exits with code 4
 

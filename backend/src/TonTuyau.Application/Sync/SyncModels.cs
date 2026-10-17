@@ -110,6 +110,9 @@ public sealed record SyncCounts
     /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
     public int FoundOnYouTube { get; init; }
 
+    /// <summary>A refresh: of those found, the videos YouTube has unlisted (1.5).</summary>
+    public int UnlistedOnYouTube { get; init; }
+
     /// <summary>A refresh: videos and channels YouTube says are removed, or their account terminated.</summary>
     public int GoneFromYouTube { get; init; }
 
