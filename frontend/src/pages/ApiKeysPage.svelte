@@ -330,6 +330,8 @@
   }
 
   .table-box {
+    /* Positioned: the hidden labels (.visually-hidden, absolute) then scroll with it instead of widening the page. */
+    position: relative;
     overflow-x: auto;
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);

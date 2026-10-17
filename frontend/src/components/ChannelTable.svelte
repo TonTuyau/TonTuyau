@@ -1,8 +1,9 @@
 <script lang="ts">
   // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube, private, unlisted, to retry
-  // or not checked yet (1.5; each count not 0 in its state's colour), and the total. Its name opens its admin page; "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered
-  // by name (accents and case ignored) and to the channels with videos gone from YouTube. All in the page: the API sent
-  // every channel.
+  // or not checked yet (1.5; each count not 0 in its state's colour), and the total. Its name opens its admin page;
+  // "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered by name (accents
+  // and case ignored) and to the channels with videos gone from YouTube. All in the page: the API sent every channel.
+  // The list scrolls in its own box, its header on top, so its sideways scroll bar stays in sight.
   import type { ChannelTotals, YouTubeState } from '../lib/api/types'
   import { formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -213,7 +214,10 @@
   }
 
   .table-box {
-    overflow-x: auto;
+    /* Positioned: the hidden labels (.visually-hidden, absolute) then scroll with it instead of widening the page. */
+    position: relative;
+    max-height: 70vh;
+    overflow: auto;
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
   }
@@ -225,8 +229,13 @@
   }
 
   th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     padding: 0;
-    border-bottom: var(--border-width) solid var(--color-divider);
+    /* A shadow, not a border: a collapsed table's borders don't stay with a sticky cell. */
+    box-shadow: inset 0 calc(-1 * var(--border-width)) 0 var(--color-divider);
+    background: var(--color-bg);
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
