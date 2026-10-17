@@ -189,6 +189,12 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs onl
 
 Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`. A pre-release tag (`v1.3.0-alpha.1`) publishes only its own `1.3.0-alpha.1`, to try a version before its release.
 
+Each month (the 15th), the latest release's images are **rebuilt from the same sources on fresh base images** and
+published again under its tags (`.github/workflows/rebuild.yml`), once what they carry runs
+(`scripts/smoke-image.sh`): the base's security fixes (Ubuntu, Node, .NET) reach you without a new TonTuyau release;
+`docker compose pull && docker compose up -d` takes them. It can be started by hand too (Actions → Rebuild the latest
+release).
+
 ## Development setup
 
 Prerequisites: .NET 10 SDK, Node 24+, pnpm (via corepack), Docker (for Elasticsearch, PostgreSQL and the integration tests that need them; your user must be in the `docker` group). The integration tests start one PostgreSQL (`postgres:17`) and give each scenario a database of its own. The Elasticsearch integration tests start a container with a 512 MB heap and refuse to start with less than 2 GB of free RAM.
