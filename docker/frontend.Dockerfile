@@ -12,10 +12,12 @@ RUN corepack enable && pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm run build
 
-# Only the built files and the server: no node_modules (the server has no dependency), no pnpm, no sources. 1.5.1: on
-# Ubuntu 24.04 "chiseled", as the backend: glibc, libstdc++, OpenSSL and certificates only, no shell, no package
-# manager, non-root (app, 1654). Microsoft publishes it as .NET's runtime-deps (nothing of .NET in it) and updates it
-# monthly. Node alone is copied in from the official image (its own OpenSSL inside), without npm.
+# A .NET image, with nothing of .NET in it: Microsoft's "runtime-deps" is Ubuntu 24.04 "chiseled" with only what a
+# program needs to run (glibc, libstdc++, OpenSSL, certificates, time zones), no shell, no package manager, non-root
+# (app, 1654). Made as the base .NET apps run on, it's also all Node needs; it's the backend's base too, and Microsoft
+# rebuilds it monthly (Canonical publishes no general-purpose chiseled image). Node alone is copied in from the
+# official image (its own OpenSSL inside), without npm. Only the built files and the server besides: no node_modules
+# (the server has no dependency), no pnpm, no sources.
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled
 ARG VERSION=dev
 ARG REVISION=unknown
