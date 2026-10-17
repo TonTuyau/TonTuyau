@@ -130,7 +130,8 @@ services:
     ports:
       - "${TONTUYAU_HTTP_PORT:-80}:8080"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      # Node by its path (1.5.1: the image has no shell).
+      test: ["CMD", "/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:8080/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 30s
       timeout: 5s
       start_period: 10s
