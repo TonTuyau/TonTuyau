@@ -40,6 +40,7 @@ public static class ApiMapper
             DurationSeconds = Seconds(card.Duration),
             Views = card.Views,
             Active = card.Active,
+            YouTubeState = card.YouTubeState,
             ThumbnailUrl = card.Thumbnail is null ? null : ApiUrls.VideoThumbnail(card.Id),
             Thumbnails = VideoThumbnails(card),
             Channel = Channel(card.Channel),
@@ -59,6 +60,7 @@ public static class ApiMapper
             DurationSeconds = Seconds(card.Duration),
             Views = card.Views,
             Active = card.Active,
+            YouTubeState = card.YouTubeState,
             ThumbnailUrl = card.Thumbnail is null ? null : ApiUrls.VideoThumbnail(card.Id),
             Thumbnails = VideoThumbnails(card),
             Channel = new VideoDetailChannel(

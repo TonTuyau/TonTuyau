@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.Contracts;
 
@@ -34,6 +35,12 @@ public sealed class VideoCard
 
     /// <summary>False: removed from YouTube, still archived (badge, R2-9).</summary>
     public required bool Active { get; init; }
+
+    /// <summary>
+    /// TonTuyau's state of it on YouTube (1.5, contract v1.16): <c>gone</c>, <c>private</c> and <c>unlisted</c> get a
+    /// badge; the others are treated as on YouTube.
+    /// </summary>
+    public required YouTubeState YouTubeState { get; init; }
 
     /// <summary>Null when there's no image.</summary>
     public required string? ThumbnailUrl { get; init; }
@@ -74,6 +81,9 @@ public sealed class VideoDetail
     public required long Views { get; init; }
 
     public required bool Active { get; init; }
+
+    /// <summary>As in <see cref="VideoCard.YouTubeState"/> (contract v1.16).</summary>
+    public required YouTubeState YouTubeState { get; init; }
 
     public required string? ThumbnailUrl { get; init; }
 

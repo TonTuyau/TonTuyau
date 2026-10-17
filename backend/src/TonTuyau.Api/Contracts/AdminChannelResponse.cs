@@ -19,6 +19,8 @@ public sealed record AdminChannelResponse(ChannelCard Channel, YouTubeStatusResp
             new YouTubeStateCounts(
                 states.GetValueOrDefault(YouTubeState.NotChecked),
                 states.GetValueOrDefault(YouTubeState.OnYouTube),
+                states.GetValueOrDefault(YouTubeState.Unlisted),
+                states.GetValueOrDefault(YouTubeState.Private),
                 states.GetValueOrDefault(YouTubeState.RetryLater),
                 states.GetValueOrDefault(YouTubeState.Gone)));
     }

@@ -126,6 +126,7 @@
         ['run.count.channelsRead', c.channelsRead],
         ['run.count.foundOnYouTube', c.foundOnYouTube],
         ['run.count.goneFromYouTube', c.goneFromYouTube],
+        ['run.count.privateOnYouTube', c.privateOnYouTube],
         ['run.count.checkFailed', c.checkFailed],
         ['run.count.commentsRead', c.commentsRead],
         ['run.count.picturesStored', c.artCopied],

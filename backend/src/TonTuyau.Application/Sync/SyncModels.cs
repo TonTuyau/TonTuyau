@@ -110,8 +110,11 @@ public sealed record SyncCounts
     /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
     public int FoundOnYouTube { get; init; }
 
-    /// <summary>A refresh: videos and channels YouTube says are removed, private or terminated.</summary>
+    /// <summary>A refresh: videos and channels YouTube says are removed, or their account terminated.</summary>
     public int GoneFromYouTube { get; init; }
+
+    /// <summary>A refresh: videos YouTube says their owner made private (1.5).</summary>
+    public int PrivateOnYouTube { get; init; }
 
     /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
     public int CheckFailed { get; init; }

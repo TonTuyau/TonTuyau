@@ -24,25 +24,32 @@ describe('VideoCard', () => {
     expect(images).toEqual(['/art/from-the-api/vid00000001.webp', '/art/from-the-api/UCtest-thumb'])
   })
 
-  it('shows the "Unavailable on YouTube" badge only when the API says active: false', () => {
-    const { unmount } = render(VideoCard, { video: videoCard() })
-    expect(screen.queryByText('Unavailable on YouTube')).not.toBeInTheDocument()
-    unmount()
+  it('shows a badge for a video gone, private or unlisted on YouTube, in its colour; none otherwise', () => {
+    for (const quiet of ['onYouTube', 'retryLater', 'notChecked'] as const) {
+      const { container, unmount } = render(VideoCard, { video: videoCard({ youTubeState: quiet }) })
+      expect(container.querySelector('.state')).toBeNull()
+      unmount()
+    }
 
-    render(VideoCard, { video: videoCard({ active: false }) })
-
-    expect(screen.getByText('Unavailable on YouTube')).toHaveAttribute(
-      'title',
-      expect.stringContaining('archived copy'),
-    )
+    for (const [state, label, hint] of [
+      ['gone', 'Gone from YouTube', 'archived copy'],
+      ['private', 'Private on YouTube', 'checked again at the next refresh'],
+      ['unlisted', 'Unlisted on YouTube', 'whoever has its link'],
+    ] as const) {
+      const { unmount } = render(VideoCard, { video: videoCard({ youTubeState: state }) })
+      const badge = screen.getByText(label)
+      expect(badge).toHaveClass(state)
+      expect(badge).toHaveAttribute('title', expect.stringContaining(hint))
+      unmount()
+    }
   })
 
-  it('says "Indisponible sur YouTube" in French', async () => {
-    render(VideoCard, { video: videoCard({ active: false }) })
+  it('says "Privée sur YouTube" in French', async () => {
+    render(VideoCard, { video: videoCard({ youTubeState: 'private' }) })
 
     i18n.setLang('fr')
 
-    expect(await screen.findByText('Indisponible sur YouTube')).toBeInTheDocument()
+    expect(await screen.findByText('Privée sur YouTube')).toBeInTheDocument()
   })
 
   it('shows a placeholder when the API has no thumbnail', () => {

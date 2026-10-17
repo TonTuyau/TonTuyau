@@ -117,6 +117,8 @@ public static class ApiValues
     {
         ["notChecked"] = YouTubeState.NotChecked,
         ["onYouTube"] = YouTubeState.OnYouTube,
+        ["unlisted"] = YouTubeState.Unlisted,
+        ["private"] = YouTubeState.Private,
         ["retryLater"] = YouTubeState.RetryLater,
         ["gone"] = YouTubeState.Gone,
     };

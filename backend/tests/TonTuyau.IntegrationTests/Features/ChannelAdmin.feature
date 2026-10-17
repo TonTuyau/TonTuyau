@@ -31,7 +31,7 @@ Feature: A channel's admin page
     And "channel.name" is "Tom Cooks"
     And "channel.videoCounts.videos" is "3"
     And "youTube.state" is "onYouTube"
-    And 'videos' is '{"notChecked":1,"onYouTube":1,"retryLater":1,"gone":1}'
+    And 'videos' is '{"notChecked":1,"onYouTube":1,"unlisted":0,"private":0,"retryLater":1,"gone":1}'
 
   Scenario: Its videos, latest published first, each with its state on YouTube
     When I log in as the admin

@@ -9,6 +9,7 @@ namespace TonTuyau.Application.YouTube;
 /// read them.
 /// </param>
 /// <param name="Chapters">Its chapters, in order; none when YouTube marks none.</param>
+/// <param name="Availability">yt-dlp's <c>availability</c>: <c>public</c>, <c>unlisted</c>, <c>private</c>…; null when it doesn't say.</param>
 public sealed record YouTubeVideo(
     string Id,
     string Title,
@@ -25,4 +26,5 @@ public sealed record YouTubeVideo(
     string? LiveStatus,
     long? CommentCount,
     IReadOnlyList<YouTubeComment>? Comments,
-    IReadOnlyList<YouTubeChapter> Chapters);
+    IReadOnlyList<YouTubeChapter> Chapters,
+    string? Availability);

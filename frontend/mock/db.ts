@@ -10,7 +10,11 @@ export type ChannelFixture = Omit<ChannelDetail, 'videoCounts'>
 
 /** A video as stored: the channel by id; the mock joins it into `channel` like the backend does. */
 /** `chapters`: the fixtures have none (TonTuyau 1.5 reads them on YouTube); the mock adds a demo's (handler.ts). */
-export type VideoFixture = Omit<VideoDetail, 'channel' | 'chapters'> & { channelId: string }
+/** `youTubeState`: optional in the fixtures; the mock derives one from `active` when absent (handler.ts). */
+export type VideoFixture = Omit<VideoDetail, 'channel' | 'chapters' | 'youTubeState'> & {
+  channelId: string
+  youTubeState?: VideoDetail['youTubeState']
+}
 
 export interface MockDb {
   channels: ChannelFixture[]

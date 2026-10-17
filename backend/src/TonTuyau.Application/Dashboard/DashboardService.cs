@@ -90,7 +90,7 @@ public sealed class DashboardService(
             .Select(c =>
             {
                 ChannelStats counted = stats.Channels.GetValueOrDefault(c.Id)
-                    ?? new ChannelStats(TypeCounts.None, 0, 0, 0);
+                    ?? new ChannelStats(TypeCounts.None, 0, 0, 0, 0, 0);
                 TypeCounts counts = counted.Counts;
                 return new ChannelTotalsView(
                     c.Id,
@@ -98,6 +98,8 @@ public sealed class DashboardService(
                     c.ThumbArt,
                     counts,
                     counted.Gone,
+                    counted.Private,
+                    counted.Unlisted,
                     counted.RetryLater,
                     counted.NotChecked,
                     counts.Videos + counts.Shorts + counts.Streams);

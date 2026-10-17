@@ -5,7 +5,8 @@ namespace TonTuyau.Api.Contracts;
 /// <summary>A run's counters (contract v1.7): what it read, wrote, copied and deleted.</summary>
 /// <param name="Kept">Videos or channels a deletion list named, kept because TubeArchivist still has them.</param>
 /// <param name="FoundOnYouTube">A refresh (1.5): videos and channels YouTube answered with their metadata.</param>
-/// <param name="GoneFromYouTube">A refresh: those YouTube says are removed, private or terminated.</param>
+/// <param name="GoneFromYouTube">A refresh: those YouTube says are removed, or their account terminated.</param>
+/// <param name="PrivateOnYouTube">A refresh: those YouTube says their owner made private (contract v1.16).</param>
 /// <param name="CheckFailed">A refresh: checks without an answer to trust (a bot check, the network…).</param>
 /// <param name="CommentsRead">A refresh: the comments read with the videos, answers included.</param>
 public sealed record RunCounts(
@@ -25,6 +26,7 @@ public sealed record RunCounts(
     int Kept,
     int FoundOnYouTube,
     int GoneFromYouTube,
+    int PrivateOnYouTube,
     int CheckFailed,
     int CommentsRead)
 {
@@ -48,6 +50,7 @@ public sealed record RunCounts(
             counts.KeptStillInTubeArchivist,
             counts.FoundOnYouTube,
             counts.GoneFromYouTube,
+            counts.PrivateOnYouTube,
             counts.CheckFailed,
             counts.CommentsRead);
     }

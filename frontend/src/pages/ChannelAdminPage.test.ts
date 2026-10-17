@@ -12,7 +12,7 @@ const base = `/api/admin/channels/${id}`
 const channel = (overrides: Partial<AdminChannel> = {}): AdminChannel => ({
   channel: channelCard(),
   youTube: { state: 'onYouTube', checkedAt: '2026-10-12T08:00:00Z', reason: null, refreshedAt: '2026-10-12T08:00:00Z' },
-  videos: { notChecked: 4, onYouTube: 100, retryLater: 9, gone: 21 },
+  videos: { notChecked: 4, onYouTube: 100, unlisted: 6, private: 2, retryLater: 9, gone: 21 },
   ...overrides,
 })
 
@@ -84,7 +84,11 @@ describe('ChannelAdminPage', () => {
       'href',
       '/admin/channels/UCtest?state=retryLater',
     )
-    expect(within(chips).getByRole('link', { name: 'All 134' })).toHaveAttribute('href', '/admin/channels/UCtest')
+    expect(within(chips).getByRole('link', { name: 'Private 2' })).toHaveAttribute(
+      'href',
+      '/admin/channels/UCtest?state=private',
+    )
+    expect(within(chips).getByRole('link', { name: 'All 142' })).toHaveAttribute('href', '/admin/channels/UCtest')
   })
 
   it('searches its videos by words, once typing pauses', async () => {
@@ -112,14 +116,14 @@ describe('ChannelAdminPage', () => {
           : tasks(),
       '/api/admin/tasks/refreshVideo/runs': () => {
         busy = true
-        return run({ task: 'refreshVideo', state: 'running', finishedAt: null, target: gone.video.id })
+        return run({ task: 'refreshVideo', state: 'running', finishedAt: null, target: never.video.id })
       },
     })
     render(ChannelAdminPage, { id })
 
-    await user.click(await screen.findByRole('button', { name: 'Refresh Le poulet rôti' }))
+    await user.click(await screen.findByRole('button', { name: 'Refresh Crème brûlée' }))
 
-    expect(api.requests('/api/admin/tasks/refreshVideo/runs')[0]?.searchParams.get('target')).toBe('gone0000001')
+    expect(api.requests('/api/admin/tasks/refreshVideo/runs')[0]?.searchParams.get('target')).toBe('never000001')
     expect(await screen.findByRole('status')).toHaveTextContent(/Refresh a video is going on/)
     expect(screen.getByRole('link', { name: 'Follow its log' })).toHaveAttribute(
       'href',
@@ -127,6 +131,21 @@ describe('ChannelAdminPage', () => {
     )
     expect(screen.getByRole('button', { name: 'Refresh the channel' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Refresh Crème brûlée' })).toBeDisabled()
+  })
+
+  it("shows each state as its coloured badge; a gone video can't be refreshed", async () => {
+    routes()
+    render(ChannelAdminPage, { id })
+
+    const table = await screen.findByRole('table')
+    const goneRow = within(table).getByText('Le poulet rôti', { selector: 'b' }).closest('tr') as HTMLElement
+    expect(within(goneRow).getByText('Gone')).toHaveClass('state', 'gone')
+    expect(within(goneRow).getByRole('button', { name: 'Refresh Le poulet rôti' })).toBeDisabled()
+    expect(goneRow).toHaveTextContent('gone: not refreshed')
+    expect(within(table).getByRole('button', { name: 'Refresh Crème brûlée' })).toBeEnabled()
+    const states = screen.getByRole('region', { name: 'Its videos on YouTube' })
+    expect(within(states).getByText('Private')).toHaveClass('state', 'private')
+    expect(within(states).getByText('Unlisted').closest('div')).toHaveTextContent('6')
   })
 
   it('says why a refresh was refused', async () => {

@@ -13,8 +13,9 @@
   import LoadMore from '../components/LoadMore.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import Thumbnail from '../components/Thumbnail.svelte'
+  import YouTubeStateBadge from '../components/YouTubeStateBadge.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { AdminChannel, AdminVideo, RunTask, Tasks, YouTubeState } from '../lib/api/types'
+  import type { AdminChannel, AdminVideo, RunTask, Tasks } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDate, formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -22,13 +23,14 @@
   import { router } from '../lib/router/router.svelte'
   import { href } from '../lib/router/routes'
   import { pageTitle } from '../lib/title.svelte'
+  import { youTubeStates } from '../lib/youTubeStates'
 
   let { id }: { id: string } = $props()
 
   const BUSY_EVERY = 3_000
   const IDLE_EVERY = 30_000
   const SEARCH_AFTER = 300
-  const states: YouTubeState[] = ['onYouTube', 'retryLater', 'gone', 'notChecked']
+  const states = youTubeStates
 
   const channel = new Remote<AdminChannel>()
   const tasks = new Remote<Tasks>()
@@ -107,8 +109,7 @@
   ])
 
   function total(data: AdminChannel): number {
-    const v = data.videos
-    return v.notChecked + v.onYouTube + v.retryLater + v.gone
+    return states.reduce((sum, s) => sum + data.videos[s], 0)
   }
 
   function when(at: string | null | undefined): string {
@@ -166,7 +167,7 @@
           <div>
             <dt>{t('channelAdmin.state')}</dt>
             <dd>
-              <span class="state {data.youTube.state}">{t(`youTubeState.${data.youTube.state}`)}</span>
+              <YouTubeStateBadge state={data.youTube.state} />
               <small>{t('channelAdmin.checked', { when: when(data.youTube.checkedAt) })}</small>
               {#if data.youTube.reason}<small>{data.youTube.reason}</small>{/if}
             </dd>
@@ -205,7 +206,7 @@
         <dl class="states">
           {#each states as s (s)}
             <div>
-              <dt><span class="dot {s}" aria-hidden="true"></span>{t(`youTubeState.${s}`)}</dt>
+              <dt><YouTubeStateBadge state={s} /></dt>
               <dd>{number(data.videos[s])}</dd>
             </div>
           {/each}
@@ -273,15 +274,24 @@
                   </td>
                   <td>{t(`type.${video.type}`)}</td>
                   <td>{formatDate(video.published, i18n.lang)}</td>
-                  <td><span class="state {item.youTube.state}">{t(`youTubeState.${item.youTube.state}`)}</span></td>
+                  <td><YouTubeStateBadge state={item.youTube.state} /></td>
                   <td class="when">
                     {when(item.youTube.checkedAt)}
                     {#if item.youTube.reason}<small>{item.youTube.reason}</small>{/if}
                   </td>
                   <td>
-                    <Button disabled={pending || lock !== null} onclick={() => void refresh('refreshVideo', video.id)}>
-                      {t('task.refresh')} <span class="visually-hidden">{video.title}</span>
-                    </Button>
+                    <!-- A gone video isn't read again (1.5): its refresh would be refused. -->
+                    <span class="row-actions">
+                      <Button
+                        disabled={pending || lock !== null || item.youTube.state === 'gone'}
+                        onclick={() => void refresh('refreshVideo', video.id)}
+                      >
+                        {t('task.refresh')} <span class="visually-hidden">{video.title}</span>
+                      </Button>
+                      {#if item.youTube.state === 'gone'}
+                        <small>{t('channelAdmin.goneNotRefreshed')}</small>
+                      {/if}
+                    </span>
                   </td>
                 </tr>
               {/each}
@@ -430,55 +440,16 @@
     font-size: var(--font-size-sm);
   }
 
-  .dot {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: var(--color-text-secondary);
-  }
-
-  .dot.onYouTube {
-    background: var(--color-success);
-  }
-
-  .dot.retryLater {
-    background: var(--color-on-warning);
-  }
-
-  .dot.gone {
-    background: var(--color-error);
-  }
-
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
   }
 
-  .state {
+  .row-actions {
     display: inline-flex;
     align-items: center;
-    padding: 0 var(--space-2);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    white-space: nowrap;
-  }
-
-  .state.onYouTube {
-    background: var(--color-success-bg);
-    color: var(--color-success);
-  }
-
-  .state.retryLater {
-    background: var(--color-warning-bg);
-    color: var(--color-on-warning);
-  }
-
-  .state.gone {
-    background: var(--color-error-bg);
-    color: var(--color-error);
+    gap: var(--space-2);
   }
 
   .videos {

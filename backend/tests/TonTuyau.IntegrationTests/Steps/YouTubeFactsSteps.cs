@@ -131,11 +131,25 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         Assert.Equal(expected, Name(row.State));
     }
 
+    [Then("PostgreSQL has the video {string} as {string}")]
+    public async Task VideoRow(string name, string expected)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        YouTubeVideoRow? row = await scope.ServiceProvider
+            .GetRequiredService<TonTuyauDbContext>()
+            .YouTubeVideos
+            .FindAsync(FakeTubeArchivist.VideoId(name));
+        Assert.NotNull(row);
+        Assert.Equal(expected, Name(row.State));
+    }
+
     private static string Name(YouTubeState state) => state switch
     {
         YouTubeState.OnYouTube => "on YouTube",
         YouTubeState.RetryLater => "retry later",
         YouTubeState.Gone => "gone",
+        YouTubeState.Private => "private",
+        YouTubeState.Unlisted => "unlisted",
         _ => "not checked",
     };
 

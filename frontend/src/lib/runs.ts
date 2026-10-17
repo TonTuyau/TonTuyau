@@ -59,6 +59,7 @@ export function runResult(run: Run): string {
     return t('run.result.refresh', {
       found: n(counts.foundOnYouTube),
       gone: n(counts.goneFromYouTube),
+      private: n(counts.privateOnYouTube),
       failed: n(counts.checkFailed),
     })
   }

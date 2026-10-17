@@ -12,6 +12,7 @@ namespace TonTuyau.Application.Browse;
 public sealed record ChannelRefView(string Id, string Name, ArtVersions? Thumbnail, long Subscribers);
 
 /// <param name="Active">False only when TonTuyau confirmed the video is gone from YouTube (1.5).</param>
+/// <param name="YouTubeState">TonTuyau's state of it on YouTube (1.5): visitors see gone, private and unlisted.</param>
 public sealed record VideoCardView(
     string Id,
     string Title,
@@ -20,6 +21,7 @@ public sealed record VideoCardView(
     TimeSpan Duration,
     long Views,
     bool Active,
+    YouTubeState YouTubeState,
     ArtVersions? Thumbnail,
     ChannelRefView Channel);
 

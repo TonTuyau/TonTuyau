@@ -211,6 +211,7 @@ class Library {
       durationSeconds: video.durationSeconds,
       views: video.views,
       active: video.active,
+      youTubeState: video.youTubeState ?? stateOf(video),
       thumbnailUrl: video.thumbnailUrl,
       thumbnails: video.thumbnails,
       channel: {
@@ -471,6 +472,13 @@ export function handleApi(db: MockDb, method: string, url: URL, now: number = Da
 // ---------------------------------------------------------------- 1.5: the demo video's chapters and comments
 
 /** The first fixture video shows chapters and comments (TonTuyau read them); the others have neither. */
+/** A state on YouTube for a fixture without one (1.5): gone when inactive; a few private or unlisted, by id. */
+function stateOf(video: VideoFixture): VideoCard['youTubeState'] {
+  if (!video.active) return 'gone'
+  const sum = [...video.id].reduce((total, char) => total + char.charCodeAt(0), 0)
+  return sum % 23 === 0 ? 'private' : sum % 19 === 0 ? 'unlisted' : 'onYouTube'
+}
+
 function demoChapters(duration: number): VideoDetail['chapters'] {
   const parts: [number, number, string][] = [
     [0, 0.08, 'Intro'],
