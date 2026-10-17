@@ -146,6 +146,12 @@ jobs:
           docker run --rm --entrypoint /usr/local/bin/deno tontuyau-backend:ci --version
           docker run --rm tontuyau-backend:ci --version
 
+      - name: Run what the front image carries
+        if: matrix.image == 'frontend'
+        run: |
+          docker run --rm tontuyau-frontend:ci --version
+          docker run --rm tontuyau-frontend:ci -e "require('node:fs').accessSync('/app/server/main.ts')"
+
       - uses: docker/build-push-action@v6
         with:
           context: .

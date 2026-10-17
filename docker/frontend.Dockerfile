@@ -12,8 +12,11 @@ RUN corepack enable && pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm run build
 
-# Only the built files and the server: no node_modules (the server has no dependency), no pnpm, no sources.
-FROM node:24-slim
+# Only the built files and the server: no node_modules (the server has no dependency), no pnpm, no sources. 1.5.1: on
+# Ubuntu 24.04 "chiseled", as the backend: glibc, libstdc++, OpenSSL and certificates only, no shell, no package
+# manager, non-root (app, 1654). Microsoft publishes it as .NET's runtime-deps (nothing of .NET in it) and updates it
+# monthly. Node alone is copied in from the official image (its own OpenSSL inside), without npm.
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau front" \
@@ -28,6 +31,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=build /src/frontend/dist ./dist
 COPY frontend/server/server.ts frontend/server/previews.ts frontend/server/main.ts ./server/
-USER node
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
 EXPOSE 8080
-CMD ["node", "server/main.ts"]
+ENTRYPOINT ["/usr/local/bin/node"]
+CMD ["server/main.ts"]
