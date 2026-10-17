@@ -117,6 +117,10 @@ docker exec tontuyau-backend tontuyau sync status
 
 Full runs also write their deletion lists to the `tontuyau-sync-logs` volume (`/data/logs/sync` in the container).
 
+The images carry only what TonTuyau needs (1.5.1): no shell, no package manager. `docker compose logs`,
+`docker exec tontuyau-backend tontuyau …` and `docker cp` work as before; `docker exec … sh` doesn't. To look inside
+a container, `docker debug tontuyau-backend` attaches a temporary toolbox without changing the image.
+
 ### Using folders instead of volumes (optional)
 
 The stack keeps Elasticsearch's data, the images and the sync logs in **named volumes**: nothing to do. If you'd rather have them in folders of the VM (bind mounts, e.g. `- /srv/tontuyau/es:/usr/share/elasticsearch/data` in place of `tontuyau-es-data:…`), Docker creates a missing folder as `root`, and the containers can't write there. Give them their owners once, before `docker compose up`:
@@ -166,8 +170,12 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau youtube video <id>
 docker exec tontuyau-backend tontuyau youtube channel <id>
 docker exec tontuyau-backend tontuyau youtube channel-videos <id>
+docker exec tontuyau-backend tontuyau health
 docker exec tontuyau-backend tontuyau --version
 ```
+
+`health` asks the backend running in the container whether it answers (exit code 0 or 1): it's the container's
+health check, since the image has no shell nor curl.
 
 See [Sync and command line](#sync-and-command-line) for what each does and the exit codes.
 

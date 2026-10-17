@@ -42,11 +42,12 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           youtube video <id>          read a video of the library on YouTube (its state, its metadata)
           youtube channel <id>        read a channel of the library on YouTube
           youtube channel-videos <id> read a channel, then each of its videos in the library, on YouTube
+          health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
 
     private static readonly string[] Verbs =
-        ["sync", "index", "youtube", "help", "--help", "-h", "--version", "version"];
+        ["sync", "index", "youtube", "health", "help", "--help", "-h", "--version", "version"];
 
     /// <summary>What <c>tontuyau --version</c> prints.</summary>
     public static string VersionLine => "TonTuyau " + AppVersion.Value;
@@ -57,6 +58,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
 
     /// <summary><c>tontuyau --version</c>: answered without configuration or Elasticsearch.</summary>
     public static bool IsVersion(string[] args) => args is ["--version" or "version"];
+
+    /// <summary><c>tontuyau health</c> (1.5.1): asks the backend here, without configuration (<see cref="HealthCheck"/>).</summary>
+    public static bool IsHealth(string[] args) => args is ["health"];
 
     /// <summary>The command that reads Elasticsearch itself (the others go through the backend).</summary>
     public static bool NeedsStore(string[] args) => args is ["sync", "status"];
