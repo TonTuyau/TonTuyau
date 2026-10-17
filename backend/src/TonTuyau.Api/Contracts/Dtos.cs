@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.Contracts;
 
@@ -34,6 +35,12 @@ public sealed class VideoCard
 
     /// <summary>False: removed from YouTube, still archived (badge, R2-9).</summary>
     public required bool Active { get; init; }
+
+    /// <summary>
+    /// TonTuyau's state of it on YouTube (1.5, contract v1.16): <c>gone</c>, <c>private</c> and <c>unlisted</c> get a
+    /// badge; the others are treated as on YouTube.
+    /// </summary>
+    public required YouTubeState YouTubeState { get; init; }
 
     /// <summary>Null when there's no image.</summary>
     public required string? ThumbnailUrl { get; init; }
@@ -75,6 +82,9 @@ public sealed class VideoDetail
 
     public required bool Active { get; init; }
 
+    /// <summary>As in <see cref="VideoCard.YouTubeState"/> (contract v1.16).</summary>
+    public required YouTubeState YouTubeState { get; init; }
+
     public required string? ThumbnailUrl { get; init; }
 
     public required IReadOnlyList<ImageSize> Thumbnails { get; init; }
@@ -104,7 +114,13 @@ public sealed class VideoDetail
 
     /// <summary>False when the full sync found the file missing on the share.</summary>
     public required bool MediaAvailable { get; init; }
+
+    /// <summary>Its chapters, in order (1.5, contract v1.13): none until TonTuyau refreshed it, or when YouTube marks none.</summary>
+    public required IReadOnlyList<Chapter> Chapters { get; init; }
 }
+
+/// <summary>A chapter of a video: from where to where, in seconds, and its title (contract v1.13).</summary>
+public sealed record Chapter(double StartSeconds, double EndSeconds, string Title);
 
 /// <summary>How many videos of each type a channel has (its tabs = the types above 0).</summary>
 public sealed record VideoCounts(long Videos, long Shorts, long Streams);

@@ -2,6 +2,7 @@ using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
@@ -106,12 +107,13 @@ public sealed class CardBuilder(IVideoRepository videos, IChannelRepository chan
             video.ChannelName,
             video.Title,
             video.Type,
-            video.Active,
+            !video.GoneFromYouTube,
             video.Published,
             video.Duration,
             video.Stats.Views,
             video.ThumbnailPath,
-            thumbnailArt);
+            thumbnailArt,
+            video.CurrentYouTube);
     }
 
     private VideoCardView VideoCard(VideoListItem item, ChannelListItem? owner) => new(
@@ -122,6 +124,7 @@ public sealed class CardBuilder(IVideoRepository videos, IChannelRepository chan
         item.Duration,
         item.Views,
         item.Active,
+        item.YouTube?.State ?? YouTubeState.NotChecked,
         Image(item.ThumbnailPath, item.ThumbnailArt, ArtSizes.VideoThumbnail),
         new ChannelRefView(
             item.ChannelId,

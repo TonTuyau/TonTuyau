@@ -11,7 +11,7 @@ namespace TonTuyau.Api.Cli;
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
 /// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 3 another
-/// sync is running, 4 refused.
+/// sync is running, 4 refused, 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down).
 /// <para>
 /// Since 1.4 the commands that run something ask the backend to (<see cref="BackendClient"/>, through its Unix socket):
 /// the run is in the backend's log and on the Tasks page. They print its log as it comes (its start, progress lines,
@@ -26,6 +26,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     public const int Usage = 2;
     public const int Busy = 3;
     public const int Refused = 4;
+    public const int OnHold = 5;
 
     /// <summary>How often the run's log is asked for while it goes on.</summary>
     private static readonly TimeSpan PollEvery = TimeSpan.FromMilliseconds(500);
@@ -38,10 +39,14 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           sync status                 watermark, lock, pending art, indices, recent runs
           sync apply-deletions <run>  delete a blocked full run's list (each item confirmed with TubeArchivist)
           index rebuild               re-import everything into a new index generation, then switch to it
+          youtube video <id>          read a video of the library on YouTube (its state, its metadata)
+          youtube channel <id>        read a channel of the library on YouTube
+          youtube channel-videos <id> read a channel, then each of its videos in the library, on YouTube
           --version                   TonTuyau's version
         """;
 
-    private static readonly string[] Verbs = ["sync", "index", "help", "--help", "-h", "--version", "version"];
+    private static readonly string[] Verbs =
+        ["sync", "index", "youtube", "help", "--help", "-h", "--version", "version"];
 
     /// <summary>What <c>tontuyau --version</c> prints.</summary>
     public static string VersionLine => "TonTuyau " + AppVersion.Value;
@@ -70,6 +75,12 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                     ? Report(await FollowAsync($"cli/sync/apply-deletions/{run}", cancellationToken))
                     : Write($"Refused: '{run}' isn't a run id (expected run-YYYYMMDDTHHMMSSZ-xxxxxx).", Refused),
                 ["index", "rebuild"] => Report(await FollowAsync("cli/index/rebuild", cancellationToken)),
+                ["youtube", "video", string id] => LibraryIds.IsVideoId(id)
+                    ? Report(await FollowAsync($"cli/youtube/video/{id}", cancellationToken))
+                    : Write($"Refused: '{id}' isn't a video id (11 characters).", Refused),
+                ["youtube", "channel" or "channel-videos", string id] => LibraryIds.IsChannelId(id)
+                    ? Report(await FollowAsync($"cli/youtube/{args[1]}/{id}", cancellationToken))
+                    : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
                 ["help" or "--help" or "-h"] => Write(Help, Ok),
                 ["--version" or "version"] => Write(VersionLine, Ok),
                 _ => Write(Help, Usage),
@@ -161,7 +172,12 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     private int Report(SyncRun run)
     {
         WriteRun(run);
-        return run.Outcome == SyncOutcome.Succeeded ? Ok : RunFailed;
+        return run.Outcome switch
+        {
+            SyncOutcome.Succeeded => Ok,
+            SyncOutcome.OnHold => OnHold,
+            _ => RunFailed,
+        };
     }
 
     private int Status(SyncStatus status)
@@ -212,7 +228,16 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         string span = $"{When(run.StartedAt)} → {When(run.FinishedAt)}";
         output.WriteLine($"{indent}{run.Id}  {mode} by {trigger}  {outcome}  {span}");
         WriteLines(
-            run.Mode == SyncMode.ApplyDeletions
+            run.Mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos
+                ? $"""
+                      target    {run.Target}
+                      read      {c.VideosRead} videos / {c.ChannelsRead} channels
+                      youtube   {c.FoundOnYouTube} found ({c.UnlistedOnYouTube} unlisted), {c.GoneFromYouTube} gone,
+                                {c.PrivateOnYouTube} private, {c.CheckFailed} to retry
+                      comments  {c.CommentsRead} read
+                      store     changed {c.Updated}, unchanged {c.Unchanged}
+                    """
+                : run.Mode == SyncMode.ApplyDeletions
                 ? $"""
                       applies   the list of {run.AppliesTo}: {c.Deleted} of {run.DeletionsPlanned} deleted
                       deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
@@ -253,7 +278,13 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
 
     private static string Name(StoreIndex index) => index.ToString().ToLowerInvariant();
 
-    /// <summary>As the commands spell it: incremental, full, apply-deletions.</summary>
-    private static string Name(SyncMode mode) =>
-        mode == SyncMode.ApplyDeletions ? "apply-deletions" : mode.ToString().ToLowerInvariant();
+    /// <summary>As the commands spell it: incremental, full, apply-deletions, youtube video…</summary>
+    private static string Name(SyncMode mode) => mode switch
+    {
+        SyncMode.ApplyDeletions => "apply-deletions",
+        SyncMode.RefreshVideo => "youtube video",
+        SyncMode.RefreshChannel => "youtube channel",
+        SyncMode.RefreshChannelVideos => "youtube channel-videos",
+        _ => mode.ToString().ToLowerInvariant(),
+    };
 }

@@ -1,7 +1,10 @@
+using TonTuyau.Application.ApiKeys;
+using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
@@ -97,6 +100,47 @@ public static class ApiValues
         ["incremental"] = SyncMode.Incremental,
         ["full"] = SyncMode.Full,
         ["applyDeletions"] = SyncMode.ApplyDeletions,
+        ["refreshVideo"] = SyncMode.RefreshVideo,
+        ["refreshChannel"] = SyncMode.RefreshChannel,
+        ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
+    };
+
+    /// <summary>How a video's comments are listed (1.5, the watch page).</summary>
+    public static readonly Table<CommentSort> CommentSorts = new()
+    {
+        ["top"] = CommentSort.Top,
+        ["newest"] = CommentSort.Newest,
+    };
+
+    /// <summary>The states of a video or channel on YouTube (1.5, the admin pages' filter).</summary>
+    public static readonly Table<YouTubeState> YouTubeStates = new()
+    {
+        ["notChecked"] = YouTubeState.NotChecked,
+        ["onYouTube"] = YouTubeState.OnYouTube,
+        ["unlisted"] = YouTubeState.Unlisted,
+        ["private"] = YouTubeState.Private,
+        ["retryLater"] = YouTubeState.RetryLater,
+        ["gone"] = YouTubeState.Gone,
+    };
+
+    /// <summary>Which comments a refresh reads (1.5, the YouTube page).</summary>
+    public static readonly Table<YouTubeCommentsChoice> CommentChoices = new()
+    {
+        ["off"] = YouTubeCommentsChoice.Off,
+        ["top"] = YouTubeCommentsChoice.Top,
+        ["all"] = YouTubeCommentsChoice.All,
+    };
+
+    public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
+    {
+        ["browserExtension"] = ApiKeyKind.BrowserExtension,
+    };
+
+    public static readonly Table<YtdlpChoiceKind> YtdlpChoices = new()
+    {
+        ["latest"] = YtdlpChoiceKind.Latest,
+        ["official"] = YtdlpChoiceKind.Official,
+        ["nightly"] = YtdlpChoiceKind.Nightly,
     };
 
     public static readonly Table<ImportPeriod> ImportPeriods = new()

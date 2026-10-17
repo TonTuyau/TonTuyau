@@ -1,7 +1,7 @@
 @elasticsearch @api
 Feature: The admin dashboard
-  Logged-in accounts only. Every number is counted by Elasticsearch over what users see ("gone from YouTube" is
-  TubeArchivist's active flag). The import history has its own call (ImportHistory.feature).
+  Logged-in accounts only. Every number is counted by Elasticsearch over what users see ("gone from YouTube" is what
+  TonTuyau confirmed, 1.5: never TubeArchivist's flag alone). The import history has its own call (ImportHistory.feature).
 
   Background:
     Given the channels:
@@ -10,13 +10,13 @@ Feature: The admin dashboard
       | arte     | ARTE      |
       | zeste    | Zeste     |
     And the videos:
-      | key     | channel  | type   | duration | active |
-      | huiles  | tomcooks | video  | 1800     | true   |
-      | poulet  | tomcooks | video  | 600      | false  |
-      | morteau | tomcooks | short  | 60       | true   |
-      | usa     | arte     | video  | 3600     | false  |
-      | astuce  | arte     | short  | 40       | false  |
-      | debat   | arte     | stream | 3900     | true   |
+      | key     | channel  | type   | duration | active | youtube     |
+      | huiles  | tomcooks | video  | 1800     | true   |             |
+      | poulet  | tomcooks | video  | 600      | false  | gone        |
+      | morteau | tomcooks | short  | 60       | false  | retry later |
+      | usa     | arte     | video  | 3600     | false  | gone        |
+      | astuce  | arte     | short  | 40       | true   | gone        |
+      | debat   | arte     | stream | 3900     | false  |             |
 
   Scenario: Nobody logged in gets a 401, not the dashboard
     When I request "/api/admin/dashboard"
@@ -46,10 +46,10 @@ Feature: The admin dashboard
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then the dashboard's channels are:
-      | name      | videos | shorts | streams | gone | total |
-      | ARTE      | 1      | 1      | 1       | 2    | 3     |
-      | Tom Cooks | 2      | 1      | 0       | 1    | 3     |
-      | Zeste     | 0      | 0      | 0       | 0    | 0     |
+      | name      | videos | shorts | streams | gone | retryLater | notChecked | total |
+      | ARTE      | 1      | 1      | 1       | 2    | 1          | 0          | 3     |
+      | Tom Cooks | 2      | 1      | 0       | 1    | 1          | 1          | 3     |
+      | Zeste     | 0      | 0      | 0       | 0    | 0          | 0          | 0     |
     And "channels[1].id" is "{channel:tomcooks}"
     And "channels[1].thumbnailUrl" is "/art/channels/{channel:tomcooks}/thumb"
     And "channels[1].thumbnails" lists the widths "88, 176, 900"

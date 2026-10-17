@@ -106,7 +106,8 @@ public sealed class SyncSchedulerTests
             new StorageOptions("/youtube", "/data/art"),
             sync,
             new DatabaseOptions("db.test", "tontuyau", "tontuyau", "p"),
-            new AccountOptions("admin", "", true));
+            new AccountOptions("admin", "", true),
+            new YouTubeOptions());
         return new SyncScheduler(
             new SyncSchedule(sync),
             run,

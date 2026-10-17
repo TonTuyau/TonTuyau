@@ -6,6 +6,157 @@
     "version": "v1"
   },
   "paths": {
+    "/api/admin/channels/{id}": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminChannelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/channels/{id}/videos": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "notChecked | onYouTube | retryLater | gone; every state when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words of the title, tags or description, 1–100 characters.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The previous page's nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "1–100 (default 24).",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAdminVideoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/dashboard": {
       "get": {
         "tags": ["Admin"],
@@ -74,6 +225,283 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/api-keys": {
+      "get": {
+        "tags": ["ApiKeys"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["ApiKeys"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/api-keys/{id}/enable": {
+      "post": {
+        "tags": ["ApiKeys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/api-keys/{id}/disable": {
+      "post": {
+        "tags": ["ApiKeys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/api-keys/{id}": {
+      "delete": {
+        "tags": ["ApiKeys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -325,6 +753,80 @@
         }
       }
     },
+    "/api/videos/{id}/comments": {
+      "get": {
+        "tags": ["Videos"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "top (YouTube's order, the default) | newest.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The previous page's nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Threads per page, 1–100 (default 20).",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/channels": {
       "get": {
         "tags": ["Channels"],
@@ -525,6 +1027,140 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/extension/connection": {
+      "get": {
+        "tags": ["Extension"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/extension/youtube-cookie": {
+      "get": {
+        "tags": ["Extension"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionCookieResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Extension"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCookieRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCookieRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeCookieResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -1346,8 +1982,16 @@
           {
             "name": "task",
             "in": "path",
-            "description": "incremental | full | applyDeletions.",
+            "description": "incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "description": "For the refreshes only: the video's or channel's YouTube id.",
             "schema": {
               "type": "string"
             }
@@ -1380,6 +2024,120 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs/{id}/resume": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/runs/{id}/hold": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1461,7 +2219,7 @@
           {
             "name": "task",
             "in": "query",
-            "description": "incremental | full | applyDeletions; every task when absent.",
+            "description": "A task's name (see POST tasks/{task}/runs); every task when absent.",
             "schema": {
               "type": "string"
             }
@@ -1643,10 +2401,449 @@
           }
         }
       }
+    },
+    "/api/admin/youtube": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/cookie/check": {
+      "post": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeCookieResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/cookie": {
+      "delete": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/ytdlp": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpStateResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["YouTube"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseYtdlpRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseYtdlpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/ytdlp/versions": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YtdlpVersionsResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/youtube/settings": {
+      "get": {
+        "tags": ["YouTube"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["YouTube"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YouTubeSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YouTubeSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminChannelResponse": {
+        "required": ["channel", "youTube", "videos"],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/ChannelCard"
+          },
+          "youTube": {
+            "$ref": "#/components/schemas/YouTubeStatusResponse"
+          },
+          "videos": {
+            "$ref": "#/components/schemas/YouTubeStateCounts"
+          }
+        }
+      },
+      "AdminVideoResponse": {
+        "required": ["video", "youTube"],
+        "type": "object",
+        "properties": {
+          "video": {
+            "$ref": "#/components/schemas/VideoCard"
+          },
+          "youTube": {
+            "$ref": "#/components/schemas/YouTubeStatusResponse"
+          }
+        }
+      },
+      "ApiKeyKind": {
+        "enum": ["browserExtension"],
+        "type": "string"
+      },
+      "ApiKeyResponse": {
+        "required": ["id", "name", "prefix", "kind", "enabled", "createdAt", "createdBy", "lastUsedAt"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApiKeyKind"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
       "ChannelCard": {
         "required": ["id", "name", "subscribers", "thumbnailUrl", "thumbnails", "videoCounts"],
         "type": "object",
@@ -1737,7 +2934,19 @@
         }
       },
       "ChannelTotals": {
-        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "total"],
+        "required": [
+          "id",
+          "name",
+          "thumbnailUrl",
+          "thumbnails",
+          "counts",
+          "gone",
+          "private",
+          "unlisted",
+          "retryLater",
+          "notChecked",
+          "total"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -1762,9 +2971,168 @@
             "type": "integer",
             "format": "int64"
           },
+          "private": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unlisted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retryLater": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "notChecked": {
+            "type": "integer",
+            "format": "int64"
+          },
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "Chapter": {
+        "required": ["startSeconds", "endSeconds", "title"],
+        "type": "object",
+        "properties": {
+          "startSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "endSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ChooseYtdlpRequest": {
+        "required": ["kind", "version"],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": ["null", "string"]
+          },
+          "version": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "CommentResponse": {
+        "required": ["id", "text", "author", "published", "likes", "pinned", "byUploader", "hearted"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "published": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "likes": {
+            "type": ["null", "integer"],
+            "format": "int64"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "byUploader": {
+            "type": "boolean"
+          },
+          "hearted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CommentsResponse": {
+        "required": ["readAt", "youTubeCount", "kept", "items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "readAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "youTubeCount": {
+            "type": ["null", "integer"],
+            "format": "int64"
+          },
+          "kept": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentThreadResponse"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CommentThreadResponse": {
+        "required": ["comment", "replies"],
+        "type": "object",
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/CommentResponse"
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            }
+          }
+        }
+      },
+      "ConnectionResponse": {
+        "required": ["version", "name"],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateApiKeyRequest": {
+        "required": ["name", "kind"],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": ["null", "string"]
+          },
+          "kind": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "CreatedApiKeyResponse": {
+        "required": ["key", "secret"],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ApiKeyResponse"
+          },
+          "secret": {
+            "type": "string"
           }
         }
       },
@@ -1787,6 +3155,22 @@
             "items": {
               "$ref": "#/components/schemas/ChannelTotals"
             }
+          }
+        }
+      },
+      "ExtensionCookieResponse": {
+        "required": ["cookie"],
+        "type": "object",
+        "properties": {
+          "cookie": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/YouTubeCookieResponse"
+              }
+            ]
           }
         }
       },
@@ -1966,6 +3350,25 @@
           }
         }
       },
+      "PageOfAdminVideoResponse": {
+        "required": ["items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminVideoResponse"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "PageOfChannelCard": {
         "required": ["items", "nextCursor", "total"],
         "type": "object",
@@ -2079,7 +3482,13 @@
           "artResizeFailed",
           "mediaMissing",
           "deleted",
-          "kept"
+          "kept",
+          "foundOnYouTube",
+          "unlistedOnYouTube",
+          "goneFromYouTube",
+          "privateOnYouTube",
+          "checkFailed",
+          "commentsRead"
         ],
         "type": "object",
         "properties": {
@@ -2136,6 +3545,30 @@
             "format": "int32"
           },
           "kept": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foundOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlistedOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "goneFromYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "privateOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checkFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commentsRead": {
             "type": "integer",
             "format": "int32"
           }
@@ -2210,6 +3643,9 @@
           "deletionsPlanned",
           "deletionsBlocked",
           "appliesTo",
+          "target",
+          "resumeAt",
+          "left",
           "indexRebuild",
           "notes",
           "cancellable"
@@ -2255,6 +3691,17 @@
           "appliesTo": {
             "type": ["null", "string"]
           },
+          "target": {
+            "type": ["null", "string"]
+          },
+          "resumeAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "left": {
+            "type": "integer",
+            "format": "int32"
+          },
           "indexRebuild": {
             "type": "boolean"
           },
@@ -2281,6 +3728,15 @@
           },
           "videos": {
             "$ref": "#/components/schemas/PageOfVideoCard"
+          }
+        }
+      },
+      "SendCookieRequest": {
+        "required": ["cookies"],
+        "type": "object",
+        "properties": {
+          "cookies": {
+            "type": ["null", "string"]
           }
         }
       },
@@ -2316,11 +3772,11 @@
         }
       },
       "SyncMode": {
-        "enum": ["incremental", "full", "applyDeletions"],
+        "enum": ["incremental", "full", "applyDeletions", "refreshVideo", "refreshChannel", "refreshChannelVideos"],
         "type": "string"
       },
       "SyncOutcome": {
-        "enum": ["running", "succeeded", "failed", "canceled"],
+        "enum": ["running", "succeeded", "failed", "canceled", "onHold"],
         "type": "string"
       },
       "SyncTrigger": {
@@ -2364,7 +3820,7 @@
         }
       },
       "TasksResponse": {
-        "required": ["lock", "runningHere", "tasks"],
+        "required": ["lock", "runningHere", "tasks", "onHold"],
         "type": "object",
         "properties": {
           "lock": {
@@ -2384,6 +3840,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TaskResponse"
+            }
+          },
+          "onHold": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
             }
           }
         }
@@ -2446,6 +3908,7 @@
           "durationSeconds",
           "views",
           "active",
+          "youTubeState",
           "thumbnailUrl",
           "thumbnails",
           "channel"
@@ -2475,6 +3938,9 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "youTubeState": {
+            "$ref": "#/components/schemas/YouTubeState"
           },
           "thumbnailUrl": {
             "type": ["null", "string"]
@@ -2538,6 +4004,7 @@
           "durationSeconds",
           "views",
           "active",
+          "youTubeState",
           "thumbnailUrl",
           "thumbnails",
           "channel",
@@ -2551,7 +4018,8 @@
           "tracks",
           "mediaUrl",
           "downloadUrl",
-          "mediaAvailable"
+          "mediaAvailable",
+          "chapters"
         ],
         "type": "object",
         "properties": {
@@ -2578,6 +4046,9 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "youTubeState": {
+            "$ref": "#/components/schemas/YouTubeState"
           },
           "thumbnailUrl": {
             "type": ["null", "string"]
@@ -2635,6 +4106,12 @@
           },
           "mediaAvailable": {
             "type": "boolean"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chapter"
+            }
           }
         }
       },
@@ -2683,12 +4160,253 @@
             "format": "int32"
           }
         }
+      },
+      "YouTubeCommentsChoice": {
+        "enum": ["off", "top", "all"],
+        "type": "string"
+      },
+      "YouTubeCookieResponse": {
+        "required": ["receivedAt", "receivedBy", "state", "checkedAt", "reason"],
+        "type": "object",
+        "properties": {
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/YouTubeCookieState"
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "YouTubeCookieState": {
+        "enum": ["unchecked", "works", "refused"],
+        "type": "string"
+      },
+      "YouTubeResponse": {
+        "required": ["cookie", "ytdlp", "deno"],
+        "type": "object",
+        "properties": {
+          "cookie": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/YouTubeCookieResponse"
+              }
+            ]
+          },
+          "ytdlp": {
+            "type": ["null", "string"]
+          },
+          "deno": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "YouTubeSettingsRequest": {
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes"],
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": ["null", "string"]
+          },
+          "commentsMax": {
+            "type": ["null", "integer"],
+            "format": "int32"
+          },
+          "pauseSeconds": {
+            "type": ["null", "integer"],
+            "format": "int32"
+          },
+          "holdMinutes": {
+            "type": ["null", "integer"],
+            "format": "int32"
+          }
+        }
+      },
+      "YouTubeSettingsResponse": {
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "changedBy", "changedAt"],
+        "type": "object",
+        "properties": {
+          "comments": {
+            "$ref": "#/components/schemas/YouTubeCommentsChoice"
+          },
+          "commentsMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pauseSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holdMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changedBy": {
+            "type": ["null", "string"]
+          },
+          "changedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
+      "YouTubeState": {
+        "enum": ["notChecked", "onYouTube", "retryLater", "gone", "private", "unlisted"],
+        "type": "string"
+      },
+      "YouTubeStateCounts": {
+        "required": ["notChecked", "onYouTube", "unlisted", "private", "retryLater", "gone"],
+        "type": "object",
+        "properties": {
+          "notChecked": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onYouTube": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unlisted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "private": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retryLater": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gone": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "YouTubeStatusResponse": {
+        "required": ["state", "checkedAt", "reason", "refreshedAt"],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/YouTubeState"
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": ["null", "string"]
+          },
+          "refreshedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
+      "YtdlpChoiceKind": {
+        "enum": ["latest", "official", "nightly"],
+        "type": "string"
+      },
+      "YtdlpChoiceResponse": {
+        "required": ["kind", "version", "chosenBy", "chosenAt"],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/YtdlpChoiceKind"
+          },
+          "version": {
+            "type": ["null", "string"]
+          },
+          "chosenBy": {
+            "type": ["null", "string"]
+          },
+          "chosenAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
+      "YtdlpStateResponse": {
+        "required": ["choice", "running", "bundled", "waiting", "checkedAt", "error"],
+        "type": "object",
+        "properties": {
+          "choice": {
+            "$ref": "#/components/schemas/YtdlpChoiceResponse"
+          },
+          "running": {
+            "type": ["null", "string"]
+          },
+          "bundled": {
+            "type": "boolean"
+          },
+          "waiting": {
+            "type": ["null", "string"]
+          },
+          "checkedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "error": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "YtdlpVersionResponse": {
+        "required": ["version", "publishedAt"],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "YtdlpVersionsResponse": {
+        "required": ["official", "nightly"],
+        "type": "object",
+        "properties": {
+          "official": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YtdlpVersionResponse"
+            }
+          },
+          "nightly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YtdlpVersionResponse"
+            }
+          }
+        }
       }
     }
   },
   "tags": [
     {
+      "name": "AdminChannels"
+    },
+    {
       "name": "Admin"
+    },
+    {
+      "name": "ApiKeys"
     },
     {
       "name": "Auth"
@@ -2703,6 +4421,9 @@
       "name": "Channels"
     },
     {
+      "name": "Extension"
+    },
+    {
       "name": "Media"
     },
     {
@@ -2713,6 +4434,9 @@
     },
     {
       "name": "Tasks"
+    },
+    {
+      "name": "YouTube"
     }
   ]
 }

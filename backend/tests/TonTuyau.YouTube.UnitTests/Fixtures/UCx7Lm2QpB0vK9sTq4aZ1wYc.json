@@ -1,0 +1,16 @@
+{
+  "id": "UCx7Lm2QpB0vK9sTq4aZ1wYc",
+  "title": "Under the City - Videos",
+  "_type": "playlist",
+  "channel_id": "UCx7Lm2QpB0vK9sTq4aZ1wYc",
+  "channel": "Under the City",
+  "uploader_id": "@underthecity",
+  "description": "Infrastructure, from below.",
+  "channel_follower_count": 412000,
+  "tags": ["engineering", "cities"],
+  "thumbnails": [
+    { "url": "https://yt3.googleusercontent.com/banner=w1060", "width": 1060, "height": 175, "id": "banner_uncropped" },
+    { "url": "https://yt3.googleusercontent.com/avatar=s900", "width": 900, "height": 900, "id": "avatar_uncropped" }
+  ],
+  "entries": []
+}

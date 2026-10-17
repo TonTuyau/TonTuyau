@@ -6,6 +6,7 @@ using TonTuyau.Application.Browse;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.UnitTests;
 
@@ -61,6 +62,7 @@ public sealed class ApiMapperTests
                 "durationSeconds",
                 "views",
                 "active",
+                "youTubeState",
                 "thumbnailUrl",
                 "thumbnails",
                 "channel",
@@ -70,6 +72,7 @@ public sealed class ApiMapperTests
         Assert.Equal("2026-04-24T15:01:48Z", json["published"]!.GetValue<string>());
         Assert.Equal(1914, json["durationSeconds"]!.GetValue<long>());
         Assert.Equal(JsonValueKind.Number, json["views"]!.GetValueKind());
+        Assert.Equal("unlisted", json["youTubeState"]!.GetValue<string>());
 
         // Subscribers are for the watch page only (contract v1.1): a card's channel stays as it was.
         Assert.Equal(
@@ -95,7 +98,8 @@ public sealed class ApiMapperTests
                 new MediaTrack(MediaTrackKind.Video, "av1", 5370710, 3840, 2160),
                 new MediaTrack(MediaTrackKind.Audio, "opus", 110978, null, null),
             ],
-            false);
+            false,
+            [new YouTubeChapter(0, 95.5, "Intro")]);
 
         JsonObject json = Serialize(ApiMapper.ToDto(view));
 
@@ -108,6 +112,7 @@ public sealed class ApiMapperTests
                 "durationSeconds",
                 "views",
                 "active",
+                "youTubeState",
                 "thumbnailUrl",
                 "thumbnails",
                 "channel",
@@ -122,6 +127,7 @@ public sealed class ApiMapperTests
                 "mediaUrl",
                 "downloadUrl",
                 "mediaAvailable",
+                "chapters",
             ],
             json.Select(kv => kv.Key));
         Assert.Equal("2026-10-01T07:13:01Z", json["downloaded"]!.GetValue<string>());
@@ -267,6 +273,7 @@ public sealed class ApiMapperTests
         TimeSpan.FromSeconds(1914),
         74198,
         true,
+        YouTubeState.Unlisted,
         Art(thumbnail),
         new ChannelRefView(ChannelId, "Tom Cooks", Art(channelThumbnail), 224000));
 

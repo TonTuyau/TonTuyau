@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Ytdlp.NET" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TonTuyau.Application\TonTuyau.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TonTuyau.YouTube.UnitTests" />
+  </ItemGroup>
+
+</Project>

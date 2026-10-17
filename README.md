@@ -28,7 +28,7 @@ Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#i
 
 ## Install with Docker
 
-TonTuyau runs as four containers: `tontuyau-es` (its own Elasticsearch), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/eclegv/tontuyau-backend` and `ghcr.io/eclegv/tontuyau-frontend` (`linux/amd64`).
+TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL, for the accounts), `tontuyau-backend` (the API, the sync and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/tontuyau/tontuyau-backend` and `ghcr.io/tontuyau/tontuyau-frontend` (`linux/amd64`).
 
 ### Prerequisites
 
@@ -130,7 +130,7 @@ Rather than editing `docker-compose.yml`, you can name the folders in a `docker-
 
 ```yaml
 services:
-  tontuyau-es:
+  tontuyau-reservoir:
     volumes:
       - /srv/tontuyau/es:/usr/share/elasticsearch/data
   tontuyau-backend:
@@ -147,6 +147,7 @@ services:
 | `tontuyau-es-data` | TonTuyau's index (Elasticsearch) | Not needed: a full sync rebuilds it from TubeArchivist (about 13 minutes) |
 | `tontuyau-art` | the images copied from TubeArchivist and their resized versions (about 6 GB) | Optional: the next full sync copies and resizes what's missing (about 20 minutes) |
 | `tontuyau-sync-logs` | full runs' deletion lists | Optional, small |
+| `tontuyau-tools` | the yt-dlp versions TonTuyau downloaded (1.5), about 40 MB | Not needed: downloaded again |
 | `TONTUYAU_MEDIA_PATH` (a folder, not a volume) | your videos | Yours: TonTuyau never writes there |
 | `.env` | the settings and secrets | **Yes** (it holds the TubeArchivist token and the passwords: keep the copy private) |
 
@@ -162,6 +163,9 @@ docker exec tontuyau-backend tontuyau sync incremental
 docker exec tontuyau-backend tontuyau sync full
 docker exec tontuyau-backend tontuyau sync apply-deletions <run>
 docker exec tontuyau-backend tontuyau index rebuild
+docker exec tontuyau-backend tontuyau youtube video <id>
+docker exec tontuyau-backend tontuyau youtube channel <id>
+docker exec tontuyau-backend tontuyau youtube channel-videos <id>
 docker exec tontuyau-backend tontuyau --version
 ```
 
@@ -171,9 +175,9 @@ See [Sync and command line](#sync-and-command-line) for what each does and the e
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs only on **pull requests** to `main` and on **version tags** (to save Actions minutes: pushing a branch runs nothing, its pull request does; a newer push to an open pull request cancels the run in progress). Each run does `scripts/check.sh` and builds both images. Images are **published only from a version tag** `vX.Y.Z`, when everything passed, as `X.Y.Z`, `X.Y` and `latest`; a pull request builds them without pushing. There are no `main` or `sha-…` image tags any more.
 
-**One-time step after the first push to GHCR** (GitHub creates a new package as private, the first time a version tag publishes it): for each of `tontuyau-backend` and `tontuyau-frontend`, open github.com → your profile → **Packages** → the package → **Package settings**:
+**One-time step after the first push to GHCR** (GitHub creates a new package as private, the first time a version tag publishes it): for each of `tontuyau-backend` and `tontuyau-frontend`, open github.com/TonTuyau → **Packages** → the package → **Package settings**:
 1. **Danger Zone → Change visibility → Public** (QA13-3), so the VM pulls without logging in.
-2. Check that the package is linked to `Eclegv/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
+2. Check that the package is linked to `TonTuyau/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
 
 Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`. A pre-release tag (`v1.3.0-alpha.1`) publishes only its own `1.3.0-alpha.1`, to try a version before its release.
 
@@ -189,7 +193,7 @@ cp .env.example .env    # then fill in the values, and uncomment the "Developmen
 Run locally:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-es tontuyau-db   # localhost:9200, :5432
+docker compose --env-file .env -f docker/docker-compose.yml -f docker/compose.dev.yml up -d tontuyau-reservoir tontuyau-db   # localhost:9200, :5432
 set -a; . ./.env; set +a; cd backend && dotnet run --project src/TonTuyau.Api   # http://localhost:5080
 cd frontend && pnpm install && pnpm dev                              # http://localhost:5173, proxies /api /media /art
 ```
@@ -210,7 +214,7 @@ The front's API types are generated from the backend's OpenAPI document: `fronte
 
 ## Configuration
 
-All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](.env.example)). The backend **refuses to start** with a missing or invalid value and says which one. In the Docker stack, `.env` holds them; the compose file fixes `TONTUYAU_ES_URL` (`http://tontuyau-es:9200`) and the three paths (`/youtube`, `/data/art`, `/data/logs/sync`), and passes every other one through (empty = the default below).
+All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](.env.example)). The backend **refuses to start** with a missing or invalid value and says which one. In the Docker stack, `.env` holds them; the compose file fixes `TONTUYAU_ES_URL` (`http://tontuyau-reservoir:9200`) and the three paths (`/youtube`, `/data/art`, `/data/logs/sync`), and passes every other one through (empty = the default below).
 
 | Variable | Required | Default |
 |---|---|---|
@@ -241,6 +245,9 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_ADMIN_PASSWORD` | at the first start | its password; read only while there's no account at all |
 | `TONTUYAU_COOKIE_SECURE` | no | `true`: the login cookie only travels over HTTPS; `false` to browse over plain `http://` |
 | `TONTUYAU_CLI_SOCKET` | no | `/tmp/tontuyau.sock`: the Unix socket the command line reaches the backend through, inside the container (empty: none, and the command line can't run anything) |
+| `TONTUYAU_YTDLP_PATH` | no | `yt-dlp`: the yt-dlp program TonTuyau reads YouTube with (1.5); the image has it, pinned |
+| `TONTUYAU_DENO_PATH` | no | `deno`: the Deno program yt-dlp runs YouTube's JavaScript with; the image has it, pinned |
+| `TONTUYAU_TOOLS_ROOT` | no | `/data/tools`: where the yt-dlp versions TonTuyau downloads go (a volume in the stack) |
 | `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 | `TONTUYAU_PUBLIC_URL` | no | empty: no link previews. The address people reach TonTuyau at (`https://tontuyau.example.net`, no path), read by the front server: a link shared in Discord, Messenger… then shows the channel, the title and the video. Their servers fetch the page and the video there |
 
@@ -298,7 +305,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused. Only one sync runs at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `sync status` reads Elasticsearch itself. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it).
+The commands that run a sync show their progress while they run, then the report: see [The first full sync](#4-the-first-full-sync). Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another sync is running, 4 refused, 5 a refresh put on hold (YouTube refused; 1.5). Only one sync runs at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `sync status` reads Elasticsearch itself. `apply-deletions` is a run of its own in the history, for the full run whose list it applies (the full run's record stays as that run left it). `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the syncs (one at a time with them).
 
 ## Before going public
 

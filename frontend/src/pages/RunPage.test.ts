@@ -49,6 +49,34 @@ describe('RunPage', () => {
     expect(screen.getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/admin/tasks')
   })
 
+  it('links a refresh to what it read on YouTube, and shows what YouTube answered', async () => {
+    const channel = 'UCmw5b3sYz6v1sFkwM1HLs1g'
+    const refresh = run({ task: 'refreshChannelVideos', target: channel })
+    refresh.counts = {
+      ...refresh.counts,
+      channelsRead: 1,
+      foundOnYouTube: 50,
+      unlistedOnYouTube: 4,
+      goneFromYouTube: 2,
+      privateOnYouTube: 3,
+      checkFailed: 10,
+    }
+    fakeApi({ [`/api/admin/runs/${refresh.id}`]: refresh, [`/api/admin/runs/${refresh.id}/log`]: log([]) })
+    render(RunPage, { id: refresh.id })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Refresh a channel and its videos', level: 1 }),
+    ).toBeInTheDocument()
+    const result = screen.getByRole('region', { name: 'Result' })
+    expect(within(result).getByRole('link', { name: channel })).toHaveAttribute('href', `/channel/${channel}`)
+    expect(within(result).getByText('Found on YouTube').nextElementSibling).toHaveTextContent('50')
+    expect(within(result).getByText('Of which unlisted').nextElementSibling).toHaveTextContent('4')
+    expect(within(result).getByText('Gone from YouTube').nextElementSibling).toHaveTextContent('2')
+    expect(within(result).getByText('Private on YouTube').nextElementSibling).toHaveTextContent('3')
+    expect(within(result).getByText('To retry (no answer to trust)').nextElementSibling).toHaveTextContent('10')
+    expect(within(result).queryByText('Art copied')).not.toBeInTheDocument()
+  })
+
   it('links an apply run to the full run whose list it applied, and shows its own counts', async () => {
     const apply = run({ task: 'applyDeletions', appliesTo: id, deletionsPlanned: 312 })
     apply.counts = { ...apply.counts, deleted: 303, kept: 9 }
@@ -183,6 +211,72 @@ describe('RunPage', () => {
     expect(screen.getByText(/It stops after its current step/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cancel the run' }))
     await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${running.id}/cancel`)).toHaveLength(1))
+  })
+
+  it('a refresh on hold: when it resumes by itself, Resume now, and why a resume was refused', async () => {
+    const user = userEvent.setup()
+    const held = run({
+      task: 'refreshVideo',
+      state: 'onHold',
+      target: 'alpha-02___',
+      resumeAt: '2026-10-12T13:00:07Z',
+      left: 1,
+      cancellable: true,
+      notes: ['On hold at 12:00:07 UTC, 1 left to read: YouTube refused (Sign in to confirm you’re not a bot).'],
+    })
+    const api = fakeApi({
+      [`/api/admin/runs/${held.id}`]: held,
+      [`/api/admin/runs/${held.id}/log`]: log([line(1, 'Refresh on hold.')]),
+      [`/api/admin/runs/${held.id}/resume`]: problemResponse(409, 'A sync is already running.', 'Conflict'),
+    })
+    render(RunPage, { id: held.id })
+
+    const bar = await screen.findByRole('region', { name: 'On hold' })
+    expect(bar).toHaveTextContent('61 read, 1 left.')
+    expect(within(bar).queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel the run' })).not.toBeInTheDocument()
+    await user.click(within(bar).getByRole('button', { name: 'Resume now' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not resumed: A sync is already running.')
+    expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
+  })
+
+  it('puts a refresh going on on hold by hand, asked first; then it waits for Resume now', async () => {
+    const user = userEvent.setup()
+    const going = run({ task: 'refreshChannelVideos', state: 'running', finishedAt: null, cancellable: true })
+    let held = false
+    const api = fakeApi({
+      [`/api/admin/runs/${going.id}`]: () =>
+        held ? { ...going, state: 'onHold', finishedAt: '2026-10-12T12:00:07Z', resumeAt: null, left: 4 } : going,
+      [`/api/admin/runs/${going.id}/log`]: log([line(1, 'Refresh started.')], false),
+      [`/api/admin/runs/${going.id}/hold`]: () => {
+        held = true
+        return going
+      },
+    })
+    render(RunPage, { id: going.id })
+
+    await user.click(await screen.findByRole('button', { name: 'Put on hold' }))
+    const ask = screen.getByRole('group', { name: 'Put this refresh on hold?' })
+    expect(ask).toHaveTextContent('it never resumes by itself')
+    await user.click(within(ask).getByRole('button', { name: 'Put on hold' }))
+
+    const bar = await screen.findByRole('region', { name: 'On hold' })
+    expect(bar).toHaveTextContent('61 read, 4 left. Put on hold by hand on')
+    expect(bar).toHaveTextContent('it waits for you: Resume now, or cancel it.')
+    expect(api.requests(`/api/admin/runs/${going.id}/hold`)).toHaveLength(1)
+  })
+
+  it('offers no hold for a sync going on: only Cancel', async () => {
+    const going = run({ state: 'running', finishedAt: null, cancellable: true })
+    fakeApi({
+      [`/api/admin/runs/${going.id}`]: going,
+      [`/api/admin/runs/${going.id}/log`]: log([line(1, 'Sync run started.')], false),
+    })
+    render(RunPage, { id: going.id })
+
+    expect(await screen.findByRole('button', { name: 'Cancel the run' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Put on hold' })).not.toBeInTheDocument()
   })
 
   it('has no Cancel for a run over, or going on elsewhere', async () => {

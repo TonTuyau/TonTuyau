@@ -45,6 +45,8 @@ public static class SyncProgressText
         SyncPhase.Deletions or SyncPhase.DeletionsOverLimit => "deletions",
         SyncPhase.ArtRetry => "art retry",
         SyncPhase.IndexSwitch => "index switch",
+        SyncPhase.YouTubeChannel => "yt channel",
+        SyncPhase.YouTubeVideos => "yt videos",
         _ => phase.ToString(),
     };
 
@@ -61,8 +63,16 @@ public static class SyncProgressText
         SyncPhase.DeletionsOverLimit => $"{Number(p.Total ?? 0)} planned, over the limit: none made",
         SyncPhase.ArtRetry => $"{OutOf(p.Done, p.Total)} images retried",
         SyncPhase.IndexSwitch => "switching to the new indices",
+        SyncPhase.YouTubeChannel => "reading the channel",
+        SyncPhase.YouTubeVideos => $"{OutOf(p.Done, p.Total)} read" + YouTube(p.Counts),
         _ => Number(p.Done),
     };
+
+    /// <summary>What YouTube answered so far (a refresh, 1.5).</summary>
+    private static string YouTube(SyncCounts counts) =>
+        $" · {Number(counts.FoundOnYouTube)} found ({Number(counts.UnlistedOnYouTube)} unlisted), "
+        + $"{Number(counts.GoneFromYouTube)} gone, "
+        + $"{Number(counts.PrivateOnYouTube)} private, {Number(counts.CheckFailed)} to retry";
 
     /// <summary>The art made so far, once there's some (later full runs mostly have none).</summary>
     private static string Art(SyncCounts counts) =>

@@ -18,6 +18,9 @@ public sealed class EsClientTests
         [SyncMode.Incremental] = "incremental",
         [SyncMode.Full] = "full",
         [SyncMode.ApplyDeletions] = "apply_deletions",
+        [SyncMode.RefreshVideo] = "refresh_video",
+        [SyncMode.RefreshChannel] = "refresh_channel",
+        [SyncMode.RefreshChannelVideos] = "refresh_channel_videos",
     };
 
     private static readonly Dictionary<SyncOutcome, string> Outcomes = new()
@@ -26,6 +29,7 @@ public sealed class EsClientTests
         [SyncOutcome.Succeeded] = "succeeded",
         [SyncOutcome.Failed] = "failed",
         [SyncOutcome.Canceled] = "canceled",
+        [SyncOutcome.OnHold] = "on_hold",
     };
 
     [Theory, CombinatorialData]
@@ -45,6 +49,20 @@ public sealed class EsClientTests
         Assert.Contains($"\"mode\":\"{Modes[mode]}\"", json, StringComparison.Ordinal);
         Assert.Contains($"\"outcome\":\"{Outcomes[outcome]}\"", json, StringComparison.Ordinal);
         Assert.Contains("\"started_at\":", json, StringComparison.Ordinal);
+    }
+
+    [Theory, CombinatorialData]
+    public void The_run_history_looks_for_a_task_as_it_is_stored(SyncMode mode)
+    {
+        SyncRun run = new()
+        {
+            Id = "run-x",
+            Mode = mode,
+            Trigger = SyncTrigger.Cli,
+            StartedAt = DateTimeOffset.UnixEpoch
+        };
+
+        Assert.Contains($"\"mode\":\"{TaskRepository.ModeName(mode)}\"", Serialize(run), StringComparison.Ordinal);
     }
 
     [Fact]

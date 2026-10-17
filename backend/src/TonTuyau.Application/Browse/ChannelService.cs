@@ -55,7 +55,7 @@ public sealed class ChannelService(
             channel.Description,
             cards.Image(channel.BannerPath, stored.BannerArt, ArtSizes.ChannelBanner),
             channel.Tags,
-            channel.Active);
+            !channel.GoneFromYouTube);
     }
 
     /// <summary>One tab of a channel: its videos of one type (default: videos), latest first by default.</summary>

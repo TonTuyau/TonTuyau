@@ -23,4 +23,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Stand-ins for yt-dlp and Deno (1.5), for the backend under test. -->
+    <None Include="FakeTools\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

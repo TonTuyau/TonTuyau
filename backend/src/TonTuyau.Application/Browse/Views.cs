@@ -1,5 +1,6 @@
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Browse;
 
@@ -10,6 +11,8 @@ namespace TonTuyau.Application.Browse;
 /// <param name="Subscribers">0 when the channel isn't in the store (only the watch page shows it).</param>
 public sealed record ChannelRefView(string Id, string Name, ArtVersions? Thumbnail, long Subscribers);
 
+/// <param name="Active">False only when TonTuyau confirmed the video is gone from YouTube (1.5).</param>
+/// <param name="YouTubeState">TonTuyau's state of it on YouTube (1.5): visitors see gone, private and unlisted.</param>
 public sealed record VideoCardView(
     string Id,
     string Title,
@@ -18,6 +21,7 @@ public sealed record VideoCardView(
     TimeSpan Duration,
     long Views,
     bool Active,
+    YouTubeState YouTubeState,
     ArtVersions? Thumbnail,
     ChannelRefView Channel);
 
@@ -33,7 +37,8 @@ public sealed record VideoDetailView(
     long FileSize,
     string MimeType,
     IReadOnlyList<MediaTrack> Tracks,
-    bool MediaAvailable);
+    bool MediaAvailable,
+    IReadOnlyList<YouTubeChapter> Chapters);
 
 public sealed record ChannelCardView(
     string Id,
@@ -42,6 +47,7 @@ public sealed record ChannelCardView(
     ArtVersions? Thumbnail,
     TypeCounts VideoCounts);
 
+/// <param name="Active">False only when TonTuyau confirmed the channel is gone from YouTube (1.5).</param>
 public sealed record ChannelDetailView(
     ChannelCardView Card,
     string Description,

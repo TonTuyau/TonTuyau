@@ -54,6 +54,11 @@ const contract: Endpoint[] = [
   },
   { doc: '/api/videos/{id}', path: new RegExp(`^/api/videos/${segment}$`), params: {} },
   {
+    doc: '/api/videos/{id}/comments',
+    path: new RegExp(`^/api/videos/${segment}/comments$`),
+    params: { sort: { kind: 'enum', values: ['top', 'newest'] }, cursor: { kind: 'cursor' }, size: size(100) },
+  },
+  {
     doc: '/api/channels',
     path: /^\/api\/channels$/,
     params: {
@@ -103,12 +108,27 @@ const contract: Endpoint[] = [
     doc: '/api/admin/runs',
     path: /^\/api\/admin\/runs$/,
     params: {
-      task: { kind: 'enum', values: ['incremental', 'full', 'applyDeletions'] },
+      task: {
+        kind: 'enum',
+        values: ['incremental', 'full', 'applyDeletions', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
+      },
       before: { kind: 'cursor' },
       size: size(100),
     },
   },
   { doc: '/api/admin/runs/{id}', path: new RegExp(`^/api/admin/runs/${segment}$`), params: {} },
+  { doc: '/api/admin/youtube', path: /^\/api\/admin\/youtube$/, params: {} },
+  { doc: '/api/admin/channels/{id}', path: new RegExp(`^/api/admin/channels/${segment}$`), params: {} },
+  {
+    doc: '/api/admin/channels/{id}/videos',
+    path: new RegExp(`^/api/admin/channels/${segment}/videos$`),
+    params: {
+      state: { kind: 'enum', values: ['notChecked', 'onYouTube', 'retryLater', 'gone'] },
+      q: { kind: 'text', min: 1, max: 100 },
+      cursor: { kind: 'cursor' },
+      size: size(100),
+    },
+  },
   {
     doc: '/api/admin/runs/{id}/log',
     path: new RegExp(`^/api/admin/runs/${segment}/log$`),
@@ -287,6 +307,8 @@ const urls = [
   '/results?q=a&sort=relevance',
   '/results',
   '/admin',
+  `/admin/channels/${channelId}`,
+  `/admin/channels/${channelId}?state=gone`,
   '/admin/tasks',
   '/admin/tasks?task=full',
   '/admin/runs/run-20261012T120000Z-3f9a1c',

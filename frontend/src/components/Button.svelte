@@ -5,6 +5,7 @@
   let {
     href,
     download,
+    type = 'button',
     variant = 'tonal',
     onclick,
     disabled = false,
@@ -12,6 +13,8 @@
   }: {
     href?: string
     download?: boolean
+    /** `submit` in a form (1.5: creating an API key). */
+    type?: 'button' | 'submit'
     variant?: 'tonal' | 'filled'
     onclick?: () => void
     disabled?: boolean
@@ -22,7 +25,7 @@
 {#if href}
   <a class="button {variant}" {href} download={download ? '' : undefined}>{@render children()}</a>
 {:else}
-  <button type="button" class="button {variant}" {onclick} {disabled}>{@render children()}</button>
+  <button {type} class="button {variant}" {onclick} {disabled}>{@render children()}</button>
 {/if}
 
 <style>

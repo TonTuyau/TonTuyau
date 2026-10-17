@@ -15,7 +15,7 @@ describe('WatchPage', () => {
 
   it('shows the video facts from the API and the download link', async () => {
     fakeApi({
-      '/api/videos/vid00000001': videoDetail({ active: false }),
+      '/api/videos/vid00000001': videoDetail({ active: false, youTubeState: 'gone' }),
       '/api/channels/UCtest/videos': page([videoCard({ id: 'other', title: 'Another one' })]),
     })
     goTo('/watch?v=vid00000001')
@@ -23,9 +23,9 @@ describe('WatchPage', () => {
     render(WatchPage, { probe: probably })
 
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Crème brûlée : la recette')
-    expect(screen.getByText('Unavailable on YouTube')).toHaveAttribute(
+    expect(screen.getByText('Gone from YouTube')).toHaveAttribute(
       'title',
-      'TubeArchivist can no longer reach this video on YouTube; this is the archived copy.',
+      'YouTube says this video was removed: this is the archived copy.',
     )
     expect(screen.getByText(/this is the archived copy/, { selector: '.hint' })).toBeInTheDocument()
     expect(screen.getByText(/74,198 views/)).toBeInTheDocument()
@@ -300,6 +300,132 @@ describe('WatchPage', () => {
 
     expect(await screen.findByText('File unavailable')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Download/ })).not.toBeInTheDocument()
+  })
+
+  describe('chapters and comments (1.5)', () => {
+    const chapters = [
+      { startSeconds: 0, endSeconds: 95, title: 'A street drain' },
+      { startSeconds: 95, endSeconds: 400, title: "Belgrand's galleries" },
+      { startSeconds: 400, endSeconds: 1914, title: 'The 1910 flood' },
+    ]
+    const media = () => document.querySelector('video') as HTMLVideoElement
+    const comment = (id: string, text: string, more: Record<string, unknown> = {}) => ({
+      id,
+      text,
+      author: '@viewer',
+      published: '2026-10-01T08:00:00Z',
+      likes: 12,
+      pinned: false,
+      byUploader: false,
+      hearted: false,
+      ...more,
+    })
+    const comments = (overrides: Record<string, unknown> = {}) => ({
+      readAt: '2026-10-14T08:00:00Z',
+      youTubeCount: 1284,
+      kept: 500,
+      items: [
+        {
+          comment: comment('c1', 'Thanks for watching! The flood is at 6:40.', { pinned: true, byUploader: true }),
+          replies: [comment('c1.r1', 'Great video', { author: '@jeanne' })],
+        },
+        { comment: comment('c2', 'x'.repeat(400), { hearted: true }), replies: [] },
+      ],
+      nextCursor: null,
+      total: 2,
+      ...overrides,
+    })
+    const backend = (answer: unknown) =>
+      fakeApi({
+        '/api/videos/vid00000001': videoDetail({ chapters, durationSeconds: 1914 }),
+        '/api/channels/UCtest/videos': page([]),
+        '/api/videos/vid00000001/comments': answer,
+      })
+
+    it('shows the chapters in the description, always, the one playing outlined', async () => {
+      backend(comments({ readAt: null, items: [], total: 0 }))
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      const list = await screen.findByRole('region', { name: 'Chapters' })
+      const links = within(list).getAllByRole('link')
+      expect(links.map((link) => link.getAttribute('href'))).toEqual([
+        '/watch?v=vid00000001',
+        '/watch?v=vid00000001&t=95',
+        '/watch?v=vid00000001&t=400',
+      ])
+      expect(links[0]).toHaveAttribute('aria-current', 'time')
+
+      media().currentTime = 470
+      await fireEvent.timeUpdate(media())
+      expect(within(list).getByRole('link', { name: /The 1910 flood/ })).toHaveAttribute('aria-current', 'time')
+      expect(links[0]).not.toHaveAttribute('aria-current')
+    })
+
+    it('a chapter seeks the player there, without leaving the page', async () => {
+      vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+      backend(comments({ readAt: null, items: [], total: 0 }))
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      await fireEvent.click(await screen.findByRole('link', { name: /Belgrand's galleries/ }))
+
+      expect(media().currentTime).toBe(95)
+      expect(location.search).toBe('?v=vid00000001')
+    })
+
+    it('shows no comments at all when TonTuyau never read them', async () => {
+      backend(comments({ readAt: null, items: [], total: 0, youTubeCount: null, kept: 0 }))
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      await screen.findByRole('region', { name: 'Chapters' })
+      await tick()
+      expect(screen.queryByRole('heading', { name: 'Comments' })).not.toBeInTheDocument()
+    })
+
+    it('says so when it read them and there were none', async () => {
+      backend(comments({ items: [], total: 0, kept: 0, youTubeCount: 0 }))
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      expect(await screen.findByText('No comments under this video.')).toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Sort comments' })).not.toBeInTheDocument()
+    })
+
+    it('shows the comments: pinned, by the channel, hearted, answers on demand, long ones folded', async () => {
+      backend(comments())
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      const section = await screen.findByRole('region', { name: 'Comments' })
+      expect(within(section).getByText('1,284 on YouTube')).toBeInTheDocument()
+      expect(within(section).getByText(/500 kept, answers included/)).toBeInTheDocument()
+      expect(within(section).getByText('Pinned by Tom Cooks')).toBeInTheDocument()
+      expect(within(section).getByText('♥ by Tom Cooks')).toBeInTheDocument()
+      expect(within(section).getByRole('link', { name: '6:40' })).toHaveAttribute('href', '/watch?v=vid00000001&t=400')
+      expect(within(section).queryByText('Great video')).not.toBeInTheDocument()
+
+      await fireEvent.click(within(section).getByRole('button', { name: '1 reply' }))
+      expect(within(section).getByText('Great video')).toBeInTheDocument()
+
+      await fireEvent.click(within(section).getByRole('button', { name: '…more' }))
+      expect(within(section).getByRole('button', { name: 'Show less' })).toBeInTheDocument()
+    })
+
+    it('asks for the newest first when chosen', async () => {
+      const api = backend(comments())
+      goTo('/watch?v=vid00000001')
+      render(WatchPage, { probe: probably })
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Newest' }))
+
+      await vi.waitFor(() =>
+        expect(
+          api.requests('/api/videos/vid00000001/comments').some((url) => url.searchParams.get('sort') === 'newest'),
+        ).toBe(true),
+      )
+    })
   })
 
   describe('timecodes in the description (1.1.0)', () => {

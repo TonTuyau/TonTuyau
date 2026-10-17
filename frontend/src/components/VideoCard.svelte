@@ -3,13 +3,14 @@
   // `compact`: the watch page side column. Shows exactly the VideoCard fields, formatted.
   import type { VideoCard } from '../lib/api/types'
   import { formatAge, formatCompact } from '../lib/format'
-  import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
+  import { i18n, tp } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
   import { videoHref } from '../lib/shortsPlayer.svelte'
   import Avatar from './Avatar.svelte'
-  import Badge from './Badge.svelte'
+  import YouTubeStateBadge from './YouTubeStateBadge.svelte'
   import Thumbnail from './Thumbnail.svelte'
   import { imageSizes } from '../lib/srcset'
+  import { isVisitorState } from '../lib/youTubeStates'
 
   let {
     video,
@@ -51,8 +52,8 @@
         <a class="channel" href={channelUrl}>{video.channel.name}</a>
         <p class="meta">{views} • <time datetime={video.published}>{age}</time></p>
       {/if}
-      {#if !video.active}
-        <p class="badge"><Badge hint={t('badge.inactiveHint')}>{t('badge.inactive')}</Badge></p>
+      {#if isVisitorState(video.youTubeState)}
+        <p class="badge"><YouTubeStateBadge state={video.youTubeState} forVisitors /></p>
       {/if}
     </div>
   </div>

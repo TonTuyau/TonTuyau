@@ -17,8 +17,9 @@
   import { pageTitle } from '../lib/title.svelte'
   import { ratioCss, type Ratio } from '../lib/videoRatio'
   import { WheelGesture, wheelPixels } from '../lib/wheelGesture'
+  import { isVisitorState } from '../lib/youTubeStates'
   import Avatar from '../components/Avatar.svelte'
-  import Badge from '../components/Badge.svelte'
+  import YouTubeStateBadge from '../components/YouTubeStateBadge.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Icon from '../components/Icon.svelte'
   import MissingState from '../components/MissingState.svelte'
@@ -211,8 +212,8 @@
             </a>
             <h1 class="title">{video.title}</h1>
             <p class="meta">{tp('count.views', video.views, formatCompact(video.views, lang))}</p>
-            {#if !video.active}
-              <p><Badge hint={t('badge.inactiveHint')}>{t('badge.inactive')}</Badge></p>
+            {#if isVisitorState(video.youTubeState)}
+              <p><YouTubeStateBadge state={video.youTubeState} forVisitors /></p>
             {/if}
           </div>
         {/if}

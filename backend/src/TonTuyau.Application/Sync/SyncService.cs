@@ -6,6 +6,7 @@ using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.TubeArchivist;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Sync;
 
@@ -23,6 +24,7 @@ public sealed partial class SyncService(
     IArtResizer resizer,
     IMediaLibrary media,
     IDeletionLog deletionLog,
+    IYouTubeFactsSource youTubeFacts,
     IndexRebuildState rebuildState,
     TonTuyauOptions options,
     TimeProvider clock,
@@ -658,15 +660,16 @@ public sealed partial class SyncService(
         LogRejected(page.Rejected);
         context.Rejected(page.Rejected);
 
-        UpsertResult result = await videos.UpsertAsync(page.Items, runId, ct).ConfigureAwait(false);
-        TypeCounts createdByType = CountByType(page.Items, result.CreatedIds);
+        IReadOnlyList<Video> items = await WithFactsAsync(page.Items, ct).ConfigureAwait(false);
+        UpsertResult result = await videos.UpsertAsync(items, runId, ct).ConfigureAwait(false);
+        TypeCounts createdByType = CountByType(items, result.CreatedIds);
         context.Count(c => Add(c, result) with { CreatedByType = Add(c.CreatedByType, createdByType) });
         if (runId is not null)
         {
             await MarkRejectedSeenAsync(page.Rejected, id => videos.MarkSeenAsync(id, runId, ct)).ConfigureAwait(false);
         }
 
-        foreach (Video video in page.Items)
+        foreach (Video video in items)
         {
             context.SawDownloaded(video.Downloaded);
             await CopyArtAsync(video.ThumbnailPath, context).ConfigureAwait(false);
@@ -681,7 +684,25 @@ public sealed partial class SyncService(
             }
         }
 
-        await ResizeArtAsync([.. page.Items.Select(v => v.ThumbnailPath)], context).ConfigureAwait(false);
+        await ResizeArtAsync([.. items.Select(v => v.ThumbnailPath)], context).ConfigureAwait(false);
+    }
+
+    /// <summary>TonTuyau's own facts laid over TubeArchivist's videos (<see cref="YouTubeOverlay"/>).</summary>
+    private async Task<IReadOnlyList<Video>> WithFactsAsync(IReadOnlyList<Video> items, CancellationToken ct)
+    {
+        IReadOnlyDictionary<string, VideoFacts> facts = await youTubeFacts
+            .GetVideosAsync([.. items.Select(v => v.Id)], ct)
+            .ConfigureAwait(false);
+        return [.. items.Select(v => YouTubeOverlay.On(v, facts.GetValueOrDefault(v.Id)))];
+    }
+
+    /// <summary>TonTuyau's own facts laid over TubeArchivist's channels (<see cref="YouTubeOverlay"/>).</summary>
+    private async Task<IReadOnlyList<Channel>> WithFactsAsync(IReadOnlyList<Channel> items, CancellationToken ct)
+    {
+        IReadOnlyDictionary<string, ChannelFacts> facts = await youTubeFacts
+            .GetChannelsAsync([.. items.Select(c => c.Id)], ct)
+            .ConfigureAwait(false);
+        return [.. items.Select(c => YouTubeOverlay.On(c, facts.GetValueOrDefault(c.Id)))];
     }
 
     private async Task ProcessChannelsAsync(Page<Channel> page, string runId, RunContext context)
@@ -690,15 +711,16 @@ public sealed partial class SyncService(
         context.Count(c => c with { ChannelsRead = c.ChannelsRead + page.Items.Count + page.Rejected.Count });
         LogRejected(page.Rejected);
         context.Rejected(page.Rejected);
-        await channels.UpsertAsync(page.Items, runId, ct).ConfigureAwait(false);
+        IReadOnlyList<Channel> items = await WithFactsAsync(page.Items, ct).ConfigureAwait(false);
+        await channels.UpsertAsync(items, runId, ct).ConfigureAwait(false);
         await MarkRejectedSeenAsync(page.Rejected, id => channels.MarkSeenAsync(id, runId, ct)).ConfigureAwait(false);
-        foreach (Channel channel in page.Items)
+        foreach (Channel channel in items)
         {
             context.KnownChannels.Add(channel.Id);
             await CopyChannelArtAsync(channel, context).ConfigureAwait(false);
         }
 
-        await ResizeArtAsync([.. page.Items.SelectMany(ResizedArtOf)], context).ConfigureAwait(false);
+        await ResizeArtAsync([.. items.SelectMany(ResizedArtOf)], context).ConfigureAwait(false);
     }
 
     /// <summary>Incremental runs meet channels they've never seen (a new subscription): fetch them on the fly.</summary>
@@ -717,8 +739,9 @@ public sealed partial class SyncService(
 
         try
         {
-            if (await tubeArchivist.GetChannelAsync(channelId, ct).ConfigureAwait(false) is { } channel)
+            if (await tubeArchivist.GetChannelAsync(channelId, ct).ConfigureAwait(false) is { } found)
             {
+                Channel channel = (await WithFactsAsync([found], ct).ConfigureAwait(false))[0];
                 await channels.UpsertAsync([channel], null, ct).ConfigureAwait(false);
                 context.Count(c => c with { ChannelsRead = c.ChannelsRead + 1 });
                 await CopyChannelArtAsync(channel, context).ConfigureAwait(false);

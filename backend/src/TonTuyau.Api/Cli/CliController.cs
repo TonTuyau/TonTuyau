@@ -7,7 +7,8 @@ using TonTuyau.Application.Tasks;
 namespace TonTuyau.Api.Cli;
 
 /// <summary>
-/// The command line's endpoints (1.4): <c>tontuyau sync …</c> and <c>tontuyau index rebuild</c> start their run here,
+/// The command line's endpoints (1.4): <c>tontuyau sync …</c>, <c>tontuyau index rebuild</c> and (1.5)
+/// <c>tontuyau youtube …</c> start their run here,
 /// in the backend (its log, the Tasks page), follow its log and cancel it. Through the backend's Unix socket only
 /// (<see cref="CliOnlyFilter"/>); not under /api (the front doesn't forward them) nor in the OpenAPI document.
 /// </summary>
@@ -33,6 +34,18 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
 
     [HttpPost("index/rebuild")]
     public Task<IActionResult> RebuildAsync() => StartAsync(() => runner.StartRebuildAsync(SyncTrigger.Cli));
+
+    [HttpPost("youtube/video/{id}")]
+    public Task<IActionResult> RefreshVideoAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RefreshVideo, id, SyncTrigger.Cli));
+
+    [HttpPost("youtube/channel/{id}")]
+    public Task<IActionResult> RefreshChannelAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RefreshChannel, id, SyncTrigger.Cli));
+
+    [HttpPost("youtube/channel-videos/{id}")]
+    public Task<IActionResult> RefreshChannelVideosAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RefreshChannelVideos, id, SyncTrigger.Cli));
 
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]

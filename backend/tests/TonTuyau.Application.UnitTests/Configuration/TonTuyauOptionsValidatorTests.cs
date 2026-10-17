@@ -275,7 +275,8 @@ public sealed class TonTuyauOptionsValidatorTests
             new StorageOptions("relative", "relative"),
             new SyncOptions("x", "x", "x"),
             new DatabaseOptions("", "", "", ""),
-            new AccountOptions("", "", true));
+            new AccountOptions("", "", true),
+            new YouTubeOptions());
 
         ValidationException ex = Assert.Throws<ValidationException>(() => _validator.Validate(options));
 

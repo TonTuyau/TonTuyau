@@ -29,25 +29,61 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
 
     /// <summary>
     /// Starts a task now: the run, just started (it goes on in the background). applyDeletions applies the list that
-    /// waits (see GET tasks). 409 when a run is going on, or no list waits.
+    /// waits (see GET tasks). The refreshes (1.5) read their target on YouTube. 409 when a run is going on, no list
+    /// waits, or the target isn't one of the library.
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("incremental | full | applyDeletions.")] string task,
+        [Description("incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.")]
+        string task,
+        [FromQuery, Description("For the refreshes only: the video's or channel's YouTube id.")] string? target,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, Account(), cancellationToken)
+            .StartAsync(task, target, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
+    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. 409 when it
+    /// isn't on hold, or a run is going on.
+    /// </summary>
+    [HttpPost("runs/{id}/resume")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> ResumeAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .ResumeAsync(id, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
+    /// Puts the refresh going on on hold now, by hand (1.5): it stops at once and lets go of the lock, keeps what it has
+    /// left to read (the item it was reading included), and waits for Resume now: no cool-down. 409 when it isn't a
+    /// refresh going on in this backend.
+    /// </summary>
+    [HttpPost("runs/{id}/hold")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> HoldAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .HoldAsync(id, Account(), cancellationToken)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }
 
     /// <summary>
     /// Asks the run going on to stop: it ends canceled soon after (between two requests), and its log says who asked.
-    /// 409 when it's over, or goes on in another process.
+    /// A refresh on hold (1.5) is canceled at once. 409 when it's over, or goes on in another process.
     /// </summary>
     [HttpPost("runs/{id}/cancel")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
@@ -66,7 +102,7 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     [ProducesResponseType<Page<RunResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     public async Task<Page<RunResponse>> GetRunsAsync(
-        [FromQuery, Description("incremental | full | applyDeletions; every task when absent.")] string? task,
+        [FromQuery, Description("A task's name (see POST tasks/{task}/runs); every task when absent.")] string? task,
         [FromQuery, Description("The previous page's nextCursor: the runs started before that one.")] string? before,
         [FromQuery, Description("1 to 100, default 20.")] int? size,
         CancellationToken cancellationToken)

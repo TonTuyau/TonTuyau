@@ -1,10 +1,13 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
   // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
-  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend. A 404: no such
-  // run. A 401: the session ended, the shell goes to the login page.
+  // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend; a refresh can
+  // also be put on hold by hand (1.5, asked first). A refresh on hold is asked again every 30 s, with Resume now and
+  // Cancel it. A 404: no such run. A 401: the session ended,
+  // the shell goes to the login page.
   import CopyButton from '../components/CopyButton.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HoldBar from '../components/HoldBar.svelte'
   import Icon from '../components/Icon.svelte'
   import RunLogView from '../components/RunLogView.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
@@ -19,12 +22,13 @@
   import type { TextKey } from '../lib/i18n/types'
   import { Remote } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
-  import { runSeconds, startedBy } from '../lib/runs'
+  import { isRefresh, runSeconds, startedBy } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   let { id }: { id: string } = $props()
 
   const EVERY = 2_000
+  const HELD_EVERY = 30_000
 
   const remote = new Remote<Run>()
   $effect(() => {
@@ -34,9 +38,14 @@
 
   const run = $derived(remote.data)
   const running = $derived(run?.state === 'running')
+  const held = $derived(run?.state === 'onHold')
 
   let now = $state(Date.now())
   $effect(() => {
+    if (held) {
+      const timer = setInterval(() => void remote.refresh(), HELD_EVERY)
+      return () => clearInterval(timer)
+    }
     if (!running) {
       return
     }
@@ -52,6 +61,7 @@
   })
 
   let asking = $state(false)
+  let askingHold = $state(false)
   let refused = $state<string | null>(null)
 
   async function cancel(runId: string) {
@@ -64,6 +74,31 @@
       })
     }
     asking = false
+    await remote.refresh()
+  }
+
+  async function hold(runId: string) {
+    refused = null
+    try {
+      await api.holdRun(runId)
+    } catch (error) {
+      refused = t('hold.refused', {
+        reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
+      })
+    }
+    askingHold = false
+    await remote.refresh()
+  }
+
+  async function resume(runId: string) {
+    refused = null
+    try {
+      await api.resumeRun(runId)
+    } catch (error) {
+      refused = t('hold.resumeRefused', {
+        reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
+      })
+    }
     await remote.refresh()
   }
 
@@ -83,6 +118,20 @@
         ['run.count.planned', r.deletionsPlanned],
         ['run.count.deleted', c.deleted],
         ['run.count.kept', c.kept],
+      ]
+    }
+    if (isRefresh(r)) {
+      return [
+        ['run.count.videosRead', c.videosRead],
+        ['run.count.channelsRead', c.channelsRead],
+        ['run.count.foundOnYouTube', c.foundOnYouTube],
+        ['run.count.unlistedOnYouTube', c.unlistedOnYouTube],
+        ['run.count.goneFromYouTube', c.goneFromYouTube],
+        ['run.count.privateOnYouTube', c.privateOnYouTube],
+        ['run.count.checkFailed', c.checkFailed],
+        ['run.count.commentsRead', c.commentsRead],
+        ['run.count.picturesStored', c.artCopied],
+        ['run.count.updated', c.updated],
       ]
     }
     const out: [TextKey, number][] = [
@@ -133,10 +182,29 @@
               <Button onclick={() => (asking = false)}>{t('task.keepRunning')}</Button>
             </div>
           </div>
+        {:else if askingHold}
+          <div class="confirm" role="group" aria-label={t('hold.confirmTitle')}>
+            <p><b>{t('hold.confirmTitle')}</b> {t('hold.confirm')}</p>
+            <div>
+              <Button variant="filled" onclick={() => void hold(run.id)}>{t('hold.put')}</Button>
+              <Button onclick={() => (askingHold = false)}>{t('task.keepRunning')}</Button>
+            </div>
+          </div>
         {:else}
+          {#if isRefresh(run)}
+            <Button onclick={() => (askingHold = true)}>{t('hold.put')}</Button>
+          {/if}
           <Button onclick={() => (asking = true)}>{t('task.cancelRun')}</Button>
         {/if}
       </div>
+    {/if}
+    {#if held}
+      <HoldBar
+        {run}
+        showTask={false}
+        onresume={(runId) => void resume(runId)}
+        oncancel={(runId) => void cancel(runId)}
+      />
     {/if}
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
@@ -173,6 +241,14 @@
       {#if run.appliesTo}
         <p>{t('run.appliesTo')} <a href={href.adminRun(run.appliesTo)}><code>{run.appliesTo}</code></a></p>
       {/if}
+      {#if run.target}
+        <p>
+          {t('run.target')}
+          <a href={run.task === 'refreshVideo' ? href.watch(run.target) : href.channel(run.target)}
+            ><code>{run.target}</code></a
+          >
+        </p>
+      {/if}
       <dl class="counts">
         {#each counts(run) as [label, value] (label)}
           <div>
@@ -196,7 +272,10 @@
 
     <!-- The page's own id, not run.id: a prop is read through its expression, and the run is replaced every 2 s
          while it goes on (the log would start over each time). -->
-    <RunLogView runId={id} />
+    <!-- Again from its start when it resumes: its log goes on. -->
+    {#key held}
+      <RunLogView runId={id} />
+    {/key}
   {/if}
 </div>
 
@@ -280,6 +359,12 @@
 
   .actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .confirm b {
+    font-weight: var(--font-weight-medium);
   }
 
   .confirm {

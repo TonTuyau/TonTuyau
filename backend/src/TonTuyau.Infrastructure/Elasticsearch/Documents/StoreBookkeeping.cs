@@ -53,12 +53,14 @@ internal sealed record VideoListDocument(
     string ChannelName,
     string Title,
     string Type,
-    bool Active,
+    string? YoutubeState,
     DateTimeOffset Published,
     double DurationSeconds,
     long Views,
     string ThumbnailPath,
-    ArtDocument? ThumbnailArt = null);
+    ArtDocument? ThumbnailArt = null,
+    DateTimeOffset? YoutubeCheckedAt = null,
+    string? YoutubeReason = null);
 
 /// <summary>A channel as lists read it.</summary>
 internal sealed record ChannelListDocument(

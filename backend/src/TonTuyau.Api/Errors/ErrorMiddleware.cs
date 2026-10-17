@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Media;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.Errors;
 
@@ -39,6 +40,10 @@ internal sealed partial class ErrorMiddleware(RequestDelegate next, ILogger<Erro
         catch (ConflictException ex)
         {
             await WriteAsync(context, Problems.Conflict(ex.Message)).ConfigureAwait(false);
+        }
+        catch (YtdlpInstallException ex)
+        {
+            await WriteAsync(context, Problems.GitHubUnreachable(ex.Message)).ConfigureAwait(false);
         }
         catch (RangeNotSatisfiableException ex)
         {

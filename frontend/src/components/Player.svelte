@@ -26,6 +26,7 @@
     onsizechange,
     onunavailable,
     start = null,
+    ontime,
     // eslint-disable-next-line no-useless-assignment -- a bindable prop, written by the $effect below
     ratio = $bindable(),
   }: {
@@ -39,6 +40,8 @@
     onunavailable?: () => void
     /** Where to start, in seconds (a link to a time); ignored past the video's duration. */
     start?: number | null
+    /** Where the video is, in seconds, as it plays or is moved (the watch page's chapters, 1.5). */
+    ontime?: (seconds: number) => void
     /** Out: the shape the box uses (API, then the loaded file, then a placeholder), for a page that frames it. */
     ratio?: Ratio
   } = $props()
@@ -175,6 +178,7 @@
       aria-label={t('watch.player')}
       {onloadedmetadata}
       {onerror}
+      ontimeupdate={(event) => ontime?.(event.currentTarget.currentTime)}
     ></video>
     {#if uncertain && variant === 'shorts'}{@render notice()}{/if}
     {#if onsizechange && variant === 'watch'}

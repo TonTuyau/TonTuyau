@@ -1,4 +1,5 @@
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Infrastructure.Elasticsearch.Documents;
 
@@ -35,7 +36,11 @@ internal static class DocumentMapper
                     t.Bitrate,
                     t.Width,
                     t.Height))
-                .ToArray());
+                .ToArray(),
+            StateName(v.CurrentYouTube.State),
+            v.CurrentYouTube.CheckedAt,
+            v.CurrentYouTube.Reason,
+            v.CurrentYouTube.RefreshedAt);
         return doc with { ContentHash = StoreJson.ContentHash(doc) };
     }
 
@@ -66,7 +71,8 @@ internal static class DocumentMapper
                 t.Bitrate,
                 t.Width,
                 t.Height))
-            .ToArray());
+            .ToArray(),
+        StatusOf(d.YoutubeState, d.YoutubeCheckedAt, d.YoutubeReason, d.YoutubeRefreshedAt));
 
     public static ChannelDocument ToDocument(Channel c)
     {
@@ -83,7 +89,11 @@ internal static class DocumentMapper
                 .ToArray(),
             c.ThumbPath,
             c.BannerPath,
-            c.TvArtPath);
+            c.TvArtPath,
+            StateName(c.CurrentYouTube.State),
+            c.CurrentYouTube.CheckedAt,
+            c.CurrentYouTube.Reason,
+            c.CurrentYouTube.RefreshedAt);
         return doc with { ContentHash = StoreJson.ContentHash(doc) };
     }
 
@@ -100,9 +110,39 @@ internal static class DocumentMapper
             .ToArray(),
         d.ThumbPath,
         d.BannerPath,
-        d.TvartPath);
+        d.TvartPath,
+        StatusOf(d.YoutubeState, d.YoutubeCheckedAt, d.YoutubeReason, d.YoutubeRefreshedAt));
 
     public static ArtDocument ToDocument(ArtVersions art) => new(art.OriginalWidth, art.Widths);
+
+    /// <summary>The state as stored (<c>youtube_state</c>): <c>not_checked</c>, <c>on_youtube</c>, …</summary>
+    public static string StateName(YouTubeState state) => state switch
+    {
+        YouTubeState.OnYouTube => "on_youtube",
+        YouTubeState.RetryLater => "retry_later",
+        YouTubeState.Gone => "gone",
+        YouTubeState.Private => "private",
+        YouTubeState.Unlisted => "unlisted",
+        _ => "not_checked",
+    };
+
+    public static YouTubeState ParseState(string? name) => name switch
+    {
+        "on_youtube" => YouTubeState.OnYouTube,
+        "retry_later" => YouTubeState.RetryLater,
+        "gone" => YouTubeState.Gone,
+        "private" => YouTubeState.Private,
+        "unlisted" => YouTubeState.Unlisted,
+        _ => YouTubeState.NotChecked,
+    };
+
+    /// <summary>A document written before 1.5 has no state: the TubeArchivist flag then says it.</summary>
+    private static YouTubeStatus? StatusOf(
+        string? state,
+        DateTimeOffset? checkedAt,
+        string? reason,
+        DateTimeOffset? refreshedAt) =>
+        state is null ? null : new YouTubeStatus(ParseState(state), checkedAt, reason, refreshedAt);
 
     public static ArtVersions? ToArt(ArtDocument? document) =>
         document is null ? null : new ArtVersions(document.Width, document.Sizes ?? []);

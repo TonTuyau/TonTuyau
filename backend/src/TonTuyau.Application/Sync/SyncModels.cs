@@ -11,6 +11,15 @@ public enum SyncMode
     /// Applies the deletion list a full run wrote but didn't apply (over the limit): a run of its own, since 1.4.
     /// </summary>
     ApplyDeletions,
+
+    /// <summary>Reads one video on YouTube (1.5): its state, and its metadata when it's there.</summary>
+    RefreshVideo,
+
+    /// <summary>Reads one channel on YouTube (1.5): its state, and its metadata when it's there.</summary>
+    RefreshChannel,
+
+    /// <summary>Reads one channel on YouTube, then each of its videos in the library (1.5).</summary>
+    RefreshChannelVideos,
 }
 
 public enum SyncTrigger
@@ -33,6 +42,12 @@ public enum SyncOutcome
 
     /// <summary>Stopped because whoever started it asked (1.4): what it did stays, as after a failure.</summary>
     Canceled,
+
+    /// <summary>
+    /// A refresh YouTube refused (1.5: a bot check, too many requests): it waits, without the lock, and resumes by
+    /// itself at <see cref="SyncRun.ResumeAt"/> (or when asked), from <see cref="SyncRun.Remaining"/>.
+    /// </summary>
+    OnHold,
 }
 
 /// <param name="Watermark">
@@ -91,6 +106,24 @@ public sealed record SyncCounts
     public int Deleted { get; init; }
 
     public int KeptStillInTubeArchivist { get; init; }
+
+    /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
+    public int FoundOnYouTube { get; init; }
+
+    /// <summary>A refresh: of those found, the videos YouTube has unlisted (1.5).</summary>
+    public int UnlistedOnYouTube { get; init; }
+
+    /// <summary>A refresh: videos and channels YouTube says are removed, or their account terminated.</summary>
+    public int GoneFromYouTube { get; init; }
+
+    /// <summary>A refresh: videos YouTube says their owner made private (1.5).</summary>
+    public int PrivateOnYouTube { get; init; }
+
+    /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
+    public int CheckFailed { get; init; }
+
+    /// <summary>A refresh: the comments read with the videos (answers included).</summary>
+    public int CommentsRead { get; init; }
 }
 
 /// <summary>One sync run, as kept in the run history.</summary>
@@ -115,6 +148,15 @@ public sealed record SyncRun
 
     /// <summary>For an <see cref="SyncMode.ApplyDeletions"/> run: the full run whose deletion list it applied.</summary>
     public string? AppliesTo { get; init; }
+
+    /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
+    public string? Target { get; init; }
+
+    /// <summary>A refresh on hold (1.5): when it resumes by itself; null otherwise.</summary>
+    public DateTimeOffset? ResumeAt { get; init; }
+
+    /// <summary>A refresh on hold (1.5): the channels and videos left to read, in order (the one refused first).</summary>
+    public IReadOnlyList<string> Remaining { get; init; } = [];
 
     public SyncCounts Counts { get; init; } = new();
 

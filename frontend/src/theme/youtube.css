@@ -43,6 +43,9 @@
   --color-on-warning: light-dark(#7a4f00, #ffd36a);
   --color-error: light-dark(#cc0000, #ff6b6b);
   --color-error-bg: light-dark(#fce8e6, #4a1c1c);
+  /* A video made private on YouTube (1.5): orange, between the warning's yellow and the error's red. */
+  --color-private: light-dark(#a14400, #ffad66);
+  --color-private-bg: light-dark(#ffe9d6, #47280c);
   /* A run's state (1.4): succeeded, going on. */
   --color-success: light-dark(#137333, #81c995);
   --color-success-bg: light-dark(#e6f4ea, #12301f);

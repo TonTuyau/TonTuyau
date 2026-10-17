@@ -104,6 +104,38 @@ export type RunLogLine = Schemas['RunLogLineResponse']
 /** `/api/admin/runs`: task, size, before (the previous page's last run). */
 export type RunListParams = QueryOf<'/api/admin/runs'>
 
+/** An API key (1.5), without its secret. */
+export type ApiKey = Schemas['ApiKeyResponse']
+
+export type ApiKeyKind = ApiKey['kind']
+
+/** A key just created: its secret, given this once. */
+export type CreatedApiKey = Schemas['CreatedApiKeyResponse']
+
+/** The admin's YouTube page (1.5): the cookie (null: none) and the tools' versions. */
+export type YouTubeOverview = Schemas['YouTubeResponse']
+
+export type YouTubeCookie = Schemas['YouTubeCookieResponse']
+
+export type YouTubeCookieState = YouTubeCookie['state']
+
+/** Which yt-dlp is chosen and runs (1.5). */
+export type YtdlpState = Schemas['YtdlpStateResponse']
+export type YouTubeSettings = Schemas['YouTubeSettingsResponse']
+export type AdminChannel = Schemas['AdminChannelResponse']
+export type Chapter = Schemas['Chapter']
+export type Comments = Schemas['CommentsResponse']
+export type CommentThread = Schemas['CommentThreadResponse']
+export type Comment = Schemas['CommentResponse']
+export type AdminVideo = Schemas['AdminVideoResponse']
+export type YouTubeState = AdminVideo['youTube']['state']
+export type YouTubeCommentsChoice = YouTubeSettings['comments']
+
+export type YtdlpChoiceKind = YtdlpState['choice']['kind']
+
+/** The yt-dlp versions that can be chosen, the latest first. */
+export type YtdlpVersions = Schemas['YtdlpVersionsResponse']
+
 /** RFC 9457 ProblemDetails, as the backend sends it (`errors` on a 400). */
 export type ProblemDetails = Schemas['HttpValidationProblemDetails']
 

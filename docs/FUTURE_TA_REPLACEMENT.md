@@ -39,7 +39,7 @@ The exact list comes from TubeArchivist's indices on the day of the dump (their 
 - **The media files stay where they are.** TubeArchivist stores them as `<channel_id>/<video_id>.<ext>` on the share. The new downloader writes the same layout: switching over is a database change, not a move of 40k files.
 - **The dump is read-only.** Reading TubeArchivist's Elasticsearch uses searches / point-in-time scrolls only: no writes, no snapshot repository on its cluster, no settings change ("Do not edit any data on TubeArchivist" still holds). Its credentials go in `.env` only, like the API key.
 
-## Compatible with the TubeArchivist Companion (added 2026-10-05)
+## Compatible with the TubeArchivist Companion (added 2026-10-05; replaced 2026-10-14 by TonTuyau's own extension, see below)
 
 The **TubeArchivist Companion** browser extension adds buttons on YouTube pages ("download this video / subscribe to this channel") that talk to TubeArchivist's API. The replacement keeps it working: **TonTuyau's admin API answers the requests the Companion makes, the way TubeArchivist does** (same paths, same `Authorization: Token …` header, same JSON shapes), so the extension only needs TonTuyau's URL and a token instead of TubeArchivist's.
 
@@ -58,6 +58,46 @@ The **TubeArchivist Companion** browser extension adds buttons on YouTube pages 
 | 4. Dump + switch-over | a last sync + the full dump of TubeArchivist's Elasticsearch; TonTuyau's downloader takes every subscription | turned off (kept as a backup until you're sure) |
 
 The read-only rule on TubeArchivist holds until stage 4; afterwards TonTuyau writes only its own data.
+
+## 2026-10-14: started, in steps (1.5, 1.6, 1.7)
+
+The replacement starts with 1.5 (decided in chat, 2026-10-14):
+
+- **1.5**: metadata only. API keys; yt-dlp (with Deno and ffmpeg) pinned in the image, through Ytdlp.NET; the YouTube cookie, sent by **TonTuyau's own browser extension** (Firefox and Chrome, its own repository) instead of the TubeArchivist Companion; each video's and channel's YouTube state (on YouTube, retry later, gone, not checked: a failed check is never "gone", and a video TubeArchivist marked unavailable is "retry later" until TonTuyau checks it); refreshing a video, a channel or a channel's videos; a channel's admin page. The public "Unavailable on YouTube" badge shows only what TonTuyau confirmed. Once TonTuyau refreshed a video, the TubeArchivist sync no longer changes its metadata.
+- **1.6**: downloads, into the media folder TonTuyau reads (it then needs write access): add a video, add a channel, the YouTube incremental and full syncs, every channel of the library, all three tabs; the extension's "Add this video / channel". A video is downloaded once, whoever (TubeArchivist or TonTuyau) has it first.
+- **1.7**: refreshing every video (resumable, rate-limited); the TubeArchivist sync becomes a full sync only, once at each startup and on demand (no more incremental, no schedule).
+
+TonTuyau is meant to be shared: it can't assume which TubeArchivist version someone runs, or that their TubeArchivist stopped downloading.
+
+### Decided on 2026-10-15: PostgreSQL becomes the library's only source of truth (first step of 1.6)
+
+In 1.5, Elasticsearch is a derived copy, rebuilt from two sources: TubeArchivist (what it imported) and PostgreSQL
+(what TonTuyau learned itself: `youtube_videos`, `youtube_channels`, `video_comments`). Two shortcuts remain: a refresh
+starts from the Elasticsearch document (its TubeArchivist part is a copy), and the API reads everything from
+Elasticsearch, detail pages included.
+
+1.6 starts by moving the whole library into PostgreSQL: a row per video and channel (metadata, file, tracks, state),
+the TubeArchivist import becoming one way to fill it, TonTuyau's downloads another. Elasticsearch then is only an
+index for search and lists, rebuilt from PostgreSQL alone. The downloads need those rows anyway.
+
+### Decided on 2026-10-16: the runs move to PostgreSQL too (same first step of 1.6)
+
+Since Elasticsearch becomes an index that can be rebuilt, nothing may live only there. In 1.5 three things still do,
+and they move to PostgreSQL with the library:
+
+- **the run records** (index `sync-runs`: task, state, counts, notes, and a held refresh's list of what it has left to
+  read); their log lines are in PostgreSQL already (since 1.4), so a run's page then reads one database;
+- **the run lock** (index `sync`): a row taken in a transaction, or a PostgreSQL lock, in place of the lease built on
+  Elasticsearch;
+- **the sync checkpoint** (index `sync`: the watermark, a full run requested).
+
+Open: copy the existing history from `sync-runs` once, at the upgrade, or start the history afresh.
+
+### Later: chapters in the player
+
+1.5 shows a video's chapters in its description (always visible), since the player is the browser's own. A later
+version puts them in the player itself, like YouTube (marks on the bar, the chapter's name), with TonTuyau's own
+player controls.
 
 ## Open (later, not now)
 

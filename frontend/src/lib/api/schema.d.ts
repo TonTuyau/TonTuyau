@@ -4,6 +4,143 @@
  */
 
 export interface paths {
+  '/api/admin/channels/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AdminChannelResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/channels/{id}/videos': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description notChecked | onYouTube | retryLater | gone; every state when absent. */
+          state?: string
+          /** @description Words of the title, tags or description, 1–100 characters. */
+          q?: string
+          /** @description The previous page's nextCursor. */
+          cursor?: string
+          /** @description 1–100 (default 24). */
+          size?: number
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['PageOfAdminVideoResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/dashboard': {
     parameters: {
       query?: never
@@ -99,6 +236,309 @@ export interface paths {
     put?: never
     post?: never
     delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/api-keys': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiKeyResponse'][]
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['CreateApiKeyRequest']
+          'application/*+json': components['schemas']['CreateApiKeyRequest']
+        }
+      }
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['CreatedApiKeyResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/api-keys/{id}/enable': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiKeyResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/api-keys/{id}/disable': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiKeyResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/api-keys/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
     options?: never
     head?: never
     patch?: never
@@ -394,6 +834,68 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/videos/{id}/comments': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description top (YouTube's order, the default) | newest. */
+          sort?: string
+          /** @description The previous page's nextCursor. */
+          cursor?: string
+          /** @description Threads per page, 1–100 (default 20). */
+          size?: number
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['CommentsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/channels': {
     parameters: {
       query?: never
@@ -561,6 +1063,163 @@ export interface paths {
       }
     }
     put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/extension/connection': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ConnectionResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/extension/youtube-cookie': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ExtensionCookieResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['SendCookieRequest']
+          'application/*+json': components['schemas']['SendCookieRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeCookieResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
     post?: never
     delete?: never
     options?: never
@@ -1406,10 +2065,13 @@ export interface paths {
     put?: never
     post: {
       parameters: {
-        query?: never
+        query?: {
+          /** @description For the refreshes only: the video's or channel's YouTube id. */
+          target?: string
+        }
         header?: never
         path: {
-          /** @description incremental | full | applyDeletions. */
+          /** @description incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos. */
           task: string
         }
         cookie?: never
@@ -1436,6 +2098,134 @@ export interface paths {
         }
         /** @description Unauthorized */
         401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/runs/{id}/resume': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Accepted */
+        202: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/runs/{id}/hold': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Accepted */
+        202: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
           headers: {
             [name: string]: unknown
           }
@@ -1534,7 +2324,7 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          /** @description incremental | full | applyDeletions; every task when absent. */
+          /** @description A task's name (see POST tasks/{task}/runs); every task when absent. */
           task?: string
           /** @description The previous page's nextCursor: the runs started before that one. */
           before?: string
@@ -1708,10 +2498,488 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/youtube': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/youtube/cookie/check': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeCookieResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/youtube/cookie': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/youtube/ytdlp': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YtdlpStateResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['ChooseYtdlpRequest']
+          'application/*+json': components['schemas']['ChooseYtdlpRequest']
+        }
+      }
+      responses: {
+        /** @description Accepted */
+        202: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YtdlpStateResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Bad Gateway */
+        502: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/youtube/ytdlp/versions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YtdlpVersionsResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Bad Gateway */
+        502: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/youtube/settings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeSettingsResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['YouTubeSettingsRequest']
+          'application/*+json': components['schemas']['YouTubeSettingsRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['YouTubeSettingsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    AdminChannelResponse: {
+      channel: components['schemas']['ChannelCard']
+      youTube: components['schemas']['YouTubeStatusResponse']
+      videos: components['schemas']['YouTubeStateCounts']
+    }
+    AdminVideoResponse: {
+      video: components['schemas']['VideoCard']
+      youTube: components['schemas']['YouTubeStatusResponse']
+    }
+    /** @enum {string} */
+    ApiKeyKind: 'browserExtension'
+    ApiKeyResponse: {
+      /** Format: int32 */
+      id: number
+      name: string
+      prefix: string
+      kind: components['schemas']['ApiKeyKind']
+      enabled: boolean
+      /** Format: date-time */
+      createdAt: string
+      createdBy: string
+      /** Format: date-time */
+      lastUsedAt: null | string
+    }
     ChannelCard: {
       id: string
       name: string
@@ -1744,7 +3012,66 @@ export interface components {
       /** Format: int64 */
       gone: number
       /** Format: int64 */
+      private: number
+      /** Format: int64 */
+      unlisted: number
+      /** Format: int64 */
+      retryLater: number
+      /** Format: int64 */
+      notChecked: number
+      /** Format: int64 */
       total: number
+    }
+    Chapter: {
+      /** Format: double */
+      startSeconds: number
+      /** Format: double */
+      endSeconds: number
+      title: string
+    }
+    ChooseYtdlpRequest: {
+      kind: null | string
+      version: null | string
+    }
+    CommentResponse: {
+      id: string
+      text: string
+      author: string
+      /** Format: date-time */
+      published: null | string
+      /** Format: int64 */
+      likes: null | number
+      pinned: boolean
+      byUploader: boolean
+      hearted: boolean
+    }
+    CommentsResponse: {
+      /** Format: date-time */
+      readAt: null | string
+      /** Format: int64 */
+      youTubeCount: null | number
+      /** Format: int64 */
+      kept: number
+      items: components['schemas']['CommentThreadResponse'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
+    }
+    CommentThreadResponse: {
+      comment: components['schemas']['CommentResponse']
+      replies: components['schemas']['CommentResponse'][]
+    }
+    ConnectionResponse: {
+      version: string
+      name: string
+    }
+    CreateApiKeyRequest: {
+      name: null | string
+      kind: null | string
+    }
+    CreatedApiKeyResponse: {
+      key: components['schemas']['ApiKeyResponse']
+      secret: string
     }
     DashboardResponse: {
       /** Format: date-time */
@@ -1752,6 +3079,9 @@ export interface components {
       totals: components['schemas']['LibraryTotals']
       playTime: components['schemas']['PlayTime']
       channels: components['schemas']['ChannelTotals'][]
+    }
+    ExtensionCookieResponse: {
+      cookie: null | components['schemas']['YouTubeCookieResponse']
     }
     HomeResponse: {
       sections: components['schemas']['HomeSection'][]
@@ -1818,6 +3148,12 @@ export interface components {
     MeResponse: {
       username: string
     }
+    PageOfAdminVideoResponse: {
+      items: components['schemas']['AdminVideoResponse'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
+    }
     PageOfChannelCard: {
       items: components['schemas']['ChannelCard'][]
       nextCursor: null | string
@@ -1879,6 +3215,18 @@ export interface components {
       deleted: number
       /** Format: int32 */
       kept: number
+      /** Format: int32 */
+      foundOnYouTube: number
+      /** Format: int32 */
+      unlistedOnYouTube: number
+      /** Format: int32 */
+      goneFromYouTube: number
+      /** Format: int32 */
+      privateOnYouTube: number
+      /** Format: int32 */
+      checkFailed: number
+      /** Format: int32 */
+      commentsRead: number
     }
     RunLock: {
       task: components['schemas']['SyncMode']
@@ -1916,6 +3264,11 @@ export interface components {
       deletionsPlanned: number
       deletionsBlocked: boolean
       appliesTo: null | string
+      target: null | string
+      /** Format: date-time */
+      resumeAt: null | string
+      /** Format: int32 */
+      left: number
       indexRebuild: boolean
       notes: string[]
       cancellable: boolean
@@ -1923,6 +3276,9 @@ export interface components {
     SearchAllResponse: {
       channels: components['schemas']['ChannelCard'][]
       videos: components['schemas']['PageOfVideoCard']
+    }
+    SendCookieRequest: {
+      cookies: null | string
     }
     Suggestion: {
       text: string
@@ -1935,9 +3291,9 @@ export interface components {
       suggestions: components['schemas']['Suggestion'][]
     }
     /** @enum {string} */
-    SyncMode: 'incremental' | 'full' | 'applyDeletions'
+    SyncMode: 'incremental' | 'full' | 'applyDeletions' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
     /** @enum {string} */
-    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled'
+    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold'
     /** @enum {string} */
     SyncTrigger: 'scheduler' | 'cli' | 'startup' | 'admin'
     TaskResponse: {
@@ -1952,6 +3308,7 @@ export interface components {
       lock: null | components['schemas']['RunLock']
       runningHere: null | string
       tasks: components['schemas']['TaskResponse'][]
+      onHold: components['schemas']['RunResponse'][]
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']
@@ -1985,6 +3342,7 @@ export interface components {
       /** Format: int64 */
       views: number
       active: boolean
+      youTubeState: components['schemas']['YouTubeState']
       thumbnailUrl: null | string
       thumbnails: components['schemas']['ImageSize'][]
       channel: components['schemas']['VideoChannel']
@@ -2014,6 +3372,7 @@ export interface components {
       /** Format: int64 */
       views: number
       active: boolean
+      youTubeState: components['schemas']['YouTubeState']
       thumbnailUrl: null | string
       thumbnails: components['schemas']['ImageSize'][]
       channel: components['schemas']['VideoDetailChannel']
@@ -2031,6 +3390,7 @@ export interface components {
       mediaUrl: string
       downloadUrl: string
       mediaAvailable: boolean
+      chapters: components['schemas']['Chapter'][]
     }
     VideoDetailChannel: {
       id: string
@@ -2048,6 +3408,96 @@ export interface components {
       startedAt: string
       /** Format: int32 */
       count: number
+    }
+    /** @enum {string} */
+    YouTubeCommentsChoice: 'off' | 'top' | 'all'
+    YouTubeCookieResponse: {
+      /** Format: date-time */
+      receivedAt: string
+      receivedBy: string
+      state: components['schemas']['YouTubeCookieState']
+      /** Format: date-time */
+      checkedAt: null | string
+      reason: null | string
+    }
+    /** @enum {string} */
+    YouTubeCookieState: 'unchecked' | 'works' | 'refused'
+    YouTubeResponse: {
+      cookie: null | components['schemas']['YouTubeCookieResponse']
+      ytdlp: null | string
+      deno: null | string
+    }
+    YouTubeSettingsRequest: {
+      comments: null | string
+      /** Format: int32 */
+      commentsMax: null | number
+      /** Format: int32 */
+      pauseSeconds: null | number
+      /** Format: int32 */
+      holdMinutes: null | number
+    }
+    YouTubeSettingsResponse: {
+      comments: components['schemas']['YouTubeCommentsChoice']
+      /** Format: int32 */
+      commentsMax: number
+      /** Format: int32 */
+      pauseSeconds: number
+      /** Format: int32 */
+      holdMinutes: number
+      changedBy: null | string
+      /** Format: date-time */
+      changedAt: null | string
+    }
+    /** @enum {string} */
+    YouTubeState: 'notChecked' | 'onYouTube' | 'retryLater' | 'gone' | 'private' | 'unlisted'
+    YouTubeStateCounts: {
+      /** Format: int64 */
+      notChecked: number
+      /** Format: int64 */
+      onYouTube: number
+      /** Format: int64 */
+      unlisted: number
+      /** Format: int64 */
+      private: number
+      /** Format: int64 */
+      retryLater: number
+      /** Format: int64 */
+      gone: number
+    }
+    YouTubeStatusResponse: {
+      state: components['schemas']['YouTubeState']
+      /** Format: date-time */
+      checkedAt: null | string
+      reason: null | string
+      /** Format: date-time */
+      refreshedAt: null | string
+    }
+    /** @enum {string} */
+    YtdlpChoiceKind: 'latest' | 'official' | 'nightly'
+    YtdlpChoiceResponse: {
+      kind: components['schemas']['YtdlpChoiceKind']
+      version: null | string
+      chosenBy: null | string
+      /** Format: date-time */
+      chosenAt: null | string
+    }
+    YtdlpStateResponse: {
+      choice: components['schemas']['YtdlpChoiceResponse']
+      running: null | string
+      bundled: boolean
+      waiting: null | string
+      /** Format: date-time */
+      checkedAt: null | string
+      error: null | string
+    }
+    YtdlpVersionResponse: {
+      version: string
+      /** Format: date-time */
+      publishedAt: string
+    }
+    YtdlpVersionsResponse: {
+      official: components['schemas']['YtdlpVersionResponse'][]
+      nightly: components['schemas']['YtdlpVersionResponse'][]
     }
   }
   responses: never

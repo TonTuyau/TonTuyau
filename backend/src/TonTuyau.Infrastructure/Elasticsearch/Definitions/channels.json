@@ -46,6 +46,10 @@
       "thumb_art": { "type": "object", "enabled": false },
       "banner_art": { "type": "object", "enabled": false },
       "tvart_path": { "type": "keyword", "index": false, "doc_values": false },
+      "youtube_state": { "type": "keyword" },
+      "youtube_checked_at": { "type": "date" },
+      "youtube_reason": { "type": "keyword", "index": false, "doc_values": false },
+      "youtube_refreshed_at": { "type": "date" },
       "seen_in_run": { "type": "keyword" },
       "content_hash": { "type": "keyword", "index": false, "doc_values": false }
     }

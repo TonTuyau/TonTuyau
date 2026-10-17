@@ -1,6 +1,8 @@
 <script lang="ts">
   // The admin's Tasks page (1.4): the incremental sync, the full sync and applying deletions (when they run, how they
-  // last ran, the deletion list waiting), and the run history, all tasks' or one's (?task=, the chips). Kept up to
+  // last ran, the deletion list waiting), the refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
+  // pasted as a link or an id; a warning when there's no YouTube cookie; the refreshes on hold, with Resume now and
+  // Cancel it), and the run history, all tasks' or one's (?task=, the chips). Kept up to
   // date by itself: asked again every 3 s while a run goes on, every 30 s else, without redrawing what didn't change
   // (Svelte updates the values that did: a row under the pointer stays); a running duration ticks every second from
   // its start, without asking. Starting a task opens its run's page (its live log); a refusal (409: a run going on,
@@ -9,32 +11,37 @@
   import { untrack } from 'svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HoldBar from '../components/HoldBar.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import TaskCard from '../components/TaskCard.svelte'
+  import YouTubeTaskCard from '../components/YouTubeTaskCard.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { Run, RunTask, Tasks } from '../lib/api/types'
+  import type { Run, RunTask, Tasks, YouTubeOverview } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import { Pager, Remote } from '../lib/remote.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href } from '../lib/router/routes'
-  import { runResult, runSeconds, startedBy } from '../lib/runs'
+  import { refreshTasks, runResult, runSeconds, startedBy } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   const BUSY_EVERY = 3_000
   const IDLE_EVERY = 30_000
-  const tasksOrder: RunTask[] = ['incremental', 'full', 'applyDeletions']
+  const tasksOrder: RunTask[] = ['incremental', 'full', 'applyDeletions', ...refreshTasks]
 
   const tasks = new Remote<Tasks>()
   const history = new Pager<Run>()
+  // Only for the warning: no cookie, YouTube may refuse.
+  const youTube = new Remote<YouTubeOverview>()
 
   const filter = $derived(tasksOrder.find((task) => task === router.query.get('task')) ?? null)
   const busy = $derived(tasks.data?.lock != null)
 
   $effect(() => tasks.run((signal) => api.tasks(signal)))
+  $effect(() => youTube.run((signal) => api.youTube(signal)))
   $effect(() => {
     const task = filter
     return history.start((before, signal) => api.runs({ task: task ?? undefined, before: before ?? undefined }, signal))
@@ -76,13 +83,24 @@
   /** Why the last start or cancel was refused; cleared by the next one. */
   let refused = $state<string | null>(null)
 
-  async function onstart(task: RunTask) {
+  async function onstart(task: RunTask, target?: string) {
     refused = null
     try {
-      const started = await api.startTask(task)
+      const started = await api.startTask(task, target)
       router.navigate(href.adminRun(started.id))
     } catch (error) {
       refused = t('task.refused', { reason: reasonOf(error) })
+      refresh()
+    }
+  }
+
+  async function onresume(runId: string) {
+    refused = null
+    try {
+      await api.resumeRun(runId)
+      router.navigate(href.adminRun(runId))
+    } catch (error) {
+      refused = t('hold.resumeRefused', { reason: reasonOf(error) })
       refresh()
     }
   }
@@ -134,11 +152,29 @@
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
-    <div class="tasks">
-      {#each data.tasks as info (info.task)}
-        <TaskCard {info} {now} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+    <section class="group" aria-labelledby="ta-title">
+      <h2 id="ta-title">TubeArchivist</h2>
+      <div class="tasks">
+        {#each data.tasks as info (info.task)}
+          <TaskCard {info} {now} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+        {/each}
+      </div>
+    </section>
+    <section class="group" aria-labelledby="yt-title">
+      <h2 id="yt-title">YouTube</h2>
+      <p class="intro">{t('tasks.youTube.intro')}</p>
+      {#if youTube.data && youTube.data.cookie === null}
+        <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
+      {/if}
+      {#each data.onHold as held (held.id)}
+        <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
       {/each}
-    </div>
+      <div class="tasks">
+        {#each refreshTasks as task (task)}
+          <YouTubeTaskCard {task} lock={data.lock} {onstart} />
+        {/each}
+      </div>
+    </section>
   {/if}
 
   <section class="history" aria-labelledby="runs-title">
@@ -229,6 +265,19 @@
     color: var(--color-error);
   }
 
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .warn {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-warning-bg);
+    color: var(--color-on-warning);
+  }
+
   .tasks {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
@@ -264,6 +313,8 @@
   }
 
   .table-box {
+    /* Positioned: the hidden labels (.visually-hidden, absolute) then scroll with it instead of widening the page. */
+    position: relative;
     overflow-x: auto;
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);

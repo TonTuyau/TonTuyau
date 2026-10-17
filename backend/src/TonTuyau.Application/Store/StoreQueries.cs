@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Store;
 
@@ -62,12 +63,14 @@ public enum DurationRange
 
 /// <param name="PublishedFrom">Published at or after this instant (a search's <c>published</c> cut-off).</param>
 /// <param name="ExcludeId">A video left out (of the items and of the total).</param>
+/// <param name="YouTube">Only the videos in this state on YouTube, as TonTuyau knows it (1.5, the admin pages).</param>
 public sealed record VideoFilter(
     VideoType? Type = null,
     string? ChannelId = null,
     DateTimeOffset? PublishedFrom = null,
     DurationRange? Duration = null,
-    string? ExcludeId = null)
+    string? ExcludeId = null,
+    YouTubeState? YouTube = null)
 {
     public static readonly VideoFilter None = new();
 }
@@ -120,7 +123,9 @@ public sealed record VideoQuery(SearchText? Text, VideoFilter Filter, VideoListS
 public sealed record ChannelQuery(string? NamePrefix, SearchText? Text, ChannelListSort Sort);
 
 /// <summary>What a list needs to know about a video (no description, no tracks).</summary>
+/// <param name="Active">False only when TonTuyau confirmed the video is gone from YouTube (1.5).</param>
 /// <param name="ThumbnailArt">The thumbnail's versions as the sync recorded them; null when not recorded (yet).</param>
+/// <param name="YouTube">TonTuyau's state of it on YouTube, when and why (1.5, the admin pages).</param>
 public sealed record VideoListItem(
     string Id,
     string ChannelId,
@@ -132,7 +137,8 @@ public sealed record VideoListItem(
     TimeSpan Duration,
     long Views,
     string ThumbnailPath,
-    ArtVersions? ThumbnailArt = null);
+    ArtVersions? ThumbnailArt = null,
+    YouTubeStatus? YouTube = null);
 
 /// <summary>What a list needs to know about a channel.</summary>
 public sealed record ChannelListItem(

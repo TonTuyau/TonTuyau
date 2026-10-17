@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Cli;
 using TonTuyau.Api.OpenApi;
 using TonTuyau.Application.Browse;
+using TonTuyau.Application.ChannelAdmin;
+using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Media;
 using TonTuyau.Application.Tasks;
@@ -30,6 +32,8 @@ internal static class ApiServices
         services.AddSingleton<CardBuilder>();
         services.AddSingleton<VideoService>();
         services.AddSingleton<ChannelService>();
+        services.AddSingleton<ChannelAdminService>();
+        services.AddSingleton<CommentService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();
         services.AddSingleton<DashboardService>();

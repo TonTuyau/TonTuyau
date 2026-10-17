@@ -1,0 +1,34 @@
+{
+  "id": "Comments001",
+  "title": "A video people talk about",
+  "channel_id": "UCx7Lm2QpB0vK9sTq4aZ1wYc",
+  "channel": "Under the City",
+  "timestamp": 1788526800,
+  "comment_count": 1342,
+  "comments": [
+    {
+      "id": "UgzA1",
+      "parent": "root",
+      "text": "The 1850 plan part is fascinating.\nMore please!",
+      "author": "@claire",
+      "author_id": "UCclaire000000000000000",
+      "author_thumbnail": "https://yt3.ggpht.com/claire=s88",
+      "timestamp": 1788530400,
+      "like_count": 214,
+      "is_pinned": true,
+      "author_is_uploader": false,
+      "is_favorited": true
+    },
+    {
+      "id": "UgzA1.Reply1",
+      "parent": "UgzA1",
+      "text": "Part 2 is coming.",
+      "author": "@underthecity",
+      "author_id": "UCx7Lm2QpB0vK9sTq4aZ1wYc",
+      "timestamp": 1788534000,
+      "like_count": 31,
+      "author_is_uploader": true
+    },
+    { "parent": "root", "text": "an entry without an id is left out" }
+  ]
+}

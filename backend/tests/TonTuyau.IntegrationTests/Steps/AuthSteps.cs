@@ -30,6 +30,7 @@ public sealed class AuthSteps(ScenarioState state)
     public Task LogInRemembered(string username, string password) =>
         LogInAsync(username, password, remember: true, from: null);
 
+    [Given("I logged in as the admin")]
     [When("I log in as the admin")]
     public Task LogInAsAdmin() => LogInAsync(AdminName, TestSettings.AdminPassword, remember: false, from: null);
 
@@ -172,8 +173,9 @@ public sealed class AuthSteps(ScenarioState state)
     }
 
     /// <summary>Sends the cookie if there is one, and keeps whatever the answer does to it.</summary>
-    private async Task SendAsync(HttpRequestMessage request)
+    public async Task SendAsync(HttpRequestMessage request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         if (_cookie is not null)
         {
             request.Headers.Add("Cookie", _cookie);

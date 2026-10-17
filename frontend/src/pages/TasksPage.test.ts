@@ -177,6 +177,53 @@ describe('TasksPage', () => {
   describe('starting and canceling', () => {
     const started = run({ id: 'run-20261014T090000Z-aaaaaa', state: 'running', finishedAt: null, trigger: 'admin' })
 
+    it('refreshes a video pasted as a link, with its id, then shows its run', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/refreshVideo/runs': started,
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Refresh a video' })
+      expect(within(card).getByText('tontuyau youtube video <id>')).toBeInTheDocument()
+      await user.type(within(card).getByLabelText('Video link or id'), 'https://youtu.be/k3Fq8xZ0aQw?si=x')
+      await user.click(within(card).getByRole('button', { name: 'Refresh' }))
+
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+      const [request] = api.requests('/api/admin/tasks/refreshVideo/runs')
+      expect(request?.searchParams.get('target')).toBe('k3Fq8xZ0aQw')
+    })
+
+    it('refuses what isn’t a video or a channel, without asking', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
+      render(TasksPage)
+
+      const video = await screen.findByRole('article', { name: 'Refresh a video' })
+      await user.click(within(video).getByRole('button', { name: 'Refresh' }))
+      expect(within(video).getByRole('alert')).toHaveTextContent('Paste a link or an id first.')
+
+      const channel = screen.getByRole('article', { name: 'Refresh a channel and its videos' })
+      await user.type(within(channel).getByLabelText('Channel link or id'), '@underthecity')
+      await user.click(within(channel).getByRole('button', { name: 'Refresh them' }))
+      expect(within(channel).getByRole('alert')).toHaveTextContent(/An @handle can't be read yet/)
+      expect(api.calls.filter((url) => url.pathname.endsWith('/runs') && url.pathname.includes('refresh'))).toEqual([])
+    })
+
+    it('warns when there is no YouTube cookie', async () => {
+      fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/youtube': { cookie: null, ytdlp: '2026.09.30', deno: '2.9.7' },
+      })
+      render(TasksPage)
+
+      expect(await screen.findByText(/^No YouTube cookie: YouTube may refuse/)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute('href', '/admin/youtube')
+    })
+
     it('starts the incremental sync at once, then shows its run', async () => {
       const user = userEvent.setup()
       const api = fakeApi({
@@ -254,6 +301,48 @@ describe('TasksPage', () => {
       const incremental = await screen.findByRole('article', { name: 'Incremental sync' })
       expect(within(incremental).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
       expect(within(incremental).getByText(/stop it there/)).toBeInTheDocument()
+    })
+
+    it('shows a refresh on hold: what it read and has left, Resume now (then its run), Cancel it', async () => {
+      const user = userEvent.setup()
+      const held = run({
+        id: 'run-20261016T140200Z-7c31aa',
+        task: 'refreshChannelVideos',
+        trigger: 'admin',
+        startedBy: 'admin',
+        state: 'onHold',
+        target: 'UCunderTheCity',
+        startedAt: '2026-10-16T14:02:00Z',
+        finishedAt: '2026-10-16T14:20:00Z',
+        resumeAt: '2026-10-16T15:20:00Z',
+        left: 59,
+        cancellable: true,
+        counts: { ...run().counts, videosRead: 58, channelsRead: 0 },
+      })
+      const api = fakeApi({
+        '/api/admin/tasks': tasks({ onHold: [held] }),
+        '/api/admin/runs': page([held]),
+        [`/api/admin/runs/${held.id}/cancel`]: { ...held, state: 'canceled' },
+        [`/api/admin/runs/${held.id}/resume`]: { ...held, state: 'running' },
+      })
+      render(TasksPage)
+
+      const bar = await screen.findByRole('region', { name: 'On hold' })
+      expect(bar).toHaveTextContent('On hold')
+      expect(bar).toHaveTextContent('Refresh a channel and its videos UCunderTheCity')
+      expect(bar).toHaveTextContent('58 read, 59 left.')
+      expect(within(bar).getByRole('link', { name: /Refresh a channel and its videos/ })).toHaveAttribute(
+        'href',
+        `/admin/runs/${held.id}`,
+      )
+      expect(rows()[0]?.[0]).toBe('On hold')
+      expect(rows()[0]?.[5]).toMatch(/^On hold until .*: 58 read, 59 left$/)
+
+      await user.click(within(bar).getByRole('button', { name: 'Cancel it' }))
+      await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${held.id}/cancel`)).toHaveLength(1))
+      await user.click(within(bar).getByRole('button', { name: 'Resume now' }))
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${held.id}`))
+      expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
     })
 
     it('says why a start was refused', async () => {

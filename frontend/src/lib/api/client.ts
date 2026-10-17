@@ -1,14 +1,20 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  AdminChannel,
+  AdminVideo,
+  ApiKey,
+  ApiKeyKind,
   ChannelCard,
   ChannelDetail,
   ChannelListParams,
   ChannelVideoListParams,
+  Comments,
+  CreatedApiKey,
   Dashboard,
+  Home,
   ImportHistory,
   ImportPeriod,
-  Home,
   LoginRequest,
   Me,
   Page,
@@ -24,6 +30,14 @@ import type {
   VideoCard,
   VideoDetail,
   VideoListParams,
+  YouTubeCommentsChoice,
+  YouTubeCookie,
+  YouTubeOverview,
+  YouTubeSettings,
+  YouTubeState,
+  YtdlpChoiceKind,
+  YtdlpState,
+  YtdlpVersions,
 } from './types'
 
 /** An API failure. `problem` is the server's ProblemDetails, or one built here when there was none. */
@@ -113,10 +127,29 @@ async function post(path: string, body?: unknown): Promise<void> {
   })
 }
 
-/** A POST without a body whose answer has one (1.4: starting a task, canceling a run: 202 and the run). */
-async function postFor<T>(path: string): Promise<T> {
-  const response = await send(path, { method: 'POST', headers: { accept: 'application/json' } })
+/** A POST whose answer has a body (1.4: starting a task, canceling a run: 202 and the run; 1.5: a key). */
+async function postFor<T>(path: string, body?: unknown): Promise<T> {
+  const response = await send(path, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
   return (await response.json()) as T
+}
+
+/** A PUT of JSON whose answer has a body (1.5: choosing yt-dlp). */
+async function putFor<T>(path: string, body: unknown): Promise<T> {
+  const response = await send(path, {
+    method: 'PUT',
+    headers: { accept: 'application/json', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return (await response.json()) as T
+}
+
+/** A DELETE (1.5: an API key, the YouTube cookie): 204, no body. */
+async function remove(path: string): Promise<void> {
+  await send(path, { method: 'DELETE', headers: { accept: 'application/json' } })
 }
 
 const segment = encodeURIComponent
@@ -199,9 +232,13 @@ export const api = {
     return get(`/api/admin/runs/${segment(id)}`, {}, signal)
   },
 
-  /** Starts a task now (1.4): the run, just started. 409 when a run is going on, or no deletion list waits. */
-  startTask(task: RunTask): Promise<Run> {
-    return postFor(`/api/admin/tasks/${segment(task)}/runs`)
+  /**
+   * Starts a task now (1.4): the run, just started. A refresh (1.5) takes its `target`, a video's or channel's id.
+   * 409 when a run is going on, no deletion list waits, or the target isn't one of the library.
+   */
+  startTask(task: RunTask, target?: string): Promise<Run> {
+    const query = target === undefined ? '' : `?target=${encodeURIComponent(target)}`
+    return postFor(`/api/admin/tasks/${segment(task)}/runs${query}`)
   },
 
   /** Asks the run going on to stop (1.4): it ends canceled soon after. 409 when it's over or runs elsewhere. */
@@ -209,9 +246,107 @@ export const api = {
     return postFor(`/api/admin/runs/${segment(id)}/cancel`)
   },
 
+  /** Puts the refresh going on on hold by hand (1.5): it waits for Resume now. 409 when it isn't a refresh going on. */
+  holdRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/hold`)
+  },
+
+  /** Resumes a refresh on hold now (1.5): the same run goes on where it stopped. 409 when it isn't on hold, or busy. */
+  resumeRun(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/resume`)
+  },
+
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
   runLog(id: string, after: number, signal?: AbortSignal): Promise<RunLog> {
     return get(`/api/admin/runs/${segment(id)}/log`, { after: after > 0 ? after : undefined }, signal)
+  },
+
+  /** The API keys (1.5), the latest created first; never their secrets. */
+  apiKeys(signal?: AbortSignal): Promise<ApiKey[]> {
+    return get('/api/admin/api-keys', {}, signal)
+  },
+
+  /** Creates a key: its secret comes this once. 409 when a key has the name already, whatever the case. */
+  createApiKey(name: string, kind: ApiKeyKind): Promise<CreatedApiKey> {
+    return postFor('/api/admin/api-keys', { name, kind })
+  },
+
+  enableApiKey(id: number): Promise<ApiKey> {
+    return postFor(`/api/admin/api-keys/${id}/enable`)
+  },
+
+  disableApiKey(id: number): Promise<ApiKey> {
+    return postFor(`/api/admin/api-keys/${id}/disable`)
+  },
+
+  deleteApiKey(id: number): Promise<void> {
+    return remove(`/api/admin/api-keys/${id}`)
+  },
+
+  /** The admin's YouTube page (1.5): the cookie and the tools' versions. */
+  youTube(signal?: AbortSignal): Promise<YouTubeOverview> {
+    return get('/api/admin/youtube', {}, signal)
+  },
+
+  /** Tries the cookie against YouTube again (a few seconds). 404 when there's none. */
+  checkYouTubeCookie(): Promise<YouTubeCookie> {
+    return postFor('/api/admin/youtube/cookie/check')
+  },
+
+  removeYouTubeCookie(): Promise<void> {
+    return remove('/api/admin/youtube/cookie')
+  },
+
+  /** Which yt-dlp is chosen and runs (1.5). */
+  ytdlp(signal?: AbortSignal): Promise<YtdlpState> {
+    return get('/api/admin/youtube/ytdlp', {}, signal)
+  },
+
+  /** The versions that can be chosen (from GitHub; 502 when it can't be reached). */
+  ytdlpVersions(signal?: AbortSignal): Promise<YtdlpVersions> {
+    return get('/api/admin/youtube/ytdlp/versions', {}, signal)
+  },
+
+  /** A video's comments as TonTuyau read them (1.5): a page of threads; `readAt` null when never read. */
+  videoComments(
+    id: string,
+    query: { sort?: 'top' | 'newest'; cursor?: string },
+    signal?: AbortSignal,
+  ): Promise<Comments> {
+    return get(`/api/videos/${segment(id)}/comments`, query, signal)
+  },
+
+  /** A channel's admin page (1.5): the channel, its state on YouTube, how many of its videos are in each state. */
+  adminChannel(id: string, signal?: AbortSignal): Promise<AdminChannel> {
+    return get(`/api/admin/channels/${segment(id)}`, {}, signal)
+  },
+
+  /** Its videos with their state on YouTube, latest first; by state or words, page by page. */
+  adminChannelVideos(
+    id: string,
+    query: { state?: YouTubeState; q?: string; cursor?: string },
+    signal?: AbortSignal,
+  ): Promise<Page<AdminVideo>> {
+    return get(`/api/admin/channels/${segment(id)}/videos`, query, signal)
+  },
+
+  /** How YouTube is read (1.5): which comments the refreshes read (none, the top N, all). */
+  youTubeSettings(signal?: AbortSignal): Promise<YouTubeSettings> {
+    return get('/api/admin/youtube/settings', {}, signal)
+  },
+
+  saveYouTubeSettings(
+    comments: YouTubeCommentsChoice,
+    commentsMax: number,
+    pauseSeconds: number,
+    holdMinutes: number,
+  ): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes })
+  },
+
+  /** Chooses which yt-dlp runs: applied in the background, from the next task. */
+  chooseYtdlp(kind: YtdlpChoiceKind, version: string | null): Promise<YtdlpState> {
+    return putFor('/api/admin/youtube/ytdlp', { kind, version })
   },
 }
 

@@ -2,14 +2,20 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using TonTuyau.Application.Accounts;
+using TonTuyau.Application.ApiKeys;
 using TonTuyau.Application.Configuration;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.ApiKeys;
+using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure;
 
 public static class AccountsServiceCollectionExtensions
 {
-    /// <summary>TonTuyau's PostgreSQL (EF Core) and the accounts in it.</summary>
+    /// <summary>
+    /// TonTuyau's PostgreSQL (EF Core), the accounts, the API keys, the YouTube cookie and the yt-dlp chosen in it.
+    /// </summary>
     public static IServiceCollection AddAccounts(this IServiceCollection services)
     {
         services.AddDbContext<TonTuyauDbContext>((sp, o) =>
@@ -17,6 +23,15 @@ public static class AccountsServiceCollectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
         services.AddScoped<AccountService>();
+        services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+        services.AddScoped<ApiKeyService>();
+        services.AddScoped<IYouTubeCookieRepository, YouTubeCookieRepository>();
+        services.AddSingleton<IYouTubeCookieSource, YouTubeCookieSource>();
+        services.AddScoped<YouTubeCookieService>();
+        services.AddScoped<IYtdlpSettingsRepository, YtdlpSettingsRepository>();
+        services.AddScoped<YtdlpService>();
+        services.AddSingleton<IYouTubeSettingsRepository, YouTubeSettingsRepository>();
+        services.AddSingleton<YouTubeSettingsService>();
         return services;
     }
 

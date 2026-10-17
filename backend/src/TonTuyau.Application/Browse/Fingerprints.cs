@@ -22,6 +22,7 @@ internal static class Fingerprints
         period?.ToString(),
         query.Filter.Duration?.ToString(),
         query.Filter.ExcludeId,
+        query.Filter.YouTube?.ToString(),
         query.Sort.ToString());
 
     public static string Of(string scope, ChannelQuery query) =>

@@ -1,8 +1,10 @@
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure;
 using TonTuyau.TubeArchivist;
+using TonTuyau.YouTube;
 
 namespace TonTuyau.Api.Hosting;
 
@@ -17,8 +19,10 @@ internal static class TonTuyauServices
         services.AddSingleton(sp => TonTuyauOptionsReader.Read(sp.GetRequiredService<IConfiguration>()));
         services.AddSingleton<IValidator<TonTuyauOptions>, TonTuyauOptionsValidator>();
         services.AddTubeArchivistGateway();
+        services.AddYouTubeClient();
         services.AddSearchStore();
         services.AddSingleton<SyncService>();
+        services.AddSingleton<YouTubeRefreshService>();
         services.AddSingleton(sp => new SyncSchedule(sp.GetRequiredService<TonTuyauOptions>().Sync));
         return services;
     }

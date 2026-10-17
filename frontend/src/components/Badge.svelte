@@ -1,7 +1,6 @@
 <script lang="ts">
-  // A small warning badge, e.g. "Unavailable on YouTube" for `active: false` (R2-9). `hint` is its tooltip.
-  // (`active: false` only means TubeArchivist / yt-dlp can't reach the video any more: deleted, private,
-  // region-blocked or taken down, we don't know which.)
+  // A small warning badge, e.g. "Channel unavailable on YouTube" (R2-9). `hint` is its tooltip. A video's state on
+  // YouTube has its own coloured badge (YouTubeStateBadge, 1.5).
   import type { Snippet } from 'svelte'
   import Icon from './Icon.svelte'
 

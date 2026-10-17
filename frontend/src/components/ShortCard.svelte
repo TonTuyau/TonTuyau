@@ -2,11 +2,12 @@
   // A short, in YouTube's vertical format: thumbnail, title, views. No duration overlay (as on YouTube).
   import type { VideoCard } from '../lib/api/types'
   import { formatCompact } from '../lib/format'
-  import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
+  import { i18n, tp } from '../lib/i18n/i18n.svelte'
   import { videoHref } from '../lib/shortsPlayer.svelte'
-  import Badge from './Badge.svelte'
+  import YouTubeStateBadge from './YouTubeStateBadge.svelte'
   import Thumbnail from './Thumbnail.svelte'
   import { imageSizes } from '../lib/srcset'
+  import { isVisitorState } from '../lib/youTubeStates'
 
   let { video, priority = false }: { video: VideoCard; priority?: boolean } = $props()
 
@@ -26,8 +27,8 @@
   >
   <h3 class="title"><a href={url} title={video.title}>{video.title}</a></h3>
   <p class="meta">{tp('count.views', video.views, formatCompact(video.views, i18n.lang))}</p>
-  {#if !video.active}
-    <p><Badge hint={t('badge.inactiveHint')}>{t('badge.inactive')}</Badge></p>
+  {#if isVisitorState(video.youTubeState)}
+    <p><YouTubeStateBadge state={video.youTubeState} forVisitors /></p>
   {/if}
 </article>
 

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Application.Browse;
+using TonTuyau.Application.Comments;
 
 namespace TonTuyau.Api.Controllers;
 
@@ -25,7 +26,7 @@ public sealed class HomeController(VideoService videos) : ControllerBase
 [ApiController]
 [Route("api/videos")]
 [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
-public sealed class VideosController(VideoService videos) : ControllerBase
+public sealed class VideosController(VideoService videos, CommentService comments) : ControllerBase
 {
     /// <summary>Every video, latest published first by default.</summary>
     [HttpGet]
@@ -49,6 +50,23 @@ public sealed class VideosController(VideoService videos) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<VideoDetail> GetAsync(string id, CancellationToken cancellationToken) =>
         ApiMapper.ToDto(await videos.GetAsync(id, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>
+    /// Its comments as TonTuyau read them on YouTube (1.5): a page of threads, each with its answers. Never read:
+    /// <c>readAt</c> null and no threads.
+    /// </summary>
+    [HttpGet("{id}/comments")]
+    [ProducesResponseType<CommentsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<CommentsResponse> GetCommentsAsync(
+        string id,
+        [FromQuery, Description("top (YouTube's order, the default) | newest.")] string? sort,
+        [FromQuery, Description("The previous page's nextCursor.")] string? cursor,
+        [FromQuery, Description("Threads per page, 1–100 (default 20).")] int? size,
+        CancellationToken cancellationToken) =>
+        (CommentsResponse)await comments
+            .GetAsync(new CommentsRequest(id, sort, cursor, size), cancellationToken)
+            .ConfigureAwait(false);
 }
 
 [ApiController]

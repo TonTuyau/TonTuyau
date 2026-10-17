@@ -42,12 +42,14 @@ internal sealed class FileArtStore(string root) : IArtStore
     public void Delete(string cachePath)
     {
         string file = FileFor(cachePath);
-        File.Delete(file);
+        // Checked first: File.Delete throws when the folder itself is missing (a picture never saved there).
         string directory = Path.GetDirectoryName(file)!;
         if (!Directory.Exists(directory))
         {
             return;
         }
+
+        File.Delete(file);
 
         string stem = Path.GetFileNameWithoutExtension(file);
         foreach (string version in Directory.EnumerateFiles(directory, stem + ".*" + VersionExtension))

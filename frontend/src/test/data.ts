@@ -1,6 +1,7 @@
 // Small API-shaped objects for component tests. Values are deliberately odd (URLs the front could never
 // guess, counts that don't match list lengths) so a test fails if a component computes instead of displaying.
 import type {
+  ApiKey,
   ChannelCard,
   ChannelDetail,
   ChannelTotals,
@@ -22,6 +23,7 @@ export function videoCard(overrides: Partial<VideoCard> = {}): VideoCard {
     durationSeconds: 1914,
     views: 74_198,
     active: true,
+    youTubeState: 'onYouTube',
     thumbnailUrl: '/art/from-the-api/vid00000001.webp',
     thumbnails: [
       { width: 360, url: '/art/from-the-api/vid00000001/small' },
@@ -61,6 +63,7 @@ export function videoDetail(overrides: Partial<VideoDetail> = {}): VideoDetail {
     mediaUrl: '/media/from-the-api/vid00000001',
     downloadUrl: '/media/from-the-api/vid00000001/download',
     mediaAvailable: true,
+    chapters: [],
     ...overrides,
   }
 }
@@ -107,6 +110,10 @@ export function channelTotals(overrides: Partial<ChannelTotals> = {}): ChannelTo
     thumbnails: [{ width: 900, url: '/art/from-the-api/UCtest-thumb' }],
     counts: { videos: 120, shorts: 14, streams: 0 },
     gone: 3,
+    private: 0,
+    unlisted: 0,
+    retryLater: 5,
+    notChecked: 0,
     total: 134,
     ...overrides,
   }
@@ -172,6 +179,20 @@ export function importHistory(overrides: Partial<ImportHistory> = {}): ImportHis
 }
 
 /** A run of the history (1.4): an incremental sync, succeeded. */
+export function apiKey(overrides: Partial<ApiKey> = {}): ApiKey {
+  return {
+    id: 7,
+    name: 'Firefox, laptop',
+    prefix: 'tt_k7Qm',
+    kind: 'browserExtension',
+    enabled: true,
+    createdAt: '2026-10-02T08:30:00Z',
+    createdBy: 'claire',
+    lastUsedAt: null,
+    ...overrides,
+  }
+}
+
 export function run(overrides: Partial<Run> = {}): Run {
   return {
     id: 'run-20261012T120000Z-3f9a1c',
@@ -197,10 +218,19 @@ export function run(overrides: Partial<Run> = {}): Run {
       mediaMissing: 0,
       deleted: 0,
       kept: 0,
+      foundOnYouTube: 0,
+      unlistedOnYouTube: 0,
+      goneFromYouTube: 0,
+      privateOnYouTube: 0,
+      checkFailed: 0,
+      commentsRead: 0,
     },
     deletionsPlanned: 0,
     deletionsBlocked: false,
     appliesTo: null,
+    target: null,
+    resumeAt: null,
+    left: 0,
     indexRebuild: false,
     notes: [],
     cancellable: false,
@@ -232,6 +262,7 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
         waiting: { runId: full.id, startedAt: full.startedAt, count: 312 },
       },
     ],
+    onHold: [],
     ...overrides,
   }
 }
