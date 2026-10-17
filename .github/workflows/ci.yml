@@ -139,18 +139,8 @@ jobs:
             REVISION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
 
-      - name: Run what the backend image carries
-        if: matrix.image == 'backend'
-        run: |
-          docker run --rm --entrypoint /usr/local/bin/yt-dlp tontuyau-backend:ci --version
-          docker run --rm --entrypoint /usr/local/bin/deno tontuyau-backend:ci --version
-          docker run --rm tontuyau-backend:ci --version
-
-      - name: Run what the front image carries
-        if: matrix.image == 'frontend'
-        run: |
-          docker run --rm tontuyau-frontend:ci --version
-          docker run --rm tontuyau-frontend:ci -e "require('node:fs').accessSync('/app/server/main.ts')"
+      - name: Run what the image carries
+        run: scripts/smoke-image.sh ${{ matrix.image }} tontuyau-${{ matrix.image }}:ci
 
       - uses: docker/build-push-action@v6
         with:
