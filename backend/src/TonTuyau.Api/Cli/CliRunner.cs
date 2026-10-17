@@ -232,7 +232,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ? $"""
                       target    {run.Target}
                       read      {c.VideosRead} videos / {c.ChannelsRead} channels
-                      youtube   {c.FoundOnYouTube} found, {c.GoneFromYouTube} gone, {c.CheckFailed} to retry
+                      youtube   {c.FoundOnYouTube} found ({c.UnlistedOnYouTube} unlisted), {c.GoneFromYouTube} gone,
+                                {c.PrivateOnYouTube} private, {c.CheckFailed} to retry
                       comments  {c.CommentsRead} read
                       store     changed {c.Updated}, unchanged {c.Unchanged}
                     """

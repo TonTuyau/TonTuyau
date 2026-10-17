@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import { auth } from '../lib/auth.svelte'
 import { i18n } from '../lib/i18n/i18n.svelte'
-import type { ImportBar, ImportHistory } from '../lib/api/types'
+import type { ChannelTotals, ImportBar, ImportHistory } from '../lib/api/types'
 import { dashboard, importHistory } from '../test/data'
 import { fakeApi, problemResponse } from '../test/fakeApi'
 import DashboardPage from './DashboardPage.svelte'
@@ -208,6 +208,24 @@ describe('DashboardPage', () => {
     expect(names()).toEqual(['Écoles du Goût', 'Atelier Bois', 'Vinyl Archive'])
     expect(screen.getByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
     expect(screen.getByRole('link', { name: 'Go to channel Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
+  })
+
+  it("counts each channel's videos gone, private and unlisted, in their colours when not 0, and sorts by them", async () => {
+    const data = dashboard()
+    data.channels[1] = { ...(data.channels[1] as ChannelTotals), private: 4, unlisted: 7 }
+    fakeApi({ '/api/admin/dashboard': data })
+    const user = userEvent.setup()
+    render(DashboardPage)
+
+    const table = await screen.findByRole('table', { name: 'Channels' })
+    const ecoles = within(table).getByRole('link', { name: 'Écoles du Goût' }).closest('tr') as HTMLElement
+    expect(within(ecoles).getByText('4')).toHaveClass('state', 'private')
+    expect(within(ecoles).getByText('7')).toHaveClass('state', 'unlisted')
+    const vinyl = within(table).getByRole('link', { name: 'Vinyl Archive' }).closest('tr') as HTMLElement
+    expect(within(vinyl).getByText('24')).toHaveClass('state', 'gone')
+
+    await user.click(within(table).getByRole('button', { name: 'Unlisted' }))
+    expect(names()[0]).toBe('Écoles du Goût')
   })
 
   it('finds a channel by name (accents and case ignored) and keeps those with videos gone from YouTube', async () => {

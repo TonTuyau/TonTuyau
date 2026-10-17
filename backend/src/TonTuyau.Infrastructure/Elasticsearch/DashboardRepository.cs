@@ -28,6 +28,8 @@ internal sealed class DashboardRepository(
     private const string ByChannel = "by_channel";
     private const string Duration = "duration";
     private const string Gone = "gone";
+    private const string Private = "private";
+    private const string Unlisted = "unlisted";
     private const string RetryLater = "retry_later";
     private const string NotChecked = "not_checked";
 
@@ -53,6 +55,10 @@ internal sealed class DashboardRepository(
         r => r.Counts.CreatedByType!);
 
     private static readonly Query GoneQuery = StateQuery(YouTubeState.Gone);
+
+    private static readonly Query PrivateQuery = StateQuery(YouTubeState.Private);
+
+    private static readonly Query UnlistedQuery = StateQuery(YouTubeState.Unlisted);
 
     private static readonly Query RetryLaterQuery = StateQuery(YouTubeState.RetryLater);
 
@@ -125,6 +131,8 @@ internal sealed class DashboardRepository(
                 {
                     [ByType] = new TermsAggregation { Field = Infer.Field<VideoDocument>(v => v.Type), Size = types },
                     [Gone] = new Aggregation { Filter = GoneQuery },
+                    [Private] = new Aggregation { Filter = PrivateQuery },
+                    [Unlisted] = new Aggregation { Filter = UnlistedQuery },
                     [RetryLater] = new Aggregation { Filter = RetryLaterQuery },
                     [NotChecked] = new Aggregation { Filter = NotCheckedQuery },
                 },
@@ -158,6 +166,8 @@ internal sealed class DashboardRepository(
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Short)),
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Stream))),
                     channel.Aggregations?.GetFilter(Gone)?.DocCount ?? 0,
+                    channel.Aggregations?.GetFilter(Private)?.DocCount ?? 0,
+                    channel.Aggregations?.GetFilter(Unlisted)?.DocCount ?? 0,
                     channel.Aggregations?.GetFilter(RetryLater)?.DocCount ?? 0,
                     channel.Aggregations?.GetFilter(NotChecked)?.DocCount ?? 0);
             }

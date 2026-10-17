@@ -6,8 +6,11 @@ public enum YouTubeAnswer
     /// <summary>It's there: its metadata came.</summary>
     Found,
 
-    /// <summary>YouTube says it's gone: removed, private, or its account terminated. Only this is "gone".</summary>
+    /// <summary>YouTube says it's gone: removed, or its account terminated. Only this is "gone".</summary>
     Gone,
+
+    /// <summary>YouTube says it's private: its owner may make it public again.</summary>
+    Private,
 
     /// <summary>
     /// No answer to trust: the network failed, yt-dlp failed or isn't there, a country block, an age check… Try again

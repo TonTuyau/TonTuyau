@@ -17,6 +17,15 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [Given("YouTube has the video {string}: the title {string}, {int} views")]
     public Task VideoFound(string name, string title, int views) => WriteAsync(name, VideoAnswer(name, title, views));
 
+    /// <summary>yt-dlp says it's unlisted (<c>availability</c>): only whoever has its link sees it.</summary>
+    [Given("YouTube has the unlisted video {string}: the title {string}, {int} views")]
+    public Task VideoUnlisted(string name, string title, int views)
+    {
+        Dictionary<string, object> answer = VideoAnswer(name, title, views);
+        answer["availability"] = "unlisted";
+        return WriteAsync(name, answer);
+    }
+
     /// <summary>Its comments: "Comment 1"… each answered once by the channel ("Reply 1"…), the first one pinned.</summary>
     [Given("YouTube has the video {string} with {int} comments and {int} chapters")]
     public Task VideoWithComments(string name, int threads, int chapters)

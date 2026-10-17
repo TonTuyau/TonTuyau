@@ -48,11 +48,11 @@ Feature: Refreshing videos and channels on YouTube
     Then "active" is "true"
 
   Scenario: A failed check changes nothing TonTuyau confirmed
-    Given TonTuyau found the video "alpha-02" gone from YouTube
+    Given TonTuyau refreshed the video "alpha-02": the title "Confirmé", 7 views
     And YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Unable to download webpage: HTTP Error 503: Service Unavailable"
     When I refresh the video "alpha-02" with my session
     Then the latest run ends succeeded within 20 seconds
-    And the stored YouTube state of the video "alpha-02" is "gone"
+    And the stored YouTube state of the video "alpha-02" is "on YouTube"
 
   Scenario: A channel and its videos
     Given there's no pause between videos
@@ -65,7 +65,8 @@ Feature: Refreshing videos and channels on YouTube
     Then "counts.channelsRead" is "1"
     And "counts.videosRead" is "3"
     And "counts.foundOnYouTube" is "1"
-    And "counts.goneFromYouTube" is "1"
+    And "counts.goneFromYouTube" is "0"
+    And "counts.privateOnYouTube" is "1"
     And "counts.checkFailed" is "1"
     And "notes[0]" is "The channel: on YouTube."
     When I request the channel "alpha" of TubeArchivist
@@ -73,7 +74,7 @@ Feature: Refreshing videos and channels on YouTube
     And "subscribers" is "5000"
     When I request the video "alpha-01" of TubeArchivist
     Then "title" is "Premier"
-    And the stored YouTube state of the video "alpha-02" is "gone"
+    And the stored YouTube state of the video "alpha-02" is "private"
     And the stored YouTube state of the video "alpha-03" is "retry later"
 
   Scenario: The run shows what it read so far, while it goes on
@@ -88,6 +89,55 @@ Feature: Refreshing videos and channels on YouTube
     And "counts.videosRead" is "1"
     When I cancel the latest run with my session
     Then the latest run ends canceled within 20 seconds
+
+  Scenario: An unlisted video is on YouTube, with its own state
+    Given YouTube has the unlisted video "alpha-01": the title "Par lien", 5 views
+    When I refresh the video "alpha-01" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-01" is "unlisted"
+    When I request the latest run's "" with my session
+    Then "counts.foundOnYouTube" is "1"
+    And "counts.unlistedOnYouTube" is "1"
+    When I request "/api/videos/alpha-01___" with my session
+    Then "youTubeState" is "unlisted"
+    And "title" is "Par lien"
+    And "active" is "true"
+
+  Scenario: A video made private is private, and read again at the next refresh
+    Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Private video. Sign in if you've been granted access to this video"
+    When I refresh the video "alpha-02" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-02" is "private"
+    When I request the latest run's "" with my session
+    Then "counts.privateOnYouTube" is "1"
+    And "counts.goneFromYouTube" is "0"
+    When I request "/api/videos/alpha-02___" with my session
+    Then "youTubeState" is "private"
+    And "active" is "true"
+    Given YouTube has the video "alpha-02": the title "De retour", 3 views
+    When I refresh the video "alpha-02" with my session
+    Then the latest run ends succeeded within 20 seconds
+    And the stored YouTube state of the video "alpha-02" is "on YouTube"
+
+  Scenario: A gone video isn't refreshed any more: refused alone, skipped with its channel
+    Given TonTuyau found the video "alpha-02" gone from YouTube
+    And there's no pause between videos
+    When I refresh the video "alpha-02" with my session
+    Then the response status is 409
+    And "detail" mentions "is gone from YouTube: it isn't refreshed any more."
+    Given YouTube has the channel "alpha": the name "Alpha officiel", 5000 subscribers
+    And YouTube has the video "alpha-01": the title "Un", 1 views
+    And YouTube has the video "alpha-03": the title "Trois", 3 views
+    When I refresh the channel "alpha" and its videos with my session
+    Then the latest run ends succeeded within 30 seconds
+    And PostgreSQL has the video "alpha-02" as "gone"
+    When I request the latest run's "" with my session
+    Then "counts.videosRead" is "2"
+    And "counts.foundOnYouTube" is "2"
+    And "notes[0]" is "1 gone video skipped for the refresh: it isn't read any more."
+    And the last run's log has, in order, lines with:
+      | level       | text                                                  |
+      | information | Gone video, skipped for the refresh: alpha-02___ (     |
 
   Scenario: Refreshing a video records its channel, not checked: its badge still follows TubeArchivist
     Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
@@ -188,7 +238,7 @@ Feature: Refreshing videos and channels on YouTube
     Given YouTube has the video "alpha-01": the title "Le vrai titre", 1234 views
     When I run "tontuyau youtube video alpha-01___"
     Then the command exits with code 0
-    And the output mentions "youtube   1 found, 0 gone, 0 to retry"
+    And the output mentions "youtube   1 found (0 unlisted), 0 gone,"
     When I run "tontuyau youtube channel nope"
     Then the command exits with code 4
 

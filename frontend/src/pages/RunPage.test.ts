@@ -52,7 +52,15 @@ describe('RunPage', () => {
   it('links a refresh to what it read on YouTube, and shows what YouTube answered', async () => {
     const channel = 'UCmw5b3sYz6v1sFkwM1HLs1g'
     const refresh = run({ task: 'refreshChannelVideos', target: channel })
-    refresh.counts = { ...refresh.counts, channelsRead: 1, foundOnYouTube: 50, goneFromYouTube: 2, checkFailed: 10 }
+    refresh.counts = {
+      ...refresh.counts,
+      channelsRead: 1,
+      foundOnYouTube: 50,
+      unlistedOnYouTube: 4,
+      goneFromYouTube: 2,
+      privateOnYouTube: 3,
+      checkFailed: 10,
+    }
     fakeApi({ [`/api/admin/runs/${refresh.id}`]: refresh, [`/api/admin/runs/${refresh.id}/log`]: log([]) })
     render(RunPage, { id: refresh.id })
 
@@ -62,7 +70,9 @@ describe('RunPage', () => {
     const result = screen.getByRole('region', { name: 'Result' })
     expect(within(result).getByRole('link', { name: channel })).toHaveAttribute('href', `/channel/${channel}`)
     expect(within(result).getByText('Found on YouTube').nextElementSibling).toHaveTextContent('50')
+    expect(within(result).getByText('Of which unlisted').nextElementSibling).toHaveTextContent('4')
     expect(within(result).getByText('Gone from YouTube').nextElementSibling).toHaveTextContent('2')
+    expect(within(result).getByText('Private on YouTube').nextElementSibling).toHaveTextContent('3')
     expect(within(result).getByText('To retry (no answer to trust)').nextElementSibling).toHaveTextContent('10')
     expect(within(result).queryByText('Art copied')).not.toBeInTheDocument()
   })

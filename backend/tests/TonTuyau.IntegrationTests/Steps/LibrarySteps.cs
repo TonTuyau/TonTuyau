@@ -266,15 +266,23 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
 
     private void Set(string key, string value) => state.Settings.Set(ConfigKeys.EnvironmentName(key), value);
 
-    /// <summary>"gone", "retry later", "on YouTube", "not checked": TonTuyau's state, checked a day ago; empty: none.</summary>
+    /// <summary>
+    /// "gone", "private", "unlisted", "retry later", "on YouTube", "not checked": TonTuyau's state, checked a day ago;
+    /// empty: none.
+    /// </summary>
     private static YouTubeStatus? YouTubeOf(string? state) => state switch
     {
         null => null,
         "gone" => new YouTubeStatus(YouTubeState.Gone, DefaultPublished.AddDays(40), "Video unavailable", null),
+        "private" => new YouTubeStatus(YouTubeState.Private, DefaultPublished.AddDays(40), "Private video", null),
+        "unlisted" => new YouTubeStatus(YouTubeState.Unlisted, DefaultPublished.AddDays(40), null, null),
         "retry later" => new YouTubeStatus(YouTubeState.RetryLater, DefaultPublished.AddDays(40), "Sign in", null),
         "on YouTube" => new YouTubeStatus(YouTubeState.OnYouTube, DefaultPublished.AddDays(40), null, null),
         "not checked" => new YouTubeStatus(YouTubeState.NotChecked, null, null, null),
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "gone, retry later, on YouTube, not checked"),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(state),
+            state,
+            "gone, private, unlisted, retry later, on YouTube, not checked"),
     };
 
     private static string? Get(DataTableRow row, string column) =>

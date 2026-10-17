@@ -15,8 +15,9 @@
   import { router } from '../lib/router/router.svelte'
   import { href, startTime } from '../lib/router/routes'
   import { pageTitle } from '../lib/title.svelte'
+  import { visitorBadge } from '../lib/youTubeStates'
   import Avatar from '../components/Avatar.svelte'
-  import Badge from '../components/Badge.svelte'
+  import YouTubeStateBadge from '../components/YouTubeStateBadge.svelte'
   import Button from '../components/Button.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Chapters from '../components/Chapters.svelte'
@@ -118,10 +119,10 @@
     </div>
     <div class="primary">
       <h1 class="title">{video.title}</h1>
-      {#if !video.active}
+      {#if visitorBadge(video.youTubeState)}
         <p class="inactive">
-          <Badge hint={t('badge.inactiveHint')}>{t('badge.inactive')}</Badge>
-          <span class="hint">{t('badge.inactiveHint')}</span>
+          <YouTubeStateBadge state={video.youTubeState} forVisitors />
+          <span class="hint">{visitorBadge(video.youTubeState)?.hint}</span>
         </p>
       {/if}
 

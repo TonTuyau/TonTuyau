@@ -15,7 +15,7 @@ describe('WatchPage', () => {
 
   it('shows the video facts from the API and the download link', async () => {
     fakeApi({
-      '/api/videos/vid00000001': videoDetail({ active: false }),
+      '/api/videos/vid00000001': videoDetail({ active: false, youTubeState: 'gone' }),
       '/api/channels/UCtest/videos': page([videoCard({ id: 'other', title: 'Another one' })]),
     })
     goTo('/watch?v=vid00000001')
@@ -23,9 +23,9 @@ describe('WatchPage', () => {
     render(WatchPage, { probe: probably })
 
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Crème brûlée : la recette')
-    expect(screen.getByText('Unavailable on YouTube')).toHaveAttribute(
+    expect(screen.getByText('Gone from YouTube')).toHaveAttribute(
       'title',
-      'YouTube says this video was removed or made private; this is the archived copy.',
+      'YouTube says this video was removed: this is the archived copy.',
     )
     expect(screen.getByText(/this is the archived copy/, { selector: '.hint' })).toBeInTheDocument()
     expect(screen.getByText(/74,198 views/)).toBeInTheDocument()

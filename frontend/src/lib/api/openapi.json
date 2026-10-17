@@ -2934,7 +2934,19 @@
         }
       },
       "ChannelTotals": {
-        "required": ["id", "name", "thumbnailUrl", "thumbnails", "counts", "gone", "retryLater", "notChecked", "total"],
+        "required": [
+          "id",
+          "name",
+          "thumbnailUrl",
+          "thumbnails",
+          "counts",
+          "gone",
+          "private",
+          "unlisted",
+          "retryLater",
+          "notChecked",
+          "total"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -2956,6 +2968,14 @@
             "$ref": "#/components/schemas/VideoCounts"
           },
           "gone": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "private": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unlisted": {
             "type": "integer",
             "format": "int64"
           },
@@ -3464,7 +3484,9 @@
           "deleted",
           "kept",
           "foundOnYouTube",
+          "unlistedOnYouTube",
           "goneFromYouTube",
+          "privateOnYouTube",
           "checkFailed",
           "commentsRead"
         ],
@@ -3530,7 +3552,15 @@
             "type": "integer",
             "format": "int32"
           },
+          "unlistedOnYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
           "goneFromYouTube": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "privateOnYouTube": {
             "type": "integer",
             "format": "int32"
           },
@@ -3878,6 +3908,7 @@
           "durationSeconds",
           "views",
           "active",
+          "youTubeState",
           "thumbnailUrl",
           "thumbnails",
           "channel"
@@ -3907,6 +3938,9 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "youTubeState": {
+            "$ref": "#/components/schemas/YouTubeState"
           },
           "thumbnailUrl": {
             "type": ["null", "string"]
@@ -3970,6 +4004,7 @@
           "durationSeconds",
           "views",
           "active",
+          "youTubeState",
           "thumbnailUrl",
           "thumbnails",
           "channel",
@@ -4011,6 +4046,9 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "youTubeState": {
+            "$ref": "#/components/schemas/YouTubeState"
           },
           "thumbnailUrl": {
             "type": ["null", "string"]
@@ -4226,11 +4264,11 @@
         }
       },
       "YouTubeState": {
-        "enum": ["notChecked", "onYouTube", "retryLater", "gone"],
+        "enum": ["notChecked", "onYouTube", "retryLater", "gone", "private", "unlisted"],
         "type": "string"
       },
       "YouTubeStateCounts": {
-        "required": ["notChecked", "onYouTube", "retryLater", "gone"],
+        "required": ["notChecked", "onYouTube", "unlisted", "private", "retryLater", "gone"],
         "type": "object",
         "properties": {
           "notChecked": {
@@ -4238,6 +4276,14 @@
             "format": "int64"
           },
           "onYouTube": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unlisted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "private": {
             "type": "integer",
             "format": "int64"
           },

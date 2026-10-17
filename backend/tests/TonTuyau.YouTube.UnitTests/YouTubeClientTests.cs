@@ -57,6 +57,7 @@ public sealed class YouTubeClientTests
         Assert.Equal(["paris", "infrastructure", "history"], video.Tags);
         Assert.Equal(["Education"], video.Categories);
         Assert.Equal("not_live", video.LiveStatus);
+        Assert.Equal("public", video.Availability);
         // An entry without a URL is left out.
         Assert.Equal(
             [
@@ -95,13 +96,19 @@ public sealed class YouTubeClientTests
     }
 
     [Theory]
-    [InlineData("Removed00001", "Video unavailable. This video has been removed by the uploader")]
-    [InlineData("Private0001", "Private video. Sign in if you've been granted access to this video")]
-    public async Task YouTube_saying_it_was_removed_or_made_private_is_gone(string id, string reason)
+    [InlineData("Removed00001", YouTubeAnswer.Gone, "Video unavailable. This video has been removed by the uploader")]
+    [InlineData(
+        "Private0001",
+        YouTubeAnswer.Private,
+        "Private video. Sign in if you've been granted access to this video")]
+    public async Task YouTube_saying_it_was_removed_is_gone_made_private_is_private(
+        string id,
+        YouTubeAnswer answer,
+        string reason)
     {
         YouTubeLookup<YouTubeVideo> lookup = await Client().GetVideoAsync(id, null, Token);
 
-        Assert.Equal(YouTubeAnswer.Gone, lookup.Answer);
+        Assert.Equal(answer, lookup.Answer);
         Assert.Equal(reason, lookup.Reason);
         Assert.Null(lookup.Item);
     }

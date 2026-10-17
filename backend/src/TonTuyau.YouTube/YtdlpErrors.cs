@@ -4,7 +4,8 @@ namespace TonTuyau.YouTube;
 
 /// <summary>
 /// Reads yt-dlp's <c>ERROR:</c> lines (stderr) into an answer: <see cref="YouTubeAnswer.Gone"/> only when YouTube itself
-/// says the video or channel was removed, made private, or its account terminated; anything else (a bot check, too many
+/// says the video or channel was removed or its account terminated, <see cref="YouTubeAnswer.Private"/> when it says
+/// it's private; anything else (a bot check, too many
 /// requests, a country block, members only, an unknown "unavailable", no error at all) is
 /// <see cref="YouTubeAnswer.CheckFailed"/>: TubeArchivist's false "unavailable" flags came from treating those as gone.
 /// A bot check or "too many requests" is <see cref="YouTubeAnswer.Refused"/>: YouTube refuses TonTuyau for now.
@@ -44,13 +45,18 @@ internal static class YtdlpErrors
         "has been removed",
         "account associated with this video has been terminated",
         "This video is no longer available",
-        "Private video",
-        "This video is private",
         "violating YouTube's Terms of Service",
         "violating YouTube’s Terms of Service",
         "copyright claim",
         "This channel does not exist",
         "This account has been terminated",
+    ];
+
+    /// <summary>YouTube's own words for a video its owner made private.</summary>
+    private static readonly string[] PrivateWords =
+    [
+        "Private video",
+        "This video is private",
     ];
 
     /// <param name="lines">What yt-dlp wrote to stderr, warnings included.</param>
@@ -78,8 +84,13 @@ internal static class YtdlpErrors
             return (YouTubeAnswer.CheckFailed, reason);
         }
 
-        return GoneWords.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase))
-            ? (YouTubeAnswer.Gone, reason)
+        if (GoneWords.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (YouTubeAnswer.Gone, reason);
+        }
+
+        return PrivateWords.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase))
+            ? (YouTubeAnswer.Private, reason)
             : (YouTubeAnswer.CheckFailed, reason);
     }
 

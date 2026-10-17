@@ -121,6 +121,8 @@ internal static class DocumentMapper
         YouTubeState.OnYouTube => "on_youtube",
         YouTubeState.RetryLater => "retry_later",
         YouTubeState.Gone => "gone",
+        YouTubeState.Private => "private",
+        YouTubeState.Unlisted => "unlisted",
         _ => "not_checked",
     };
 
@@ -129,6 +131,8 @@ internal static class DocumentMapper
         "on_youtube" => YouTubeState.OnYouTube,
         "retry_later" => YouTubeState.RetryLater,
         "gone" => YouTubeState.Gone,
+        "private" => YouTubeState.Private,
+        "unlisted" => YouTubeState.Unlisted,
         _ => YouTubeState.NotChecked,
     };
 

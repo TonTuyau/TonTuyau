@@ -57,16 +57,28 @@ public sealed partial class YouTubeRefreshService(
     {
         ArgumentNullException.ThrowIfNull(progress);
         await RefuseUnknownAsync(mode, target, cancellationToken).ConfigureAwait(false);
-        // What it reads, in order: the channel first, then its videos, latest downloaded first.
+        // What it reads, in order: the channel first, then its videos, latest downloaded first; not the gone ones.
         List<string> work = [target];
+        List<VideoSummary> skipped = [];
         if (mode == SyncMode.RefreshChannelVideos)
         {
             IReadOnlyList<VideoSummary> ofChannel = await videos
                 .FindByChannelsAsync([target], cancellationToken)
                 .ConfigureAwait(false);
-            work.AddRange(ofChannel
-                .OrderByDescending(v => v.Downloaded)
-                .Select(v => v.Id));
+            IReadOnlyDictionary<string, VideoFacts> known = await facts
+                .GetVideosAsync([.. ofChannel.Select(v => v.Id)], cancellationToken)
+                .ConfigureAwait(false);
+            foreach (VideoSummary video in ofChannel.OrderByDescending(v => v.Downloaded))
+            {
+                if (known.GetValueOrDefault(video.Id)?.Status.State == YouTubeState.Gone)
+                {
+                    skipped.Add(video);
+                }
+                else
+                {
+                    work.Add(video.Id);
+                }
+            }
         }
 
         ISyncLease lease = await state.TryAcquireLockAsync(mode, trigger, cancellationToken).ConfigureAwait(false)
@@ -82,7 +94,7 @@ public sealed partial class YouTubeRefreshService(
                 StartedBy = startedBy,
                 Target = target,
             };
-            return await RunLockedAsync(run, work, resumedBy: null, lease, progress, cancellationToken)
+            return await RunLockedAsync(run, work, skipped, resumedBy: null, lease, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
@@ -115,7 +127,7 @@ public sealed partial class YouTubeRefreshService(
                 ResumeAt = null,
                 Remaining = [],
             };
-            return await RunLockedAsync(run, held.Remaining, by ?? Itself, lease, progress, cancellationToken)
+            return await RunLockedAsync(run, held.Remaining, [], by ?? Itself, lease, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
@@ -222,10 +234,12 @@ public sealed partial class YouTubeRefreshService(
     /// puts it on hold when YouTube refuses, or when an admin asks (the lock is then let go, what's left kept with the
     /// run).
     /// </summary>
+    /// <param name="skipped">The gone videos left out of <paramref name="work"/>: said in its log and a note.</param>
     /// <param name="resumedBy">Who resumed it; null for a new run.</param>
     private async Task<SyncRun> RunLockedAsync(
         SyncRun run,
         IReadOnlyList<string> work,
+        List<VideoSummary> skipped,
         string? resumedBy,
         ISyncLease lease,
         ISyncProgressReporter progress,
@@ -263,6 +277,18 @@ public sealed partial class YouTubeRefreshService(
         else
         {
             LogResumed(run.Id, resumedBy, work.Count);
+        }
+
+        foreach (VideoSummary video in skipped)
+        {
+            LogSkippedGone(video.Id, video.Title);
+        }
+
+        if (skipped.Count > 0)
+        {
+            context.Note(skipped.Count == 1
+                ? "1 gone video skipped for the refresh: it isn't read any more."
+                : $"{skipped.Count} gone videos skipped for the refresh: they aren't read any more.");
         }
 
         Watch(run.Id, holding);
@@ -411,10 +437,21 @@ public sealed partial class YouTubeRefreshService(
     {
         if (mode == SyncMode.RefreshVideo)
         {
-            if (!LibraryIds.IsVideoId(target)
-                || await videos.GetAsync(target, cancellationToken).ConfigureAwait(false) is null)
+            Video? video = LibraryIds.IsVideoId(target)
+                ? await videos.GetAsync(target, cancellationToken).ConfigureAwait(false)
+                : null;
+            if (video is null)
             {
                 throw new SyncRefusedException($"No video {target} in the library.");
+            }
+
+            IReadOnlyDictionary<string, VideoFacts> known = await facts
+                .GetVideosAsync([target], cancellationToken)
+                .ConfigureAwait(false);
+            if (known.GetValueOrDefault(target)?.Status.State == YouTubeState.Gone)
+            {
+                throw new SyncRefusedException(
+                    $"The video \"{video.Title}\" is gone from YouTube: it isn't refreshed any more.");
             }
         }
         else if (mode is SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
@@ -470,12 +507,16 @@ public sealed partial class YouTubeRefreshService(
             YouTubeAnswer.Found => new VideoFacts(
                 videoId,
                 video.ChannelId,
-                new YouTubeStatus(YouTubeState.OnYouTube, now, null, now),
+                new YouTubeStatus(StateOf(lookup.Item!), now, null, now),
                 RefreshedOf(lookup.Item!, video, known?.Refreshed, thumbnail?.Path)),
-            YouTubeAnswer.Gone => new VideoFacts(
+            YouTubeAnswer.Gone or YouTubeAnswer.Private => new VideoFacts(
                 videoId,
                 video.ChannelId,
-                new YouTubeStatus(YouTubeState.Gone, now, lookup.Reason, known?.Status.RefreshedAt),
+                new YouTubeStatus(
+                    lookup.Answer == YouTubeAnswer.Gone ? YouTubeState.Gone : YouTubeState.Private,
+                    now,
+                    lookup.Reason,
+                    known?.Status.RefreshedAt),
                 known?.Refreshed),
             _ when IsConfirmed(known?.Status) => known!,
             _ => new VideoFacts(
@@ -584,6 +625,7 @@ public sealed partial class YouTubeRefreshService(
             {
                 YouTubeAnswer.Found => "The channel: on YouTube.",
                 YouTubeAnswer.Gone => $"The channel: gone from YouTube ({lookup.Reason}).",
+                YouTubeAnswer.Private => $"The channel: private on YouTube ({lookup.Reason}).",
                 _ => $"The channel: no answer to trust from YouTube ({lookup.Reason}), to retry.",
             });
         }
@@ -706,7 +748,15 @@ public sealed partial class YouTubeRefreshService(
             banner ?? known?.BannerPath);
 
     private static bool IsConfirmed(YouTubeStatus? status) =>
-        status?.State is YouTubeState.OnYouTube or YouTubeState.Gone;
+        status?.State is YouTubeState.OnYouTube or YouTubeState.Unlisted or YouTubeState.Private or YouTubeState.Gone;
+
+    /// <summary>A video YouTube answered: unlisted or private (its owner reading it) when yt-dlp says so.</summary>
+    private static YouTubeState StateOf(YouTubeVideo found) => found.Availability switch
+    {
+        "unlisted" => YouTubeState.Unlisted,
+        "private" => YouTubeState.Private,
+        _ => YouTubeState.OnYouTube,
+    };
 
     private void Logged<T>(string id, YouTubeLookup<T> lookup)
         where T : class
@@ -714,6 +764,10 @@ public sealed partial class YouTubeRefreshService(
         if (lookup.Answer == YouTubeAnswer.Gone)
         {
             LogGone(id, lookup.Reason);
+        }
+        else if (lookup.Answer == YouTubeAnswer.Private)
+        {
+            LogPrivate(id, lookup.Reason);
         }
         else if (lookup.Answer == YouTubeAnswer.CheckFailed)
         {
@@ -728,8 +782,14 @@ public sealed partial class YouTubeRefreshService(
 
         context.Count(c => lookup.Answer switch
         {
-            YouTubeAnswer.Found => c with { FoundOnYouTube = c.FoundOnYouTube + 1 },
+            YouTubeAnswer.Found => c with
+            {
+                FoundOnYouTube = c.FoundOnYouTube + 1,
+                UnlistedOnYouTube = c.UnlistedOnYouTube
+                    + (lookup.Item is YouTubeVideo video && StateOf(video) == YouTubeState.Unlisted ? 1 : 0),
+            },
             YouTubeAnswer.Gone => c with { GoneFromYouTube = c.GoneFromYouTube + 1 },
+            YouTubeAnswer.Private => c with { PrivateOnYouTube = c.PrivateOnYouTube + 1 },
             _ => c with { CheckFailed = c.CheckFailed + 1 },
         });
     }
@@ -758,6 +818,12 @@ public sealed partial class YouTubeRefreshService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Comments read: {Read} (the YouTube page's settings).")]
     private partial void LogComments(string read);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Id}: private on YouTube ({Reason}).")]
+    private partial void LogPrivate(string id, string? reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Gone video, skipped for the refresh: {Id} ({Title}).")]
+    private partial void LogSkippedGone(string id, string title);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Id}: gone from YouTube ({Reason}).")]
     private partial void LogGone(string id, string? reason);

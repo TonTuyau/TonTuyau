@@ -3012,6 +3012,10 @@ export interface components {
       /** Format: int64 */
       gone: number
       /** Format: int64 */
+      private: number
+      /** Format: int64 */
+      unlisted: number
+      /** Format: int64 */
       retryLater: number
       /** Format: int64 */
       notChecked: number
@@ -3214,7 +3218,11 @@ export interface components {
       /** Format: int32 */
       foundOnYouTube: number
       /** Format: int32 */
+      unlistedOnYouTube: number
+      /** Format: int32 */
       goneFromYouTube: number
+      /** Format: int32 */
+      privateOnYouTube: number
       /** Format: int32 */
       checkFailed: number
       /** Format: int32 */
@@ -3334,6 +3342,7 @@ export interface components {
       /** Format: int64 */
       views: number
       active: boolean
+      youTubeState: components['schemas']['YouTubeState']
       thumbnailUrl: null | string
       thumbnails: components['schemas']['ImageSize'][]
       channel: components['schemas']['VideoChannel']
@@ -3363,6 +3372,7 @@ export interface components {
       /** Format: int64 */
       views: number
       active: boolean
+      youTubeState: components['schemas']['YouTubeState']
       thumbnailUrl: null | string
       thumbnails: components['schemas']['ImageSize'][]
       channel: components['schemas']['VideoDetailChannel']
@@ -3439,12 +3449,16 @@ export interface components {
       changedAt: null | string
     }
     /** @enum {string} */
-    YouTubeState: 'notChecked' | 'onYouTube' | 'retryLater' | 'gone'
+    YouTubeState: 'notChecked' | 'onYouTube' | 'retryLater' | 'gone' | 'private' | 'unlisted'
     YouTubeStateCounts: {
       /** Format: int64 */
       notChecked: number
       /** Format: int64 */
       onYouTube: number
+      /** Format: int64 */
+      unlisted: number
+      /** Format: int64 */
+      private: number
       /** Format: int64 */
       retryLater: number
       /** Format: int64 */

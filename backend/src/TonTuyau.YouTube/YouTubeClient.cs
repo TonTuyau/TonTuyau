@@ -171,7 +171,8 @@ internal sealed partial class YouTubeClient(
         info.LiveStatus,
         info.CommentCount,
         withComments ? CommentsOf(info.Comments) : null,
-        ChaptersOf(info.Chapters));
+        ChaptersOf(info.Chapters),
+        info.Availability);
 
     internal static YouTubeChannel ChannelOf(ChannelInfoDto info) => new(
         info.ChannelId!,

@@ -1,19 +1,21 @@
 <script lang="ts">
-  // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube, to retry or not checked yet
-  // (1.5), and the total. Its name opens its admin page; "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered
+  // Every channel of the dashboard: its videos, shorts, streams, those gone from YouTube, private, unlisted, to retry
+  // or not checked yet (1.5; each count not 0 in its state's colour), and the total. Its name opens its admin page; "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered
   // by name (accents and case ignored) and to the channels with videos gone from YouTube. All in the page: the API sent
   // every channel.
-  import type { ChannelTotals } from '../lib/api/types'
+  import type { ChannelTotals, YouTubeState } from '../lib/api/types'
   import { formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import type { TextKey } from '../lib/i18n/types'
   import { href } from '../lib/router/routes'
   import Avatar from './Avatar.svelte'
   import Button from './Button.svelte'
+  import YouTubeStateBadge from './YouTubeStateBadge.svelte'
 
   let { channels }: { channels: ChannelTotals[] } = $props()
 
-  type Column = 'name' | 'videos' | 'shorts' | 'streams' | 'gone' | 'retryLater' | 'notChecked' | 'total'
+  type Column =
+    'name' | 'videos' | 'shorts' | 'streams' | 'gone' | 'private' | 'unlisted' | 'retryLater' | 'notChecked' | 'total'
 
   const columns: { key: Column; label: TextKey }[] = [
     { key: 'name', label: 'dashboard.channel' },
@@ -21,6 +23,8 @@
     { key: 'shorts', label: 'type.short' },
     { key: 'streams', label: 'type.stream' },
     { key: 'gone', label: 'dashboard.gone' },
+    { key: 'private', label: 'dashboard.private' },
+    { key: 'unlisted', label: 'dashboard.unlisted' },
     { key: 'retryLater', label: 'dashboard.retryLater' },
     { key: 'notChecked', label: 'dashboard.notChecked' },
     { key: 'total', label: 'dashboard.total' },
@@ -45,6 +49,10 @@
         return channel.counts[column]
       case 'gone':
         return channel.gone
+      case 'private':
+        return channel.private
+      case 'unlisted':
+        return channel.unlisted
       case 'retryLater':
         return channel.retryLater
       case 'notChecked':
@@ -78,6 +86,15 @@
 
   const number = (count: number) => formatNumber(count, i18n.lang)
 </script>
+
+<!-- A count of a state: in its colour when not 0. -->
+{#snippet stateCount(state: YouTubeState, count: number)}
+  {#if count > 0}
+    <YouTubeStateBadge {state}>{number(count)}</YouTubeStateBadge>
+  {:else}
+    <span class="zero">{number(count)}</span>
+  {/if}
+{/snippet}
 
 <div class="tools">
   <input
@@ -126,8 +143,10 @@
           <td class="num" class:zero={channel.counts.videos === 0}>{number(channel.counts.videos)}</td>
           <td class="num" class:zero={channel.counts.shorts === 0}>{number(channel.counts.shorts)}</td>
           <td class="num" class:zero={channel.counts.streams === 0}>{number(channel.counts.streams)}</td>
-          <td class="num"><span class="gone" class:some={channel.gone > 0}>{number(channel.gone)}</span></td>
-          <td class="num" class:zero={channel.retryLater === 0}>{number(channel.retryLater)}</td>
+          <td class="num">{@render stateCount('gone', channel.gone)}</td>
+          <td class="num">{@render stateCount('private', channel.private)}</td>
+          <td class="num">{@render stateCount('unlisted', channel.unlisted)}</td>
+          <td class="num">{@render stateCount('retryLater', channel.retryLater)}</td>
           <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
           <td class="num"><b>{number(channel.total)}</b></td>
           <td>
@@ -259,24 +278,6 @@
 
   .zero {
     color: var(--color-text-secondary);
-  }
-
-  .gone {
-    display: inline-block;
-    min-width: var(--space-6);
-    padding: 0 var(--space-2);
-    border-radius: var(--radius-pill);
-    text-align: center;
-  }
-
-  .gone:not(.some) {
-    color: var(--color-text-secondary);
-  }
-
-  .gone.some {
-    background: var(--color-warning-bg);
-    color: var(--color-on-warning);
-    font-weight: var(--font-weight-medium);
   }
 
   .empty {

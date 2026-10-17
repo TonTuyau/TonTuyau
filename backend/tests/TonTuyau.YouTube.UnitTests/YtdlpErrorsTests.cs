@@ -6,8 +6,6 @@ public sealed class YtdlpErrorsTests
 {
     [Theory]
     [InlineData("ERROR: [youtube] abcdefghijk: Video unavailable. This video has been removed by the uploader")]
-    [InlineData("ERROR: [youtube] abcdefghijk: Private video. Sign in if you've been granted access to this video")]
-    [InlineData("ERROR: [youtube] abcdefghijk: This video is private")]
     [InlineData(
         "ERROR: [youtube] abcdefghijk: Video unavailable. This video is no longer available because the YouTube "
         + "account associated with this video has been terminated.")]
@@ -18,6 +16,14 @@ public sealed class YtdlpErrorsTests
     public void YouTube_own_words_for_gone_are_gone(string line)
     {
         Assert.Equal(YouTubeAnswer.Gone, YtdlpErrors.Classify([line], 1).Answer);
+    }
+
+    [Theory]
+    [InlineData("ERROR: [youtube] abcdefghijk: Private video. Sign in if you've been granted access to this video")]
+    [InlineData("ERROR: [youtube] abcdefghijk: This video is private")]
+    public void A_video_made_private_is_private_never_gone(string line)
+    {
+        Assert.Equal(YouTubeAnswer.Private, YtdlpErrors.Classify([line], 1).Answer);
     }
 
     [Theory]

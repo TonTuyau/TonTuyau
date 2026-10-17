@@ -71,8 +71,8 @@ public sealed class DashboardServiceTests
             0,
             new Dictionary<string, ChannelStats>
             {
-                ["a"] = new(new TypeCounts(3, 1, 0), 1, 2, 0),
-                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 5),
+                ["a"] = new(new TypeCounts(3, 1, 0), 1, 0, 0, 2, 0),
+                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 0, 0, 5),
             });
 
         IReadOnlyList<ChannelTotalsView> channels = (await Service().GetAsync(Ct)).Channels;
