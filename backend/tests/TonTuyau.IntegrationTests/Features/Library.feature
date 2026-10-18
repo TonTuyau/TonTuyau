@@ -3,7 +3,7 @@ Feature: The library in PostgreSQL
   channel, one column each. What TubeArchivist brings only adds what TonTuyau doesn't have, "not checked" on
   YouTube: a video or channel TonTuyau has is left as it is, so what a refresh read is never overwritten.
 
-  Scenario: A video is read back as it was added, not checked on YouTube
+  Scenario: A video is read back as it was added, not checked on YouTube, without TubeArchivist's refresh date
     When the videos "aaaaaaaaaaa" are added to the library
     Then the library's video "aaaaaaaaaaa" is the one added, tracks, tags and duration included
 

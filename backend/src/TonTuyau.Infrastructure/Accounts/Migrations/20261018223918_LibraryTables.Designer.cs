@@ -13,7 +13,7 @@ using TonTuyau.Infrastructure.Accounts;
 namespace TonTuyau.Infrastructure.Accounts.Migrations
 {
     [DbContext(typeof(TonTuyauDbContext))]
-    [Migration("20261018222401_LibraryTables")]
+    [Migration("20261018223918_LibraryTables")]
     partial class LibraryTables
     {
         /// <inheritdoc />
@@ -160,10 +160,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<DateTimeOffset?>("LastRefreshed")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_refreshed");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -274,10 +270,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<TimeSpan>("Duration")
                         .HasColumnType("interval")
                         .HasColumnName("duration");
-
-                    b.Property<DateTimeOffset?>("LastRefreshed")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_refreshed");
 
                     b.Property<long>("Likes")
                         .HasColumnType("bigint")

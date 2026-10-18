@@ -157,10 +157,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<DateTimeOffset?>("LastRefreshed")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_refreshed");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -271,10 +267,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<TimeSpan>("Duration")
                         .HasColumnType("interval")
                         .HasColumnName("duration");
-
-                    b.Property<DateTimeOffset?>("LastRefreshed")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_refreshed");
 
                     b.Property<long>("Likes")
                         .HasColumnType("bigint")

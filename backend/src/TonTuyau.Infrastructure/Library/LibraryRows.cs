@@ -22,7 +22,6 @@ internal static class LibraryRows
         Type = video.Type,
         Published = video.Published,
         Downloaded = video.Downloaded,
-        LastRefreshed = video.LastRefreshed,
         Duration = video.Duration,
         MediaSize = video.MediaSize,
         MediaPath = video.MediaPath,
@@ -56,7 +55,6 @@ internal static class LibraryRows
         Name = channel.Name,
         Description = channel.Description,
         Subscribers = channel.Subscribers,
-        LastRefreshed = channel.LastRefreshed,
         Tags = [.. channel.Tags],
         Tabs = [.. channel.Tabs],
         ThumbPath = channel.ThumbPath,
@@ -67,7 +65,8 @@ internal static class LibraryRows
 
     /// <summary>
     /// The video as the row holds it. <see cref="Video.Active"/> is true: TubeArchivist's flag isn't kept, the state on
-    /// YouTube says whether it's gone.
+    /// YouTube says whether it's gone. <see cref="Video.LastRefreshed"/> is null: TubeArchivist's date isn't kept,
+    /// TonTuyau's is the state's <see cref="YouTubeStatus.RefreshedAt"/>.
     /// </summary>
     public static Video ToVideo(VideoRow row) =>
         new(
@@ -80,7 +79,7 @@ internal static class LibraryRows
             true,
             row.Published,
             row.Downloaded,
-            row.LastRefreshed,
+            null,
             row.Duration,
             row.MediaSize,
             row.MediaPath,
@@ -93,7 +92,10 @@ internal static class LibraryRows
             [.. row.Tracks.Select(t => new MediaTrack(t.Kind, t.Codec, t.Bitrate, t.Width, t.Height))],
             ToStatus(row.YouTube));
 
-    /// <summary>The channel as the row holds it (<see cref="Channel.Active"/> true, as for a video).</summary>
+    /// <summary>
+    /// The channel as the row holds it (<see cref="Channel.Active"/> true, <see cref="Channel.LastRefreshed"/> null,
+    /// as for a video).
+    /// </summary>
     public static Channel ToChannel(ChannelRow row) =>
         new(
             row.Id,
@@ -101,7 +103,7 @@ internal static class LibraryRows
             row.Description,
             row.Subscribers,
             true,
-            row.LastRefreshed,
+            null,
             row.Tags,
             row.Tabs,
             row.ThumbPath,

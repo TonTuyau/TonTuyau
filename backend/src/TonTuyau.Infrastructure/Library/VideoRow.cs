@@ -30,8 +30,6 @@ public sealed class VideoRow
 
     public DateTimeOffset Downloaded { get; set; }
 
-    public DateTimeOffset? LastRefreshed { get; set; }
-
     public TimeSpan Duration { get; set; }
 
     public long MediaSize { get; set; }

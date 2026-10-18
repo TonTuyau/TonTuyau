@@ -289,7 +289,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             .HasConversion<string>();
         video.Property(v => v.Published).HasColumnName("published");
         video.Property(v => v.Downloaded).HasColumnName("downloaded");
-        video.Property(v => v.LastRefreshed).HasColumnName("last_refreshed");
         video.Property(v => v.Duration).HasColumnName("duration");
         video.Property(v => v.MediaSize).HasColumnName("media_size");
         video.Property(v => v.MediaPath).HasColumnName("media_path");
@@ -357,7 +356,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.Name).HasColumnName("name");
         channel.Property(c => c.Description).HasColumnName("description");
         channel.Property(c => c.Subscribers).HasColumnName("subscribers");
-        channel.Property(c => c.LastRefreshed).HasColumnName("last_refreshed");
         channel.Property(c => c.Tags).HasColumnName("tags");
         channel
             .Property(c => c.Tabs)

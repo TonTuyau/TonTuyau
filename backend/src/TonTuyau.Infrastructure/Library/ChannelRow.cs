@@ -18,8 +18,6 @@ public sealed class ChannelRow
 
     public long Subscribers { get; set; }
 
-    public DateTimeOffset? LastRefreshed { get; set; }
-
     public List<string> Tags { get; set; } = [];
 
     /// <summary>Which YouTube tabs the channel has, by name (<c>Short</c>).</summary>

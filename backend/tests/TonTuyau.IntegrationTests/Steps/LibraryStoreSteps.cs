@@ -86,7 +86,7 @@ public sealed class LibraryStoreSteps(ScenarioState state)
         Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
         Video added = VideoFor(id);
         Assert.Equal(
-            added with { YouTube = NotChecked },
+            added with { LastRefreshed = null, YouTube = NotChecked },
             stored with
             {
                 Tags = added.Tags,
@@ -185,7 +185,9 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         Channel stored = (await Channels.GetAsync(id, CancellationToken.None))!;
         Channel added = ChannelFor(id);
-        Assert.Equal(added with { YouTube = NotChecked }, stored with { Tags = added.Tags, Tabs = added.Tabs });
+        Assert.Equal(
+            added with { LastRefreshed = null, YouTube = NotChecked },
+            stored with { Tags = added.Tags, Tabs = added.Tabs });
         Assert.Equal(added.Tags, stored.Tags);
         Assert.Equal(added.Tabs, stored.Tabs);
     }
