@@ -25,12 +25,12 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 
 | PR | Branch | What |
 |---|---|---|
-| B1 | `work/1.6.0-media-folder` | The media folder writable (TubeArchivist's layout kept: `<channel_id>/<video_id>.<ext>`), ffmpeg in the image, a download of one video with yt-dlp into it (formats from a setting), its file, tracks and pictures recorded. No page yet. |
+| B1 | `work/1.6.0-media-folder` | The media folder writable (TubeArchivist's layout kept: `<channel_id>/<video_id>.<ext>`), ffmpeg in the backend image (yt-dlp merges the best video and the best audio with it; a static build copied in and pinned by its SHA-256, as yt-dlp and Deno: the chiseled image has no package manager), a download of one video with yt-dlp, in the backend container as in 1.5, into it (the format from a setting, in yt-dlp's syntax, by default `bestvideo+bestaudio`), its file, tracks and pictures recorded. No page yet. |
 | B2 | `work/1.6.0-download-queue` | A download queue in PostgreSQL: one at a time, the pause between videos and the hold after a refusal (1.5's), resumable, cancellable; a run in the history like the refreshes. |
 | B3 | `work/1.6.0-add-video` | "Add a video" on the Tasks page and `POST` in the API: queued, downloaded, then in the library. A video already in the library (from TubeArchivist or TonTuyau) isn't downloaded again. |
 | B4 | `work/1.6.0-add-channel` | "Add a channel" (a subscription) with its three tabs (videos, shorts, streams), and which tabs to download; a channel's admin page shows it. |
 | B5 | `work/1.6.0-youtube-syncs` | The YouTube incremental sync (each subscribed channel's new videos) and full sync (everything each channel has), on their own schedule, with the Tasks page's cards. |
-| B6 | `work/1.6.0-download-settings` | The YouTube page's download settings: formats and quality, which tabs by default, the schedule, how many videos a sync takes at most. |
+| B6 | `work/1.6.0-download-settings` | The YouTube page's download settings: the format, in yt-dlp's syntax (`bestvideo+bestaudio` by default; `bestvideo[height>=700]+bestaudio`, for instance), which tabs by default, the schedule, how many videos a sync takes at most. |
 | B7 | `work/1.6.0-extension-api` | LaPompe's "Add this video / channel": endpoints for a browser-extension key, and the contract it needs. |
 | — | tag `v1.6.0-alpha.2` | Tried on the VM: a few channels downloaded by TonTuyau beside TubeArchivist's. |
 | B8 | `work/1.6.0-version` | Version 1.6.0, the release notes, the upgrade steps (the media folder now writable). |
@@ -40,11 +40,11 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 1. ~~**A3:** at the upgrade, fill PostgreSQL from the current index, or with a full import?~~ Neither: no upgrade path, an empty database and a full sync (2026-10-18).
 2. ~~**A4:** copy the run history from `sync-runs` once, or start afresh?~~ Afresh: nothing is carried over (2026-10-18).
 3. ~~**A2/A5:** do YouTube's facts stay in their own tables?~~ No: columns of the new `videos` and `channels`, which replace the `youtube_*` tables (2026-10-18).
-4. **B1:** yt-dlp in the backend container (as in 1.5), or a worker container of its own (downloads can be heavy)?
-5. **B1/B6:** which formats by default (the best quality, a maximum height, a codec preference)?
-6. **B3/B5, important:** TubeArchivist's full sync deletes from TonTuyau what TubeArchivist no longer has. It must never delete what TonTuyau downloaded itself: which rule (by origin, or by file)?
-7. **B3:** "downloaded once, whoever has it first": when TubeArchivist later downloads a video TonTuyau already has, which file wins?
-8. **Carry-over from 1.5.1, if kept:** a refresh noticing a stale YouTube cookie ("Sign in to confirm your age" while one is stored): note and go on, or go on hold until a fresh one arrives?
+4. ~~**B1:** yt-dlp in the backend container, or a worker container of its own?~~ In the backend container, as in 1.5 (2026-10-18).
+5. ~~**B1/B6:** which formats by default?~~ The best video and the best audio (`bestvideo+bestaudio`), set on the page in yt-dlp's own format syntax (`bestvideo[height>=700]+bestaudio`, for instance) (2026-10-18).
+6. ~~**B3/B5:** which rule keeps TubeArchivist's sync from deleting what TonTuyau downloaded?~~ TubeArchivist is only a source of missing data: on a later run, TonTuyau takes from it what it doesn't have and ignores the rest, so nothing is deleted because TubeArchivist no longer has it (2026-10-18).
+7. ~~**B3:** when TubeArchivist later downloads a video TonTuyau already has, which file wins?~~ It doesn't arise: TubeArchivist is shut down after TonTuyau's first run at startup. Its settings (`TONTUYAU_TA_URL`, `TONTUYAU_TA_TOKEN`) become optional: without them, TonTuyau runs without TubeArchivist (2026-10-18).
+8. ~~**Carry-over from 1.5.1:** a refresh noticing a stale YouTube cookie: note and go on, or hold?~~ Note and go on, as a refresh already does (2026-10-18).
 
 ## Not in 1.6 (planned later)
 
