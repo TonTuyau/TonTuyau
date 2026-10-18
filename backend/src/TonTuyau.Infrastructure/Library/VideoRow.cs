@@ -17,7 +17,8 @@ public sealed class VideoRow
 
     public required string ChannelId { get; set; }
 
-    public required string ChannelName { get; set; }
+    /// <summary>Its channel (<c>channel_id</c> references <c>channels</c>): always loaded with the row.</summary>
+    public ChannelRow Channel { get; set; } = null!;
 
     public required string Title { get; set; }
 

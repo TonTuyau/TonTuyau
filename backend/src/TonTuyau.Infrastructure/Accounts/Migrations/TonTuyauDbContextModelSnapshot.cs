@@ -254,11 +254,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("channel_id");
 
-                    b.Property<string>("ChannelName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("channel_name");
-
                     b.Property<long?>("CommentCount")
                         .HasColumnType("bigint")
                         .HasColumnName("comment_count");
@@ -785,6 +780,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", "Channel")
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
                         {
                             b1.Property<string>("VideoRowId");
@@ -874,6 +875,8 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         });
 
                     b.Navigation("Category");
+
+                    b.Navigation("Channel");
 
                     b.Navigation("Chapters");
 

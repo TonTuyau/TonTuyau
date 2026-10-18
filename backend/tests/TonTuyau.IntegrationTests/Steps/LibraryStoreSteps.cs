@@ -18,6 +18,7 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     private readonly Dictionary<string, Video> _videos = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Channel> _channels = new(StringComparer.Ordinal);
     private UpsertResult? _added;
+    private Exception? _failure;
 
     private static readonly YouTubeStatus NotChecked = new(YouTubeState.NotChecked, null, null, null);
 
@@ -27,10 +28,20 @@ public sealed class LibraryStoreSteps(ScenarioState state)
 
     private IChannelStore Channels => Services.GetRequiredService<IChannelStore>();
 
+    /// <summary>Their channel first: a video's channel is in the library before it.</summary>
     [Given("the videos {string} are added to the library")]
     [When("the videos {string} are added to the library")]
-    public async Task VideosAreAdded(string ids) =>
+    public async Task VideosAreAdded(string ids)
+    {
+        await Channels.AddMissingAsync([ChannelFor(DefaultChannel)], CancellationToken.None);
         _added = await Videos.AddMissingAsync([.. Ids(ids).Select(id => VideoFor(id))], CancellationToken.None);
+    }
+
+    [When("the videos {string} of a channel the library doesn't have are added to the library")]
+    public async Task VideosOfUnknownChannel(string ids) =>
+        _failure = await Record.ExceptionAsync(() => Videos.AddMissingAsync(
+            [.. Ids(ids).Select(id => VideoFor(id) with { ChannelId = "UCzzzzzzzzzzzzzzzzzzzzzz" })],
+            CancellationToken.None));
 
     [When("the library's video {string} gets the title {string} and the videos {string} are added to the library")]
     public async Task TitleChangesAndAdd(string id, string title, string ids)
@@ -96,9 +107,15 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
         Video added = VideoFor(id);
-        // TubeArchivist's refresh date and playlists aren't kept.
+        // TubeArchivist's refresh date and playlists aren't kept; the channel's name is the channel's.
         Assert.Equal(
-            added with { LastRefreshed = null, PlaylistIds = [], YouTube = NotChecked },
+            added with
+            {
+                ChannelName = ChannelFor(DefaultChannel).Name,
+                LastRefreshed = null,
+                PlaylistIds = [],
+                YouTube = NotChecked,
+            },
             stored with
             {
                 Tags = added.Tags,
@@ -110,6 +127,13 @@ public sealed class LibraryStoreSteps(ScenarioState state)
         Assert.Equal(added.Categories, stored.Categories);
         Assert.Empty(stored.PlaylistIds);
         Assert.Equal(added.Tracks, stored.Tracks);
+    }
+
+    [Then("the library refuses them, and holds {int} video(s)")]
+    public async Task Refused(int count)
+    {
+        Assert.IsType<DbUpdateException>(_failure);
+        Assert.Equal(count, await Videos.CountAsync(CancellationToken.None));
     }
 
     [Then("the library's video {string} is in the categories {string}")]

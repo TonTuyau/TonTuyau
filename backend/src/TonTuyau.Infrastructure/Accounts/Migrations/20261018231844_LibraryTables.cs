@@ -48,13 +48,33 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "channel_states",
+                columns: table => new
+                {
+                    channel_id = table.Column<string>(type: "text", nullable: false),
+                    state = table.Column<string>(type: "text", nullable: false),
+                    checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    reason = table.Column<string>(type: "text", nullable: true),
+                    refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_channel_states", x => x.channel_id);
+                    table.ForeignKey(
+                        name: "FK_channel_states_channels_channel_id",
+                        column: x => x.channel_id,
+                        principalTable: "channels",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "videos",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "text", nullable: false),
                     origin = table.Column<string>(type: "text", nullable: false),
                     channel_id = table.Column<string>(type: "text", nullable: false),
-                    channel_name = table.Column<string>(type: "text", nullable: false),
                     title = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     type = table.Column<string>(type: "text", nullable: false),
@@ -86,27 +106,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         principalTable: "categories",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "channel_states",
-                columns: table => new
-                {
-                    channel_id = table.Column<string>(type: "text", nullable: false),
-                    state = table.Column<string>(type: "text", nullable: false),
-                    checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    reason = table.Column<string>(type: "text", nullable: true),
-                    refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_channel_states", x => x.channel_id);
                     table.ForeignKey(
-                        name: "FK_channel_states_channels_channel_id",
+                        name: "FK_videos_channels_channel_id",
                         column: x => x.channel_id,
                         principalTable: "channels",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -163,13 +168,13 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                 name: "video_states");
 
             migrationBuilder.DropTable(
-                name: "channels");
-
-            migrationBuilder.DropTable(
                 name: "videos");
 
             migrationBuilder.DropTable(
                 name: "categories");
+
+            migrationBuilder.DropTable(
+                name: "channels");
         }
     }
 }

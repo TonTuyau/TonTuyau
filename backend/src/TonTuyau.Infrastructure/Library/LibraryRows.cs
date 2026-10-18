@@ -19,7 +19,6 @@ internal static class LibraryRows
         Id = video.Id,
         Origin = LibraryOrigin.TubeArchivist,
         ChannelId = video.ChannelId,
-        ChannelName = video.ChannelName,
         Title = video.Title,
         Description = video.Description,
         Type = video.Type,
@@ -65,7 +64,7 @@ internal static class LibraryRows
     };
 
     /// <summary>
-    /// The video as the row holds it. <see cref="Video.Active"/> is true: TubeArchivist's flag isn't kept, the state on
+    /// The video as the row holds it, with its channel's name. <see cref="Video.Active"/> is true: TubeArchivist's flag isn't kept, the state on
     /// YouTube says whether it's gone. <see cref="Video.LastRefreshed"/> is null: TubeArchivist's date isn't kept,
     /// TonTuyau's is the state's <see cref="YouTubeStatus.RefreshedAt"/>. No <see cref="Video.PlaylistIds"/>.
     /// </summary>
@@ -73,7 +72,7 @@ internal static class LibraryRows
         new(
             row.Id,
             row.ChannelId,
-            row.ChannelName,
+            row.Channel.Name,
             row.Title,
             row.Description,
             row.Type,

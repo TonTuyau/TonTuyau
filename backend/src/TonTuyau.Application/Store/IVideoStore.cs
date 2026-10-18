@@ -12,7 +12,8 @@ public interface IVideoStore
     /// <summary>
     /// Adds the videos TonTuyau doesn't have, "not checked" on YouTube (TubeArchivist's own flag isn't kept); the
     /// others are left as they are (<see cref="UpsertResult.Unchanged"/>: already there). The same id twice in one
-    /// call: the last one counts.
+    /// call: the last one counts. Their channels are in the library first (<c>videos.channel_id</c> references
+    /// <c>channels</c>); <see cref="Video.ChannelName"/> isn't kept, a read gives the channel's.
     /// </summary>
     Task<UpsertResult> AddMissingAsync(IReadOnlyCollection<Video> videos, CancellationToken cancellationToken);
 

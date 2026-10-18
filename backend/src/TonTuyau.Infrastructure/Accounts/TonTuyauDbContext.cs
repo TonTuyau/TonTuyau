@@ -291,7 +291,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             .HasColumnName("origin")
             .HasConversion<string>();
         video.Property(v => v.ChannelId).HasColumnName("channel_id");
-        video.Property(v => v.ChannelName).HasColumnName("channel_name");
         video.Property(v => v.Title).HasColumnName("title");
         video.Property(v => v.Description).HasColumnName("description");
         video
@@ -355,9 +354,15 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 chapter.Property(c => c.Title).HasJsonPropertyName("title");
             });
         video.Property(v => v.CommentsReadAt).HasColumnName("comments_read_at");
-        // No foreign key to channels: TubeArchivist may list a video whose channel it can't give (a broken document);
-        // the video is kept all the same, as the index always did.
-        video.HasIndex(v => v.ChannelId);
+        // Its channel, always loaded with it (its name, its state): a video's channel is in the library first.
+        video
+            .HasOne(v => v.Channel)
+            .WithMany()
+            .HasForeignKey(v => v.ChannelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        video
+            .Navigation(v => v.Channel)
+            .AutoInclude();
         // The flagged files, few among many.
         video
             .HasIndex(v => v.MediaMissing)

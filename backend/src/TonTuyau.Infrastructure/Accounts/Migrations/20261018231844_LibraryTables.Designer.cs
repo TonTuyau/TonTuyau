@@ -13,7 +13,7 @@ using TonTuyau.Infrastructure.Accounts;
 namespace TonTuyau.Infrastructure.Accounts.Migrations
 {
     [DbContext(typeof(TonTuyauDbContext))]
-    [Migration("20261018230819_LibraryTables")]
+    [Migration("20261018231844_LibraryTables")]
     partial class LibraryTables
     {
         /// <inheritdoc />
@@ -256,11 +256,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("channel_id");
-
-                    b.Property<string>("ChannelName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("channel_name");
 
                     b.Property<long?>("CommentCount")
                         .HasColumnType("bigint")
@@ -788,6 +783,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", "Channel")
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
                         {
                             b1.Property<string>("VideoRowId");
@@ -877,6 +878,8 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         });
 
                     b.Navigation("Category");
+
+                    b.Navigation("Channel");
 
                     b.Navigation("Chapters");
 
