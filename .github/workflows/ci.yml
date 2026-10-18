@@ -11,6 +11,9 @@ on:
   pull_request:
     # main, and the release branches (release/X.Y.Z gathers a version's steps, tried as alphas before main).
     branches: [main, "release/**"]
+    # A pull request that changes only documentation runs nothing: nothing it checks reads them (the front's Prettier
+    # sees no Markdown file). Any other file changed with them, and it runs. A tag always runs.
+    paths-ignore: ["docs/**", "**.md"]
   push:
     # v1.2.3 and the pre-releases v1.3.0-alpha.1, -beta.1, -rc.1 (a glob: `*` matches the "-alpha" part too).
     tags: ["v*.*.*"]
