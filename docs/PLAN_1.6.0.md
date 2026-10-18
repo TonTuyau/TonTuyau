@@ -9,14 +9,17 @@ becomes the library's only source of truth**, then **TonTuyau downloads videos i
 
 Elasticsearch becomes an index only, rebuilt from PostgreSQL alone; nothing lives only there any more.
 
+**No upgrade path (decided 2026-10-18):** TonTuyau has no users yet. 1.6 starts from an empty database and a full sync
+from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill from the index, no run history).
+
 | PR | Branch | What |
 |---|---|---|
-| A1 | `work/1.6.0-library-tables` | The tables `videos` and `channels` (metadata, file, tracks, pictures, where it came from: TubeArchivist or TonTuyau), their EF Core mapping and repositories, behind the interfaces the sync already uses. Nothing reads them yet. |
-| A2 | `work/1.6.0-sync-to-postgres` | The TubeArchivist sync writes PostgreSQL first, then the index from it. YouTube's facts (`youtube_videos`, `youtube_channels`) laid over in PostgreSQL, no longer at each index write. |
-| A3 | `work/1.6.0-index-from-postgres` | An index rebuild reads PostgreSQL only, never TubeArchivist: fast, and possible with TubeArchivist down. The upgrade fills the tables once (from the current index or a full import: to decide). |
+| A1 | `work/1.6.0-library-tables` | New tables `videos` and `channels`, one row per video and per channel with everything: what TubeArchivist brings (metadata, file, tracks, dates, pictures) and YouTube's facts (state, refreshed metadata, chapters). They replace `youtube_videos` and `youtube_channels`, dropped; `video_comments` points to `videos`. Their EF Core mapping and repositories, behind the interfaces the sync already uses. Nothing reads them yet. |
+| A2 | `work/1.6.0-sync-to-postgres` | The TubeArchivist sync writes PostgreSQL first, then the index from it. A refresh writes YouTube's facts into the same rows: TonTuyau's values prevail over TubeArchivist's, in PostgreSQL, no longer at each index write. |
+| A3 | `work/1.6.0-index-from-postgres` | An index rebuild reads PostgreSQL only, never TubeArchivist: fast, and possible with TubeArchivist down. |
 | A4 | `work/1.6.0-runs-in-postgres` | The runs (`sync-runs`), the run lock and the sync checkpoint (`sync`) move to PostgreSQL: a run's page reads one database; the lock becomes a row (or a PostgreSQL lock) instead of the lease on Elasticsearch. |
 | A5 | `work/1.6.0-reads-from-postgres` | The pages that show one thing (a video, a channel, a run) read PostgreSQL; lists and search stay on the index. |
-| — | tag `v1.6.0-alpha.1` | Tried on the VM: same pages, same data, the index rebuilt from PostgreSQL. |
+| — | tag `v1.6.0-alpha.1` | Tried on the VM from an empty database and a full sync: same pages, same data, the index rebuilt from PostgreSQL. |
 
 ## Part B: TonTuyau downloads
 
@@ -34,9 +37,9 @@ Elasticsearch becomes an index only, rebuilt from PostgreSQL alone; nothing live
 
 ## Questions to decide (before the PR each one opens)
 
-1. **A3:** at the upgrade, fill PostgreSQL from the current index (quick, nothing re-read), or with a full import from TubeArchivist (slower, from the source)?
-2. **A4:** copy the run history from `sync-runs` once, or start the history afresh?
-3. **A2/A5:** do YouTube's facts stay in their own tables, or become columns of `videos` and `channels`?
+1. ~~**A3:** at the upgrade, fill PostgreSQL from the current index, or with a full import?~~ Neither: no upgrade path, an empty database and a full sync (2026-10-18).
+2. ~~**A4:** copy the run history from `sync-runs` once, or start afresh?~~ Afresh: nothing is carried over (2026-10-18).
+3. ~~**A2/A5:** do YouTube's facts stay in their own tables?~~ No: columns of the new `videos` and `channels`, which replace the `youtube_*` tables (2026-10-18).
 4. **B1:** yt-dlp in the backend container (as in 1.5), or a worker container of its own (downloads can be heavy)?
 5. **B1/B6:** which formats by default (the best quality, a maximum height, a codec preference)?
 6. **B3/B5, important:** TubeArchivist's full sync deletes from TonTuyau what TubeArchivist no longer has. It must never delete what TonTuyau downloaded itself: which rule (by origin, or by file)?
