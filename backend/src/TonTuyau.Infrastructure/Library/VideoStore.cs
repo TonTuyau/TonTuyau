@@ -93,11 +93,14 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false))
                 .ToHashSet(StringComparer.Ordinal);
-            // One run at a time (the run lock): nobody adds the same video meanwhile.
+            // One run at a time (the run lock): nobody adds the same video, or category, meanwhile.
+            Video[] missing = [.. batch.Where(v => !existing.Contains(v.Id))];
+            Dictionary<string, CategoryRow> categories = await CategoriesAsync(db, missing, cancellationToken)
+                .ConfigureAwait(false);
             List<string> created = [];
-            foreach (Video video in batch.Where(v => !existing.Contains(v.Id)))
+            foreach (Video video in missing)
             {
-                db.Videos.Add(LibraryRows.NewRow(video));
+                db.Videos.Add(LibraryRows.NewRow(video, CategoryOf(video) is { } name ? categories[name] : null));
                 created.Add(video.Id);
             }
 
@@ -107,6 +110,34 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
             return new UpsertResult(created.Count, 0, existing.Count) { ChangedIds = created, CreatedIds = created };
         })
             .ConfigureAwait(false);
+    }
+
+    /// <summary>YouTube gives a video one category; TubeArchivist, a list of it (or none).</summary>
+    private static string? CategoryOf(Video video) =>
+        video.Categories.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
+
+    /// <returns>These videos' categories by name: those the library has, and new rows for the others.</returns>
+    private static async Task<Dictionary<string, CategoryRow>> CategoriesAsync(
+        TonTuyauDbContext db,
+        IEnumerable<Video> videos,
+        CancellationToken cancellationToken)
+    {
+        string[] names = [.. videos
+            .Select(CategoryOf)
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal)];
+        Dictionary<string, CategoryRow> categories = await db.Categories
+            .Where(c => names.Contains(c.Name))
+            .ToDictionaryAsync(c => c.Name, StringComparer.Ordinal, cancellationToken)
+            .ConfigureAwait(false);
+        foreach (string name in names.Where(n => !categories.ContainsKey(n)))
+        {
+            CategoryRow category = new() { Name = name };
+            db.Categories.Add(category);
+            categories[name] = category;
+        }
+
+        return categories;
     }
 
     private Task<VideoRow?> FindAsync(string id, CancellationToken cancellationToken)

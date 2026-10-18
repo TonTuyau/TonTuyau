@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using TonTuyau.Application.Library;
 using TonTuyau.Infrastructure.ApiKeys;
 using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.RunLogs;
@@ -43,6 +41,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<VideoRow> Videos => Set<VideoRow>();
 
     public DbSet<VideoStateRow> VideoStates => Set<VideoStateRow>();
+
+    public DbSet<CategoryRow> Categories => Set<CategoryRow>();
 
     public DbSet<ChannelRow> Channels => Set<ChannelRow>();
 
@@ -239,6 +239,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         });
         modelBuilder.Entity<VideoRow>(MapVideos);
         modelBuilder.Entity<VideoStateRow>(MapVideoStates);
+        modelBuilder.Entity<CategoryRow>(MapCategories);
         modelBuilder.Entity<ChannelRow>(MapChannels);
         modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
     }
@@ -255,6 +256,16 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         state.Property(s => s.CheckedAt).HasColumnName("checked_at");
         state.Property(s => s.Reason).HasColumnName("reason");
         state.Property(s => s.RefreshedAt).HasColumnName("refreshed_at");
+    }
+
+    private static void MapCategories(EntityTypeBuilder<CategoryRow> category)
+    {
+        category.ToTable("categories");
+        category.Property(c => c.Id).HasColumnName("id");
+        category.Property(c => c.Name).HasColumnName("name");
+        category
+            .HasIndex(c => c.Name)
+            .IsUnique();
     }
 
     private static void MapChannelStates(EntityTypeBuilder<ChannelStateRow> state)
@@ -295,8 +306,16 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         video.Property(v => v.MediaPathCorrected).HasColumnName("media_path_corrected");
         video.Property(v => v.ThumbnailPath).HasColumnName("thumbnail_path");
         video.Property(v => v.Tags).HasColumnName("tags");
-        video.Property(v => v.Categories).HasColumnName("categories");
-        video.Property(v => v.PlaylistIds).HasColumnName("playlist_ids");
+        video.Property(v => v.CategoryId).HasColumnName("category_id");
+        // A category stays while a video is in it.
+        video
+            .HasOne(v => v.Category)
+            .WithMany()
+            .HasForeignKey(v => v.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+        video
+            .Navigation(v => v.Category)
+            .AutoInclude();
         video.Property(v => v.Views).HasColumnName("views");
         video.Property(v => v.Likes).HasColumnName("likes");
         video.Property(v => v.Dislikes).HasColumnName("dislikes");
@@ -357,20 +376,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.Description).HasColumnName("description");
         channel.Property(c => c.Subscribers).HasColumnName("subscribers");
         channel.Property(c => c.Tags).HasColumnName("tags");
-        channel
-            .Property(c => c.Tabs)
-            .HasColumnName("tabs")
-            .HasConversion(
-                tabs => tabs
-                    .Select(t => t.ToString())
-                    .ToList(),
-                names => names
-                    .Select(Enum.Parse<VideoType>)
-                    .ToList(),
-                new ValueComparer<List<VideoType>>(
-                    (a, b) => (a ?? new()).SequenceEqual(b ?? new()),
-                    tabs => tabs.Aggregate(0, (hash, tab) => HashCode.Combine(hash, tab)),
-                    tabs => tabs.ToList()));
         channel.Property(c => c.ThumbPath).HasColumnName("thumb_path");
         channel.Property(c => c.BannerPath).HasColumnName("banner_path");
         channel.Property(c => c.TvArtPath).HasColumnName("tv_art_path");

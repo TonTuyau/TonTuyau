@@ -10,8 +10,11 @@ namespace TonTuyau.Infrastructure.Library;
 /// </summary>
 internal static class LibraryRows
 {
-    /// <summary>A video's new row: its content, not checked on YouTube (TubeArchivist's own flag isn't kept).</summary>
-    public static VideoRow NewRow(Video video) => new()
+    /// <summary>
+    /// A video's new row: its content, not checked on YouTube (TubeArchivist's own flag isn't kept), in its category
+    /// (the store finds or adds it). TubeArchivist's playlists aren't kept.
+    /// </summary>
+    public static VideoRow NewRow(Video video, CategoryRow? category) => new()
     {
         Id = video.Id,
         Origin = LibraryOrigin.TubeArchivist,
@@ -28,8 +31,7 @@ internal static class LibraryRows
         MediaPathCorrected = video.MediaPathCorrected,
         ThumbnailPath = video.ThumbnailPath,
         Tags = [.. video.Tags],
-        Categories = [.. video.Categories],
-        PlaylistIds = [.. video.PlaylistIds],
+        Category = category,
         Views = video.Stats.Views,
         Likes = video.Stats.Likes,
         Dislikes = video.Stats.Dislikes,
@@ -47,7 +49,7 @@ internal static class LibraryRows
         YouTube = new VideoStateRow { VideoId = video.Id },
     };
 
-    /// <summary>A channel's new row: its content, not checked on YouTube.</summary>
+    /// <summary>A channel's new row: its content, not checked on YouTube. TubeArchivist's tabs aren't kept.</summary>
     public static ChannelRow NewRow(Channel channel) => new()
     {
         Id = channel.Id,
@@ -56,7 +58,6 @@ internal static class LibraryRows
         Description = channel.Description,
         Subscribers = channel.Subscribers,
         Tags = [.. channel.Tags],
-        Tabs = [.. channel.Tabs],
         ThumbPath = channel.ThumbPath,
         BannerPath = channel.BannerPath,
         TvArtPath = channel.TvArtPath,
@@ -66,7 +67,7 @@ internal static class LibraryRows
     /// <summary>
     /// The video as the row holds it. <see cref="Video.Active"/> is true: TubeArchivist's flag isn't kept, the state on
     /// YouTube says whether it's gone. <see cref="Video.LastRefreshed"/> is null: TubeArchivist's date isn't kept,
-    /// TonTuyau's is the state's <see cref="YouTubeStatus.RefreshedAt"/>.
+    /// TonTuyau's is the state's <see cref="YouTubeStatus.RefreshedAt"/>. No <see cref="Video.PlaylistIds"/>.
     /// </summary>
     public static Video ToVideo(VideoRow row) =>
         new(
@@ -86,15 +87,15 @@ internal static class LibraryRows
             row.MediaPathCorrected,
             row.ThumbnailPath,
             row.Tags,
-            row.Categories,
-            row.PlaylistIds,
+            row.Category is { } category ? [category.Name] : [],
+            [],
             new VideoStats(row.Views, row.Likes, row.Dislikes),
             [.. row.Tracks.Select(t => new MediaTrack(t.Kind, t.Codec, t.Bitrate, t.Width, t.Height))],
             ToStatus(row.YouTube));
 
     /// <summary>
     /// The channel as the row holds it (<see cref="Channel.Active"/> true, <see cref="Channel.LastRefreshed"/> null,
-    /// as for a video).
+    /// as for a video; no <see cref="Channel.Tabs"/>: the channel's page shows the types of videos it holds).
     /// </summary>
     public static Channel ToChannel(ChannelRow row) =>
         new(
@@ -105,7 +106,7 @@ internal static class LibraryRows
             true,
             null,
             row.Tags,
-            row.Tabs,
+            [],
             row.ThumbPath,
             row.BannerPath,
             row.TvArtPath,

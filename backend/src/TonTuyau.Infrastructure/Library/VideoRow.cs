@@ -46,9 +46,11 @@ public sealed class VideoRow
 
     public List<string> Tags { get; set; } = [];
 
-    public List<string> Categories { get; set; } = [];
+    /// <summary>Its YouTube category (YouTube gives one per video); null: none.</summary>
+    public int? CategoryId { get; set; }
 
-    public List<string> PlaylistIds { get; set; } = [];
+    /// <summary>Always loaded with the row.</summary>
+    public CategoryRow? Category { get; set; }
 
     public long Views { get; set; }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -13,6 +14,19 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "categories",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_categories", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "channels",
                 columns: table => new
                 {
@@ -22,7 +36,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     description = table.Column<string>(type: "text", nullable: false),
                     subscribers = table.Column<long>(type: "bigint", nullable: false),
                     tags = table.Column<List<string>>(type: "text[]", nullable: false),
-                    tabs = table.Column<List<string>>(type: "text[]", nullable: false),
                     thumb_path = table.Column<string>(type: "text", nullable: true),
                     banner_path = table.Column<string>(type: "text", nullable: true),
                     tv_art_path = table.Column<string>(type: "text", nullable: true),
@@ -53,8 +66,7 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     media_path_corrected = table.Column<bool>(type: "boolean", nullable: false),
                     thumbnail_path = table.Column<string>(type: "text", nullable: false),
                     tags = table.Column<List<string>>(type: "text[]", nullable: false),
-                    categories = table.Column<List<string>>(type: "text[]", nullable: false),
-                    playlist_ids = table.Column<List<string>>(type: "text[]", nullable: false),
+                    category_id = table.Column<int>(type: "integer", nullable: true),
                     views = table.Column<long>(type: "bigint", nullable: false),
                     likes = table.Column<long>(type: "bigint", nullable: false),
                     dislikes = table.Column<long>(type: "bigint", nullable: false),
@@ -68,6 +80,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_videos", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_videos_categories_category_id",
+                        column: x => x.category_id,
+                        principalTable: "categories",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -113,6 +131,17 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_categories_name",
+                table: "categories",
+                column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_videos_category_id",
+                table: "videos",
+                column: "category_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_videos_channel_id",
                 table: "videos",
                 column: "channel_id");
@@ -138,6 +167,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
             migrationBuilder.DropTable(
                 name: "videos");
+
+            migrationBuilder.DropTable(
+                name: "categories");
         }
     }
 }

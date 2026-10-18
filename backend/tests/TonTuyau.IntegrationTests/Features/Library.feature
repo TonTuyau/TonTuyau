@@ -15,6 +15,19 @@ Feature: The library in PostgreSQL
     And the library's video "aaaaaaaaaaa" has the title "Vidéo aaaaaaaaaaa"
     And the library holds 3 videos
 
+  Scenario: Videos of one category share its row
+    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" in the category "Science" are added to the library
+    And the videos "ccccccccccc" in the category "Education" are added to the library
+    And the videos "ddddddddddd" in the category "Science" are added to the library
+    Then the library holds the categories "Education, Science"
+    And the library's video "aaaaaaaaaaa" is in the categories "Science"
+    And the library's video "ccccccccccc" is in the categories "Education"
+
+  Scenario: A video without a category
+    When the videos "aaaaaaaaaaa" in the category "" are added to the library
+    Then the library's video "aaaaaaaaaaa" is in the categories ""
+    And the library holds the categories ""
+
   Scenario: TubeArchivist's own "inactive" flag isn't kept: the video is not checked
     When the video "aaaaaaaaaaa", inactive in TubeArchivist, is added to the library
     Then the library's video "aaaaaaaaaaa" is not checked on YouTube, and active

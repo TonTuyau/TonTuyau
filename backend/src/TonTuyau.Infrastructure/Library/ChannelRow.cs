@@ -20,9 +20,6 @@ public sealed class ChannelRow
 
     public List<string> Tags { get; set; } = [];
 
-    /// <summary>Which YouTube tabs the channel has, by name (<c>Short</c>).</summary>
-    public List<VideoType> Tabs { get; set; } = [];
-
     /// <summary>Art paths (TubeArchivist's cache, or TonTuyau's art volume after a refresh); null: none.</summary>
     public string? ThumbPath { get; set; }
 

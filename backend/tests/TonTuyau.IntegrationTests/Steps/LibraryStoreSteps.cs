@@ -46,6 +46,17 @@ public sealed class LibraryStoreSteps(ScenarioState state)
         await VideosAreAdded(id);
     }
 
+    [When("the videos {string} in the category {string} are added to the library")]
+    public async Task VideosInCategoryAreAdded(string ids, string category)
+    {
+        foreach (string id in Ids(ids))
+        {
+            _videos[id] = VideoFor(id) with { Categories = category.Length == 0 ? [] : [category] };
+        }
+
+        await VideosAreAdded(ids);
+    }
+
     [When("the library flags the files of {string} as missing")]
     public Task FlagMissing(string ids) => Videos.SetMediaMissingAsync(Ids(ids), true, CancellationToken.None);
 
@@ -85,19 +96,38 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
         Video added = VideoFor(id);
+        // TubeArchivist's refresh date and playlists aren't kept.
         Assert.Equal(
-            added with { LastRefreshed = null, YouTube = NotChecked },
+            added with { LastRefreshed = null, PlaylistIds = [], YouTube = NotChecked },
             stored with
             {
                 Tags = added.Tags,
                 Categories = added.Categories,
-                PlaylistIds = added.PlaylistIds,
+                PlaylistIds = [],
                 Tracks = added.Tracks,
             });
         Assert.Equal(added.Tags, stored.Tags);
         Assert.Equal(added.Categories, stored.Categories);
-        Assert.Equal(added.PlaylistIds, stored.PlaylistIds);
+        Assert.Empty(stored.PlaylistIds);
         Assert.Equal(added.Tracks, stored.Tracks);
+    }
+
+    [Then("the library's video {string} is in the categories {string}")]
+    public async Task VideoInCategories(string id, string categories) =>
+        Assert.Equal(Names(categories), (await Videos.GetAsync(id, CancellationToken.None))?.Categories);
+
+    [Then("the library holds the categories {string}")]
+    public async Task LibraryHoldsCategories(string categories)
+    {
+        AsyncServiceScope scope = Services.CreateAsyncScope();
+        await using (scope)
+        {
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            List<string> names = await db.Categories
+                .Select(c => c.Name)
+                .ToListAsync();
+            Assert.Equal(Names(categories), names.Order(StringComparer.Ordinal));
+        }
     }
 
     [Then("the library's video {string} is not checked on YouTube, and active")]
@@ -185,11 +215,12 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         Channel stored = (await Channels.GetAsync(id, CancellationToken.None))!;
         Channel added = ChannelFor(id);
+        // TubeArchivist's refresh date and tabs aren't kept.
         Assert.Equal(
-            added with { LastRefreshed = null, YouTube = NotChecked },
-            stored with { Tags = added.Tags, Tabs = added.Tabs });
+            added with { LastRefreshed = null, Tabs = [], YouTube = NotChecked },
+            stored with { Tags = added.Tags, Tabs = [] });
         Assert.Equal(added.Tags, stored.Tags);
-        Assert.Equal(added.Tabs, stored.Tabs);
+        Assert.Empty(stored.Tabs);
     }
 
     [Then("the library's channel {string} has the name {string}")]
@@ -263,6 +294,12 @@ public sealed class LibraryStoreSteps(ScenarioState state)
 
     private static string[] Ids(string ids) =>
         ids
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    private static string[] Names(string names) =>
+        names
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Order(StringComparer.Ordinal)
             .ToArray();

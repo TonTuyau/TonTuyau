@@ -13,7 +13,7 @@ using TonTuyau.Infrastructure.Accounts;
 namespace TonTuyau.Infrastructure.Accounts.Migrations
 {
     [DbContext(typeof(TonTuyauDbContext))]
-    [Migration("20261018223918_LibraryTables")]
+    [Migration("20261018230819_LibraryTables")]
     partial class LibraryTables
     {
         /// <inheritdoc />
@@ -145,6 +145,28 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("api_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.CategoryRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("categories", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
                 {
                     b.Property<string>("Id")
@@ -173,11 +195,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<long>("Subscribers")
                         .HasColumnType("bigint")
                         .HasColumnName("subscribers");
-
-                    b.Property<List<string>>("Tabs")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("tabs");
 
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
@@ -231,10 +248,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("id");
 
-                    b.PrimitiveCollection<List<string>>("Categories")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("categories");
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
 
                     b.Property<string>("ChannelId")
                         .IsRequired()
@@ -297,11 +313,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("origin");
 
-                    b.PrimitiveCollection<List<string>>("PlaylistIds")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("playlist_ids");
-
                     b.Property<DateTimeOffset>("Published")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published");
@@ -331,6 +342,8 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnName("views");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("ChannelId");
 
@@ -770,6 +783,11 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
             modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
                 {
+                    b.HasOne("TonTuyau.Infrastructure.Library.CategoryRow", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
                         {
                             b1.Property<string>("VideoRowId");
@@ -857,6 +875,8 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("VideoRowId");
                         });
+
+                    b.Navigation("Category");
 
                     b.Navigation("Chapters");
 
