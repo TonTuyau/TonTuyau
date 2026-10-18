@@ -9,9 +9,8 @@ namespace TonTuyau.Infrastructure.Library;
 /// <summary>The library's channels in PostgreSQL (2.0, <c>channels</c>). Same rules as <see cref="VideoStore"/>.</summary>
 internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
 {
-    public async Task<UpsertResult> UpsertAsync(
+    public async Task<UpsertResult> AddMissingAsync(
         IReadOnlyCollection<Channel> channels,
-        string? runId,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channels);
@@ -22,7 +21,7 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
         UpsertResult result = UpsertResult.None;
         foreach (Channel[] batch in distinct.Chunk(VideoStore.BatchSize))
         {
-            result = result.Add(await UpsertBatchAsync(batch, runId, cancellationToken).ConfigureAwait(false));
+            result = result.Add(await AddBatchAsync(batch, cancellationToken).ConfigureAwait(false));
         }
 
         return result;
@@ -36,45 +35,6 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
 
     public Task<long> CountAsync(CancellationToken cancellationToken) =>
         WithContextAsync(db => db.Channels.LongCountAsync(cancellationToken));
-
-    public async Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(ids);
-        int deleted = 0;
-        foreach (string[] batch in Batches(ids))
-        {
-            deleted += await WithContextAsync(db => db.Channels
-                .Where(c => batch.Contains(c.Id))
-                .ExecuteDeleteAsync(cancellationToken))
-                .ConfigureAwait(false);
-        }
-
-        return deleted;
-    }
-
-    public async Task MarkSeenAsync(IReadOnlyCollection<string> ids, string runId, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(ids);
-        foreach (string[] batch in Batches(ids))
-        {
-            await WithContextAsync(db => db.Channels
-                .Where(c => batch.Contains(c.Id))
-                .ExecuteUpdateAsync(s => s.SetProperty(c => c.SeenInRun, runId), cancellationToken))
-                .ConfigureAwait(false);
-        }
-    }
-
-    public async Task<IReadOnlyList<ChannelSummary>> FindNotSeenAsync(
-        string runId,
-        CancellationToken cancellationToken)
-    {
-        List<ChannelRow> rows = await WithContextAsync(db => db.Channels
-            .AsNoTracking()
-            .Where(c => c.SeenInRun == null || c.SeenInRun != runId)
-            .ToListAsync(cancellationToken))
-            .ConfigureAwait(false);
-        return [.. rows.Select(LibraryRows.ToSummary)];
-    }
 
     public async Task SetArtAsync(
         ArtSubject subject,
@@ -109,53 +69,28 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
         }
     }
 
-    private async Task<UpsertResult> UpsertBatchAsync(
-        Channel[] batch,
-        string? runId,
-        CancellationToken cancellationToken)
+    private async Task<UpsertResult> AddBatchAsync(Channel[] batch, CancellationToken cancellationToken)
     {
         string[] ids = [.. batch.Select(c => c.Id)];
         return await WithContextAsync(async db =>
         {
-            Dictionary<string, ChannelRow> existing = await db.Channels
+            HashSet<string> existing = (await db.Channels
                 .Where(c => ids.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, StringComparer.Ordinal, cancellationToken)
-                .ConfigureAwait(false);
-            int created = 0, updated = 0, unchanged = 0;
-            List<string> changed = [];
-            List<string> createdIds = [];
-            foreach (Channel channel in batch)
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false))
+                .ToHashSet(StringComparer.Ordinal);
+            List<string> created = [];
+            foreach (Channel channel in batch.Where(c => !existing.Contains(c.Id)))
             {
-                string hash = LibraryRows.ContentHash(channel);
-                if (existing.TryGetValue(channel.Id, out ChannelRow? row))
-                {
-                    if (row.ContentHash == hash)
-                    {
-                        unchanged++;
-                    }
-                    else
-                    {
-                        updated++;
-                        changed.Add(channel.Id);
-                        LibraryRows.WriteContent(row, channel, hash);
-                    }
-                }
-                else
-                {
-                    created++;
-                    changed.Add(channel.Id);
-                    createdIds.Add(channel.Id);
-                    row = LibraryRows.NewRow(channel, hash);
-                    db.Channels.Add(row);
-                }
-
-                row.SeenInRun = runId ?? row.SeenInRun;
+                db.Channels.Add(LibraryRows.NewRow(channel));
+                created.Add(channel.Id);
             }
 
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return new UpsertResult(created, updated, unchanged) { ChangedIds = changed, CreatedIds = createdIds };
+            return new UpsertResult(created.Count, 0, existing.Count) { ChangedIds = created, CreatedIds = created };
         })
             .ConfigureAwait(false);
     }

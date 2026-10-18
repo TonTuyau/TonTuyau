@@ -253,7 +253,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             .Property(v => v.Type)
             .HasColumnName("type")
             .HasConversion<string>();
-        video.Property(v => v.Active).HasColumnName("active");
         video.Property(v => v.Published).HasColumnName("published");
         video.Property(v => v.Downloaded).HasColumnName("downloaded");
         video.Property(v => v.LastRefreshed).HasColumnName("last_refreshed");
@@ -268,6 +267,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         video.Property(v => v.Views).HasColumnName("views");
         video.Property(v => v.Likes).HasColumnName("likes");
         video.Property(v => v.Dislikes).HasColumnName("dislikes");
+        video.Property(v => v.CommentCount).HasColumnName("comment_count");
         video.OwnsMany(
             v => v.Tracks,
             track =>
@@ -282,8 +282,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 track.Property(t => t.Width).HasJsonPropertyName("width");
                 track.Property(t => t.Height).HasJsonPropertyName("height");
             });
-        video.Property(v => v.ContentHash).HasColumnName("content_hash");
-        video.Property(v => v.SeenInRun).HasColumnName("seen_in_run");
         video.Property(v => v.MediaMissing).HasColumnName("media_missing");
         video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
         video
@@ -293,15 +291,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         video.Property(v => v.YouTubeCheckedAt).HasColumnName("youtube_checked_at");
         video.Property(v => v.YouTubeReason).HasColumnName("youtube_reason");
         video.Property(v => v.YouTubeRefreshedAt).HasColumnName("youtube_refreshed_at");
-        video.Property(v => v.YouTubeTitle).HasColumnName("youtube_title");
-        video.Property(v => v.YouTubeChannelName).HasColumnName("youtube_channel_name");
-        video.Property(v => v.YouTubeDescription).HasColumnName("youtube_description");
-        video.Property(v => v.YouTubeTags).HasColumnName("youtube_tags");
-        video.Property(v => v.YouTubeCategories).HasColumnName("youtube_categories");
-        video.Property(v => v.YouTubeViews).HasColumnName("youtube_views");
-        video.Property(v => v.YouTubeLikes).HasColumnName("youtube_likes");
-        video.Property(v => v.YouTubeCommentCount).HasColumnName("youtube_comment_count");
-        video.Property(v => v.YouTubeThumbnailPath).HasColumnName("youtube_thumbnail_path");
         video.OwnsMany(
             v => v.Chapters,
             chapter =>
@@ -315,11 +304,10 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         // No foreign key to channels: TubeArchivist may list a video whose channel it can't give (a broken document);
         // the video is kept all the same, as the index always did.
         video.HasIndex(v => v.ChannelId);
-        // What a full sync looks for: the flagged files, the videos a run didn't see.
+        // The flagged files, few among many.
         video
             .HasIndex(v => v.MediaMissing)
             .HasFilter("media_missing");
-        video.HasIndex(v => v.SeenInRun);
     }
 
     private static void MapChannels(EntityTypeBuilder<ChannelRow> channel)
@@ -333,7 +321,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.Name).HasColumnName("name");
         channel.Property(c => c.Description).HasColumnName("description");
         channel.Property(c => c.Subscribers).HasColumnName("subscribers");
-        channel.Property(c => c.Active).HasColumnName("active");
         channel.Property(c => c.LastRefreshed).HasColumnName("last_refreshed");
         channel.Property(c => c.Tags).HasColumnName("tags");
         channel
@@ -353,8 +340,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.ThumbPath).HasColumnName("thumb_path");
         channel.Property(c => c.BannerPath).HasColumnName("banner_path");
         channel.Property(c => c.TvArtPath).HasColumnName("tv_art_path");
-        channel.Property(c => c.ContentHash).HasColumnName("content_hash");
-        channel.Property(c => c.SeenInRun).HasColumnName("seen_in_run");
         channel.OwnsOne(c => c.ThumbArt, MapArt<ChannelRow>("thumb_art"));
         channel.OwnsOne(c => c.BannerArt, MapArt<ChannelRow>("banner_art"));
         channel
@@ -364,13 +349,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.YouTubeCheckedAt).HasColumnName("youtube_checked_at");
         channel.Property(c => c.YouTubeReason).HasColumnName("youtube_reason");
         channel.Property(c => c.YouTubeRefreshedAt).HasColumnName("youtube_refreshed_at");
-        channel.Property(c => c.YouTubeName).HasColumnName("youtube_name");
-        channel.Property(c => c.YouTubeDescription).HasColumnName("youtube_description");
-        channel.Property(c => c.YouTubeSubscribers).HasColumnName("youtube_subscribers");
-        channel.Property(c => c.YouTubeTags).HasColumnName("youtube_tags");
-        channel.Property(c => c.YouTubeThumbPath).HasColumnName("youtube_thumb_path");
-        channel.Property(c => c.YouTubeBannerPath).HasColumnName("youtube_banner_path");
-        channel.HasIndex(c => c.SeenInRun);
     }
 
     /// <summary>A picture's recorded versions, as a JSON column.</summary>

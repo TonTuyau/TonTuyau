@@ -148,18 +148,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("id");
 
-                    b.Property<bool>("Active")
-                        .HasColumnType("boolean")
-                        .HasColumnName("active");
-
                     b.Property<string>("BannerPath")
                         .HasColumnType("text")
                         .HasColumnName("banner_path");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content_hash");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -179,10 +170,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("origin");
-
-                    b.Property<string>("SeenInRun")
-                        .HasColumnType("text")
-                        .HasColumnName("seen_in_run");
 
                     b.Property<long>("Subscribers")
                         .HasColumnType("bigint")
@@ -206,21 +193,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("tv_art_path");
 
-                    b.Property<string>("YouTubeBannerPath")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_banner_path");
-
                     b.Property<DateTimeOffset?>("YouTubeCheckedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("youtube_checked_at");
-
-                    b.Property<string>("YouTubeDescription")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_description");
-
-                    b.Property<string>("YouTubeName")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_name");
 
                     b.Property<string>("YouTubeReason")
                         .HasColumnType("text")
@@ -231,25 +206,11 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnName("youtube_refreshed_at");
 
                     b.Property<string>("YouTubeState")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("youtube_state");
 
-                    b.Property<long?>("YouTubeSubscribers")
-                        .HasColumnType("bigint")
-                        .HasColumnName("youtube_subscribers");
-
-                    b.PrimitiveCollection<List<string>>("YouTubeTags")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("youtube_tags");
-
-                    b.Property<string>("YouTubeThumbPath")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_thumb_path");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("SeenInRun");
 
                     b.ToTable("channels", (string)null);
                 });
@@ -259,10 +220,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text")
                         .HasColumnName("id");
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("boolean")
-                        .HasColumnName("active");
 
                     b.PrimitiveCollection<List<string>>("Categories")
                         .IsRequired()
@@ -279,14 +236,13 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("channel_name");
 
+                    b.Property<long?>("CommentCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("comment_count");
+
                     b.Property<DateTimeOffset?>("CommentsReadAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("comments_read_at");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content_hash");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -344,10 +300,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published");
 
-                    b.Property<string>("SeenInRun")
-                        .HasColumnType("text")
-                        .HasColumnName("seen_in_run");
-
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
                         .HasColumnType("text[]")
@@ -372,30 +324,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("views");
 
-                    b.PrimitiveCollection<List<string>>("YouTubeCategories")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("youtube_categories");
-
-                    b.Property<string>("YouTubeChannelName")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_channel_name");
-
                     b.Property<DateTimeOffset?>("YouTubeCheckedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("youtube_checked_at");
-
-                    b.Property<long?>("YouTubeCommentCount")
-                        .HasColumnType("bigint")
-                        .HasColumnName("youtube_comment_count");
-
-                    b.Property<string>("YouTubeDescription")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_description");
-
-                    b.Property<long?>("YouTubeLikes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("youtube_likes");
 
                     b.Property<string>("YouTubeReason")
                         .HasColumnType("text")
@@ -406,25 +337,9 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnName("youtube_refreshed_at");
 
                     b.Property<string>("YouTubeState")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("youtube_state");
-
-                    b.PrimitiveCollection<List<string>>("YouTubeTags")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("youtube_tags");
-
-                    b.Property<string>("YouTubeThumbnailPath")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_thumbnail_path");
-
-                    b.Property<string>("YouTubeTitle")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_title");
-
-                    b.Property<long?>("YouTubeViews")
-                        .HasColumnType("bigint")
-                        .HasColumnName("youtube_views");
 
                     b.HasKey("Id");
 
@@ -432,8 +347,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
 
                     b.HasIndex("MediaMissing")
                         .HasFilter("media_missing");
-
-                    b.HasIndex("SeenInRun");
 
                     b.ToTable("videos", (string)null);
                 });

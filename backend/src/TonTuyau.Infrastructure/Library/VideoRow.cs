@@ -5,10 +5,9 @@ using TonTuyau.Infrastructure.YouTube;
 namespace TonTuyau.Infrastructure.Library;
 
 /// <summary>
-/// A row of <c>videos</c> (2.0): one video of the library, everything TonTuyau knows of it. What TubeArchivist brings
-/// (its metadata, its file and tracks, its dates) and what TonTuyau read on YouTube (the <c>youtube_*</c> columns,
-/// chapters) live in columns of their own: a sync writes only the first, a refresh only the second, so neither ever
-/// overwrites the other; TonTuyau's values win when the video is read (<see cref="YouTubeOverlay"/>).
+/// A row of <c>videos</c> (2.0): one video of the library, everything TonTuyau knows of it, one column each. The
+/// import from TubeArchivist fills a row when it adds the video, and never writes it again; a refresh on YouTube
+/// (and, later, a download) writes the same columns: what TonTuyau read last is what the row holds.
 /// </summary>
 public sealed class VideoRow
 {
@@ -28,9 +27,6 @@ public sealed class VideoRow
     /// <summary>Stored as its name (<c>Short</c>).</summary>
     public VideoType Type { get; set; }
 
-    /// <summary>TubeArchivist's flag: false when its last refresh of the video failed.</summary>
-    public bool Active { get; set; }
-
     public DateTimeOffset Published { get; set; }
 
     public DateTimeOffset Downloaded { get; set; }
@@ -46,7 +42,9 @@ public sealed class VideoRow
 
     public bool MediaPathCorrected { get; set; }
 
-    /// <summary>TubeArchivist's cache path, e.g. <c>/cache/videos/a/abc.jpg</c>.</summary>
+    /// <summary>
+    /// Its art path: TubeArchivist's cache (<c>/cache/videos/a/abc.jpg</c>), or TonTuyau's art volume after a refresh.
+    /// </summary>
     public required string ThumbnailPath { get; set; }
 
     public List<string> Tags { get; set; } = [];
@@ -61,53 +59,29 @@ public sealed class VideoRow
 
     public long Dislikes { get; set; }
 
+    /// <summary>How many comments YouTube counts; null until a refresh read it (TubeArchivist doesn't say).</summary>
+    public long? CommentCount { get; set; }
+
     /// <summary>The file's tracks (JSON).</summary>
     public List<MediaTrackRow> Tracks { get; set; } = [];
 
-    /// <summary>Hash of the columns a sync writes: an upsert with the same hash rewrites nothing.</summary>
-    public required string ContentHash { get; set; }
-
-    // The sync's bookkeeping: not content, a content rewrite keeps it.
-
-    /// <summary>The last run that saw the video (its deletion planning: what a full run didn't see is gone).</summary>
-    public string? SeenInRun { get; set; }
-
-    /// <summary>True when the last full sync found no file on the media share.</summary>
+    /// <summary>True when the import found no file on the media share.</summary>
     public bool MediaMissing { get; set; }
 
-    /// <summary>What the art store holds for the thumbnail (JSON); null until the sync recorded it.</summary>
+    /// <summary>What the art store holds for the thumbnail (JSON); null until it's recorded.</summary>
     public ArtVersionsRow? ThumbnailArt { get; set; }
 
-    // What TonTuyau read on YouTube (1.5): null until it checked the video, the metadata until it refreshed it.
+    // Its state on YouTube (1.5), as TonTuyau checked it.
 
-    /// <summary>Stored as its name (<c>Gone</c>); null: never checked (TubeArchivist's flag tells).</summary>
-    public YouTubeState? YouTubeState { get; set; }
+    /// <summary>Stored as its name (<c>Gone</c>); <c>NotChecked</c> until TonTuyau checks it, whatever its source.</summary>
+    public YouTubeState YouTubeState { get; set; } = YouTubeState.NotChecked;
 
     public DateTimeOffset? YouTubeCheckedAt { get; set; }
 
     public string? YouTubeReason { get; set; }
 
-    /// <summary>When TonTuyau last read its metadata: from then on, the <c>youtube_*</c> metadata wins.</summary>
+    /// <summary>When TonTuyau last read its metadata on YouTube; null: never (the import's are TubeArchivist's).</summary>
     public DateTimeOffset? YouTubeRefreshedAt { get; set; }
-
-    public string? YouTubeTitle { get; set; }
-
-    public string? YouTubeChannelName { get; set; }
-
-    public string? YouTubeDescription { get; set; }
-
-    public List<string> YouTubeTags { get; set; } = [];
-
-    public List<string> YouTubeCategories { get; set; } = [];
-
-    public long? YouTubeViews { get; set; }
-
-    public long? YouTubeLikes { get; set; }
-
-    public long? YouTubeCommentCount { get; set; }
-
-    /// <summary>The thumbnail TonTuyau stored in its art volume; null: TubeArchivist's stays.</summary>
-    public string? YouTubeThumbnailPath { get; set; }
 
     /// <summary>Its chapters, in order (JSON); none until refreshed, or when YouTube marks none.</summary>
     public List<VideoChapterRow> Chapters { get; set; } = [];

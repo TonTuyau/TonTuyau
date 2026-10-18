@@ -9,7 +9,7 @@ using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
 
-/// <summary>The library's tables in PostgreSQL (2.0), through the stores the sync uses.</summary>
+/// <summary>The library's tables in PostgreSQL (2.0), through their stores.</summary>
 [Binding]
 public sealed class LibraryStoreSteps(ScenarioState state)
 {
@@ -17,8 +17,9 @@ public sealed class LibraryStoreSteps(ScenarioState state)
 
     private readonly Dictionary<string, Video> _videos = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Channel> _channels = new(StringComparer.Ordinal);
-    private UpsertResult? _upsert;
-    private int _deleted;
+    private UpsertResult? _added;
+
+    private static readonly YouTubeStatus NotChecked = new(YouTubeState.NotChecked, null, null, null);
 
     private IServiceProvider Services => state.Backend.Services;
 
@@ -26,31 +27,24 @@ public sealed class LibraryStoreSteps(ScenarioState state)
 
     private IChannelStore Channels => Services.GetRequiredService<IChannelStore>();
 
-    [Given("the videos {string} are written to the library")]
-    [When("the videos {string} are written to the library")]
-    public async Task VideosAreWritten(string ids) =>
-        _upsert = await Videos.UpsertAsync([.. Ids(ids).Select(id => VideoFor(id))], null, CancellationToken.None);
+    [Given("the videos {string} are added to the library")]
+    [When("the videos {string} are added to the library")]
+    public async Task VideosAreAdded(string ids) =>
+        _added = await Videos.AddMissingAsync([.. Ids(ids).Select(id => VideoFor(id))], CancellationToken.None);
 
-    [Given("the videos {string} of the channel {string} are written to the library")]
-    public async Task ChannelVideosAreWritten(string ids, string channelId) =>
-        _upsert = await Videos.UpsertAsync(
-            [.. Ids(ids).Select(id => VideoFor(id, channelId))],
-            null,
-            CancellationToken.None);
-
-    [When("the videos {string} are written to the library by run {string}")]
-    public async Task VideosAreWrittenByRun(string ids, string run) =>
-        _upsert = await Videos.UpsertAsync([.. Ids(ids).Select(id => VideoFor(id))], run, CancellationToken.None);
-
-    [When("the library's video {string} gets the title {string} and the videos {string} are written to the library")]
-    public async Task TitleChangesAndWrite(string id, string title, string ids)
+    [When("the library's video {string} gets the title {string} and the videos {string} are added to the library")]
+    public async Task TitleChangesAndAdd(string id, string title, string ids)
     {
         _videos[id] = VideoFor(id) with { Title = title };
-        await VideosAreWritten(ids);
+        await VideosAreAdded(ids);
     }
 
-    [When("the library marks the videos {string} as seen by run {string}")]
-    public Task MarkSeen(string ids, string run) => Videos.MarkSeenAsync(Ids(ids), run, CancellationToken.None);
+    [When("the video {string}, inactive in TubeArchivist, is added to the library")]
+    public async Task InactiveVideoIsAdded(string id)
+    {
+        _videos[id] = VideoFor(id) with { Active = false };
+        await VideosAreAdded(id);
+    }
 
     [When("the library flags the files of {string} as missing")]
     public Task FlagMissing(string ids) => Videos.SetMediaMissingAsync(Ids(ids), true, CancellationToken.None);
@@ -64,6 +58,7 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             new Dictionary<string, ArtVersions> { [id] = new(width, Widths(versions)) },
             CancellationToken.None);
 
+    /// <summary>What a refresh writes (A2 gives it its own write): the same columns, the state, its date.</summary>
     [Given("TonTuyau refreshed the library's video {string} on YouTube with the title {string}")]
     public async Task RefreshedOnYouTube(string id, string title)
     {
@@ -73,43 +68,45 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
             VideoRow row = await db.Videos.SingleAsync(v => v.Id == id);
             DateTimeOffset now = DateTimeOffset.UtcNow;
+            row.Title = title;
             row.YouTubeState = YouTubeState.OnYouTube;
             row.YouTubeCheckedAt = now;
             row.YouTubeRefreshedAt = now;
-            row.YouTubeTitle = title;
-            row.YouTubeChannelName = "Chaîne";
-            row.YouTubeDescription = "";
             await db.SaveChangesAsync();
         }
     }
 
-    [When("the videos {string} are deleted from the library")]
-    public async Task VideosAreDeleted(string ids) =>
-        _deleted = await Videos.DeleteAsync(Ids(ids), CancellationToken.None);
+    [Then("the library counts {int} added and {int} already there")]
+    public void AddCounts(int added, int already) =>
+        Assert.Equal((added, 0, already), (_added!.Created, _added.Updated, _added.Unchanged));
 
-    [Then("the library counts {int} created, {int} updated and {int} unchanged")]
-    public void UpsertCounts(int created, int updated, int unchanged) =>
-        Assert.Equal((created, updated, unchanged), (_upsert!.Created, _upsert.Updated, _upsert.Unchanged));
-
-    [Then("the library's video {string} is the one written, tracks, tags and duration included")]
-    public async Task VideoIsTheOneWritten(string id)
+    [Then("the library's video {string} is the one added, tracks, tags and duration included")]
+    public async Task VideoIsTheOneAdded(string id)
     {
         Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
-        Video written = VideoFor(id);
-        // Never checked on YouTube: TubeArchivist's flag tells (active: not checked).
+        Video added = VideoFor(id);
         Assert.Equal(
-            written with { YouTube = YouTubeStatus.FromTubeArchivist(true) },
+            added with { YouTube = NotChecked },
             stored with
             {
-                Tags = written.Tags,
-                Categories = written.Categories,
-                PlaylistIds = written.PlaylistIds,
-                Tracks = written.Tracks,
+                Tags = added.Tags,
+                Categories = added.Categories,
+                PlaylistIds = added.PlaylistIds,
+                Tracks = added.Tracks,
             });
-        Assert.Equal(written.Tags, stored.Tags);
-        Assert.Equal(written.Categories, stored.Categories);
-        Assert.Equal(written.PlaylistIds, stored.PlaylistIds);
-        Assert.Equal(written.Tracks, stored.Tracks);
+        Assert.Equal(added.Tags, stored.Tags);
+        Assert.Equal(added.Categories, stored.Categories);
+        Assert.Equal(added.PlaylistIds, stored.PlaylistIds);
+        Assert.Equal(added.Tracks, stored.Tracks);
+    }
+
+    [Then("the library's video {string} is not checked on YouTube, and active")]
+    public async Task VideoIsNotChecked(string id)
+    {
+        Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
+        Assert.Equal(NotChecked, stored.YouTube);
+        Assert.True(stored.Active);
+        Assert.False(stored.GoneFromYouTube);
     }
 
     [Then("the library's video {string} has the title {string}")]
@@ -132,24 +129,13 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     public async Task LibraryHoldsChannels(int count) =>
         Assert.Equal(count, await Channels.CountAsync(CancellationToken.None));
 
-    [Then("{int} video(s) was/were deleted from the library")]
-    public void DeletedCount(int count) => Assert.Equal(count, _deleted);
+    [Then("the library's video {string} has its file flagged as missing")]
+    public async Task FileFlagged(string id) =>
+        Assert.True((await Videos.GetStoredAsync(id, CancellationToken.None))?.MediaMissing);
 
-    [Then("the library's videos not seen by run {string} are {string}")]
-    public async Task NotSeen(string run, string ids)
-    {
-        IReadOnlyList<VideoSummary> notSeen = await Videos.FindNotSeenAsync(
-            run,
-            [DefaultChannel],
-            CancellationToken.None);
-        Assert.Equal(Ids(ids), notSeen.Select(v => v.Id).Order(StringComparer.Ordinal));
-    }
-
-    [Then("the library's files flagged as missing are {string}")]
-    public async Task FlaggedMissing(string ids) =>
-        Assert.Equal(
-            Ids(ids),
-            (await Videos.GetMediaMissingIdsAsync(CancellationToken.None)).Order(StringComparer.Ordinal));
+    [Then("the library's video {string} has its file")]
+    public async Task FileThere(string id) =>
+        Assert.False((await Videos.GetStoredAsync(id, CancellationToken.None))?.MediaMissing);
 
     [Then("the library's video {string} has a thumbnail {int} px wide with the versions {string}")]
     public async Task HasThumbnailArt(string id, int width, string versions) =>
@@ -157,21 +143,17 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             new ArtVersions(width, Widths(versions)),
             (await Videos.GetStoredAsync(id, CancellationToken.None))?.ThumbnailArt);
 
-    [Then("the library's videos of the channel {string} are {string}")]
-    public async Task VideosOfChannel(string channelId, string ids)
+    [Given("the channels {string} are added to the library")]
+    [When("the channels {string} are added to the library")]
+    public async Task ChannelsAreAdded(string ids) =>
+        _added = await Channels.AddMissingAsync([.. Ids(ids).Select(ChannelFor)], CancellationToken.None);
+
+    [When("the channel {string} gets the name {string} and the channels {string} are added to the library")]
+    public async Task NameChangesAndAdd(string id, string name, string ids)
     {
-        IReadOnlyList<VideoSummary> found = await Videos.FindByChannelsAsync([channelId], CancellationToken.None);
-        Assert.Equal(Ids(ids), found.Select(v => v.Id).Order(StringComparer.Ordinal));
+        _channels[id] = ChannelFor(id) with { Name = name };
+        await ChannelsAreAdded(ids);
     }
-
-    [Given("the channels {string} are written to the library")]
-    [When("the channels {string} are written to the library")]
-    public async Task ChannelsAreWritten(string ids) =>
-        await Channels.UpsertAsync([.. Ids(ids).Select(ChannelFor)], null, CancellationToken.None);
-
-    [When("the channels {string} are written to the library by run {string}")]
-    public async Task ChannelsAreWrittenByRun(string ids, string run) =>
-        await Channels.UpsertAsync([.. Ids(ids).Select(ChannelFor)], run, CancellationToken.None);
 
     [When("the library records the {word} of the channel {string} as {int} px wide with the versions {string}")]
     public Task RecordChannelArt(string picture, string id, int width, string versions) =>
@@ -180,17 +162,19 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             new Dictionary<string, ArtVersions> { [id] = new(width, Widths(versions)) },
             CancellationToken.None);
 
-    [Then("the library's channel {string} is the one written, tabs and tags included")]
-    public async Task ChannelIsTheOneWritten(string id)
+    [Then("the library's channel {string} is the one added, tabs and tags included")]
+    public async Task ChannelIsTheOneAdded(string id)
     {
         Channel stored = (await Channels.GetAsync(id, CancellationToken.None))!;
-        Channel written = ChannelFor(id);
-        Assert.Equal(
-            written with { YouTube = YouTubeStatus.FromTubeArchivist(true) },
-            stored with { Tags = written.Tags, Tabs = written.Tabs });
-        Assert.Equal(written.Tags, stored.Tags);
-        Assert.Equal(written.Tabs, stored.Tabs);
+        Channel added = ChannelFor(id);
+        Assert.Equal(added with { YouTube = NotChecked }, stored with { Tags = added.Tags, Tabs = added.Tabs });
+        Assert.Equal(added.Tags, stored.Tags);
+        Assert.Equal(added.Tabs, stored.Tabs);
     }
+
+    [Then("the library's channel {string} has the name {string}")]
+    public async Task ChannelHasName(string id, string name) =>
+        Assert.Equal(name, (await Channels.GetAsync(id, CancellationToken.None))?.Name);
 
     [Then("the library's channel {string} has a {word} {int} px wide with the versions {string}")]
     public async Task ChannelHasArt(string id, string picture, int width, string versions)
@@ -201,20 +185,13 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             picture == "banner" ? stored.BannerArt : stored.ThumbArt);
     }
 
-    [Then("the library's channels not seen by run {string} are {string}")]
-    public async Task ChannelsNotSeen(string run, string ids)
-    {
-        IReadOnlyList<ChannelSummary> notSeen = await Channels.FindNotSeenAsync(run, CancellationToken.None);
-        Assert.Equal(Ids(ids), notSeen.Select(c => c.Id).Order(StringComparer.Ordinal));
-    }
-
-    private Video VideoFor(string id, string channelId = DefaultChannel)
+    private Video VideoFor(string id)
     {
         if (!_videos.TryGetValue(id, out Video? video))
         {
             video = new Video(
                 id,
-                channelId,
+                DefaultChannel,
                 "Chaîne",
                 $"Vidéo {id}",
                 "Une description.",
@@ -225,7 +202,7 @@ public sealed class LibraryStoreSteps(ScenarioState state)
                 new DateTimeOffset(2026, 3, 3, 10, 0, 0, TimeSpan.Zero),
                 TimeSpan.FromSeconds(61.5),
                 123_456,
-                $"{channelId}/{id}.mp4",
+                $"{DefaultChannel}/{id}.mp4",
                 false,
                 $"/cache/videos/{id[0]}/{id}.jpg",
                 ["pompe", "tuyau"],
