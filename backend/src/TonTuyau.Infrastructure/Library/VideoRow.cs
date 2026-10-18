@@ -1,5 +1,4 @@
 using TonTuyau.Application.Library;
-using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure.Library;
@@ -71,17 +70,8 @@ public sealed class VideoRow
     /// <summary>What the art store holds for the thumbnail (JSON); null until it's recorded.</summary>
     public ArtVersionsRow? ThumbnailArt { get; set; }
 
-    // Its state on YouTube (1.5), as TonTuyau checked it.
-
-    /// <summary>Stored as its name (<c>Gone</c>); <c>NotChecked</c> until TonTuyau checks it, whatever its source.</summary>
-    public YouTubeState YouTubeState { get; set; } = YouTubeState.NotChecked;
-
-    public DateTimeOffset? YouTubeCheckedAt { get; set; }
-
-    public string? YouTubeReason { get; set; }
-
-    /// <summary>When TonTuyau last read its metadata on YouTube; null: never (the import's are TubeArchivist's).</summary>
-    public DateTimeOffset? YouTubeRefreshedAt { get; set; }
+    /// <summary>Its state on YouTube (1.5), in <c>video_states</c>: always loaded with the row.</summary>
+    public VideoStateRow YouTube { get; set; } = null!;
 
     /// <summary>Its chapters, in order (JSON); none until refreshed, or when YouTube marks none.</summary>
     public List<VideoChapterRow> Chapters { get; set; } = [];

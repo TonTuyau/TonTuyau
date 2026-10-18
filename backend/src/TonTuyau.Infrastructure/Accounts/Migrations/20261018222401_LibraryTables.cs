@@ -27,10 +27,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     thumb_path = table.Column<string>(type: "text", nullable: true),
                     banner_path = table.Column<string>(type: "text", nullable: true),
                     tv_art_path = table.Column<string>(type: "text", nullable: true),
-                    youtube_state = table.Column<string>(type: "text", nullable: false),
-                    youtube_checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    youtube_reason = table.Column<string>(type: "text", nullable: true),
-                    youtube_refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     banner_art = table.Column<string>(type: "jsonb", nullable: true),
                     thumb_art = table.Column<string>(type: "jsonb", nullable: true)
                 },
@@ -66,10 +62,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     dislikes = table.Column<long>(type: "bigint", nullable: false),
                     comment_count = table.Column<long>(type: "bigint", nullable: true),
                     media_missing = table.Column<bool>(type: "boolean", nullable: false),
-                    youtube_state = table.Column<string>(type: "text", nullable: false),
-                    youtube_checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    youtube_reason = table.Column<string>(type: "text", nullable: true),
-                    youtube_refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     comments_read_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     chapters = table.Column<string>(type: "jsonb", nullable: true),
                     thumbnail_art = table.Column<string>(type: "jsonb", nullable: true),
@@ -78,6 +70,48 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_videos", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "channel_states",
+                columns: table => new
+                {
+                    channel_id = table.Column<string>(type: "text", nullable: false),
+                    state = table.Column<string>(type: "text", nullable: false),
+                    checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    reason = table.Column<string>(type: "text", nullable: true),
+                    refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_channel_states", x => x.channel_id);
+                    table.ForeignKey(
+                        name: "FK_channel_states_channels_channel_id",
+                        column: x => x.channel_id,
+                        principalTable: "channels",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "video_states",
+                columns: table => new
+                {
+                    video_id = table.Column<string>(type: "text", nullable: false),
+                    state = table.Column<string>(type: "text", nullable: false),
+                    checked_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    reason = table.Column<string>(type: "text", nullable: true),
+                    refreshed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_video_states", x => x.video_id);
+                    table.ForeignKey(
+                        name: "FK_video_states_videos_video_id",
+                        column: x => x.video_id,
+                        principalTable: "videos",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -95,6 +129,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "channel_states");
+
+            migrationBuilder.DropTable(
+                name: "video_states");
+
             migrationBuilder.DropTable(
                 name: "channels");
 

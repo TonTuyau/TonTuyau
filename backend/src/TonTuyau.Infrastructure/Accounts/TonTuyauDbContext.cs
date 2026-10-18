@@ -42,7 +42,11 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 
     public DbSet<VideoRow> Videos => Set<VideoRow>();
 
+    public DbSet<VideoStateRow> VideoStates => Set<VideoStateRow>();
+
     public DbSet<ChannelRow> Channels => Set<ChannelRow>();
+
+    public DbSet<ChannelStateRow> ChannelStates => Set<ChannelStateRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -234,7 +238,37 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<VideoRow>(MapVideos);
+        modelBuilder.Entity<VideoStateRow>(MapVideoStates);
         modelBuilder.Entity<ChannelRow>(MapChannels);
+        modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
+    }
+
+    private static void MapVideoStates(EntityTypeBuilder<VideoStateRow> state)
+    {
+        state.ToTable("video_states");
+        state.HasKey(s => s.VideoId);
+        state.Property(s => s.VideoId).HasColumnName("video_id");
+        state
+            .Property(s => s.State)
+            .HasColumnName("state")
+            .HasConversion<string>();
+        state.Property(s => s.CheckedAt).HasColumnName("checked_at");
+        state.Property(s => s.Reason).HasColumnName("reason");
+        state.Property(s => s.RefreshedAt).HasColumnName("refreshed_at");
+    }
+
+    private static void MapChannelStates(EntityTypeBuilder<ChannelStateRow> state)
+    {
+        state.ToTable("channel_states");
+        state.HasKey(s => s.ChannelId);
+        state.Property(s => s.ChannelId).HasColumnName("channel_id");
+        state
+            .Property(s => s.State)
+            .HasColumnName("state")
+            .HasConversion<string>();
+        state.Property(s => s.CheckedAt).HasColumnName("checked_at");
+        state.Property(s => s.Reason).HasColumnName("reason");
+        state.Property(s => s.RefreshedAt).HasColumnName("refreshed_at");
     }
 
     private static void MapVideos(EntityTypeBuilder<VideoRow> video)
@@ -284,13 +318,15 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             });
         video.Property(v => v.MediaMissing).HasColumnName("media_missing");
         video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
+        // Its state on YouTube: its row of video_states, written and read with it, deleted with it.
         video
-            .Property(v => v.YouTubeState)
-            .HasColumnName("youtube_state")
-            .HasConversion<string>();
-        video.Property(v => v.YouTubeCheckedAt).HasColumnName("youtube_checked_at");
-        video.Property(v => v.YouTubeReason).HasColumnName("youtube_reason");
-        video.Property(v => v.YouTubeRefreshedAt).HasColumnName("youtube_refreshed_at");
+            .HasOne(v => v.YouTube)
+            .WithOne()
+            .HasForeignKey<VideoStateRow>(s => s.VideoId)
+            .OnDelete(DeleteBehavior.Cascade);
+        video
+            .Navigation(v => v.YouTube)
+            .AutoInclude();
         video.OwnsMany(
             v => v.Chapters,
             chapter =>
@@ -342,13 +378,15 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         channel.Property(c => c.TvArtPath).HasColumnName("tv_art_path");
         channel.OwnsOne(c => c.ThumbArt, MapArt<ChannelRow>("thumb_art"));
         channel.OwnsOne(c => c.BannerArt, MapArt<ChannelRow>("banner_art"));
+        // Its state on YouTube: its row of channel_states, written and read with it, deleted with it.
         channel
-            .Property(c => c.YouTubeState)
-            .HasColumnName("youtube_state")
-            .HasConversion<string>();
-        channel.Property(c => c.YouTubeCheckedAt).HasColumnName("youtube_checked_at");
-        channel.Property(c => c.YouTubeReason).HasColumnName("youtube_reason");
-        channel.Property(c => c.YouTubeRefreshedAt).HasColumnName("youtube_refreshed_at");
+            .HasOne(c => c.YouTube)
+            .WithOne()
+            .HasForeignKey<ChannelStateRow>(s => s.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
+        channel
+            .Navigation(c => c.YouTube)
+            .AutoInclude();
     }
 
     /// <summary>A picture's recorded versions, as a JSON column.</summary>

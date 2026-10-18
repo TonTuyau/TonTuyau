@@ -45,6 +45,7 @@ internal static class LibraryRows
                 Height = t.Height,
             }),
         ],
+        YouTube = new VideoStateRow { VideoId = video.Id },
     };
 
     /// <summary>A channel's new row: its content, not checked on YouTube.</summary>
@@ -61,6 +62,7 @@ internal static class LibraryRows
         ThumbPath = channel.ThumbPath,
         BannerPath = channel.BannerPath,
         TvArtPath = channel.TvArtPath,
+        YouTube = new ChannelStateRow { ChannelId = channel.Id },
     };
 
     /// <summary>
@@ -89,7 +91,7 @@ internal static class LibraryRows
             row.PlaylistIds,
             new VideoStats(row.Views, row.Likes, row.Dislikes),
             [.. row.Tracks.Select(t => new MediaTrack(t.Kind, t.Codec, t.Bitrate, t.Width, t.Height))],
-            new YouTubeStatus(row.YouTubeState, row.YouTubeCheckedAt, row.YouTubeReason, row.YouTubeRefreshedAt));
+            ToStatus(row.YouTube));
 
     /// <summary>The channel as the row holds it (<see cref="Channel.Active"/> true, as for a video).</summary>
     public static Channel ToChannel(ChannelRow row) =>
@@ -105,7 +107,7 @@ internal static class LibraryRows
             row.ThumbPath,
             row.BannerPath,
             row.TvArtPath,
-            new YouTubeStatus(row.YouTubeState, row.YouTubeCheckedAt, row.YouTubeReason, row.YouTubeRefreshedAt));
+            ToStatus(row.YouTube));
 
     public static StoredVideo ToStored(VideoRow row) =>
         new(ToVideo(row), row.MediaMissing, ToVersions(row.ThumbnailArt));
@@ -115,6 +117,12 @@ internal static class LibraryRows
 
     public static ArtVersionsRow ToRow(ArtVersions versions) =>
         new() { OriginalWidth = versions.OriginalWidth, Widths = [.. versions.Widths] };
+
+    private static YouTubeStatus ToStatus(VideoStateRow row) =>
+        new(row.State, row.CheckedAt, row.Reason, row.RefreshedAt);
+
+    private static YouTubeStatus ToStatus(ChannelStateRow row) =>
+        new(row.State, row.CheckedAt, row.Reason, row.RefreshedAt);
 
     private static ArtVersions? ToVersions(ArtVersionsRow? row) =>
         row is null ? null : new ArtVersions(row.OriginalWidth, row.Widths);

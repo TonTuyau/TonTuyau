@@ -1,5 +1,4 @@
 using TonTuyau.Application.Library;
-using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Infrastructure.Library;
 
@@ -37,15 +36,6 @@ public sealed class ChannelRow
 
     public ArtVersionsRow? BannerArt { get; set; }
 
-    // Its state on YouTube (1.5), as TonTuyau checked it.
-
-    /// <summary>Stored as its name (<c>Gone</c>); <c>NotChecked</c> until TonTuyau checks it, whatever its source.</summary>
-    public YouTubeState YouTubeState { get; set; } = YouTubeState.NotChecked;
-
-    public DateTimeOffset? YouTubeCheckedAt { get; set; }
-
-    public string? YouTubeReason { get; set; }
-
-    /// <summary>When TonTuyau last read its metadata on YouTube; null: never (the import's are TubeArchivist's).</summary>
-    public DateTimeOffset? YouTubeRefreshedAt { get; set; }
+    /// <summary>Its state on YouTube (1.5), in <c>channel_states</c>: always loaded with the row.</summary>
+    public ChannelStateRow YouTube { get; set; } = null!;
 }

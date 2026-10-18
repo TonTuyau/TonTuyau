@@ -193,26 +193,37 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("tv_art_path");
 
-                    b.Property<DateTimeOffset?>("YouTubeCheckedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("youtube_checked_at");
-
-                    b.Property<string>("YouTubeReason")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_reason");
-
-                    b.Property<DateTimeOffset?>("YouTubeRefreshedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("youtube_refreshed_at");
-
-                    b.Property<string>("YouTubeState")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_state");
-
                     b.HasKey("Id");
 
                     b.ToTable("channels", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelStateRow", b =>
+                {
+                    b.Property<string>("ChannelId")
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("RefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refreshed_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("ChannelId");
+
+                    b.ToTable("channel_states", (string)null);
                 });
 
             modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
@@ -324,23 +335,6 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("views");
 
-                    b.Property<DateTimeOffset?>("YouTubeCheckedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("youtube_checked_at");
-
-                    b.Property<string>("YouTubeReason")
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_reason");
-
-                    b.Property<DateTimeOffset?>("YouTubeRefreshedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("youtube_refreshed_at");
-
-                    b.Property<string>("YouTubeState")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("youtube_state");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ChannelId");
@@ -349,6 +343,34 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasFilter("media_missing");
 
                     b.ToTable("videos", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoStateRow", b =>
+                {
+                    b.Property<string>("VideoId")
+                        .HasColumnType("text")
+                        .HasColumnName("video_id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("RefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refreshed_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("VideoId");
+
+                    b.ToTable("video_states", (string)null);
                 });
 
             modelBuilder.Entity("TonTuyau.Infrastructure.RunLogs.RunLogRow", b =>
@@ -742,6 +764,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Navigation("ThumbArt");
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelStateRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", null)
+                        .WithOne("YouTube")
+                        .HasForeignKey("TonTuyau.Infrastructure.Library.ChannelStateRow", "ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
                 {
                     b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
@@ -839,6 +870,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Navigation("Tracks");
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoStateRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.VideoRow", null)
+                        .WithOne("YouTube")
+                        .HasForeignKey("TonTuyau.Infrastructure.Library.VideoStateRow", "VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
                 {
                     b.HasOne("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", null)
@@ -886,6 +926,18 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         });
 
                     b.Navigation("Chapters");
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.Navigation("YouTube")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.Navigation("YouTube")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

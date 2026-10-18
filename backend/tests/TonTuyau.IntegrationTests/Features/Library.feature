@@ -51,3 +51,8 @@ Feature: The library in PostgreSQL
     Then the library counts 1 added and 1 already there
     And the library's channel "UCaaaaaaaaaaaaaaaaaaaaaa" has the name "Chaîne UCaaaaaaaaaaaaaaaaaaaaaa"
     And the library holds 2 channels
+
+  Scenario: Each video and each channel gets its state on YouTube, in a table of its own
+    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are added to the library
+    And the channels "UCaaaaaaaaaaaaaaaaaaaaaa" are added to the library
+    Then the library keeps 2 video states and 1 channel state, all not checked

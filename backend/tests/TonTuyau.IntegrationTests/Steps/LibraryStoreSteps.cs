@@ -69,9 +69,9 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             VideoRow row = await db.Videos.SingleAsync(v => v.Id == id);
             DateTimeOffset now = DateTimeOffset.UtcNow;
             row.Title = title;
-            row.YouTubeState = YouTubeState.OnYouTube;
-            row.YouTubeCheckedAt = now;
-            row.YouTubeRefreshedAt = now;
+            row.YouTube.State = YouTubeState.OnYouTube;
+            row.YouTube.CheckedAt = now;
+            row.YouTube.RefreshedAt = now;
             await db.SaveChangesAsync();
         }
     }
@@ -142,6 +142,24 @@ public sealed class LibraryStoreSteps(ScenarioState state)
         Assert.Equal(
             new ArtVersions(width, Widths(versions)),
             (await Videos.GetStoredAsync(id, CancellationToken.None))?.ThumbnailArt);
+
+    [Then("the library keeps {int} video states and {int} channel state(s), all not checked")]
+    public async Task StatesInTheirTables(int videos, int channels)
+    {
+        AsyncServiceScope scope = Services.CreateAsyncScope();
+        await using (scope)
+        {
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            List<YouTubeState> videoStates = await db.VideoStates
+                .Select(s => s.State)
+                .ToListAsync();
+            List<YouTubeState> channelStates = await db.ChannelStates
+                .Select(s => s.State)
+                .ToListAsync();
+            Assert.Equal((videos, channels), (videoStates.Count, channelStates.Count));
+            Assert.All([.. videoStates, .. channelStates], state => Assert.Equal(YouTubeState.NotChecked, state));
+        }
+    }
 
     [Given("the channels {string} are added to the library")]
     [When("the channels {string} are added to the library")]
