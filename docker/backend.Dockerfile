@@ -42,7 +42,14 @@ RUN curl --fail --silent --show-error --location --output yt-dlp \
  && unzip -q deno.zip deno \
  && rm deno.zip
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# The data folders, owned by the image's non-root user (app, uid 1654): made here, since the final image has no shell.
+# Volumes mounted there start with this ownership. The media share is mounted read-only at /youtube.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS folders
+RUN mkdir -p /out/data/art /out/data/logs/sync /out/data/tools /out/youtube
+
+# Ubuntu "chiseled" (1.5.1): only what .NET needs (glibc, libstdc++, OpenSSL, ICU, time zones), no shell, no package
+# manager, non-root. Deno needs nothing more (glibc, libgcc); yt-dlp also zlib (below). CI runs both in the image.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau backend" \
@@ -51,14 +58,12 @@ LABEL org.opencontainers.image.title="TonTuyau backend" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
-# The image's own non-root user (app, uid 1654) owns the art, the sync logs and the yt-dlp versions it downloads
-# (1.5); volumes mounted there start with this ownership. The media share is mounted read-only at /youtube.
-RUN mkdir -p /data/art /data/logs/sync /data/tools /youtube \
- && chown -R "$APP_UID:$APP_UID" /data
+COPY --from=folders --chown=1654:1654 /out/data /data
+COPY --from=folders /out/youtube /youtube
 COPY --from=build /app /app
 COPY --from=tools --chmod=755 /tools/yt-dlp /tools/deno /usr/local/bin/
-# Both run here, or the build stops.
-RUN yt-dlp --version && deno --version
+# yt-dlp's packed Python opens zlib, which the chiseled image doesn't carry: the same Ubuntu 24.04 library, alone.
+COPY --from=tools /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 # `tontuyau` on the PATH: `docker exec tontuyau-backend tontuyau sync status`. Deno's cache in /tmp: the app user's home
 # (/app) isn't writable.
 ENV PATH="/app:${PATH}" \
@@ -68,7 +73,7 @@ ENV PATH="/app:${PATH}" \
     TONTUYAU_SYNC_LOG_ROOT=/data/logs/sync \
     TONTUYAU_TOOLS_ROOT=/data/tools \
     DENO_DIR=/tmp/deno
-USER $APP_UID
+USER 1654
 WORKDIR /app
 EXPOSE 8080
 ENTRYPOINT ["/app/tontuyau"]

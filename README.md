@@ -117,6 +117,10 @@ docker exec tontuyau-backend tontuyau sync status
 
 Full runs also write their deletion lists to the `tontuyau-sync-logs` volume (`/data/logs/sync` in the container).
 
+The images carry only what TonTuyau needs (1.5.1): no shell, no package manager. `docker compose logs`,
+`docker exec tontuyau-backend tontuyau …` and `docker cp` work as before; `docker exec … sh` doesn't. To look inside
+a container, `docker debug tontuyau-backend` attaches a temporary toolbox without changing the image.
+
 ### Using folders instead of volumes (optional)
 
 The stack keeps Elasticsearch's data, the images and the sync logs in **named volumes**: nothing to do. If you'd rather have them in folders of the VM (bind mounts, e.g. `- /srv/tontuyau/es:/usr/share/elasticsearch/data` in place of `tontuyau-es-data:…`), Docker creates a missing folder as `root`, and the containers can't write there. Give them their owners once, before `docker compose up`:
@@ -166,8 +170,12 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau youtube video <id>
 docker exec tontuyau-backend tontuyau youtube channel <id>
 docker exec tontuyau-backend tontuyau youtube channel-videos <id>
+docker exec tontuyau-backend tontuyau health
 docker exec tontuyau-backend tontuyau --version
 ```
+
+`health` asks the backend running in the container whether it answers (exit code 0 or 1): it's the container's
+health check, since the image has no shell nor curl.
 
 See [Sync and command line](#sync-and-command-line) for what each does and the exit codes.
 
@@ -180,6 +188,12 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs onl
 2. Check that the package is linked to `TonTuyau/TonTuyau` (the images carry the `org.opencontainers.image.source` label, so GitHub links them by itself; otherwise **Connect repository**), and that **Manage Actions access** lists the repository with write access.
 
 Each release tag (`v1.0.0`, `v1.0.1`, …) publishes `X.Y.Z`, `X.Y` and moves `latest`: pick one of those in `TONTUYAU_VERSION`. A pre-release tag (`v1.3.0-alpha.1`) publishes only its own `1.3.0-alpha.1`, to try a version before its release.
+
+Each month (the 15th), the latest release's images are **rebuilt from the same sources on fresh base images** and
+published again under its tags (`.github/workflows/rebuild.yml`), once what they carry runs
+(`scripts/smoke-image.sh`): the base's security fixes (Ubuntu, Node, .NET) reach you without a new TonTuyau release;
+`docker compose pull && docker compose up -d` takes them. It can be started by hand too (Actions → Rebuild the latest
+release).
 
 ## Development setup
 

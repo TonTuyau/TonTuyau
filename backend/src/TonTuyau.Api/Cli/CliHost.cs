@@ -19,6 +19,12 @@ internal static class CliHost
             return CliRunner.Ok;
         }
 
+        if (CliRunner.IsHealth(args))
+        {
+            int port = HealthCheck.Port(Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS"));
+            return await HealthCheck.AskAsync(port, Console.Error).ConfigureAwait(false);
+        }
+
         HostApplicationBuilder builder = Host.CreateApplicationBuilder();
         builder.Configuration.AddTonTuyauConfiguration();
         // Warnings and errors only, whatever appsettings.json says: in the image the working folder is /app, where

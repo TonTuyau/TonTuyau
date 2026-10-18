@@ -124,6 +124,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Built into the runner's Docker first, to run what the image carries (1.5.1: no shell in them, so a program
+      # missing a library would only show when it runs); pushed after, from the build cache.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/${{ matrix.image }}.Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: tontuyau-${{ matrix.image }}:ci
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+
+      - name: Run what the image carries
+        run: scripts/smoke-image.sh ${{ matrix.image }} tontuyau-${{ matrix.image }}:ci
+
       - uses: docker/build-push-action@v6
         with:
           context: .
