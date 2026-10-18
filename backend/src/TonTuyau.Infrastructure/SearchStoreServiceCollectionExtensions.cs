@@ -9,6 +9,7 @@ using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Elasticsearch;
+using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.Storage;
 using TonTuyau.Infrastructure.YouTube;
 
@@ -45,6 +46,10 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();
         services.AddSingleton<IYouTubeFactsStore, YouTubeFactsStore>();
         services.AddSingleton<ICommentRepository, CommentRepository>();
+        // The library itself (2.0), in PostgreSQL: a database context per call, like the facts, so the command line
+        // (no PostgreSQL) can still build what it doesn't use.
+        services.AddSingleton<IVideoStore, VideoStore>();
+        services.AddSingleton<IChannelStore, ChannelStore>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);
         return services;
     }

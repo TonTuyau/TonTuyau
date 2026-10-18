@@ -142,6 +142,302 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("api_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("BannerPath")
+                        .HasColumnType("text")
+                        .HasColumnName("banner_path");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_hash");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTimeOffset?>("LastRefreshed")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_refreshed");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin");
+
+                    b.Property<string>("SeenInRun")
+                        .HasColumnType("text")
+                        .HasColumnName("seen_in_run");
+
+                    b.Property<long>("Subscribers")
+                        .HasColumnType("bigint")
+                        .HasColumnName("subscribers");
+
+                    b.Property<List<string>>("Tabs")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tabs");
+
+                    b.PrimitiveCollection<List<string>>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<string>("ThumbPath")
+                        .HasColumnType("text")
+                        .HasColumnName("thumb_path");
+
+                    b.Property<string>("TvArtPath")
+                        .HasColumnType("text")
+                        .HasColumnName("tv_art_path");
+
+                    b.Property<string>("YouTubeBannerPath")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_banner_path");
+
+                    b.Property<DateTimeOffset?>("YouTubeCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("youtube_checked_at");
+
+                    b.Property<string>("YouTubeDescription")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_description");
+
+                    b.Property<string>("YouTubeName")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_name");
+
+                    b.Property<string>("YouTubeReason")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_reason");
+
+                    b.Property<DateTimeOffset?>("YouTubeRefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("youtube_refreshed_at");
+
+                    b.Property<string>("YouTubeState")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_state");
+
+                    b.Property<long?>("YouTubeSubscribers")
+                        .HasColumnType("bigint")
+                        .HasColumnName("youtube_subscribers");
+
+                    b.PrimitiveCollection<List<string>>("YouTubeTags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("youtube_tags");
+
+                    b.Property<string>("YouTubeThumbPath")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_thumb_path");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeenInRun");
+
+                    b.ToTable("channels", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.PrimitiveCollection<List<string>>("Categories")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("categories");
+
+                    b.Property<string>("ChannelId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("ChannelName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("channel_name");
+
+                    b.Property<DateTimeOffset?>("CommentsReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("comments_read_at");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_hash");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<long>("Dislikes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dislikes");
+
+                    b.Property<DateTimeOffset>("Downloaded")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("downloaded");
+
+                    b.Property<TimeSpan>("Duration")
+                        .HasColumnType("interval")
+                        .HasColumnName("duration");
+
+                    b.Property<DateTimeOffset?>("LastRefreshed")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_refreshed");
+
+                    b.Property<long>("Likes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("likes");
+
+                    b.Property<bool>("MediaMissing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("media_missing");
+
+                    b.Property<string>("MediaPath")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_path");
+
+                    b.Property<bool>("MediaPathCorrected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("media_path_corrected");
+
+                    b.Property<long>("MediaSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_size");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin");
+
+                    b.PrimitiveCollection<List<string>>("PlaylistIds")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("playlist_ids");
+
+                    b.Property<DateTimeOffset>("Published")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published");
+
+                    b.Property<string>("SeenInRun")
+                        .HasColumnType("text")
+                        .HasColumnName("seen_in_run");
+
+                    b.PrimitiveCollection<List<string>>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<string>("ThumbnailPath")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("thumbnail_path");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<long>("Views")
+                        .HasColumnType("bigint")
+                        .HasColumnName("views");
+
+                    b.PrimitiveCollection<List<string>>("YouTubeCategories")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("youtube_categories");
+
+                    b.Property<string>("YouTubeChannelName")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_channel_name");
+
+                    b.Property<DateTimeOffset?>("YouTubeCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("youtube_checked_at");
+
+                    b.Property<long?>("YouTubeCommentCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("youtube_comment_count");
+
+                    b.Property<string>("YouTubeDescription")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_description");
+
+                    b.Property<long?>("YouTubeLikes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("youtube_likes");
+
+                    b.Property<string>("YouTubeReason")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_reason");
+
+                    b.Property<DateTimeOffset?>("YouTubeRefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("youtube_refreshed_at");
+
+                    b.Property<string>("YouTubeState")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_state");
+
+                    b.PrimitiveCollection<List<string>>("YouTubeTags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("youtube_tags");
+
+                    b.Property<string>("YouTubeThumbnailPath")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_thumbnail_path");
+
+                    b.Property<string>("YouTubeTitle")
+                        .HasColumnType("text")
+                        .HasColumnName("youtube_title");
+
+                    b.Property<long?>("YouTubeViews")
+                        .HasColumnType("bigint")
+                        .HasColumnName("youtube_views");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("MediaMissing")
+                        .HasFilter("media_missing");
+
+                    b.HasIndex("SeenInRun");
+
+                    b.ToTable("videos", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.RunLogs.RunLogRow", b =>
                 {
                     b.Property<long>("Id")
@@ -478,6 +774,156 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ytdlp_settings", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "BannerArt", b1 =>
+                        {
+                            b1.Property<string>("ChannelRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("ChannelRowId");
+
+                            b1.ToTable("channels");
+
+                            b1
+                                .ToJson("banner_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelRowId");
+                        });
+
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "ThumbArt", b1 =>
+                        {
+                            b1.Property<string>("ChannelRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("ChannelRowId");
+
+                            b1.ToTable("channels");
+
+                            b1
+                                .ToJson("thumb_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelRowId");
+                        });
+
+                    b.Navigation("BannerArt");
+
+                    b.Navigation("ThumbArt");
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<long>("Bitrate")
+                                .HasJsonPropertyName("bitrate");
+
+                            b1.Property<string>("Codec")
+                                .IsRequired()
+                                .HasJsonPropertyName("codec");
+
+                            b1.Property<int?>("Height")
+                                .HasJsonPropertyName("height");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasJsonPropertyName("kind");
+
+                            b1.Property<int?>("Width")
+                                .HasJsonPropertyName("width");
+
+                            b1.HasKey("VideoRowId", "__synthesizedOrdinal");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("tracks")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.OwnsMany("TonTuyau.Infrastructure.YouTube.VideoChapterRow", "Chapters", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<double>("End")
+                                .HasJsonPropertyName("end");
+
+                            b1.Property<double>("Start")
+                                .HasJsonPropertyName("start");
+
+                            b1.Property<string>("Title")
+                                .IsRequired()
+                                .HasJsonPropertyName("title");
+
+                            b1.HasKey("VideoRowId", "__synthesizedOrdinal");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("chapters")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "ThumbnailArt", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("VideoRowId");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("thumbnail_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.Navigation("Chapters");
+
+                    b.Navigation("ThumbnailArt");
+
+                    b.Navigation("Tracks");
                 });
 
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
