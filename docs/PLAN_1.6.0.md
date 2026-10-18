@@ -19,6 +19,7 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 | A3 | `work/1.6.0-index-from-postgres` | An index rebuild reads PostgreSQL only, never TubeArchivist: fast, and possible with TubeArchivist down. |
 | A4 | `work/1.6.0-runs-in-postgres` | The runs (`sync-runs`), the run lock and the sync checkpoint (`sync`) move to PostgreSQL: a run's page reads one database; the lock becomes a row (or a PostgreSQL lock) instead of the lease on Elasticsearch. |
 | A5 | `work/1.6.0-reads-from-postgres` | The pages that show one thing (a video, a channel, a run) read PostgreSQL; lists and search stay on the index. |
+| A6 | `work/1.6.0-tubearchivist-import` | TubeArchivist becomes an import (decided 2026-10-18, was planned for 1.7): a full run only, at startup when its settings are there and on demand from the Tasks page, that takes from TubeArchivist only what TonTuyau doesn't have. No more deletions from TubeArchivist, nor incremental sync: the "apply deletions" task, the incremental sync, their schedule and guards go (`TONTUYAU_SYNC_INCREMENTAL_CRON`, `TONTUYAU_SYNC_FULL_CRON`, `TONTUYAU_SYNC_SCHEDULER_ENABLED`, `TONTUYAU_SYNC_MAX_DELETIONS`, `TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS`, `TONTUYAU_SYNC_REJECT_GUARD_*`). `TONTUYAU_TA_URL` and `TONTUYAU_TA_TOKEN` optional: without them, TonTuyau runs without TubeArchivist, which can be shut down after the first run. |
 | — | tag `v1.6.0-alpha.1` | Tried on the VM from an empty database and a full sync: same pages, same data, the index rebuilt from PostgreSQL. |
 
 ## Part B: TonTuyau downloads
@@ -32,8 +33,9 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 | B5 | `work/1.6.0-youtube-syncs` | The YouTube incremental sync (each subscribed channel's new videos) and full sync (everything each channel has), on their own schedule, with the Tasks page's cards. |
 | B6 | `work/1.6.0-download-settings` | The YouTube page's download settings: the format, in yt-dlp's syntax (`bestvideo+bestaudio` by default; `bestvideo[height>=700]+bestaudio`, for instance), which tabs by default, the schedule, how many videos a sync takes at most. |
 | B7 | `work/1.6.0-extension-api` | LaPompe's "Add this video / channel": endpoints for a browser-extension key, and the contract it needs. |
-| — | tag `v1.6.0-alpha.2` | Tried on the VM: a few channels downloaded by TonTuyau beside TubeArchivist's. |
-| B8 | `work/1.6.0-version` | Version 1.6.0, the release notes, the upgrade steps (the media folder now writable). |
+| B8 | `work/1.6.0-refresh-all` | Refreshing every video from YouTube (decided 2026-10-18, was planned for 1.7): one run over the whole library, resumable, at the pace of 1.5's refreshes (the pause between videos, the hold after a refusal), from the Tasks page. |
+| — | tag `v1.6.0-alpha.2` | Tried on the VM: a few channels downloaded by TonTuyau, TubeArchivist shut down after the first run. |
+| B9 | `work/1.6.0-version` | Version 1.6.0, the release notes, the upgrade steps (an empty database and a first run from TubeArchivist, the media folder now writable, the settings gone or optional). |
 
 ## Questions to decide (before the PR each one opens)
 
@@ -48,6 +50,5 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 
 ## Not in 1.6 (planned later)
 
-- Refreshing every video, resumable and rate-limited; the TubeArchivist sync becoming a full sync only, at startup and on demand (1.7).
 - TonTuyau's own player: chapters on its bar, and videos fetched a few seconds at a time (it also eases the Cloudflare tunnel's congestion seen in 1.5.0).
 - A "Debug" configuration that logs what's needed to find a slowdown.
