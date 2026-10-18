@@ -44,8 +44,8 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 |---|---|---|
 | C1 | `work/2.0.0-player-mockup` | The mockup of TonTuyau's own player on the watch page (its controls, the chapters on its bar, the keyboard, phones), reviewed live before it's built. |
 | C2 | `work/2.0.0-player` | The player built from the mockup, in place of the browser's own: the chapters on its bar. |
-| C3 | `work/2.0.0-player-fetching` | The video fetched a few seconds ahead at a time, not the whole file as fast as the connection allows: lighter on the Cloudflare tunnel, whose congestion slowed every page in 1.5.0 (how: question 9). |
-| C4 | `work/2.0.0-debug` | A "Debug" configuration that logs what's needed to find a slowdown (how it's switched on, and what it logs: question 10). |
+| C3 | `work/2.0.0-player-fetching` | The video fetched a few seconds ahead at a time, not the whole file as fast as the connection allows: lighter on the Cloudflare tunnel, whose congestion slowed every page in 1.5.0 (an HLS playlist of short parts: question 9). |
+| C4 | `work/2.0.0-debug` | A "Debug" configuration that logs what's needed to find a slowdown (a setting in `.env`, applied at restart; what it logs: question 10). |
 | — | tag `v2.0.0-alpha.3` | Tried on the VM: watching through the tunnel while videos download, Debug on. |
 
 ## Release
@@ -64,5 +64,5 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 6. ~~**B3/B5:** which rule keeps TubeArchivist's sync from deleting what TonTuyau downloaded?~~ TubeArchivist is only a source of missing data: on a later run, TonTuyau takes from it what it doesn't have and ignores the rest, so nothing is deleted because TubeArchivist no longer has it (2026-10-18).
 7. ~~**B3:** when TubeArchivist later downloads a video TonTuyau already has, which file wins?~~ It doesn't arise: TubeArchivist is shut down after TonTuyau's first run at startup. Its settings (`TONTUYAU_TA_URL`, `TONTUYAU_TA_TOKEN`) become optional: without them, TonTuyau runs without TubeArchivist (2026-10-18).
 8. ~~**Carry-over from 1.5.1:** a refresh noticing a stale YouTube cookie: note and go on, or hold?~~ Note and go on, as a refresh already does (2026-10-18).
-9. **C3:** how is the video fetched a few seconds at a time: the player asking for byte ranges of the file as it is (Media Source Extensions: the files stay untouched), or short segments cut from each file (HLS: ffmpeg cuts them, at download or on the fly)?
-10. **C4:** how is "Debug" switched on (a setting in `.env`, or a switch on an admin page, without a restart), and what does it log (the requests slower than a second, as tried in 1.5.0-alpha.7; the database and index queries; yt-dlp's commands)?
+9. ~~**C3:** how is the video fetched a few seconds at a time?~~ An HLS playlist (`.m3u8`) of short parts of the video (2026-10-18). Still to settle when C3 opens: when the parts are cut (at download and import, or on the fly and kept), and where they're kept (the media folder, or a cache beside it); Chrome and Firefox play HLS through a script (hls.js), Safari by itself.
+10. **C4:** ~~how is "Debug" switched on?~~ A setting in `.env`, applied at restart, for now (2026-10-18). Still open: what it logs (the requests slower than a second, as tried in 1.5.0-alpha.7; the database and index queries; yt-dlp's commands)?
