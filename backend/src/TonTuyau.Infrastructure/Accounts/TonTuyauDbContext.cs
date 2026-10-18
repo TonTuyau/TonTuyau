@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TonTuyau.Infrastructure.ApiKeys;
+using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.RunLogs;
 using TonTuyau.Infrastructure.YouTube;
 
@@ -8,9 +10,10 @@ namespace TonTuyau.Infrastructure.Accounts;
 
 /// <summary>
 /// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
-/// runs' logs (1.4), the API keys, the YouTube cookie, the yt-dlp chosen, and TonTuyau's own facts about videos and
-/// channels (1.5: their YouTube state, refreshed metadata, chapters and comments; Elasticsearch is rebuilt with them).
-/// Table and column names are snake_case, as PostgreSQL likes them.
+/// runs' logs (1.4), the API keys, the YouTube cookie, the yt-dlp chosen, TonTuyau's own facts about videos and
+/// channels (1.5: their YouTube state, refreshed metadata, chapters and comments), and the library itself (2.0: its
+/// videos and channels, the source of truth Elasticsearch indexes). Table and column names are snake_case, as
+/// PostgreSQL likes them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
     : DbContext(options), IDataProtectionKeyContext
@@ -34,6 +37,16 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<VideoCommentRow> VideoComments => Set<VideoCommentRow>();
 
     public DbSet<YouTubeSettingsRow> YouTubeSettings => Set<YouTubeSettingsRow>();
+
+    public DbSet<VideoRow> Videos => Set<VideoRow>();
+
+    public DbSet<VideoStateRow> VideoStates => Set<VideoStateRow>();
+
+    public DbSet<CategoryRow> Categories => Set<CategoryRow>();
+
+    public DbSet<ChannelRow> Channels => Set<ChannelRow>();
+
+    public DbSet<ChannelStateRow> ChannelStates => Set<ChannelStateRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -224,5 +237,173 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasForeignKey(c => c.VideoId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<VideoRow>(MapVideos);
+        modelBuilder.Entity<VideoStateRow>(MapVideoStates);
+        modelBuilder.Entity<CategoryRow>(MapCategories);
+        modelBuilder.Entity<ChannelRow>(MapChannels);
+        modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
     }
+
+    private static void MapVideoStates(EntityTypeBuilder<VideoStateRow> state)
+    {
+        state.ToTable("video_states");
+        state.HasKey(s => s.VideoId);
+        state.Property(s => s.VideoId).HasColumnName("video_id");
+        state
+            .Property(s => s.State)
+            .HasColumnName("state")
+            .HasConversion<string>();
+        state.Property(s => s.CheckedAt).HasColumnName("checked_at");
+        state.Property(s => s.Reason).HasColumnName("reason");
+        state.Property(s => s.RefreshedAt).HasColumnName("refreshed_at");
+    }
+
+    private static void MapCategories(EntityTypeBuilder<CategoryRow> category)
+    {
+        category.ToTable("categories");
+        category.Property(c => c.Id).HasColumnName("id");
+        category.Property(c => c.Name).HasColumnName("name");
+        category
+            .HasIndex(c => c.Name)
+            .IsUnique();
+    }
+
+    private static void MapChannelStates(EntityTypeBuilder<ChannelStateRow> state)
+    {
+        state.ToTable("channel_states");
+        state.HasKey(s => s.ChannelId);
+        state.Property(s => s.ChannelId).HasColumnName("channel_id");
+        state
+            .Property(s => s.State)
+            .HasColumnName("state")
+            .HasConversion<string>();
+        state.Property(s => s.CheckedAt).HasColumnName("checked_at");
+        state.Property(s => s.Reason).HasColumnName("reason");
+        state.Property(s => s.RefreshedAt).HasColumnName("refreshed_at");
+    }
+
+    private static void MapVideos(EntityTypeBuilder<VideoRow> video)
+    {
+        video.ToTable("videos");
+        video.Property(v => v.Id).HasColumnName("id");
+        video
+            .Property(v => v.Origin)
+            .HasColumnName("origin")
+            .HasConversion<string>();
+        video.Property(v => v.ChannelId).HasColumnName("channel_id");
+        video.Property(v => v.Title).HasColumnName("title");
+        video.Property(v => v.Description).HasColumnName("description");
+        video
+            .Property(v => v.Type)
+            .HasColumnName("type")
+            .HasConversion<string>();
+        video.Property(v => v.Published).HasColumnName("published");
+        video.Property(v => v.Downloaded).HasColumnName("downloaded");
+        video.Property(v => v.Duration).HasColumnName("duration");
+        video.Property(v => v.MediaSize).HasColumnName("media_size");
+        video.Property(v => v.MediaPath).HasColumnName("media_path");
+        video.Property(v => v.MediaPathCorrected).HasColumnName("media_path_corrected");
+        video.Property(v => v.ThumbnailPath).HasColumnName("thumbnail_path");
+        video.Property(v => v.Tags).HasColumnName("tags");
+        video.Property(v => v.CategoryId).HasColumnName("category_id");
+        // A category stays while a video is in it.
+        video
+            .HasOne(v => v.Category)
+            .WithMany()
+            .HasForeignKey(v => v.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+        video
+            .Navigation(v => v.Category)
+            .AutoInclude();
+        video.Property(v => v.Views).HasColumnName("views");
+        video.Property(v => v.Likes).HasColumnName("likes");
+        video.Property(v => v.Dislikes).HasColumnName("dislikes");
+        video.Property(v => v.CommentCount).HasColumnName("comment_count");
+        video.OwnsMany(
+            v => v.Tracks,
+            track =>
+            {
+                track.ToJson("tracks");
+                track
+                    .Property(t => t.Kind)
+                    .HasJsonPropertyName("kind")
+                    .HasConversion<string>();
+                track.Property(t => t.Codec).HasJsonPropertyName("codec");
+                track.Property(t => t.Bitrate).HasJsonPropertyName("bitrate");
+                track.Property(t => t.Width).HasJsonPropertyName("width");
+                track.Property(t => t.Height).HasJsonPropertyName("height");
+            });
+        video.Property(v => v.MediaMissing).HasColumnName("media_missing");
+        video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
+        // Its state on YouTube: its row of video_states, written and read with it, deleted with it.
+        video
+            .HasOne(v => v.YouTube)
+            .WithOne()
+            .HasForeignKey<VideoStateRow>(s => s.VideoId)
+            .OnDelete(DeleteBehavior.Cascade);
+        video
+            .Navigation(v => v.YouTube)
+            .AutoInclude();
+        video.OwnsMany(
+            v => v.Chapters,
+            chapter =>
+            {
+                chapter.ToJson("chapters");
+                chapter.Property(c => c.Start).HasJsonPropertyName("start");
+                chapter.Property(c => c.End).HasJsonPropertyName("end");
+                chapter.Property(c => c.Title).HasJsonPropertyName("title");
+            });
+        video.Property(v => v.CommentsReadAt).HasColumnName("comments_read_at");
+        // Its channel, always loaded with it (its name, its state): a video's channel is in the library first.
+        video
+            .HasOne(v => v.Channel)
+            .WithMany()
+            .HasForeignKey(v => v.ChannelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        video
+            .Navigation(v => v.Channel)
+            .AutoInclude();
+        // The flagged files, few among many.
+        video
+            .HasIndex(v => v.MediaMissing)
+            .HasFilter("media_missing");
+    }
+
+    private static void MapChannels(EntityTypeBuilder<ChannelRow> channel)
+    {
+        channel.ToTable("channels");
+        channel.Property(c => c.Id).HasColumnName("id");
+        channel
+            .Property(c => c.Origin)
+            .HasColumnName("origin")
+            .HasConversion<string>();
+        channel.Property(c => c.Name).HasColumnName("name");
+        channel.Property(c => c.Description).HasColumnName("description");
+        channel.Property(c => c.Subscribers).HasColumnName("subscribers");
+        channel.Property(c => c.Tags).HasColumnName("tags");
+        channel.Property(c => c.ThumbPath).HasColumnName("thumb_path");
+        channel.Property(c => c.BannerPath).HasColumnName("banner_path");
+        channel.Property(c => c.TvArtPath).HasColumnName("tv_art_path");
+        channel.OwnsOne(c => c.ThumbArt, MapArt<ChannelRow>("thumb_art"));
+        channel.OwnsOne(c => c.BannerArt, MapArt<ChannelRow>("banner_art"));
+        // Its state on YouTube: its row of channel_states, written and read with it, deleted with it.
+        channel
+            .HasOne(c => c.YouTube)
+            .WithOne()
+            .HasForeignKey<ChannelStateRow>(s => s.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
+        channel
+            .Navigation(c => c.YouTube)
+            .AutoInclude();
+    }
+
+    /// <summary>A picture's recorded versions, as a JSON column.</summary>
+    private static Action<OwnedNavigationBuilder<TOwner, ArtVersionsRow>> MapArt<TOwner>(string column)
+        where TOwner : class =>
+        art =>
+        {
+            art.ToJson(column);
+            art.Property(a => a.OriginalWidth).HasJsonPropertyName("original_width");
+            art.Property(a => a.Widths).HasJsonPropertyName("widths");
+        };
 }

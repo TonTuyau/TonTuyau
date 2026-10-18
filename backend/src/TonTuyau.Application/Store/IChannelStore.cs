@@ -1,0 +1,33 @@
+using TonTuyau.Application.Library;
+
+namespace TonTuyau.Application.Store;
+
+/// <summary>
+/// The library's channels in PostgreSQL (2.0, <c>channels</c>). Same rules as <see cref="IVideoStore"/>: what
+/// TubeArchivist brings only adds a channel TonTuyau doesn't have.
+/// </summary>
+public interface IChannelStore
+{
+    /// <summary>
+    /// Adds the channels TonTuyau doesn't have, "not checked" on YouTube; the others are left as they are
+    /// (<see cref="UpsertResult.Unchanged"/>: already there).
+    /// </summary>
+    Task<UpsertResult> AddMissingAsync(IReadOnlyCollection<Channel> channels, CancellationToken cancellationToken);
+
+    Task<Channel?> GetAsync(string id, CancellationToken cancellationToken);
+
+    /// <returns>The channel with its pictures' recorded versions, or null when there's none with this id.</returns>
+    Task<StoredChannel?> GetStoredAsync(string id, CancellationToken cancellationToken);
+
+    Task<long> CountAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Records what the art store holds for these channels' pictures of one kind (thumb or banner). Unknown ids are
+    /// ignored.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Not a channel thumb or banner.</exception>
+    Task SetArtAsync(
+        ArtSubject subject,
+        IReadOnlyDictionary<string, ArtVersions> art,
+        CancellationToken cancellationToken);
+}

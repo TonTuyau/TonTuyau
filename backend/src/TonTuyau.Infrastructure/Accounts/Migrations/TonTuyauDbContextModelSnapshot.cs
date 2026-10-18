@@ -142,6 +142,237 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("api_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.CategoryRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("categories", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BannerPath")
+                        .HasColumnType("text")
+                        .HasColumnName("banner_path");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin");
+
+                    b.Property<long>("Subscribers")
+                        .HasColumnType("bigint")
+                        .HasColumnName("subscribers");
+
+                    b.PrimitiveCollection<List<string>>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<string>("ThumbPath")
+                        .HasColumnType("text")
+                        .HasColumnName("thumb_path");
+
+                    b.Property<string>("TvArtPath")
+                        .HasColumnType("text")
+                        .HasColumnName("tv_art_path");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("channels", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelStateRow", b =>
+                {
+                    b.Property<string>("ChannelId")
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("RefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refreshed_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("ChannelId");
+
+                    b.ToTable("channel_states", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.Property<string>("ChannelId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
+                    b.Property<long?>("CommentCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("comment_count");
+
+                    b.Property<DateTimeOffset?>("CommentsReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("comments_read_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<long>("Dislikes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dislikes");
+
+                    b.Property<DateTimeOffset>("Downloaded")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("downloaded");
+
+                    b.Property<TimeSpan>("Duration")
+                        .HasColumnType("interval")
+                        .HasColumnName("duration");
+
+                    b.Property<long>("Likes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("likes");
+
+                    b.Property<bool>("MediaMissing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("media_missing");
+
+                    b.Property<string>("MediaPath")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_path");
+
+                    b.Property<bool>("MediaPathCorrected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("media_path_corrected");
+
+                    b.Property<long>("MediaSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_size");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin");
+
+                    b.Property<DateTimeOffset>("Published")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published");
+
+                    b.PrimitiveCollection<List<string>>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<string>("ThumbnailPath")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("thumbnail_path");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<long>("Views")
+                        .HasColumnType("bigint")
+                        .HasColumnName("views");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("MediaMissing")
+                        .HasFilter("media_missing");
+
+                    b.ToTable("videos", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoStateRow", b =>
+                {
+                    b.Property<string>("VideoId")
+                        .HasColumnType("text")
+                        .HasColumnName("video_id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("RefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refreshed_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("VideoId");
+
+                    b.ToTable("video_states", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.RunLogs.RunLogRow", b =>
                 {
                     b.Property<long>("Id")
@@ -480,6 +711,189 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("ytdlp_settings", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "BannerArt", b1 =>
+                        {
+                            b1.Property<string>("ChannelRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("ChannelRowId");
+
+                            b1.ToTable("channels");
+
+                            b1
+                                .ToJson("banner_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelRowId");
+                        });
+
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "ThumbArt", b1 =>
+                        {
+                            b1.Property<string>("ChannelRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("ChannelRowId");
+
+                            b1.ToTable("channels");
+
+                            b1
+                                .ToJson("thumb_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ChannelRowId");
+                        });
+
+                    b.Navigation("BannerArt");
+
+                    b.Navigation("ThumbArt");
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelStateRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", null)
+                        .WithOne("YouTube")
+                        .HasForeignKey("TonTuyau.Infrastructure.Library.ChannelStateRow", "ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.CategoryRow", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", "Channel")
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("TonTuyau.Infrastructure.Library.MediaTrackRow", "Tracks", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<long>("Bitrate")
+                                .HasJsonPropertyName("bitrate");
+
+                            b1.Property<string>("Codec")
+                                .IsRequired()
+                                .HasJsonPropertyName("codec");
+
+                            b1.Property<int?>("Height")
+                                .HasJsonPropertyName("height");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasJsonPropertyName("kind");
+
+                            b1.Property<int?>("Width")
+                                .HasJsonPropertyName("width");
+
+                            b1.HasKey("VideoRowId", "__synthesizedOrdinal");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("tracks")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.OwnsMany("TonTuyau.Infrastructure.YouTube.VideoChapterRow", "Chapters", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<double>("End")
+                                .HasJsonPropertyName("end");
+
+                            b1.Property<double>("Start")
+                                .HasJsonPropertyName("start");
+
+                            b1.Property<string>("Title")
+                                .IsRequired()
+                                .HasJsonPropertyName("title");
+
+                            b1.HasKey("VideoRowId", "__synthesizedOrdinal");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("chapters")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.OwnsOne("TonTuyau.Infrastructure.Library.ArtVersionsRow", "ThumbnailArt", b1 =>
+                        {
+                            b1.Property<string>("VideoRowId");
+
+                            b1.Property<int>("OriginalWidth")
+                                .HasJsonPropertyName("original_width");
+
+                            b1.PrimitiveCollection<string>("Widths")
+                                .IsRequired()
+                                .HasJsonPropertyName("widths");
+
+                            b1.HasKey("VideoRowId");
+
+                            b1.ToTable("videos");
+
+                            b1
+                                .ToJson("thumbnail_art")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VideoRowId");
+                        });
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Channel");
+
+                    b.Navigation("Chapters");
+
+                    b.Navigation("ThumbnailArt");
+
+                    b.Navigation("Tracks");
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoStateRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.VideoRow", null)
+                        .WithOne("YouTube")
+                        .HasForeignKey("TonTuyau.Infrastructure.Library.VideoStateRow", "VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
                 {
                     b.HasOne("TonTuyau.Infrastructure.YouTube.YouTubeVideoRow", null)
@@ -527,6 +941,18 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         });
 
                     b.Navigation("Chapters");
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelRow", b =>
+                {
+                    b.Navigation("YouTube")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
+                {
+                    b.Navigation("YouTube")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
