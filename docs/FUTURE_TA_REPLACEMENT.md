@@ -67,6 +67,9 @@ The replacement starts with 1.5 (decided in chat, 2026-10-14):
 - **1.6**: downloads, into the media folder TonTuyau reads (it then needs write access): add a video, add a channel, the YouTube incremental and full syncs, every channel of the library, all three tabs; the extension's "Add this video / channel". A video is downloaded once, whoever (TubeArchivist or TonTuyau) has it first.
 - **1.7**: refreshing every video (resumable, rate-limited); the TubeArchivist sync becomes a full sync only, once at each startup and on demand (no more incremental, no schedule).
 
+**2026-10-18: 1.6 and 1.7 become 2.0.0**, with TonTuyau's own player and a Debug configuration besides: one version
+that replaces TubeArchivist, which becomes a one-time import (no more deletions from it). Its plan: `PLAN_2.0.0.md`.
+
 TonTuyau is meant to be shared: it can't assume which TubeArchivist version someone runs, or that their TubeArchivist stopped downloading.
 
 ### Decided on 2026-10-15: PostgreSQL becomes the library's only source of truth (first step of 1.6)
