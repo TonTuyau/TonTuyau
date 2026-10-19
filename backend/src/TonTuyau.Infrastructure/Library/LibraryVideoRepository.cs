@@ -8,8 +8,8 @@ namespace TonTuyau.Infrastructure.Library;
 
 /// <summary>
 /// The library's videos (2.0): PostgreSQL, the source of truth, then the index's copy written again from it. Writes go
-/// to PostgreSQL first, then whatever changed is indexed; a video's own reads (a channel's videos for its refresh)
-/// read PostgreSQL; lists, search and counts read the index.
+/// to PostgreSQL first, then whatever changed is indexed; a video on its own (its page, its file) and a channel's
+/// videos (for its refresh) read PostgreSQL; lists, search and counts read the index.
 /// </summary>
 internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index) : IVideoRepository
 {
@@ -49,7 +49,7 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
         store.GetAsync(id, cancellationToken);
 
     public Task<StoredVideo?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
-        index.GetStoredAsync(id, cancellationToken);
+        store.GetStoredAsync(id, cancellationToken);
 
     public Task<long> CountAsync(CancellationToken cancellationToken) => store.CountAsync(cancellationToken);
 

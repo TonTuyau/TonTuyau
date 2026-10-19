@@ -6,7 +6,8 @@ namespace TonTuyau.Application.Store;
 /// <summary>
 /// The library's videos (PostgreSQL, <see cref="IVideoStore"/>) with what the index (Elasticsearch) answers: lists,
 /// search, counts, suggestions. A write goes to PostgreSQL first, then the index's copy of what changed is written
-/// again from it (the write alias: during a rebuild, the generation being built); lists read the read alias.
+/// again from it (the write alias: during a rebuild, the generation being built); a video on its own is read from
+/// PostgreSQL, lists from the read alias.
 /// </summary>
 public interface IVideoRepository : IVideoStore
 {
