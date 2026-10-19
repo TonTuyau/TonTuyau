@@ -46,7 +46,7 @@ public sealed class MediaController(MediaService media) : ControllerBase
 public sealed class ArtController(MediaService media) : ControllerBase
 {
     /// <summary>
-    /// A day in the browser's cache, then revalidated with the ETag (a 304 when unchanged): the sync may replace
+    /// A day in the browser's cache, then revalidated with the ETag (a 304 when unchanged): a refresh may replace
     /// an image under the same URL.
     /// </summary>
     public const string CacheControl = "public, max-age=86400";

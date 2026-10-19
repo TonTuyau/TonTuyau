@@ -2071,7 +2071,7 @@ export interface paths {
         }
         header?: never
         path: {
-          /** @description incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos. */
+          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos. */
           task: string
         }
         cookie?: never
@@ -3212,10 +3212,6 @@ export interface components {
       /** Format: int32 */
       mediaMissing: number
       /** Format: int32 */
-      deleted: number
-      /** Format: int32 */
-      kept: number
-      /** Format: int32 */
       foundOnYouTube: number
       /** Format: int32 */
       unlistedOnYouTube: number
@@ -3260,10 +3256,6 @@ export interface components {
       finishedAt: null | string
       error: null | string
       counts: components['schemas']['RunCounts']
-      /** Format: int32 */
-      deletionsPlanned: number
-      deletionsBlocked: boolean
-      appliesTo: null | string
       target: null | string
       /** Format: date-time */
       resumeAt: null | string
@@ -3291,18 +3283,15 @@ export interface components {
       suggestions: components['schemas']['Suggestion'][]
     }
     /** @enum {string} */
-    SyncMode: 'incremental' | 'full' | 'applyDeletions' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
+    SyncMode: 'import' | 'indexRebuild' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold'
     /** @enum {string} */
     SyncTrigger: 'scheduler' | 'cli' | 'startup' | 'admin'
     TaskResponse: {
       task: components['schemas']['SyncMode']
-      schedule: null | string
-      /** Format: date-time */
-      next: null | string
       lastRun: null | components['schemas']['RunResponse']
-      waiting: null | components['schemas']['WaitingDeletions']
+      unavailable: null | string
     }
     TasksResponse: {
       lock: null | components['schemas']['RunLock']
@@ -3402,13 +3391,6 @@ export interface components {
     }
     /** @enum {string} */
     VideoType: 'video' | 'short' | 'stream'
-    WaitingDeletions: {
-      runId: string
-      /** Format: date-time */
-      startedAt: string
-      /** Format: int32 */
-      count: number
-    }
     /** @enum {string} */
     YouTubeCommentsChoice: 'off' | 'top' | 'all'
     YouTubeCookieResponse: {

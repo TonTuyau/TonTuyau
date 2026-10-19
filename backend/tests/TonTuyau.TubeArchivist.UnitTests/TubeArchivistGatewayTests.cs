@@ -4,6 +4,7 @@ using Polly.CircuitBreaker;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.TubeArchivist;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 using TonTuyau.TubeArchivist.UnitTests.Support;
 
 namespace TonTuyau.TubeArchivist.UnitTests;
@@ -222,7 +223,7 @@ public sealed class TubeArchivistGatewayTests
     }
 
     [Fact]
-    public async Task An_inactive_video_is_mapped()
+    public async Task An_inactive_video_is_mapped_not_checked()
     {
         JsonElement expected = FixtureHandler.Get("video-inactive").Json;
         string id = expected.GetProperty("youtube_id").GetString()!;
@@ -230,7 +231,8 @@ public sealed class TubeArchivistGatewayTests
         Video? video = await GatewayFactory.Create(new FixtureHandler()).GetVideoAsync(id, Ct);
 
         Assert.NotNull(video);
-        Assert.False(video.Active);
+        // TubeArchivist's own flag isn't kept (2.0): TonTuyau hasn't checked it yet.
+        Assert.Equal(YouTubeStatus.NotChecked, video.YouTube);
         Assert.Equal(VideoType.Video, video.Type);
         Assert.Equal($"{video.ChannelId}/{id}.mp4", video.MediaPath);
         Assert.Equal(
@@ -268,7 +270,6 @@ public sealed class TubeArchivistGatewayTests
         Channel? channel = await GatewayFactory.Create(new FixtureHandler()).GetChannelAsync(id, Ct);
 
         Assert.NotNull(channel);
-        Assert.Contains(VideoType.Video, channel.Tabs);
         Assert.Equal($"/cache/channels/{id}_thumb.jpg", channel.ThumbPath);
         Assert.Equal($"/cache/channels/{id}_banner.jpg", channel.BannerPath);
     }

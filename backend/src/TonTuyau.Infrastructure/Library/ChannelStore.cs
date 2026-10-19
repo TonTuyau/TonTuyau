@@ -33,8 +33,41 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
     public async Task<StoredChannel?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
         await FindAsync(id, cancellationToken).ConfigureAwait(false) is { } row ? LibraryRows.ToStored(row) : null;
 
+    /// <returns>These channels with their recorded versions, those the library has (to write the index).</returns>
+    public async Task<IReadOnlyList<StoredChannel>> GetStoredAsync(
+        IReadOnlyCollection<string> ids,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        List<StoredChannel> found = [];
+        foreach (string[] batch in Batches(ids))
+        {
+            List<ChannelRow> rows = await WithContextAsync(db => db.Channels
+                .AsNoTracking()
+                .Where(c => batch.Contains(c.Id))
+                .ToListAsync(cancellationToken))
+                .ConfigureAwait(false);
+            found.AddRange(rows.Select(LibraryRows.ToStored));
+        }
+
+        return found;
+    }
+
     public Task<long> CountAsync(CancellationToken cancellationToken) =>
         WithContextAsync(db => db.Channels.LongCountAsync(cancellationToken));
+
+    public async Task<IReadOnlyList<string>> GetIdsAfterAsync(
+        string? after,
+        int count,
+        CancellationToken cancellationToken) =>
+        await WithContextAsync(db => db.Channels
+            .IgnoreAutoIncludes()
+            .Where(c => after == null || c.Id.CompareTo(after) > 0)
+            .OrderBy(c => c.Id)
+            .Select(c => c.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
 
     public async Task SetArtAsync(
         ArtSubject subject,

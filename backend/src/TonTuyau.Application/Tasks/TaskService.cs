@@ -10,20 +10,18 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Application.Tasks;
 
 /// <summary>
-/// The Tasks page's reads (1.4): the three tasks (incremental sync, full sync, applying deletions), the run history,
-/// a run, its log. The run history is in Elasticsearch (<see cref="ITaskRepository"/>, <see cref="ISyncStateStore"/>),
-/// the logs in PostgreSQL (<see cref="IRunLogRepository"/>).
+/// The Tasks page's reads (1.4): its task (2.0: the TubeArchivist import), the run history, a run, its log, all in
+/// PostgreSQL (<see cref="ITaskRepository"/>, <see cref="ISyncStateStore"/>, <see cref="IRunLogRepository"/>).
 /// </summary>
 public sealed class TaskService(
     ITaskRepository runs,
     ISyncStateStore state,
     IRunLogRepository logs,
     SyncRunner runner,
+    SyncService sync,
     YouTubeRefreshService refresh,
-    SyncSchedule schedule,
     IValidator<RunListRequest> runListValidator,
     IValidator<RunLogRequest> runLogValidator,
-    TonTuyauOptions options,
     TimeProvider clock)
 {
     public const int DefaultRunsPerPage = 20;
@@ -43,31 +41,15 @@ public sealed class TaskService(
             .GetLockAsync(cancellationToken)
             .ConfigureAwait(false);
         string? runningHere = runner.RunningId;
-        DateTimeOffset now = clock.GetUtcNow();
-        SyncOptions sync = options.Sync;
-        TaskView incremental = new(
-            SyncMode.Incremental,
-            sync.IncrementalCron,
-            sync.SchedulerEnabled ? schedule.NextOf(SyncMode.Incremental, now) : null,
-            await LatestAsync(SyncMode.Incremental, runningHere, cancellationToken).ConfigureAwait(false),
-            null);
-        TaskView full = new(
-            SyncMode.Full,
-            sync.FullCron,
-            sync.SchedulerEnabled ? schedule.NextOf(SyncMode.Full, now) : null,
-            await LatestAsync(SyncMode.Full, runningHere, cancellationToken).ConfigureAwait(false),
-            null);
-        TaskView deletions = new(
-            SyncMode.ApplyDeletions,
-            null,
-            null,
-            await LatestAsync(SyncMode.ApplyDeletions, runningHere, cancellationToken).ConfigureAwait(false),
-            await WaitingAsync(cancellationToken).ConfigureAwait(false));
+        TaskView import = new(
+            SyncMode.Import,
+            await LatestAsync(SyncMode.Import, runningHere, cancellationToken).ConfigureAwait(false),
+            sync.CanImport ? null : SyncService.NoTubeArchivist);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
-            [incremental, full, deletions],
+            [import],
             [.. onHold.Select(r => new RunView(r, Cancellable: true))]);
     }
 
@@ -98,7 +80,7 @@ public sealed class TaskService(
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
     /// <exception cref="ConflictException">
-    /// A run is going on, no deletion list waits to be applied, or the target isn't one of the library.
+    /// A run is going on, TubeArchivist isn't set up (the import), or the target isn't one of the library.
     /// </exception>
     public async Task<RunView> StartAsync(
         string task,
@@ -106,9 +88,10 @@ public sealed class TaskService(
         string account,
         CancellationToken cancellationToken)
     {
-        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode))
+        // An index rebuild starts from the command line only.
+        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode == SyncMode.IndexRebuild)
         {
-            throw RequestRules.Invalid("task", $"must be one of {ApiValues.Tasks.Choices}.");
+            throw RequestRules.Invalid("task", "must be import, refreshVideo, refreshChannel or refreshChannelVideos.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos;
@@ -122,20 +105,12 @@ public sealed class TaskService(
             throw RequestRules.Invalid("target", "is only for the refreshes.");
         }
 
-        string? appliesTo = null;
-        if (mode == SyncMode.ApplyDeletions)
-        {
-            SyncRun waiting = await WaitingAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new ConflictException("No deletion list waits to be applied.");
-            appliesTo = waiting.Id;
-        }
-
         StartedRun started;
         try
         {
             started = refresh
                 ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
-                : await runner.StartAsync(mode, SyncTrigger.Admin, appliesTo, account).ConfigureAwait(false);
+                : await runner.StartImportAsync(SyncTrigger.Admin, account).ConfigureAwait(false);
         }
         catch (SyncBusyException ex)
         {
@@ -204,7 +179,7 @@ public sealed class TaskService(
 
         throw new ConflictException(
             run.Mode is not (SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
-                ? "Only a refresh on YouTube can be put on hold: a sync can be canceled."
+                ? "Only a refresh on YouTube can be put on hold: the other runs can be canceled."
                 : run.Outcome == SyncOutcome.Running
                 ? "This run goes on in another process (the command line): stop it there."
                 : "This run isn't going on.");
@@ -251,24 +226,6 @@ public sealed class TaskService(
             .ConfigureAwait(false);
         bool settled = run.FinishedAt is not null && clock.GetUtcNow() - run.FinishedAt.Value >= LogSettles;
         return new RunLogView(lines, settled && lines.Count < (request.Size ?? DefaultLogLinesPerPage));
-    }
-
-    /// <returns>
-    /// The latest full run that finished, when it didn't delete because its list was over the limit, and no run has
-    /// applied that list yet. A newer full run (whatever its outcome) makes an older list outdated (see
-    /// <see cref="SyncService.ApplyDeletionsAsync(string, SyncTrigger, CancellationToken)"/>).
-    /// </returns>
-    private async Task<SyncRun?> WaitingAsync(CancellationToken cancellationToken)
-    {
-        SyncRun? latest = await state
-            .GetLatestFullRunAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (latest is null || !latest.DeletionsBlockedByLimit)
-        {
-            return null;
-        }
-
-        return await runs.WasAppliedAsync(latest.Id, cancellationToken).ConfigureAwait(false) ? null : latest;
     }
 
     private async Task<RunView?> LatestAsync(SyncMode mode, string? runningHere, CancellationToken cancellationToken)

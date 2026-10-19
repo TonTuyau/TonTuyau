@@ -1,7 +1,8 @@
 namespace TonTuyau.Application.Configuration;
 
+/// <param name="TubeArchivist">Where to import from (2.0); null without its settings: TonTuyau runs without it.</param>
 public sealed record TonTuyauOptions(
-    TubeArchivistOptions TubeArchivist,
+    TubeArchivistOptions? TubeArchivist,
     ElasticsearchOptions Elasticsearch,
     StorageOptions Storage,
     SyncOptions Sync,
@@ -34,25 +35,12 @@ public sealed record ElasticsearchOptions(
 /// <param name="ArtRoot">TonTuyau's own volume for copied thumbnails and channel art.</param>
 public sealed record StorageOptions(string MediaRoot, string ArtRoot);
 
-/// <param name="LogRoot">Where full runs write their deletion lists (<c>&lt;run&gt;-deletions.jsonl</c>).</param>
-/// <param name="MaxDeletions">Above this many deletions, a full run deletes nothing and waits for <c>apply-deletions</c>.</param>
-/// <param name="IncrementalMarginHours">How far below the watermark an incremental run keeps reading (safety margin).</param>
-/// <param name="SchedulerEnabled">False in tests and for CLI-only use.</param>
 /// <param name="TaResultWindow">TubeArchivist's list window (10,000: its Elasticsearch <c>max_result_window</c>).</param>
-/// <param name="RejectGuardPercent">
-/// Format guard: a run stops when more than this share of the documents read so far is rejected (100 = never).
+/// <param name="ArtResizeParallelism">
+/// How many images the import resizes at once (default: the machine's core count).
 /// </param>
-/// <param name="RejectGuardMinDocuments">Format guard: no judgement before this many documents are read (0 = from the first page).</param>
-/// <param name="ArtResizeParallelism">How many images the sync resizes at once (default: the machine's core count).</param>
+/// <param name="TimeZone">The time zone the dashboard counts its days and weeks in.</param>
 public sealed record SyncOptions(
-    string IncrementalCron,
-    string FullCron,
     string TimeZone,
-    string LogRoot = TonTuyauOptionsReader.DefaultSyncLogRoot,
-    int MaxDeletions = TonTuyauOptionsReader.DefaultMaxDeletions,
-    int IncrementalMarginHours = TonTuyauOptionsReader.DefaultMarginHours,
-    bool SchedulerEnabled = true,
     int TaResultWindow = TonTuyauOptionsReader.DefaultTaResultWindow,
-    int RejectGuardPercent = TonTuyauOptionsReader.DefaultRejectGuardPercent,
-    int RejectGuardMinDocuments = TonTuyauOptionsReader.DefaultRejectGuardMinDocuments,
     int ArtResizeParallelism = 1);

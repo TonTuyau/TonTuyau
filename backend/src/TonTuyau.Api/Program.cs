@@ -6,7 +6,7 @@ using TonTuyau.Api.Hosting;
 using TonTuyau.Application.Sync;
 using TonTuyau.Infrastructure;
 
-// `tontuyau sync …` / `tontuyau index …`: one command, then exit (see CliRunner for the list).
+// `tontuyau import` / `tontuyau index …`: one command, then exit (see CliRunner for the list).
 if (CliRunner.IsCommand(args))
 {
     return await CliHost.RunAsync(args);
@@ -22,9 +22,8 @@ CliSocket.ListenAlso(builder);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
 builder.Services.AddTonTuyau();
 builder.Services.AddSingleton<SyncRunner>();
-builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(sp =>
-    (mode, ct) => sp.GetRequiredService<SyncRunner>().RunAsync(mode, SyncTrigger.Scheduler, ct));
-builder.Services.AddHostedService<SyncScheduler>();
+// TubeArchivist's library imported at startup, when its settings are there (2.0).
+builder.Services.AddHostedService<ImportAtStartup>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddHostedService<YtdlpUpdater>();
 builder.Services.AddHostedService<RefreshResumer>();

@@ -4,13 +4,13 @@ namespace TonTuyau.Application.Sync;
 
 public enum SyncMode
 {
-    Incremental,
-    Full,
-
     /// <summary>
-    /// Applies the deletion list a full run wrote but didn't apply (over the limit): a run of its own, since 1.4.
+    /// The TubeArchivist import (2.0): its whole library walked, what TonTuyau doesn't have added; nothing deleted.
     /// </summary>
-    ApplyDeletions,
+    Import,
+
+    /// <summary>The index written again from PostgreSQL into a new generation (2.0: nothing read from TubeArchivist).</summary>
+    IndexRebuild,
 
     /// <summary>Reads one video on YouTube (1.5): its state, and its metadata when it's there.</summary>
     RefreshVideo,
@@ -24,10 +24,14 @@ public enum SyncMode
 
 public enum SyncTrigger
 {
+    /// <summary>By itself: a refresh resuming once its hold is over (1.5).</summary>
     Scheduler,
     Cli,
 
-    /// <summary>The automatic index rebuild when the backend starts with changed index definitions (QA10 M5-10).</summary>
+    /// <summary>
+    /// When the backend starts: the TubeArchivist import (2.0), or the index rebuild after changed index definitions
+    /// (QA10 M5-10).
+    /// </summary>
     Startup,
 
     /// <summary>From the admin's Tasks page (1.4), by the account <see cref="SyncRun.StartedBy"/>.</summary>
@@ -50,17 +54,7 @@ public enum SyncOutcome
     OnHold,
 }
 
-/// <param name="Watermark">
-/// Highest TubeArchivist <c>date_downloaded</c> (epoch seconds, TA's own clock) that a completed run indexed.
-/// Null until the first completed run.
-/// </param>
-/// <param name="FullRunRequested">Set by an incremental run that couldn't finish its walk (page-100 net).</param>
-public sealed record SyncCheckpoint(long? Watermark, bool FullRunRequested)
-{
-    public static readonly SyncCheckpoint Empty = new(null, false);
-}
-
-/// <summary>Who holds the sync lock, and until when (renewed while the run lives).</summary>
+/// <summary>Who holds the run lock, and until when (renewed while the run lives).</summary>
 public sealed record SyncLockInfo(
     string Owner,
     SyncMode Mode,
@@ -103,10 +97,6 @@ public sealed record SyncCounts
 
     public int MediaMissing { get; init; }
 
-    public int Deleted { get; init; }
-
-    public int KeptStillInTubeArchivist { get; init; }
-
     /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
     public int FoundOnYouTube { get; init; }
 
@@ -126,7 +116,7 @@ public sealed record SyncCounts
     public int CommentsRead { get; init; }
 }
 
-/// <summary>One sync run, as kept in the run history.</summary>
+/// <summary>One run (an import, an index rebuild, a refresh), as kept in the run history.</summary>
 public sealed record SyncRun
 {
     public required string Id { get; init; }
@@ -146,9 +136,6 @@ public sealed record SyncRun
 
     public string? Error { get; init; }
 
-    /// <summary>For an <see cref="SyncMode.ApplyDeletions"/> run: the full run whose deletion list it applied.</summary>
-    public string? AppliesTo { get; init; }
-
     /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
     public string? Target { get; init; }
 
@@ -166,14 +153,7 @@ public sealed record SyncRun
     /// <summary>The first rejected documents (subject: errors), capped to keep the history small.</summary>
     public IReadOnlyList<string> RejectedSamples { get; init; } = [];
 
-    /// <summary>Deletion list file written by a full run (null for incremental runs).</summary>
-    public string? DeletionFile { get; init; }
-
-    public int DeletionsPlanned { get; init; }
-
-    public bool DeletionsBlockedByLimit { get; init; }
-
-    /// <summary>The run rebuilt the indices (asked for, or instead of a sync because the definitions changed).</summary>
+    /// <summary>The run rebuilt the indices (asked for, or before an import because the definitions changed).</summary>
     public bool IndexRebuild { get; init; }
 
     public static string NewId(DateTimeOffset now) =>

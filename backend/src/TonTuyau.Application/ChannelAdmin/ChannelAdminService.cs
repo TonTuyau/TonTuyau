@@ -38,7 +38,7 @@ public sealed class ChannelAdminService(IChannelRepository channels, IVideoRepos
             .ConfigureAwait(false);
         return new ChannelAdminView(
             card[0],
-            channel.CurrentYouTube,
+            channel.YouTube,
             Enum.GetValues<YouTubeState>().ToDictionary(s => s, s => counted.GetValueOrDefault(s)));
     }
 
@@ -83,7 +83,7 @@ public sealed class ChannelAdminService(IChannelRepository channels, IVideoRepos
                     listed.Items,
                     (card, item) => new AdminVideoView(
                         card,
-                        item.YouTube ?? YouTubeStatus.FromTubeArchivist(item.Active))),
+                        item.YouTube ?? YouTubeStatus.NotChecked)),
             ],
             shown.NextCursor,
             shown.Total);

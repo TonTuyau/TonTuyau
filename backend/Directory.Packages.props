@@ -4,7 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Runtime -->
-    <PackageVersion Include="Cronos" Version="0.13.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="9.5.3" />
     <!-- Accounts (1.2): PostgreSQL through EF Core; Argon2id password hashes (MIT), as OWASP recommends. -->
     <PackageVersion Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />

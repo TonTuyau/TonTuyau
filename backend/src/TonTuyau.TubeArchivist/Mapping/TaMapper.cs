@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 using TonTuyau.TubeArchivist.Dtos;
 using TonTuyau.TubeArchivist.Validation;
 
@@ -13,7 +14,6 @@ internal static class TaMapper
         DateTimeOffset published = TaFormats.TryParseDate(dto.Published, out DateTimeOffset p)
             ? p
             : throw new InvalidOperationException("Unvalidated video DTO.");
-        DateTimeOffset? refreshed = TaFormats.TryParseDate(dto.VidLastRefresh, out DateTimeOffset r) ? r : null;
         Match media = TaFormats.MediaUrl().Match(dto.MediaUrl!);
         string channelId = dto.Channel!.ChannelId!;
 
@@ -24,10 +24,8 @@ internal static class TaMapper
             Title: dto.Title!,
             Description: dto.Description ?? "",
             Type: TaFormats.VideoTypes[dto.VidType!],
-            Active: dto.Active!.Value,
             Published: published,
             Downloaded: DateTimeOffset.FromUnixTimeSeconds(dto.DateDownloaded!.Value),
-            LastRefreshed: refreshed,
             Duration: TimeSpan.FromSeconds(dto.Player!.Duration!.Value),
             MediaSize: dto.MediaSize!.Value,
             // R4-2: TA sometimes keeps a stale folder in media_url; the file lives under the video's own channel.
@@ -36,7 +34,6 @@ internal static class TaMapper
             ThumbnailPath: dto.VidThumbUrl!,
             Tags: Clean(dto.Tags),
             Categories: Clean(dto.Category),
-            PlaylistIds: Clean(dto.Playlist),
             Stats: new VideoStats(dto.Stats?.ViewCount ?? 0, dto.Stats?.LikeCount ?? 0, dto.Stats?.DislikeCount ?? 0),
             Tracks: dto.Streams!
                 .Where(s => s is { Type: "video" or "audio" })
@@ -46,29 +43,22 @@ internal static class TaMapper
                     s.Bitrate ?? 0,
                     s.Width,
                     s.Height))
-                .ToArray());
+                .ToArray(),
+            // What TonTuyau knows of it on YouTube: nothing yet (TubeArchivist's own flag isn't kept, 2.0).
+            YouTube: YouTubeStatus.NotChecked);
     }
 
-    public static Channel ToChannel(ChannelDto dto)
-    {
-        DateTimeOffset? refreshed = TaFormats.TryParseDate(dto.ChannelLastRefresh, out DateTimeOffset r) ? r : null;
-
-        return new Channel(
+    public static Channel ToChannel(ChannelDto dto) =>
+        new(
             Id: dto.ChannelId!,
             Name: dto.ChannelName!,
             Description: dto.ChannelDescription ?? "",
             Subscribers: dto.ChannelSubs ?? 0,
-            Active: dto.ChannelActive!.Value,
-            LastRefreshed: refreshed,
             Tags: Clean(dto.ChannelTags),
-            Tabs: Clean(dto.ChannelTabs)
-                .Where(TaFormats.VideoTypes.ContainsKey)
-                .Select(t => TaFormats.VideoTypes[t])
-                .ToArray(),
             ThumbPath: NullIfEmpty(dto.ChannelThumbUrl),
             BannerPath: NullIfEmpty(dto.ChannelBannerUrl),
-            TvArtPath: NullIfEmpty(dto.ChannelTvartUrl));
-    }
+            TvArtPath: NullIfEmpty(dto.ChannelTvartUrl),
+            YouTube: YouTubeStatus.NotChecked);
 
     private static string[] Clean(List<string?>? values) =>
         values is null

@@ -26,7 +26,7 @@ public sealed record VideoCardView(
     ChannelRefView Channel);
 
 /// <param name="MimeType">What the front asks the browser about (see <see cref="Media.MediaTypes.PlaybackType"/>).</param>
-/// <param name="MediaAvailable">False when the full sync found the file missing on the share.</param>
+/// <param name="MediaAvailable">False when the import found the file missing on the share.</param>
 public sealed record VideoDetailView(
     VideoCardView Card,
     string Description,

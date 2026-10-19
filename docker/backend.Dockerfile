@@ -45,7 +45,7 @@ RUN curl --fail --silent --show-error --location --output yt-dlp \
 # The data folders, owned by the image's non-root user (app, uid 1654): made here, since the final image has no shell.
 # Volumes mounted there start with this ownership. The media share is mounted read-only at /youtube.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS folders
-RUN mkdir -p /out/data/art /out/data/logs/sync /out/data/tools /out/youtube
+RUN mkdir -p /out/data/art /out/data/tools /out/youtube
 
 # Ubuntu "chiseled" (1.5.1): only what .NET needs (glibc, libstdc++, OpenSSL, ICU, time zones), no shell, no package
 # manager, non-root. Deno needs nothing more (glibc, libgcc); yt-dlp also zlib (below). CI runs both in the image.
@@ -64,13 +64,12 @@ COPY --from=build /app /app
 COPY --from=tools --chmod=755 /tools/yt-dlp /tools/deno /usr/local/bin/
 # yt-dlp's packed Python opens zlib, which the chiseled image doesn't carry: the same Ubuntu 24.04 library, alone.
 COPY --from=tools /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-# `tontuyau` on the PATH: `docker exec tontuyau-backend tontuyau sync status`. Deno's cache in /tmp: the app user's home
+# `tontuyau` on the PATH: `docker exec tontuyau-backend tontuyau status`. Deno's cache in /tmp: the app user's home
 # (/app) isn't writable.
 ENV PATH="/app:${PATH}" \
     ASPNETCORE_HTTP_PORTS=8080 \
     TONTUYAU_MEDIA_ROOT=/youtube \
     TONTUYAU_ART_ROOT=/data/art \
-    TONTUYAU_SYNC_LOG_ROOT=/data/logs/sync \
     TONTUYAU_TOOLS_ROOT=/data/tools \
     DENO_DIR=/tmp/deno
 USER 1654

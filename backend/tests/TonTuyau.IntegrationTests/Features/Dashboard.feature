@@ -10,13 +10,13 @@ Feature: The admin dashboard
       | arte     | ARTE      |
       | zeste    | Zeste     |
     And the videos:
-      | key     | channel  | type   | duration | active | youtube     |
-      | huiles  | tomcooks | video  | 1800     | true   |             |
-      | poulet  | tomcooks | video  | 600      | false  | gone        |
-      | morteau | tomcooks | short  | 60       | false  | retry later |
-      | usa     | arte     | video  | 3600     | false  | gone        |
-      | astuce  | arte     | short  | 40       | true   | gone        |
-      | debat   | arte     | stream | 3900     | false  |             |
+      | key     | channel  | type   | duration | youtube     |
+      | huiles  | tomcooks | video  | 1800     |             |
+      | poulet  | tomcooks | video  | 600      | gone        |
+      | morteau | tomcooks | short  | 60       | retry later |
+      | usa     | arte     | video  | 3600     | gone        |
+      | astuce  | arte     | short  | 40       | gone        |
+      | debat   | arte     | stream | 3900     |             |
 
   Scenario: Nobody logged in gets a 401, not the dashboard
     When I request "/api/admin/dashboard"
@@ -42,12 +42,12 @@ Feature: The admin dashboard
       | stream | 1     | 3900    | 0.39  | 3900           |
 
   Scenario: Every channel, biggest first, with its picture
-    Given the sync recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "88, 176"
+    Given the import recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "88, 176"
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then the dashboard's channels are:
       | name      | videos | shorts | streams | gone | retryLater | notChecked | total |
-      | ARTE      | 1      | 1      | 1       | 2    | 1          | 0          | 3     |
+      | ARTE      | 1      | 1      | 1       | 2    | 0          | 1          | 3     |
       | Tom Cooks | 2      | 1      | 0       | 1    | 1          | 1          | 3     |
       | Zeste     | 0      | 0      | 0       | 0    | 0          | 0          | 0     |
     And "channels[1].id" is "{channel:tomcooks}"
@@ -55,19 +55,19 @@ Feature: The admin dashboard
     And "channels[1].thumbnails" lists the widths "88, 176, 900"
     And "channels[2].thumbnailUrl" is null
 
-  Scenario: The last sync is when the latest successful sync finished, whether it brought videos or not
-    Given the sync runs:
+  Scenario: The last import is when the latest successful import finished, whether it brought videos or not
+    Given the TubeArchivist imports:
       | started              | outcome   | new | videos | shorts | streams | rebuild |
       | 2026-09-01T07:00:00Z | succeeded | 40  |        |        |         | false   |
       | 2026-09-05T07:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
       | 2026-09-06T07:00:00Z | failed    | 3   | 2      | 1      | 0       | false   |
       | 2026-09-07T07:00:00Z | running   | 2   | 2      | 0      | 0       | false   |
-    And a run applied a deletion list at "2026-09-08T07:00:00Z"
+    And a refresh ran at "2026-09-08T07:00:00Z"
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then "lastSync" is "2026-09-05T07:10:00Z"
 
-  Scenario: Without any run, no last sync
+  Scenario: Without any run, no last import
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
     Then "lastSync" is null

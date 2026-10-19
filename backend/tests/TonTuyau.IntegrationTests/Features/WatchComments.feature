@@ -8,7 +8,7 @@ Feature: A video's comments and chapters, for its watch page
   Background:
     Given TubeArchivist has the channel "alpha" with 2 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
     And I logged in as the admin
     And reading comments is on
 

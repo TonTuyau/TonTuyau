@@ -1,5 +1,5 @@
-// The mock library: what a synced TonTuyau would hold. Fixtures are committed JSON (synthetic, anonymised),
-// edited by hand or regenerated with `pnpm run mock:fixtures`. Shapes come from the contract's types.
+// The mock library: what a TonTuyau with its library imported would hold. Fixtures are committed JSON (synthetic,
+// anonymised), edited by hand or regenerated with `pnpm run mock:fixtures`. Shapes come from the contract's types.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'

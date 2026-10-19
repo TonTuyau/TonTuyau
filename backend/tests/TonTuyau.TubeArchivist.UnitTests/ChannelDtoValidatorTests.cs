@@ -15,9 +15,7 @@ public sealed class ChannelDtoValidatorTests
         IdMissing,
         IdBad,
         NameBlank,
-        ActiveMissing,
         SubsNegative,
-        RefreshBad,
         ThumbTraversal,
         ThumbWrongKind,
         BannerOtherChannel,
@@ -40,6 +38,15 @@ public sealed class ChannelDtoValidatorTests
         Assert.True(all.Length > 100);
     }
 
+    /// <summary>TubeArchivist's own flag and refresh date aren't kept (2.0): a document without them is valid.</summary>
+    [Fact]
+    public void Its_active_flag_and_refresh_date_are_not_needed()
+    {
+        ChannelDto c = ValidChannel() with { ChannelActive = null, ChannelLastRefresh = "never" };
+
+        _validator.Validate(c);
+    }
+
     [Theory, CombinatorialData]
     public void Each_broken_field_is_reported_by_name(Broken broken)
     {
@@ -50,9 +57,7 @@ public sealed class ChannelDtoValidatorTests
             Broken.IdMissing => (c with { ChannelId = null }, "channel_id"),
             Broken.IdBad => (c with { ChannelId = "XX" + id[2..] }, "channel_id"),
             Broken.NameBlank => (c with { ChannelName = "" }, "channel_name"),
-            Broken.ActiveMissing => (c with { ChannelActive = null }, "channel_active"),
             Broken.SubsNegative => (c with { ChannelSubs = -5 }, "channel_subs"),
-            Broken.RefreshBad => (c with { ChannelLastRefresh = "never" }, "channel_last_refresh"),
             Broken.ThumbTraversal => (
                 c with
                 {

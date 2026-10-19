@@ -1,12 +1,12 @@
 <script lang="ts">
-  // A task of the Tasks page (1.4): what it does, its command, when it runs next, how it last ran, and its buttons.
-  // `now` (a clock ticking every second) keeps a running run's duration going up, without asking the API.
-  // Run now starts the incremental sync at once; the full sync (an hour) and applying deletions ask first. One run at a
-  // time: while one holds the lock, the buttons wait; this task's run, going on in this backend, can be canceled
-  // (asked first too). The page does the requests (onstart, oncancel).
+  // A task of the Tasks page (1.4; 2.0: the TubeArchivist import): what it does, its command, when it runs, how it
+  // last ran, and its buttons. `now` (a clock ticking every second) keeps a running run's duration going up, without
+  // asking the API. Run now asks first (an import can take an hour); without TubeArchivist's settings it can't start,
+  // and says why. One run at a time: while one holds the lock, the button waits; this task's run, going on in this
+  // backend, can be canceled (asked first too). The page does the requests (onstart, oncancel).
   import type { RunTask, TaskInfo, Tasks } from '../lib/api/types'
-  import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
-  import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
+  import { formatAge, formatRunTime } from '../lib/format'
+  import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
   import { runSeconds, taskCommands } from '../lib/runs'
   import Button from './Button.svelte'
@@ -46,11 +46,7 @@
   }
 
   function start() {
-    if (info.task === 'incremental') {
-      void act(() => onstart(info.task))
-    } else {
-      asking = 'start'
-    }
+    asking = 'start'
   }
 
   const last = $derived(info.lastRun)
@@ -67,23 +63,7 @@
     <div>
       <dt>{t('task.when')}</dt>
       <dd>
-        {#if info.task === 'applyDeletions'}
-          {#if info.waiting}
-            <b>{tp('task.waiting', info.waiting.count)}</b>
-            <small>
-              <a href={href.adminRun(info.waiting.runId)}>
-                {t('task.waitingFrom', { date: formatDateTime(info.waiting.startedAt, i18n.lang) })}
-              </a>
-            </small>
-          {:else}
-            <small>{t('task.afterFull')} · {t('task.nothingWaiting')}</small>
-          {/if}
-        {:else}
-          <code>{info.schedule}</code>
-          <small>
-            {info.next ? t('task.next', { date: formatDateTime(info.next, i18n.lang) }) : t('task.notScheduled')}
-          </small>
-        {/if}
+        <small>{info.unavailable ?? t('task.atStartup')}</small>
       </dd>
     </div>
     <div>
@@ -128,33 +108,21 @@
       <small>{t('task.elsewhere')}</small>
     {:else if asking === 'start'}
       <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
-        <p>
-          {info.task === 'full' ? t('task.confirmFull') : tp('task.confirmApply', info.waiting?.count ?? 0)}
-        </p>
+        <p>{t('task.confirmImport')}</p>
         <div>
           <Button
             variant="filled"
             disabled={pending || lock !== null}
             onclick={() => void act(() => onstart(info.task))}
           >
-            {info.task === 'full' ? t('task.startFull') : tp('task.apply', info.waiting?.count ?? 0)}
+            {t('task.startImport')}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
         </div>
       </div>
     {:else}
-      <Button
-        variant="filled"
-        disabled={pending || lock !== null || (info.task === 'applyDeletions' && !info.waiting)}
-        onclick={start}
-      >
-        {#if info.task !== 'applyDeletions'}
-          {t('task.runNow')}
-        {:else if info.waiting}
-          {tp('task.apply', info.waiting.count)}
-        {:else}
-          {t('task.nothingToApply')}
-        {/if}
+      <Button variant="filled" disabled={pending || lock !== null || info.unavailable !== null} onclick={start}>
+        {t('task.runNow')}
       </Button>
       {#if lock}
         <small>{t('task.oneAtATime', { task: t(`task.${lock.task}`) })}</small>
@@ -224,10 +192,6 @@
   small {
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);
-  }
-
-  small a {
-    color: var(--color-link);
   }
 
   .state {

@@ -31,27 +31,27 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         Assert.Equal(timing, state.Backend.Services.GetRequiredService<SyncLockSettings>());
     }
 
-    [Given("a sync holds the lock")]
+    [Given("a run holds the lock")]
     public async Task ASyncHoldsTheLock()
     {
-        _first = await Store.TryAcquireLockAsync(SyncMode.Full, SyncTrigger.Scheduler, CancellationToken.None);
+        _first = await Store.TryAcquireLockAsync(SyncMode.Import, SyncTrigger.Cli, CancellationToken.None);
         Assert.NotNull(_first);
     }
 
-    [Given("a sync crashed while holding the lock, and its lease expired a minute ago")]
+    [Given("a run crashed while holding the lock, and its lease expired a minute ago")]
     public Task CrashedExpired() => WriteLockAsync(DateTimeOffset.UtcNow.AddMinutes(-1));
 
-    [Given("a sync crashed while holding the lock, and its lease runs for another {int} minutes")]
+    [Given("a run crashed while holding the lock, and its lease runs for another {int} minutes")]
     public Task CrashedRunning(int minutes) => WriteLockAsync(DateTimeOffset.UtcNow.AddMinutes(minutes));
 
-    [When("another sync tries to take the lock")]
+    [When("another run tries to take the lock")]
     public async Task AnotherSyncTries()
     {
-        _second = await Store.TryAcquireLockAsync(SyncMode.Incremental, SyncTrigger.Cli, CancellationToken.None);
+        _second = await Store.TryAcquireLockAsync(SyncMode.Import, SyncTrigger.Cli, CancellationToken.None);
         _tried = true;
     }
 
-    [When("the first sync releases the lock")]
+    [When("the first run releases the lock")]
     public async Task FirstReleases()
     {
         await _first!.DisposeAsync();
@@ -78,7 +78,7 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         Assert.Null(_second);
     }
 
-    [Then("the lock still belongs to the first sync")]
+    [Then("the lock still belongs to the first run")]
     public async Task StillFirst()
     {
         SyncLockInfo? holder = await Store.GetLockAsync(CancellationToken.None);
@@ -87,14 +87,14 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         Assert.False(_first.Lost.IsCancellationRequested);
     }
 
-    [Then("another sync still can't take the lock")]
+    [Then("another run still can't take the lock")]
     public async Task StillCannot()
     {
         await AnotherSyncTries();
         DoesNotGetIt();
     }
 
-    [Then("the first sync is told within {int} seconds that it lost the lock")]
+    [Then("the first run is told within {int} seconds that it lost the lock")]
     public async Task ToldLost(int seconds)
     {
         DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
@@ -106,14 +106,6 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         Assert.True(_first.Lost.IsCancellationRequested);
     }
 
-    [When("the checkpoint is saved with watermark {long} and a full run requested")]
-    public Task SaveCheckpoint(long watermark) =>
-        Store.SaveCheckpointAsync(new SyncCheckpoint(watermark, true), CancellationToken.None);
-
-    [Then("the checkpoint has watermark {long} and a full run requested")]
-    public async Task CheckpointIs(long watermark) =>
-        Assert.Equal(new SyncCheckpoint(watermark, true), await Store.GetCheckpointAsync(CancellationToken.None));
-
     [When("these runs are saved:")]
     public async Task SaveRuns(DataTable table)
     {
@@ -123,7 +115,7 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
             {
                 Id = row["id"],
                 Mode = Enum.Parse<SyncMode>(row["mode"], ignoreCase: true),
-                Trigger = SyncTrigger.Scheduler,
+                Trigger = SyncTrigger.Cli,
                 StartedAt = DateTimeOffset.UtcNow.AddMinutes(
                     -int.Parse(row["started minutes ago"], System.Globalization.CultureInfo.InvariantCulture)),
                 Outcome = Enum.Parse<SyncOutcome>(row["outcome"], ignoreCase: true),
@@ -138,10 +130,6 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(10, CancellationToken.None);
         Assert.Equal(ids, string.Join(", ", runs.Select(r => r.Id)));
     }
-
-    [Then("the latest finished full run is {string}")]
-    public async Task LatestFull(string id) =>
-        Assert.Equal(id, (await Store.GetLatestFullRunAsync(CancellationToken.None))?.Id);
 
     [When("the art {string} is pending")]
     public Task ArtPending(string paths) =>
@@ -177,8 +165,8 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
         {
             ["kind"] = "lock",
             ["owner"] = "crashed-host/4242/deadbeef",
-            ["mode"] = "full",
-            ["trigger"] = "scheduler",
+            ["mode"] = "import",
+            ["trigger"] = "cli",
             ["acquired_at"] = leaseUntil.AddMinutes(-10).ToString("O"),
             ["lease_until"] = leaseUntil.ToString("O"),
         };

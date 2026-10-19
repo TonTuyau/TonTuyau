@@ -9,7 +9,7 @@ namespace TonTuyau.Application.UnitTests.Dashboard;
 
 /// <summary>
 /// The import history's bars, through <see cref="DashboardService.GetImportsAsync"/>: the runs the store is asked
-/// for, and how they are added up. The sync's time zone is Europe/Paris (UTC+2 in summer, +1 from 25 Oct 2026).
+/// for, and how they are added up. TONTUYAU_TZ is Europe/Paris (UTC+2 in summer, +1 from 25 Oct 2026).
 /// </summary>
 public sealed class ImportHistoryTests
 {
@@ -77,18 +77,18 @@ public sealed class ImportHistoryTests
     }
 
     [Fact]
-    public async Task Only_finished_runs_count_and_never_an_index_rebuild()
+    public async Task Only_finished_imports_count_one_that_rebuilt_the_indices_first_too()
     {
         _store.Runs =
         [
             Run("2026-10-12T05:00:00Z", 2, new TypeCounts(2, 0, 0), finished: false),
-            Run("2026-10-12T06:00:00Z", 45_000, new TypeCounts(45_000, 0, 0), rebuild: true),
+            Run("2026-10-12T06:00:00Z", 5, new TypeCounts(5, 0, 0), rebuild: true),
             Run("2026-10-12T07:00:00Z", 3, new TypeCounts(1, 1, 1), outcome: SyncOutcome.Failed),
         ];
 
         ImportHistoryView history = await ImportsAsync("week");
 
-        Assert.Equal(3, history.Total);
+        Assert.Equal(8, history.Total);
     }
 
     [Fact]
@@ -232,8 +232,8 @@ public sealed class ImportHistoryTests
         return new SyncRun
         {
             Id = SyncRun.NewId(start),
-            Mode = SyncMode.Incremental,
-            Trigger = SyncTrigger.Scheduler,
+            Mode = SyncMode.Import,
+            Trigger = SyncTrigger.Startup,
             StartedAt = start,
             FinishedAt = finished ? start.AddMinutes(5) : null,
             Outcome = finished ? outcome : SyncOutcome.Running,

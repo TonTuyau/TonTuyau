@@ -1,6 +1,6 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
-  // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
+  // goes on), its result counts, its notes and error, and its log (RunLogView). While it goes on,
   // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend; a refresh can
   // also be put on hold by hand (1.5, asked first). A refresh on hold is asked again every 30 s, with Resume now and
   // Cancel it. A 404: no such run. A 401: the session ended,
@@ -113,12 +113,8 @@
   /** Its counts, as the run's kind has them. */
   function counts(r: Run): [TextKey, number][] {
     const c = r.counts
-    if (r.task === 'applyDeletions') {
-      return [
-        ['run.count.planned', r.deletionsPlanned],
-        ['run.count.deleted', c.deleted],
-        ['run.count.kept', c.kept],
-      ]
+    if (r.task === 'indexRebuild') {
+      return []
     }
     if (isRefresh(r)) {
       return [
@@ -134,20 +130,15 @@
         ['run.count.updated', c.updated],
       ]
     }
-    const out: [TextKey, number][] = [
+    return [
       ['run.count.videosRead', c.videosRead],
       ['run.count.created', c.created],
-      ['run.count.updated', c.updated],
       ['run.count.unchanged', c.unchanged],
       ['run.count.rejected', c.rejected],
       ['run.count.artCopied', c.artCopied],
       ['run.count.artResized', c.artResized],
+      ['run.count.mediaMissing', c.mediaMissing],
     ]
-    if (r.task === 'full') {
-      out.push(['run.count.mediaMissing', c.mediaMissing])
-      out.push(r.deletionsBlocked ? ['run.count.waiting', r.deletionsPlanned] : ['run.count.deleted', c.deleted])
-    }
-    return out
   }
 </script>
 
@@ -238,9 +229,6 @@
 
     <section class="card" aria-labelledby="result-title">
       <h2 id="result-title">{running ? t('run.soFar') : t('run.result')}</h2>
-      {#if run.appliesTo}
-        <p>{t('run.appliesTo')} <a href={href.adminRun(run.appliesTo)}><code>{run.appliesTo}</code></a></p>
-      {/if}
       {#if run.target}
         <p>
           {t('run.target')}

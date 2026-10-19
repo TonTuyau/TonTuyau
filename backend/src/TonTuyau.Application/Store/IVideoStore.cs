@@ -24,6 +24,11 @@ public interface IVideoStore
 
     Task<long> CountAsync(CancellationToken cancellationToken);
 
+    /// <returns>Every video of these channels the library has.</returns>
+    Task<IReadOnlyList<VideoSummary>> FindByChannelsAsync(
+        IReadOnlyCollection<string> channelIds,
+        CancellationToken cancellationToken);
+
     /// <summary>Sets or clears the "file missing on the share" flag. Unknown ids are ignored.</summary>
     Task SetMediaMissingAsync(IReadOnlyCollection<string> ids, bool missing, CancellationToken cancellationToken);
 
@@ -32,4 +37,9 @@ public interface IVideoStore
     /// ignored.
     /// </summary>
     Task SetThumbnailArtAsync(IReadOnlyDictionary<string, ArtVersions> art, CancellationToken cancellationToken);
+
+    /// <summary>The library's video ids in order, a page at a time (an index rebuild walks them all).</summary>
+    /// <param name="after">The previous page's last id; null for the first page.</param>
+    /// <returns>At most <paramref name="count"/> ids; fewer at the end, none past it.</returns>
+    Task<IReadOnlyList<string>> GetIdsAfterAsync(string? after, int count, CancellationToken cancellationToken);
 }

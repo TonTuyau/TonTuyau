@@ -11,12 +11,12 @@ namespace TonTuyau.Api.Cli;
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
 /// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 3 another
-/// sync is running, 4 refused, 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down).
+/// run is going on, 4 refused, 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down).
 /// <para>
 /// Since 1.4 the commands that run something ask the backend to (<see cref="BackendClient"/>, through its Unix socket):
 /// the run is in the backend's log and on the Tasks page. They print its log as it comes (its start, progress lines,
 /// warnings, errors, end), then the report. Ctrl-C cancels the run; a second Ctrl-C leaves without waiting for it.
-/// <c>sync status</c> reads Elasticsearch itself.
+/// <c>status</c> reads PostgreSQL and Elasticsearch itself.
 /// </para>
 /// </summary>
 internal sealed class CliRunner(IServiceProvider services, TextWriter output, BackendClient backend)
@@ -34,11 +34,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     public const string Help = """
         Usage: tontuyau <command>
 
-          sync incremental            read TubeArchivist's newest downloads now
-          sync full                   walk the whole library now (refresh + checked deletions)
-          sync status                 watermark, lock, pending art, indices, recent runs
-          sync apply-deletions <run>  delete a blocked full run's list (each item confirmed with TubeArchivist)
-          index rebuild               re-import everything into a new index generation, then switch to it
+          import                      import TubeArchivist's library now: what TonTuyau doesn't have is added
+          status                      lock, pending art, indices, recent runs
+          index rebuild               write the library into a new index generation, then switch to it
           youtube video <id>          read a video of the library on YouTube (its state, its metadata)
           youtube channel <id>        read a channel of the library on YouTube
           youtube channel-videos <id> read a channel, then each of its videos in the library, on YouTube
@@ -47,7 +45,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         """;
 
     private static readonly string[] Verbs =
-        ["sync", "index", "youtube", "health", "help", "--help", "-h", "--version", "version"];
+        ["import", "status", "index", "youtube", "health", "help", "--help", "-h", "--version", "version"];
 
     /// <summary>What <c>tontuyau --version</c> prints.</summary>
     public static string VersionLine => "TonTuyau " + AppVersion.Value;
@@ -62,8 +60,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     /// <summary><c>tontuyau health</c> (1.5.1): asks the backend here, without configuration (<see cref="HealthCheck"/>).</summary>
     public static bool IsHealth(string[] args) => args is ["health"];
 
-    /// <summary>The command that reads Elasticsearch itself (the others go through the backend).</summary>
-    public static bool NeedsStore(string[] args) => args is ["sync", "status"];
+    /// <summary>The command that reads the stores itself (the others go through the backend).</summary>
+    public static bool NeedsStore(string[] args) => args is ["status"];
 
     public async Task<int> RunAsync(string[] args, CancellationToken cancellationToken)
     {
@@ -72,12 +70,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         {
             return args switch
             {
-                ["sync", "incremental"] => ReportSync(await FollowAsync("cli/sync/incremental", cancellationToken)),
-                ["sync", "full"] => ReportSync(await FollowAsync("cli/sync/full", cancellationToken)),
-                ["sync", "status"] => Status(await Sync.GetStatusAsync(cancellationToken)),
-                ["sync", "apply-deletions", string run] => LibraryPaths.IsRunId(run)
-                    ? Report(await FollowAsync($"cli/sync/apply-deletions/{run}", cancellationToken))
-                    : Write($"Refused: '{run}' isn't a run id (expected run-YYYYMMDDTHHMMSSZ-xxxxxx).", Refused),
+                ["import"] => ReportImport(await FollowAsync("cli/import", cancellationToken)),
+                ["status"] => Status(await Sync.GetStatusAsync(cancellationToken)),
                 ["index", "rebuild"] => Report(await FollowAsync("cli/index/rebuild", cancellationToken)),
                 ["youtube", "video", string id] => LibraryIds.IsVideoId(id)
                     ? Report(await FollowAsync($"cli/youtube/video/{id}", cancellationToken))
@@ -159,14 +153,14 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         return code;
     }
 
-    /// <summary>A sync's report, saying first when it rebuilt the indices instead (QA10 M5-10).</summary>
-    private int ReportSync(SyncRun run)
+    /// <summary>An import's report, saying first when it rebuilt the indices before (QA10 M5-10).</summary>
+    private int ReportImport(SyncRun run)
     {
         if (run.IndexRebuild)
         {
             WriteLines("""
                 Index rebuild pending (the index definitions changed):
-                this run rebuilt the indices instead of the sync asked for.
+                this run rebuilt the indices first, then imported.
                 """);
         }
 
@@ -186,11 +180,6 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
 
     private int Status(SyncStatus status)
     {
-        string watermark = status.Checkpoint.Watermark is not null
-            ? When(DateTimeOffset.FromUnixTimeSeconds(status.Checkpoint.Watermark.Value))
-            : "none (next run is a full one)";
-        output.WriteLine(
-            $"Watermark      : {watermark}{(status.Checkpoint.FullRunRequested ? " — full run requested" : "")}");
         WriteLines(status.Lock is { } l
             ? $"""
                 Lock           : held by {l.Owner} ({Name(l.Mode)}, {l.Trigger}) since {When(l.AcquiredAt)}
@@ -202,7 +191,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         {
             WriteLines("""
                 Index rebuild  : pending (the index definitions changed)
-                                 automatic at startup when the scheduler is on, else at the next sync,
+                                 automatic at startup, else at the next import,
                                  or now with `tontuyau index rebuild`
                 """);
         }
@@ -241,19 +230,17 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                       comments  {c.CommentsRead} read
                       store     changed {c.Updated}, unchanged {c.Unchanged}
                     """
-                : run.Mode == SyncMode.ApplyDeletions
-                ? $"""
-                      applies   the list of {run.AppliesTo}: {c.Deleted} of {run.DeletionsPlanned} deleted
-                      deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
+                : run.Mode == SyncMode.IndexRebuild
+                ? """
+                      index     written from the library into a new generation
                     """
                 : $"""
                       read      {c.VideosRead} videos / {c.ChannelsRead} channels
-                      store     new {c.Created}, changed {c.Updated}, unchanged {c.Unchanged}
+                      store     new {c.Created}, already there {c.Unchanged}
                                 rejected {c.Rejected}, corrected {c.Corrected}
                       art       {c.ArtCopied} copied / {c.ArtFailed} failed
                       resized   {c.ArtResized} versions made / {c.ArtResizeFailed} failed
                       files     {c.MediaMissing} missing
-                      deletions {c.Deleted} deleted, {c.KeptStillInTubeArchivist} kept (still in TubeArchivist)
                     """,
             indent);
         if (run.Error is not null)
@@ -282,10 +269,10 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
 
     private static string Name(StoreIndex index) => index.ToString().ToLowerInvariant();
 
-    /// <summary>As the commands spell it: incremental, full, apply-deletions, youtube video…</summary>
+    /// <summary>As the commands spell it: import, index rebuild, youtube video…</summary>
     private static string Name(SyncMode mode) => mode switch
     {
-        SyncMode.ApplyDeletions => "apply-deletions",
+        SyncMode.IndexRebuild => "index rebuild",
         SyncMode.RefreshVideo => "youtube video",
         SyncMode.RefreshChannel => "youtube channel",
         SyncMode.RefreshChannelVideos => "youtube channel-videos",

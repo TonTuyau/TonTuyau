@@ -1982,7 +1982,7 @@
           {
             "name": "task",
             "in": "path",
-            "description": "incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.",
+            "description": "import | refreshVideo | refreshChannel | refreshChannelVideos.",
             "required": true,
             "schema": {
               "type": "string"
@@ -3481,8 +3481,6 @@
           "artResized",
           "artResizeFailed",
           "mediaMissing",
-          "deleted",
-          "kept",
           "foundOnYouTube",
           "unlistedOnYouTube",
           "goneFromYouTube",
@@ -3537,14 +3535,6 @@
             "format": "int32"
           },
           "mediaMissing": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "deleted": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "kept": {
             "type": "integer",
             "format": "int32"
           },
@@ -3640,9 +3630,6 @@
           "finishedAt",
           "error",
           "counts",
-          "deletionsPlanned",
-          "deletionsBlocked",
-          "appliesTo",
           "target",
           "resumeAt",
           "left",
@@ -3680,16 +3667,6 @@
           },
           "counts": {
             "$ref": "#/components/schemas/RunCounts"
-          },
-          "deletionsPlanned": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "deletionsBlocked": {
-            "type": "boolean"
-          },
-          "appliesTo": {
-            "type": ["null", "string"]
           },
           "target": {
             "type": ["null", "string"]
@@ -3772,7 +3749,7 @@
         }
       },
       "SyncMode": {
-        "enum": ["incremental", "full", "applyDeletions", "refreshVideo", "refreshChannel", "refreshChannelVideos"],
+        "enum": ["import", "indexRebuild", "refreshVideo", "refreshChannel", "refreshChannelVideos"],
         "type": "string"
       },
       "SyncOutcome": {
@@ -3784,18 +3761,11 @@
         "type": "string"
       },
       "TaskResponse": {
-        "required": ["task", "schedule", "next", "lastRun", "waiting"],
+        "required": ["task", "lastRun", "unavailable"],
         "type": "object",
         "properties": {
           "task": {
             "$ref": "#/components/schemas/SyncMode"
-          },
-          "schedule": {
-            "type": ["null", "string"]
-          },
-          "next": {
-            "type": ["null", "string"],
-            "format": "date-time"
           },
           "lastRun": {
             "oneOf": [
@@ -3807,15 +3777,8 @@
               }
             ]
           },
-          "waiting": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/WaitingDeletions"
-              }
-            ]
+          "unavailable": {
+            "type": ["null", "string"]
           }
         }
       },
@@ -4143,23 +4106,6 @@
       "VideoType": {
         "enum": ["video", "short", "stream"],
         "type": "string"
-      },
-      "WaitingDeletions": {
-        "required": ["runId", "startedAt", "count"],
-        "type": "object",
-        "properties": {
-          "runId": {
-            "type": "string"
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
       },
       "YouTubeCommentsChoice": {
         "enum": ["off", "top", "all"],

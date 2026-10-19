@@ -63,12 +63,12 @@ services:
       tontuyau-db: { condition: service_healthy }
     networks: [default, tontuyau-db]
     environment:
-      # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art, logs /data/logs/sync).
+      # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art).
       TONTUYAU_ES_URL: http://tontuyau-reservoir:9200
       TONTUYAU_ES_USERNAME: elastic
       TONTUYAU_ES_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
-      TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:?set TONTUYAU_TA_URL in .env}
-      TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:?set TONTUYAU_TA_TOKEN in .env}
+      TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:-}
+      TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:-}
       TONTUYAU_DB_HOST: tontuyau-db
       TONTUYAU_DB_NAME: ${TONTUYAU_DB_NAME:-tontuyau}
       TONTUYAU_DB_USERNAME: ${TONTUYAU_DB_USERNAME:-tontuyau}
@@ -78,19 +78,12 @@ services:
       TONTUYAU_ADMIN_PASSWORD: ${TONTUYAU_ADMIN_PASSWORD:-}
       # Optional: empty means the backend's default (README, "Configuration").
       TONTUYAU_ES_INDEX_PREFIX: ${TONTUYAU_ES_INDEX_PREFIX:-}
-      TONTUYAU_SYNC_INCREMENTAL_CRON: ${TONTUYAU_SYNC_INCREMENTAL_CRON:-}
-      TONTUYAU_SYNC_FULL_CRON: ${TONTUYAU_SYNC_FULL_CRON:-}
       TONTUYAU_TZ: ${TONTUYAU_TZ:-}
-      TONTUYAU_SYNC_SCHEDULER_ENABLED: ${TONTUYAU_SYNC_SCHEDULER_ENABLED:-}
-      TONTUYAU_SYNC_MAX_DELETIONS: ${TONTUYAU_SYNC_MAX_DELETIONS:-}
-      TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS: ${TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS:-}
-      TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS: ${TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS:-}
-      TONTUYAU_SYNC_REJECT_GUARD_PERCENT: ${TONTUYAU_SYNC_REJECT_GUARD_PERCENT:-}
       TONTUYAU_TA_RESULT_WINDOW: ${TONTUYAU_TA_RESULT_WINDOW:-}
       TONTUYAU_ART_RESIZE_PARALLELISM: ${TONTUYAU_ART_RESIZE_PARALLELISM:-}
       TONTUYAU_COOKIE_SECURE: ${TONTUYAU_COOKIE_SECURE:-}
       TONTUYAU_TRUSTED_PROXIES: ${TONTUYAU_TRUSTED_PROXIES:-}
-      # The container's clock for log timestamps; the sync schedule uses TONTUYAU_TZ.
+      # The container's clock for log timestamps; the dashboard's charts use TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:
       # Your videos, read-only. A missing folder stops `up` with an error instead of mounting an empty one.
@@ -101,7 +94,6 @@ services:
         bind:
           create_host_path: false
       - tontuyau-art:/data/art
-      - tontuyau-sync-logs:/data/logs/sync
       # The yt-dlp versions TonTuyau downloads (1.5): kept across restarts and upgrades.
       - tontuyau-tools:/data/tools
     healthcheck:
@@ -145,5 +137,4 @@ volumes:
   tontuyau-db-data:
   tontuyau-es-data:
   tontuyau-art:
-  tontuyau-sync-logs:
   tontuyau-tools:

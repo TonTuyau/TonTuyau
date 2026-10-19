@@ -1,6 +1,9 @@
 namespace TonTuyau.Application.YouTube;
 
-/// <summary>Records what a refresh learned (1.5): TonTuyau's facts in PostgreSQL, each replaced as a whole.</summary>
+/// <summary>
+/// Records what a refresh learned (1.5) in the library's rows (2.0): the state, and when it read them, the metadata,
+/// written in the same columns the import filled (what TonTuyau read last is what the row holds).
+/// </summary>
 public interface IYouTubeFactsStore
 {
     Task SaveVideoAsync(VideoFacts facts, CancellationToken cancellationToken);

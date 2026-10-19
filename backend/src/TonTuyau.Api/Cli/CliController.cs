@@ -7,7 +7,7 @@ using TonTuyau.Application.Tasks;
 namespace TonTuyau.Api.Cli;
 
 /// <summary>
-/// The command line's endpoints (1.4): <c>tontuyau sync …</c>, <c>tontuyau index rebuild</c> and (1.5)
+/// The command line's endpoints (1.4): <c>tontuyau import</c> (2.0), <c>tontuyau index rebuild</c> and (1.5)
 /// <c>tontuyau youtube …</c> start their run here,
 /// in the backend (its log, the Tasks page), follow its log and cancel it. Through the backend's Unix socket only
 /// (<see cref="CliOnlyFilter"/>); not under /api (the front doesn't forward them) nor in the OpenAPI document.
@@ -21,16 +21,8 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     /// <summary>The command line's name in the runs' logs, when it cancels one.</summary>
     public const string Name = "the command line";
 
-    [HttpPost("sync/incremental")]
-    public Task<IActionResult> IncrementalAsync() =>
-        StartAsync(() => runner.StartAsync(SyncMode.Incremental, SyncTrigger.Cli));
-
-    [HttpPost("sync/full")]
-    public Task<IActionResult> FullAsync() => StartAsync(() => runner.StartAsync(SyncMode.Full, SyncTrigger.Cli));
-
-    [HttpPost("sync/apply-deletions/{run}")]
-    public Task<IActionResult> ApplyDeletionsAsync(string run) =>
-        StartAsync(() => runner.StartAsync(SyncMode.ApplyDeletions, SyncTrigger.Cli, appliesTo: run));
+    [HttpPost("import")]
+    public Task<IActionResult> ImportAsync() => StartAsync(() => runner.StartImportAsync(SyncTrigger.Cli));
 
     [HttpPost("index/rebuild")]
     public Task<IActionResult> RebuildAsync() => StartAsync(() => runner.StartRebuildAsync(SyncTrigger.Cli));

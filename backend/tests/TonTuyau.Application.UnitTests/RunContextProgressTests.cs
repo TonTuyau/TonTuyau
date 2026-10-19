@@ -29,14 +29,14 @@ public sealed class RunContextProgressTests
         context.BeginPhase(SyncPhase.ChannelVideos, 120);
         context.Count(c => c with { VideosRead = 100 });
         context.Progressed(1);
-        context.BeginPhase(SyncPhase.NewVideos);
+        context.BeginPhase(SyncPhase.MediaCheck);
 
         Assert.Equal(
             [
                 new SyncProgress(SyncPhase.ChannelVideos, Start, 0, 120, new SyncCounts(), 0, 0),
                 new SyncProgress(SyncPhase.ChannelVideos, Start, 0, 120, new SyncCounts { VideosRead = 100 }, 0, 0),
                 new SyncProgress(SyncPhase.ChannelVideos, Start, 1, 120, new SyncCounts { VideosRead = 100 }, 0, 0),
-                new SyncProgress(SyncPhase.NewVideos, Start, 0, null, new SyncCounts { VideosRead = 100 }, 0, 0),
+                new SyncProgress(SyncPhase.MediaCheck, Start, 0, null, new SyncCounts { VideosRead = 100 }, 0, 0),
             ],
             recorder.Reports);
     }
@@ -95,10 +95,8 @@ public sealed class RunContextProgressTests
     private static RunContext Context(ISyncProgressReporter reporter) =>
         new(
             state: null!, // nothing is saved in these tests
-            new SyncRun { Id = "run-test", Mode = SyncMode.Full, Trigger = SyncTrigger.Cli, StartedAt = Start },
+            new SyncRun { Id = "run-test", Mode = SyncMode.Import, Trigger = SyncTrigger.Cli, StartedAt = Start },
             new HashSet<string>(),
-            guardPercent: 100,
-            guardMinimum: 0,
             reporter,
             Start,
             CancellationToken.None);

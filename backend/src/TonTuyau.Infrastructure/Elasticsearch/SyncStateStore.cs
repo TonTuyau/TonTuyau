@@ -8,7 +8,7 @@ using TonTuyau.Application.Sync;
 namespace TonTuyau.Infrastructure.Elasticsearch;
 
 /// <summary>
-/// Sync state: lock, checkpoint and pending art in <c>&lt;prefix&gt;-sync</c> (read by id), run history in
+/// The runs' state: the lock and the pending art in <c>&lt;prefix&gt;-sync</c> (read by id), run history in
 /// <c>&lt;prefix&gt;-sync-runs</c> (searched). The lock is one document written with optimistic concurrency
 /// (create, then <c>if_seq_no</c> + <c>if_primary_term</c>), so two processes can never both believe they hold it.
 /// </summary>
@@ -20,7 +20,6 @@ internal sealed partial class SyncStateStore(
     ILogger<SyncStateStore> logger) : ISyncStateStore
 {
     private const string LockId = "lock";
-    private const string CheckpointId = "checkpoint";
     private const string PendingArtId = "pending_art";
 
     public async Task EnsureAsync(CancellationToken cancellationToken)
@@ -31,13 +30,6 @@ internal sealed partial class SyncStateStore(
             .CreateIndexFromDefinitionAsync(names.SyncRuns, IndexDefinitions.Raw("sync-runs"), cancellationToken)
             .ConfigureAwait(false);
     }
-
-    public async Task<SyncCheckpoint> GetCheckpointAsync(CancellationToken cancellationToken) =>
-        (await GetStateAsync<SyncCheckpoint>(CheckpointId, cancellationToken).ConfigureAwait(false)).Source
-            ?? SyncCheckpoint.Empty;
-
-    public Task SaveCheckpointAsync(SyncCheckpoint checkpoint, CancellationToken cancellationToken) =>
-        PutStateAsync(CheckpointId, checkpoint, cancellationToken);
 
     public async Task<ISyncLease?> TryAcquireLockAsync(
         SyncMode mode,
@@ -52,7 +44,7 @@ internal sealed partial class SyncStateStore(
             CreateResponse created = (await client
                 .CreateAsync(new CreateRequest<SyncLockInfo>(info, names.Sync, LockId), cancellationToken)
                 .ConfigureAwait(false))
-                .Ensure("Take the sync lock", 409);
+                .Ensure("Take the run lock", 409);
             if (created.Status() != 409)
             {
                 return StartLease(info, created.SeqNo, created.PrimaryTerm);
@@ -78,7 +70,7 @@ internal sealed partial class SyncStateStore(
                 IfPrimaryTerm = holder.PrimaryTerm,
             };
             IndexResponse taken = (await client.IndexAsync(takeover, cancellationToken).ConfigureAwait(false))
-                .Ensure("Take over the sync lock", 409);
+                .Ensure("Take over the run lock", 409);
             return taken.Status() == 409 ? null : StartLease(info, taken.SeqNo, taken.PrimaryTerm);
         }
 
@@ -107,30 +99,6 @@ internal sealed partial class SyncStateStore(
 
     public Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken) =>
         SearchRunsAsync(new MatchAllQuery(), count, cancellationToken);
-
-    public async Task<SyncRun?> GetLatestFullRunAsync(CancellationToken cancellationToken)
-    {
-        BoolQuery finishedFullRuns = new()
-        {
-            Filter =
-            [
-                new TermQuery { Field = Infer.Field<SyncRun>(r => r.Mode), Value = "full" },
-                new TermsQuery
-                {
-                    Field = Infer.Field<SyncRun>(r => r.Outcome),
-                    Terms = new TermsQueryField(
-                    [
-                        FieldValue.String("succeeded"),
-                        FieldValue.String("failed"),
-                        FieldValue.String("canceled"),
-                    ]),
-                },
-            ],
-        };
-        IReadOnlyList<SyncRun> runs = await SearchRunsAsync(finishedFullRuns, 1, cancellationToken).ConfigureAwait(
-            false);
-        return runs.Count == 0 ? null : runs[0];
-    }
 
     public async Task<IReadOnlySet<string>> GetPendingArtAsync(CancellationToken cancellationToken)
     {
@@ -194,16 +162,16 @@ internal sealed partial class SyncStateStore(
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Taking over the sync lock from {Owner}, whose lease expired at {LeaseUntil}.")]
+        Message = "Taking over the run lock from {Owner}, whose lease expired at {LeaseUntil}.")]
     private partial void LogTakeover(string owner, DateTimeOffset leaseUntil);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Sync lock lost: another process holds it now. The run stops.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Run lock lost: another process holds it now. The run stops.")]
     private partial void LogLost();
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't renew the sync lock ({Reason}); retrying.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't renew the run lock ({Reason}); retrying.")]
     private partial void LogRenewFailed(string reason);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Couldn't release the sync lock: it expires with its lease.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Couldn't release the run lock: it expires with its lease.")]
     private partial void LogReleaseFailed(Exception exception);
 
     private sealed record PendingArtDocument(IReadOnlyList<string> Paths);
@@ -249,7 +217,7 @@ internal sealed partial class SyncStateStore(
                 // Only our own version of the lock: never delete a lock someone else holds now.
                 DeleteRequest release = new(_context.Index, LockId) { IfSeqNo = _seqNo, IfPrimaryTerm = _primaryTerm };
                 (await _context.Client.DeleteAsync(release, CancellationToken.None).ConfigureAwait(false))
-                    .Ensure("Release the sync lock", 404, 409);
+                    .Ensure("Release the run lock", 404, 409);
             }
             catch (SearchStoreException ex)
             {
@@ -286,7 +254,7 @@ internal sealed partial class SyncStateStore(
                     };
                     IndexResponse written = (await _context.Client.IndexAsync(renewal, _stop.Token)
                         .ConfigureAwait(false))
-                        .Ensure("Renew the sync lock", 409);
+                        .Ensure("Renew the run lock", 409);
                     if (written.Status() == 409)
                     {
                         _context.OnLost();

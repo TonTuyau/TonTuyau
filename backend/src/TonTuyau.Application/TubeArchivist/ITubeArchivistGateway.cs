@@ -3,7 +3,7 @@ using TonTuyau.Application.Library;
 namespace TonTuyau.Application.TubeArchivist;
 
 /// <summary>
-/// Read-only access to TubeArchivist. Building blocks only (one page, one item, one file): no sync strategy here.
+/// Read-only access to TubeArchivist. Building blocks only (one page, one item, one file): no import strategy here.
 /// Every method may throw a <see cref="TubeArchivistException"/> subtype. A broken document is reported in
 /// <see cref="Page{T}.Rejected"/> for lists, and thrown as <see cref="Validation.ValidationException"/> for single items.
 /// </summary>

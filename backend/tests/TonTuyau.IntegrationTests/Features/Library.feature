@@ -32,10 +32,6 @@ Feature: The library in PostgreSQL
     Then the library's video "aaaaaaaaaaa" is in the categories ""
     And the library holds the categories ""
 
-  Scenario: TubeArchivist's own "inactive" flag isn't kept: the video is not checked
-    When the video "aaaaaaaaaaa", inactive in TubeArchivist, is added to the library
-    Then the library's video "aaaaaaaaaaa" is not checked on YouTube, and active
-
   Scenario: What a refresh wrote stays when TubeArchivist brings the video again
     Given the videos "aaaaaaaaaaa" are added to the library
     And TonTuyau refreshed the library's video "aaaaaaaaaaa" on YouTube with the title "Le vrai titre"
@@ -58,7 +54,7 @@ Feature: The library in PostgreSQL
     When the channels "UCaaaaaaaaaaaaaaaaaaaaaa" are added to the library
     And the library records the thumb of the channel "UCaaaaaaaaaaaaaaaaaaaaaa" as 900 px wide with the versions "88, 176"
     And the library records the banner of the channel "UCaaaaaaaaaaaaaaaaaaaaaa" as 2560 px wide with the versions "1280"
-    Then the library's channel "UCaaaaaaaaaaaaaaaaaaaaaa" is the one added, tabs and tags included
+    Then the library's channel "UCaaaaaaaaaaaaaaaaaaaaaa" is the one added, tags included
     And the library's channel "UCaaaaaaaaaaaaaaaaaaaaaa" has a thumb 900 px wide with the versions "88, 176"
     And the library's channel "UCaaaaaaaaaaaaaaaaaaaaaa" has a banner 2560 px wide with the versions "1280"
 

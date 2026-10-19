@@ -10,11 +10,11 @@ Feature: A channel's admin page
       | tomcooks | Tom Cooks | on YouTube |
       | zeste    | Zeste     |            |
     And the videos:
-      | key     | title                      | channel  | type  | published  | active | youtube     |
-      | huiles  | Les huiles de cuisson      | tomcooks | video | 2026-09-01 | true   | on YouTube  |
-      | poulet  | Le poulet rôti du dimanche | tomcooks | video | 2026-09-03 | false  | gone        |
-      | morteau | La saucisse de Morteau     | tomcooks | short | 2026-09-05 | false  | retry later |
-      | creme   | Crème brûlée               | tomcooks | video | 2026-09-07 | true   |             |
+      | key     | title                      | channel  | type  | published  | youtube     |
+      | huiles  | Les huiles de cuisson      | tomcooks | video | 2026-09-01 | on YouTube  |
+      | poulet  | Le poulet rôti du dimanche | tomcooks | video | 2026-09-03 | gone        |
+      | morteau | La saucisse de Morteau     | tomcooks | short | 2026-09-05 | retry later |
+      | creme   | Crème brûlée               | tomcooks | video | 2026-09-07 |             |
 
   Scenario: Nobody logged in gets a 401
     When I request "/api/admin/channels/{channel:tomcooks}" with my session

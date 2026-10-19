@@ -5,7 +5,7 @@ using TonTuyau.Application.Library;
 namespace TonTuyau.IntegrationTests.Support;
 
 /// <summary>
-/// Real (small) JPEGs for the art store and the fake TubeArchivist, so the sync can resize them (QA09). Each kind of
+/// Real (small) JPEGs for the art store and the fake TubeArchivist, so the import can resize them (QA09). Each kind of
 /// image has the shape of TubeArchivist's, smaller: thumbnails 800×450, channel pictures 400×400, banners 1600×265.
 /// </summary>
 public static class TestImages

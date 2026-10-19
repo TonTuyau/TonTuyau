@@ -19,7 +19,7 @@ namespace TonTuyau.Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 public sealed class TasksController(TaskService tasks) : ControllerBase
 {
-    /// <summary>The incremental sync, the full sync and applying deletions: when they run, how they last ran.</summary>
+    /// <summary>The TubeArchivist import (2.0): how it last ran, or why it can't start.</summary>
     [HttpGet("tasks")]
     [ProducesResponseType<TasksResponse>(StatusCodes.Status200OK)]
     public async Task<TasksResponse> GetTasksAsync(CancellationToken cancellationToken) =>
@@ -28,16 +28,16 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
             .ConfigureAwait(false);
 
     /// <summary>
-    /// Starts a task now: the run, just started (it goes on in the background). applyDeletions applies the list that
-    /// waits (see GET tasks). The refreshes (1.5) read their target on YouTube. 409 when a run is going on, no list
-    /// waits, or the target isn't one of the library.
+    /// Starts a task now: the run, just started (it goes on in the background). The import (2.0) adds what
+    /// TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube. 409 when a run is
+    /// going on, TubeArchivist isn't set up, or the target isn't one of the library.
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.")]
+        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos.")]
         string task,
         [FromQuery, Description("For the refreshes only: the video's or channel's YouTube id.")] string? target,
         CancellationToken cancellationToken)

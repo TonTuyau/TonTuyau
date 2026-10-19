@@ -34,12 +34,12 @@ public sealed class RunnerSteps(ScenarioState state, SyncSteps sync) : IDisposab
     [When("the backend's runs are stopped")]
     public Task StopRuns() => Runner.StopAsync();
 
-    [When("an incremental sync starts in the backend")]
+    [When("an import starts in the backend")]
     public async Task Start()
     {
         try
         {
-            _started = await Runner.StartAsync(SyncMode.Incremental, SyncTrigger.Scheduler);
+            _started = await Runner.StartImportAsync(SyncTrigger.Cli);
         }
         catch (Exception ex) when (ex is SyncBusyException or OperationCanceledException)
         {

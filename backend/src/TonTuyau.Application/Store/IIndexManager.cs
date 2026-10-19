@@ -7,7 +7,9 @@ public enum StoreIndex
 }
 
 /// <param name="ReadIndex">Concrete index the read alias points to (what users browse).</param>
-/// <param name="WriteIndex">Concrete index the write alias points to (where syncs write). Differs from ReadIndex during a rebuild.</param>
+/// <param name="WriteIndex">
+/// Concrete index the write alias points to (where the writes go). Differs from ReadIndex during a rebuild.
+/// </param>
 /// <param name="DefinitionUpToDate">False when the index was created from an older definition (mappings/analyzers): run a rebuild.</param>
 public sealed record IndexStatus(
     StoreIndex Index,

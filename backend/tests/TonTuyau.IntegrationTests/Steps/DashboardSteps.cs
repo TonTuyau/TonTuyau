@@ -23,7 +23,7 @@ public sealed class DashboardSteps(ScenarioState state)
     /// Columns: started (ISO instant; each run finishes 10 minutes later unless running), outcome, new (videos
     /// created), videos / shorts / streams (empty: not recorded, as in 1.1), rebuild.
     /// </summary>
-    [Given("the sync runs:")]
+    [Given("the TubeArchivist imports:")]
     public async Task TheSyncRuns(DataTable table)
     {
         await state.WaitUntilReadyAsync();
@@ -38,8 +38,8 @@ public sealed class DashboardSteps(ScenarioState state)
             SyncRun run = new()
             {
                 Id = SyncRun.NewId(started),
-                Mode = SyncMode.Incremental,
-                Trigger = SyncTrigger.Scheduler,
+                Mode = SyncMode.Import,
+                Trigger = SyncTrigger.Startup,
                 StartedAt = started,
                 FinishedAt = outcome == SyncOutcome.Running ? null : started.AddMinutes(10),
                 Outcome = outcome,
@@ -51,23 +51,22 @@ public sealed class DashboardSteps(ScenarioState state)
         }
     }
 
-    /// <summary>A run that applied a full run's deletion list (1.4): never a sync for the dashboard.</summary>
-    [Given("a run applied a deletion list at {string}")]
-    public async Task AppliedDeletions(string at)
+    /// <summary>A refresh on YouTube (1.5): never an import for the dashboard.</summary>
+    [Given("a refresh ran at {string}")]
+    public async Task ARefreshRan(string at)
     {
         await state.WaitUntilReadyAsync();
         DateTimeOffset started = DateTimeOffset.Parse(at, CultureInfo.InvariantCulture);
         SyncRun run = new()
         {
             Id = SyncRun.NewId(started),
-            Mode = SyncMode.ApplyDeletions,
+            Mode = SyncMode.RefreshChannelVideos,
             Trigger = SyncTrigger.Cli,
             StartedAt = started,
             FinishedAt = started.AddMinutes(2),
             Outcome = SyncOutcome.Succeeded,
-            AppliesTo = "run-20260101T000000Z-abcdef",
-            DeletionsPlanned = 140,
-            Counts = new SyncCounts { Deleted = 140 },
+            Target = "UCaaaaaaaaaaaaaaaaaaaaaa",
+            Counts = new SyncCounts { Created = 140, VideosRead = 140 },
         };
         await state.Backend.Services
             .GetRequiredService<ISyncStateStore>()

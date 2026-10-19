@@ -32,7 +32,7 @@ public sealed class BrowseQueryTests
 
         VideoQuery videoQuery = new(text is null ? null : SearchText.Parse(text + " "), filter, VideoListSort.Latest);
 
-        JsonNode query = Json(VideoRepository.QueryFor(videoQuery))["bool"]!;
+        JsonNode query = Json(VideoIndex.QueryFor(videoQuery))["bool"]!;
 
         JsonNode[] filters = Many(query["filter"]);
         int given = new object?[] { type, channel, dated ? Day : null, duration }.Count(f => f is not null);
@@ -92,7 +92,7 @@ public sealed class BrowseQueryTests
     {
         VideoQuery videoQuery = new(SearchText.Parse("creme b"), VideoFilter.None, VideoListSort.Relevance);
 
-        JsonNode query = Json(VideoRepository.QueryFor(videoQuery))["bool"]!;
+        JsonNode query = Json(VideoIndex.QueryFor(videoQuery))["bool"]!;
 
         JsonNode[] must = Many(query["must"]);
         Assert.Equal(2, must.Length);
@@ -127,7 +127,7 @@ public sealed class BrowseQueryTests
     {
         VideoQuery videoQuery = new(SearchText.Parse("creme b "), VideoFilter.None, VideoListSort.Relevance);
 
-        JsonNode[] must = Many(Json(VideoRepository.QueryFor(videoQuery))["bool"]!["must"]);
+        JsonNode[] must = Many(Json(VideoIndex.QueryFor(videoQuery))["bool"]!["must"]);
 
         Assert.Equal("creme b", Assert.Single(must)["multi_match"]!["query"]!.GetValue<string>());
     }
@@ -137,7 +137,7 @@ public sealed class BrowseQueryTests
     {
         VideoQuery videoQuery = new(SearchText.Parse("cre"), VideoFilter.None, VideoListSort.Relevance);
 
-        JsonNode[] must = Many(Json(VideoRepository.QueryFor(videoQuery))["bool"]!["must"]);
+        JsonNode[] must = Many(Json(VideoIndex.QueryFor(videoQuery))["bool"]!["must"]);
 
         Assert.NotNull(Assert.Single(must)["bool"]);
     }
@@ -148,8 +148,8 @@ public sealed class BrowseQueryTests
         VideoQuery videoQuery = new(SearchText.Parse(" - "), VideoFilter.None, VideoListSort.Relevance);
         ChannelQuery channelQuery = new(null, SearchText.Parse("!"), ChannelListSort.Relevance);
 
-        Assert.NotNull(Many(Json(VideoRepository.QueryFor(videoQuery))["bool"]!["must"])[0]["match_none"]);
-        Assert.NotNull(Many(Json(ChannelRepository.QueryFor(channelQuery))["bool"]!["must"])[0]["match_none"]);
+        Assert.NotNull(Many(Json(VideoIndex.QueryFor(videoQuery))["bool"]!["must"])[0]["match_none"]);
+        Assert.NotNull(Many(Json(ChannelIndex.QueryFor(channelQuery))["bool"]!["must"])[0]["match_none"]);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class BrowseQueryTests
     {
         ChannelQuery channelQuery = new(null, SearchText.Parse("tom c"), ChannelListSort.Relevance);
 
-        JsonNode[] must = Many(Json(ChannelRepository.QueryFor(channelQuery))["bool"]!["must"]);
+        JsonNode[] must = Many(Json(ChannelIndex.QueryFor(channelQuery))["bool"]!["must"]);
 
         JsonNode[] should = Many(must[1]["bool"]!["should"]);
         Assert.Equal("c", should[1]["match"]!["name.autocomplete"]!["query"]!.GetValue<string>());
@@ -173,7 +173,7 @@ public sealed class BrowseQueryTests
         VideoFilter filter = new(VideoType.Video, "UCaaaaaaaaaaaaaaaaaaaaaa", ExcludeId: exclude);
         VideoQuery videoQuery = new(text is null ? null : SearchText.Parse(text), filter, VideoListSort.Latest);
 
-        JsonNode query = Json(VideoRepository.QueryFor(videoQuery))["bool"]!;
+        JsonNode query = Json(VideoIndex.QueryFor(videoQuery))["bool"]!;
 
         JsonNode[] mustNot = Many(query["must_not"]);
         Assert.Equal(exclude is null ? 0 : 1, mustNot.Length);
@@ -189,7 +189,7 @@ public sealed class BrowseQueryTests
     [Theory, CombinatorialData]
     public void Every_video_sort_ends_with_the_id(VideoListSort sort)
     {
-        string[] keys = Keys(VideoRepository.SortFor(sort));
+        string[] keys = Keys(VideoIndex.SortFor(sort));
 
         Assert.Equal(
             sort switch
@@ -205,7 +205,7 @@ public sealed class BrowseQueryTests
     [Theory, CombinatorialData]
     public void Every_channel_sort_ends_with_the_id(ChannelListSort sort)
     {
-        string[] keys = Keys(ChannelRepository.SortFor(sort));
+        string[] keys = Keys(ChannelIndex.SortFor(sort));
 
         Assert.Equal(
             sort switch
@@ -224,7 +224,7 @@ public sealed class BrowseQueryTests
     {
         ChannelQuery channelQuery = new(prefix, text is null ? null : SearchText.Parse(text), ChannelListSort.Name);
 
-        JsonNode query = Json(ChannelRepository.QueryFor(channelQuery))["bool"]!;
+        JsonNode query = Json(ChannelIndex.QueryFor(channelQuery))["bool"]!;
 
         Assert.Equal(prefix is not null, query["filter"] is not null);
         Assert.Equal(text is not null, query["must"] is not null);
@@ -280,7 +280,7 @@ public sealed class BrowseQueryTests
     {
         SortPosition position = new([.. Enumerable.Repeat<SortValue>(new TextSortValue("x"), length)]);
 
-        IReadOnlyList<SortKey> keys = VideoRepository.SortFor(VideoListSort.Relevance);
+        IReadOnlyList<SortKey> keys = VideoIndex.SortFor(VideoListSort.Relevance);
 
         Assert.Throws<ValidationException>(() => SortPositions.ToSearchAfter(position, keys));
     }

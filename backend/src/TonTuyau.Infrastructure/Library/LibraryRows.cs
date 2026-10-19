@@ -1,6 +1,7 @@
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.YouTube;
+using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure.Library;
 
@@ -63,11 +64,7 @@ internal static class LibraryRows
         YouTube = new ChannelStateRow { ChannelId = channel.Id },
     };
 
-    /// <summary>
-    /// The video as the row holds it, with its channel's name. <see cref="Video.Active"/> is true: TubeArchivist's flag isn't kept, the state on
-    /// YouTube says whether it's gone. <see cref="Video.LastRefreshed"/> is null: TubeArchivist's date isn't kept,
-    /// TonTuyau's is the state's <see cref="YouTubeStatus.RefreshedAt"/>. No <see cref="Video.PlaylistIds"/>.
-    /// </summary>
+    /// <summary>The video as the row holds it, with its channel's name and its state on YouTube.</summary>
     public static Video ToVideo(VideoRow row) =>
         new(
             row.Id,
@@ -76,10 +73,8 @@ internal static class LibraryRows
             row.Title,
             row.Description,
             row.Type,
-            true,
             row.Published,
             row.Downloaded,
-            null,
             row.Duration,
             row.MediaSize,
             row.MediaPath,
@@ -87,29 +82,105 @@ internal static class LibraryRows
             row.ThumbnailPath,
             row.Tags,
             row.Category is { } category ? [category.Name] : [],
-            [],
             new VideoStats(row.Views, row.Likes, row.Dislikes),
             [.. row.Tracks.Select(t => new MediaTrack(t.Kind, t.Codec, t.Bitrate, t.Width, t.Height))],
             ToStatus(row.YouTube));
 
-    /// <summary>
-    /// The channel as the row holds it (<see cref="Channel.Active"/> true, <see cref="Channel.LastRefreshed"/> null,
-    /// as for a video; no <see cref="Channel.Tabs"/>: the channel's page shows the types of videos it holds).
-    /// </summary>
+    /// <summary>The channel as the row holds it, with its state on YouTube.</summary>
     public static Channel ToChannel(ChannelRow row) =>
         new(
             row.Id,
             row.Name,
             row.Description,
             row.Subscribers,
-            true,
-            null,
             row.Tags,
-            [],
             row.ThumbPath,
             row.BannerPath,
             row.TvArtPath,
             ToStatus(row.YouTube));
+
+    /// <summary>What TonTuyau knows of the video on YouTube: its state, and once refreshed, what the row holds.</summary>
+    public static VideoFacts FactsOf(VideoRow row) =>
+        new(
+            row.Id,
+            row.ChannelId,
+            ToStatus(row.YouTube),
+            row.YouTube.RefreshedAt is null
+                ? null
+                : new RefreshedVideo(
+                    row.Title,
+                    row.Channel.Name,
+                    row.Description,
+                    row.Tags,
+                    row.Category is { } category ? [category.Name] : [],
+                    row.Views,
+                    row.Likes,
+                    row.CommentCount,
+                    [.. row.Chapters.Select(c => new YouTubeChapter(c.Start, c.End, c.Title))],
+                    row.ThumbnailPath));
+
+    /// <summary>What TonTuyau knows of the channel on YouTube: its state, and once refreshed, what the row holds.</summary>
+    public static ChannelFacts FactsOf(ChannelRow row) =>
+        new(
+            row.Id,
+            ToStatus(row.YouTube),
+            row.YouTube.RefreshedAt is null
+                ? null
+                : new RefreshedChannel(
+                    row.Name,
+                    row.Description,
+                    row.Subscribers,
+                    row.Tags,
+                    row.ThumbPath,
+                    row.BannerPath));
+
+    /// <summary>
+    /// Writes what a refresh learned: the state, and when it read the metadata, the same columns the import filled
+    /// (the category is the caller's: it may be a new row). Without metadata (gone, to retry), the row keeps its own.
+    /// </summary>
+    public static void WriteFacts(VideoRow row, VideoFacts facts, CategoryRow? category)
+    {
+        WriteStatus(row.YouTube, facts.Status);
+        if (facts.Refreshed is not { } refreshed)
+        {
+            return;
+        }
+
+        row.Title = refreshed.Title;
+        row.Description = refreshed.Description;
+        row.Tags = [.. refreshed.Tags];
+        row.Category = category;
+        row.Views = refreshed.Views;
+        row.Likes = refreshed.Likes;
+        row.CommentCount = refreshed.CommentCount;
+        row.Chapters =
+        [
+            .. refreshed.Chapters.Select(c => new VideoChapterRow
+            {
+                Start = c.StartSeconds,
+                End = c.EndSeconds,
+                Title = c.Title,
+            }),
+        ];
+        row.ThumbnailPath = refreshed.ThumbnailPath ?? row.ThumbnailPath;
+    }
+
+    /// <summary>Writes what a refresh learned of a channel, like <see cref="WriteFacts(VideoRow, VideoFacts, CategoryRow?)"/>.</summary>
+    public static void WriteFacts(ChannelRow row, ChannelFacts facts)
+    {
+        WriteStatus(row.YouTube, facts.Status);
+        if (facts.Refreshed is not { } refreshed)
+        {
+            return;
+        }
+
+        row.Name = refreshed.Name;
+        row.Description = refreshed.Description;
+        row.Subscribers = refreshed.Subscribers;
+        row.Tags = [.. refreshed.Tags];
+        row.ThumbPath = refreshed.ThumbPath ?? row.ThumbPath;
+        row.BannerPath = refreshed.BannerPath ?? row.BannerPath;
+    }
 
     public static StoredVideo ToStored(VideoRow row) =>
         new(ToVideo(row), row.MediaMissing, ToVersions(row.ThumbnailArt));
@@ -119,6 +190,22 @@ internal static class LibraryRows
 
     public static ArtVersionsRow ToRow(ArtVersions versions) =>
         new() { OriginalWidth = versions.OriginalWidth, Widths = [.. versions.Widths] };
+
+    private static void WriteStatus(VideoStateRow row, YouTubeStatus status)
+    {
+        row.State = status.State;
+        row.CheckedAt = status.CheckedAt;
+        row.Reason = status.Reason;
+        row.RefreshedAt = status.RefreshedAt;
+    }
+
+    private static void WriteStatus(ChannelStateRow row, YouTubeStatus status)
+    {
+        row.State = status.State;
+        row.CheckedAt = status.CheckedAt;
+        row.Reason = status.Reason;
+        row.RefreshedAt = status.RefreshedAt;
+    }
 
     private static YouTubeStatus ToStatus(VideoStateRow row) =>
         new(row.State, row.CheckedAt, row.Reason, row.RefreshedAt);

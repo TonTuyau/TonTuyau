@@ -110,8 +110,8 @@ public sealed class DashboardServiceTests
         return new SyncRun
         {
             Id = SyncRun.NewId(started),
-            Mode = SyncMode.Incremental,
-            Trigger = SyncTrigger.Scheduler,
+            Mode = SyncMode.Import,
+            Trigger = SyncTrigger.Startup,
             StartedAt = started,
             FinishedAt = started.AddMinutes(5),
             Outcome = SyncOutcome.Succeeded,

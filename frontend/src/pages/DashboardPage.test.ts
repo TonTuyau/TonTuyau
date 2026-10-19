@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
     expect(total('Shorts')).toBe('1,231')
     expect(total('Streams')).toBe('574')
     expect(total('Gone from YouTube')).toBe('85')
-    expect(screen.getByText(/^Library synced/)).toBeInTheDocument()
+    expect(screen.getByText(/^Library imported/)).toBeInTheDocument()
   })
 
   it('shows the play time with each type’s share and average length, as given', async () => {
@@ -79,7 +79,7 @@ describe('DashboardPage', () => {
     expect(bars[2]?.querySelectorAll('rect')).toHaveLength(3)
     expect(card.getAllByText('Types not recorded (before 1.2)').length).toBeGreaterThan(0)
 
-    // 22:00 UTC on the 11th is the 12th in Paris, the sync's time zone.
+    // 22:00 UTC on the 11th is the 12th in Paris, the dashboard's time zone.
     await hover(2)
     const tip = card.getByRole('status')
     expect(tip).toHaveTextContent('Oct 12')
@@ -177,7 +177,7 @@ describe('DashboardPage', () => {
     expect(again.getByRole('button', { name: 'Log' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('says when the period brought no video, and when there was no sync yet', async () => {
+  it('says when the period brought no video, and when there was no import yet', async () => {
     fakeApi({
       '/api/admin/dashboard': dashboard({ lastSync: null }),
       '/api/admin/dashboard/imports': importHistory({ total: 0, bars: [] }),
@@ -185,7 +185,7 @@ describe('DashboardPage', () => {
     render(DashboardPage)
 
     expect(await screen.findByText('No new video over this period')).toBeInTheDocument()
-    expect(screen.getByText('No successful sync yet')).toBeInTheDocument()
+    expect(screen.getByText('No successful import yet')).toBeInTheDocument()
   })
 
   it('lists every channel biggest first; a column sorts, again the other way', async () => {

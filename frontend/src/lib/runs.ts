@@ -9,16 +9,15 @@ export function runSeconds(run: Run, now: number): number {
   return Math.max(0, (end - new Date(run.startedAt).getTime()) / 1000)
 }
 
-/** Who started it: the schedule, the command line, the startup rebuild, or the account (the Tasks page). */
+/** Who started it: itself (a refresh resuming), the command line, the startup, or the account (the Tasks page). */
 export function startedBy(run: Run): string {
   return run.trigger === 'admin' ? (run.startedBy ?? 'admin') : t(`run.by.${run.trigger}`)
 }
 
 /** The command line that does the same as each task. */
 export const taskCommands: Record<RunTask, string> = {
-  incremental: 'tontuyau sync incremental',
-  full: 'tontuyau sync full',
-  applyDeletions: 'tontuyau sync apply-deletions <run>',
+  import: 'tontuyau import',
+  indexRebuild: 'tontuyau index rebuild',
   refreshVideo: 'tontuyau youtube video <id>',
   refreshChannel: 'tontuyau youtube channel <id>',
   refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
@@ -52,8 +51,8 @@ export function runResult(run: Run): string {
     default:
       break
   }
-  if (run.task === 'applyDeletions') {
-    return t('run.result.apply', { deleted: n(counts.deleted), kept: n(counts.kept) })
+  if (run.task === 'indexRebuild') {
+    return t('run.result.rebuild')
   }
   if (isRefresh(run)) {
     return t('run.result.refresh', {
@@ -64,12 +63,5 @@ export function runResult(run: Run): string {
       failed: n(counts.checkFailed),
     })
   }
-  const sync = t('run.result.sync', { created: n(counts.created), updated: n(counts.updated) })
-  if (run.task === 'incremental') {
-    return sync
-  }
-  const deletions = run.deletionsBlocked
-    ? t('run.result.blocked', { count: n(run.deletionsPlanned) })
-    : t('run.result.deleted', { count: n(counts.deleted) })
-  return `${sync} · ${deletions}`
+  return t('run.result.import', { created: n(counts.created), unchanged: n(counts.unchanged) })
 }

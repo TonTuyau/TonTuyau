@@ -38,8 +38,57 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
     public async Task<StoredVideo?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
         await FindAsync(id, cancellationToken).ConfigureAwait(false) is { } row ? LibraryRows.ToStored(row) : null;
 
+    /// <returns>These videos with their flag and recorded versions, those the library has (to write the index).</returns>
+    public async Task<IReadOnlyList<StoredVideo>> GetStoredAsync(
+        IReadOnlyCollection<string> ids,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        List<StoredVideo> found = [];
+        foreach (string[] batch in Batches(ids))
+        {
+            List<VideoRow> rows = await WithContextAsync(db => db.Videos
+                .AsNoTracking()
+                .Where(v => batch.Contains(v.Id))
+                .ToListAsync(cancellationToken))
+                .ConfigureAwait(false);
+            found.AddRange(rows.Select(LibraryRows.ToStored));
+        }
+
+        return found;
+    }
+
     public Task<long> CountAsync(CancellationToken cancellationToken) =>
         WithContextAsync(db => db.Videos.LongCountAsync(cancellationToken));
+
+    public async Task<IReadOnlyList<VideoSummary>> FindByChannelsAsync(
+        IReadOnlyCollection<string> channelIds,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(channelIds);
+        string[] channels = [.. channelIds];
+        List<VideoSummary> found = await WithContextAsync(db => db.Videos
+            .AsNoTracking()
+            .IgnoreAutoIncludes()
+            .Where(v => channels.Contains(v.ChannelId))
+            .Select(v => new VideoSummary(v.Id, v.Title, v.ChannelId, v.Type, v.Downloaded, v.ThumbnailPath))
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return found;
+    }
+
+    public async Task<IReadOnlyList<string>> GetIdsAfterAsync(
+        string? after,
+        int count,
+        CancellationToken cancellationToken) =>
+        await WithContextAsync(db => db.Videos
+            .IgnoreAutoIncludes()
+            .Where(v => after == null || v.Id.CompareTo(after) > 0)
+            .OrderBy(v => v.Id)
+            .Select(v => v.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
 
     public async Task SetMediaMissingAsync(
         IReadOnlyCollection<string> ids,
@@ -95,12 +144,13 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
                 .ToHashSet(StringComparer.Ordinal);
             // One run at a time (the run lock): nobody adds the same video, or category, meanwhile.
             Video[] missing = [.. batch.Where(v => !existing.Contains(v.Id))];
-            Dictionary<string, CategoryRow> categories = await CategoriesAsync(db, missing, cancellationToken)
+            Dictionary<string, CategoryRow> categories = await LibraryCategories
+                .FindOrAddAsync(db, missing.Select(v => v.Categories), cancellationToken)
                 .ConfigureAwait(false);
             List<string> created = [];
             foreach (Video video in missing)
             {
-                db.Videos.Add(LibraryRows.NewRow(video, CategoryOf(video) is { } name ? categories[name] : null));
+                db.Videos.Add(LibraryRows.NewRow(video, LibraryCategories.Of(video.Categories, categories)));
                 created.Add(video.Id);
             }
 
@@ -110,34 +160,6 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
             return new UpsertResult(created.Count, 0, existing.Count) { ChangedIds = created, CreatedIds = created };
         })
             .ConfigureAwait(false);
-    }
-
-    /// <summary>YouTube gives a video one category; TubeArchivist, a list of it (or none).</summary>
-    private static string? CategoryOf(Video video) =>
-        video.Categories.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
-
-    /// <returns>These videos' categories by name: those the library has, and new rows for the others.</returns>
-    private static async Task<Dictionary<string, CategoryRow>> CategoriesAsync(
-        TonTuyauDbContext db,
-        IEnumerable<Video> videos,
-        CancellationToken cancellationToken)
-    {
-        string[] names = [.. videos
-            .Select(CategoryOf)
-            .OfType<string>()
-            .Distinct(StringComparer.Ordinal)];
-        Dictionary<string, CategoryRow> categories = await db.Categories
-            .Where(c => names.Contains(c.Name))
-            .ToDictionaryAsync(c => c.Name, StringComparer.Ordinal, cancellationToken)
-            .ConfigureAwait(false);
-        foreach (string name in names.Where(n => !categories.ContainsKey(n)))
-        {
-            CategoryRow category = new() { Name = name };
-            db.Categories.Add(category);
-            categories[name] = category;
-        }
-
-        return categories;
     }
 
     private Task<VideoRow?> FindAsync(string id, CancellationToken cancellationToken)

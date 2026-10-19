@@ -110,7 +110,7 @@ describe('the admin area', () => {
     goTo(`/admin/runs/${one.id}`)
     render(App)
 
-    expect(await screen.findByRole('heading', { name: 'Incremental sync', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'TubeArchivist import', level: 1 })).toBeInTheDocument()
     const nav = screen.getByRole('navigation', { name: 'Administration' })
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
   })

@@ -1,4 +1,3 @@
-using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 
@@ -6,14 +5,13 @@ namespace TonTuyau.Api.Hosting;
 
 /// <summary>
 /// After an upgrade whose index definitions changed, rebuilds the indices once the backend has started (QA10 M5-10),
-/// in the background: the site keeps serving the current generation meanwhile, readiness stays up. It's a sync like
-/// the others (same lock, TubeArchivist read-only, every safety of a full run), so it only starts when the scheduler
-/// is on: a backend with the scheduler off never calls TubeArchivist by itself. If it fails, each scheduled or CLI
-/// sync rebuilds instead of its normal run until it succeeds.
+/// in the background: the site keeps serving the current generation meanwhile, readiness stays up. It's a run like
+/// the others (same lock, history, log), and since 2.0 it reads only PostgreSQL: it starts with
+/// TubeArchivist down or gone. If it fails, the next import, or `tontuyau index rebuild`, rebuilds first until it
+/// succeeds.
 /// </summary>
 internal sealed partial class IndexAutoRebuild(
     SyncService sync,
-    TonTuyauOptions options,
     TimeProvider clock,
     ILogger<IndexAutoRebuild> logger) : BackgroundService
 {
@@ -27,12 +25,6 @@ internal sealed partial class IndexAutoRebuild(
         bool? pending = await CheckAsync(stoppingToken).ConfigureAwait(false);
         if (pending != true)
         {
-            return;
-        }
-
-        if (!options.Sync.SchedulerEnabled)
-        {
-            LogNotStarted();
             return;
         }
 
@@ -101,20 +93,12 @@ internal sealed partial class IndexAutoRebuild(
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Index rebuild {RunId} failed ({Reason}): users keep the current indices; the next sync tries again.")]
+        Message = "Index rebuild {RunId} failed ({Reason}): users keep the current indices; the next import tries "
+            + "again.")]
     private partial void LogFailed(string runId, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Index rebuild not started now: {Reason}")]
     private partial void LogBusy(string reason);
-
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = """
-            The index definitions changed and the indices need a rebuild, but the scheduler is off
-            (TONTUYAU_SYNC_SCHEDULER_ENABLED=false), so it isn't started automatically.
-            Run `tontuyau index rebuild` (any `tontuyau sync` run rebuilds instead, too).
-            """)]
-    private partial void LogNotStarted();
 
     [LoggerMessage(
         Level = LogLevel.Information,
