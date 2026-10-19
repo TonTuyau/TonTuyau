@@ -33,9 +33,6 @@ internal static class IndexDefinitions
         return definition;
     }
 
-    /// <summary>The embedded <c>Definitions/&lt;name&gt;.json</c> as is (plain indices: sync, sync-runs).</summary>
-    public static string Raw(string name) => Load(name).ToJsonString();
-
     public static string HashOf(StoreIndex index)
         => For(index)["mappings"]!["_meta"]!["definition_hash"]!.GetValue<string>();
 

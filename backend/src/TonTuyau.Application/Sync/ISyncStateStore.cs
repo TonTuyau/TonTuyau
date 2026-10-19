@@ -10,13 +10,10 @@ public interface ISyncLease : IAsyncDisposable
 }
 
 /// <summary>
-/// The runs' state, shared by every process: the history, the lock, the pictures to copy again.
+/// The runs' state, shared by every process (2.0: in PostgreSQL): the history, the lock, the pictures to copy again.
 /// </summary>
 public interface ISyncStateStore
 {
-    /// <summary>Creates the sync index if it's missing.</summary>
-    Task EnsureAsync(CancellationToken cancellationToken);
-
     /// <summary>
     /// Takes the lock if it's free or its lease has expired (a crashed holder).
     /// </summary>

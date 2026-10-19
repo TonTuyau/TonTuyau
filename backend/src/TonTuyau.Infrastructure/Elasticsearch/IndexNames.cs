@@ -18,12 +18,6 @@ internal sealed class IndexNames(string prefix)
         _ => throw new ArgumentOutOfRangeException(nameof(index)),
     };
 
-    /// <summary>Sync state read by id (lock, checkpoint, pending art). A plain index: rebuilds never touch it.</summary>
-    public string Sync => $"{Prefix}-sync";
-
-    /// <summary>Sync run history (searched by mode, outcome, start). A plain index too.</summary>
-    public string SyncRuns => $"{Prefix}-sync-runs";
-
     public string ReadAlias(StoreIndex index) => $"{Prefix}-{Name(index)}";
 
     public string WriteAlias(StoreIndex index) => $"{Prefix}-{Name(index)}-write";

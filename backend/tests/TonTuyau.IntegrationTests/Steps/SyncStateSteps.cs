@@ -1,10 +1,9 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Sync;
+using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Runs;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -17,8 +16,6 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
     private bool _tried;
 
     private ISyncStateStore Store => state.Backend.Services.GetRequiredService<ISyncStateStore>();
-
-    private string Prefix => state.Settings.ToConfiguration()[ConfigKeys.EsIndexPrefix]!;
 
     [Given("leases last {int} seconds and are renewed every {int} ms")]
     public void LeaseTiming(int leaseSeconds, int renewMs)
@@ -158,26 +155,22 @@ public sealed class SyncStateSteps(ScenarioState state) : IAsyncDisposable
     private static string[] Split(string list) =>
         list.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-    /// <summary>Writes the lock document directly, as another (or a crashed) process would have left it.</summary>
+    /// <summary>Writes the lock's row directly, as another (or a crashed) process would have left it.</summary>
     private async Task WriteLockAsync(DateTimeOffset leaseUntil)
     {
-        JsonObject body = new()
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+        await db.SyncLock
+            .Where(l => l.Id == SyncLockRow.OnlyId)
+            .ExecuteDeleteAsync();
+        db.SyncLock.Add(new SyncLockRow
         {
-            ["kind"] = "lock",
-            ["owner"] = "crashed-host/4242/deadbeef",
-            ["mode"] = "import",
-            ["trigger"] = "cli",
-            ["acquired_at"] = leaseUntil.AddMinutes(-10).ToString("O"),
-            ["lease_until"] = leaseUntil.ToString("O"),
-        };
-        using HttpClient http = new() { BaseAddress = new Uri(state.Settings.ToConfiguration()[ConfigKeys.EsUrl]!) };
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"elastic:{ElasticsearchContainer.Password}")));
-        using StringContent content = new(body.ToJsonString(), Encoding.UTF8, "application/json");
-        using HttpResponseMessage response = await http.PutAsync(
-            new Uri($"/{Prefix}-sync/_doc/lock?refresh=true", UriKind.Relative),
-            content);
-        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            Owner = "crashed-host/4242/deadbeef",
+            Mode = SyncMode.Import,
+            Trigger = SyncTrigger.Cli,
+            AcquiredAt = leaseUntil.AddMinutes(-10),
+            LeaseUntil = leaseUntil,
+        });
+        await db.SaveChangesAsync();
     }
 }

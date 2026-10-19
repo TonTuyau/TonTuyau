@@ -75,8 +75,7 @@ Feature: The admin dashboard's import history
       | 2026-10-04T22:00:00Z | 2     | 1      | 1      | 0       | 0           |
       | 2026-10-11T22:00:00Z | 10    | 6      | 2      | 2       | 0           |
 
-  Scenario Outline: All: a bar per month since the first import, the runs of 1.1 without their types
-    Given the dashboard reads the runs <page> at a time
+  Scenario: All: a bar per month since the first import, the runs of 1.1 without their types
     When I log in as the admin
     And I request "/api/admin/dashboard/imports?period=all" with my session
     Then the import history is by "month" in "Europe/Paris": 20 bars, 40020 new videos
@@ -87,11 +86,6 @@ Feature: The admin dashboard's import history
       | 2025-10-31T23:00:00Z | 5     | 5      | 0      | 0       | 0           |
       | 2026-08-31T22:00:00Z | 3     | 2      | 1      | 0       | 0           |
       | 2026-09-30T22:00:00Z | 12    | 7      | 3      | 2       | 0           |
-
-    Examples: the runs read in one search, or page after page (search_after)
-      | page  |
-      | 10000 |
-      | 2     |
 
   Scenario: An unknown period is refused
     When I log in as the admin

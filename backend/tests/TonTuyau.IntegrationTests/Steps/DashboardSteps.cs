@@ -88,18 +88,6 @@ public sealed class DashboardSteps(ScenarioState state)
                 _ => Scalar(item[column]),
             });
 
-    /// <summary>Restarts the backend (log in after this) with a repository that pages through the runs.</summary>
-    [Given("the dashboard reads the runs {int} at a time")]
-    public void RunsPerPage(int runs)
-    {
-        state.ServiceOverrides.Add(services => services.Replace(ServiceDescriptor.Singleton<IDashboardRepository>(
-            sp => new DashboardRepository(
-                sp.GetRequiredService<ElasticsearchClient>(),
-                sp.GetRequiredService<IndexNames>(),
-                runs))));
-        state.StopBackend();
-    }
-
     [Then("the import history is by {string} in {string}: {int} bars, {int} new videos")]
     public void ImportHistoryIs(string step, string timeZone, int bars, long total)
     {
