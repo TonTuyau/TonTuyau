@@ -6,7 +6,7 @@
 
 A self-hosted, YouTube-like web UI for the library of a [TubeArchivist](https://github.com/tubearchivist/tubearchivist) instance. Browsing needs no login: every channel and video is listed and searchable (an admin account can log in, for the administration). Since 2.0 TonTuyau keeps the library itself (PostgreSQL): TubeArchivist is only read once, to import what it has, and never modified.
 
-- **Backend**: ASP.NET Core (.NET 10), REST API, its PostgreSQL (the library, the accounts) and its own Elasticsearch 9 (the search indices, written from PostgreSQL), an import from TubeArchivist at startup.
+- **Backend**: ASP.NET Core (.NET 10), REST API, its PostgreSQL (the library, the accounts, the runs) and its own Elasticsearch 9 (the search indices, written from PostgreSQL), an import from TubeArchivist at startup.
 - **Frontend**: Svelte 5 + Vite + TypeScript, built with pnpm, tested with Vitest.
 - **Playback**: the original files, straight from your videos folder (mounted read-only); no transcoding.
 
@@ -28,7 +28,7 @@ Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#i
 
 ## Install with Docker
 
-TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL: the library, the accounts), `tontuyau-backend` (the API, the import and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/tontuyau/tontuyau-backend` and `ghcr.io/tontuyau/tontuyau-frontend` (`linux/amd64`).
+TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: the Reservoir), `tontuyau-db` (its PostgreSQL: the library, the accounts, the runs), `tontuyau-backend` (the API, the import and the `tontuyau` command line) and `tontuyau-frontend` (the web app, which also forwards `/api`, `/media` and `/art` to the backend). Only the front is reachable from the LAN, on port 80 by default. The images are `ghcr.io/tontuyau/tontuyau-backend` and `ghcr.io/tontuyau/tontuyau-frontend` (`linux/amd64`).
 
 ### Prerequisites
 
@@ -147,7 +147,7 @@ services:
 
 | Volume | Content | Back it up? |
 |---|---|---|
-| `tontuyau-db-data` | the library (2.0: every video and channel, what YouTube said of them), the accounts, the runs' logs and the keys of the login cookies (PostgreSQL) | **Yes**: `docker exec tontuyau-db pg_dump -U tontuyau tontuyau > tontuyau-db.sql`. Once TubeArchivist is shut down, it's the only copy of the library |
+| `tontuyau-db-data` | the library (2.0: every video and channel, what YouTube said of them), the accounts, the runs and their logs, the keys of the login cookies (PostgreSQL) | **Yes**: `docker exec tontuyau-db pg_dump -U tontuyau tontuyau > tontuyau-db.sql`. Once TubeArchivist is shut down, it's the only copy of the library |
 | `tontuyau-es-data` | TonTuyau's search indices (Elasticsearch) | Not needed: `tontuyau index rebuild` writes them again from PostgreSQL |
 | `tontuyau-art` | the images copied from TubeArchivist and their resized versions (about 6 GB) | **Yes** once TubeArchivist is shut down; while it's there, an import copies and resizes what's missing again |
 | `tontuyau-tools` | the yt-dlp versions TonTuyau downloaded (1.5), about 40 MB | Not needed: downloaded again |

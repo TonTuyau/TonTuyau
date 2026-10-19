@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TonTuyau.Infrastructure.ApiKeys;
 using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.RunLogs;
+using TonTuyau.Infrastructure.Runs;
 using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure.Accounts;
@@ -12,7 +13,8 @@ namespace TonTuyau.Infrastructure.Accounts;
 /// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
 /// runs' logs (1.4), the API keys, the YouTube cookie and settings, the yt-dlp chosen, and the library itself (2.0:
 /// its videos and channels, their state on YouTube, categories and comments; the source of truth Elasticsearch
-/// indexes). Table and column names are snake_case, as PostgreSQL likes them.
+/// indexes), and the runs (2.0: their history, the lock). Table and column names are snake_case, as PostgreSQL likes
+/// them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
     : DbContext(options), IDataProtectionKeyContext
@@ -42,6 +44,12 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<ChannelRow> Channels => Set<ChannelRow>();
 
     public DbSet<ChannelStateRow> ChannelStates => Set<ChannelStateRow>();
+
+    public DbSet<RunRow> Runs => Set<RunRow>();
+
+    public DbSet<SyncLockRow> SyncLock => Set<SyncLockRow>();
+
+    public DbSet<PendingArtRow> PendingArt => Set<PendingArtRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -181,6 +189,64 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         modelBuilder.Entity<CategoryRow>(MapCategories);
         modelBuilder.Entity<ChannelRow>(MapChannels);
         modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
+        MapRuns(modelBuilder);
+    }
+
+    /// <summary>The runs' history and state (2.0): the runs, the lock, the pictures to copy again.</summary>
+    private static void MapRuns(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RunRow>(run =>
+        {
+            run.ToTable("runs");
+            run.Property(r => r.Id).HasColumnName("id");
+            run
+                .Property(r => r.Mode)
+                .HasColumnName("mode")
+                .HasConversion<string>();
+            run
+                .Property(r => r.Trigger)
+                .HasColumnName("trigger")
+                .HasConversion<string>();
+            run
+                .Property(r => r.Outcome)
+                .HasColumnName("outcome")
+                .HasConversion<string>();
+            run.Property(r => r.StartedAt).HasColumnName("started_at");
+            run.Property(r => r.FinishedAt).HasColumnName("finished_at");
+            run
+                .Property(r => r.Run)
+                .HasColumnName("run")
+                .HasColumnType("jsonb");
+            // Every list is latest first, some of one kind only.
+            run.HasIndex(r => new { r.StartedAt, r.Id });
+            run.HasIndex(r => new { r.Mode, r.StartedAt });
+            run.HasIndex(r => r.Outcome);
+        });
+        modelBuilder.Entity<SyncLockRow>(syncLock =>
+        {
+            syncLock.ToTable("sync_lock");
+            syncLock
+                .Property(l => l.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            syncLock.Property(l => l.Owner).HasColumnName("owner");
+            syncLock
+                .Property(l => l.Mode)
+                .HasColumnName("mode")
+                .HasConversion<string>();
+            syncLock
+                .Property(l => l.Trigger)
+                .HasColumnName("trigger")
+                .HasConversion<string>();
+            syncLock.Property(l => l.AcquiredAt).HasColumnName("acquired_at");
+            syncLock.Property(l => l.LeaseUntil).HasColumnName("lease_until");
+        });
+        modelBuilder.Entity<PendingArtRow>(pending =>
+        {
+            pending.ToTable("pending_art");
+            pending.HasKey(p => p.Path);
+            pending.Property(p => p.Path).HasColumnName("path");
+        });
     }
 
     private static void MapVideoStates(EntityTypeBuilder<VideoStateRow> state)

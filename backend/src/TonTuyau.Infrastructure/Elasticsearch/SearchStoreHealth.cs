@@ -69,7 +69,6 @@ internal sealed partial class SearchStoreHealthCheck(
 /// <summary>Creates missing indices at startup, retrying until Elasticsearch is there. Never stops the backend.</summary>
 internal sealed partial class IndexInitializer(
     IIndexManager indices,
-    ISyncStateStore syncState,
     SearchStoreReadiness readiness,
     IndexRebuildState rebuild,
     ILogger<IndexInitializer> logger) : BackgroundService
@@ -83,7 +82,6 @@ internal sealed partial class IndexInitializer(
             try
             {
                 await indices.EnsureAsync(stoppingToken).ConfigureAwait(false);
-                await syncState.EnsureAsync(stoppingToken).ConfigureAwait(false);
                 bool outdated = false;
                 foreach (IndexStatus status in await indices.GetStatusAsync(stoppingToken).ConfigureAwait(false))
                 {

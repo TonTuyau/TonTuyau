@@ -23,8 +23,9 @@ internal static class LibraryRows
         Title = video.Title,
         Description = video.Description,
         Type = video.Type,
-        Published = video.Published,
-        Downloaded = video.Downloaded,
+        // PostgreSQL takes instants in UTC only (TubeArchivist's dates may carry an offset).
+        Published = video.Published.ToUniversalTime(),
+        Downloaded = video.Downloaded.ToUniversalTime(),
         Duration = video.Duration,
         MediaSize = video.MediaSize,
         MediaPath = video.MediaPath,
