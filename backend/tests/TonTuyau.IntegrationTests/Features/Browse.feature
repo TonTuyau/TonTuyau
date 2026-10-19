@@ -124,6 +124,15 @@ Feature: Browsing the library
 
   # ---------------------------------------------------------------- watch page
 
+  Scenario: A video's page and a channel's page read the library itself (PostgreSQL), not the index
+    Given the index lost the video "huiles" and the channel "ecole"
+    When I request "/api/videos/{video:huiles}"
+    Then the response status is 200
+    And "title" is "Huiles et cuisson"
+    When I request "/api/channels/{channel:ecole}"
+    Then the response status is 200
+    And "name" is "École du Goût"
+
   Scenario: The watch page has everything about the video and its file, URLs included
     When I request "/api/videos/{video:huiles}"
     Then the response status is 200

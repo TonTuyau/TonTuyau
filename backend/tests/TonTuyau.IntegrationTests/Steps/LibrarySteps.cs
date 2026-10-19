@@ -5,6 +5,7 @@ using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.YouTube;
+using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -144,6 +145,19 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         }
 
         await videos.ReindexAsync([.. checkedOnes.Select(v => v.Id)], default);
+        await RefreshAsync();
+    }
+
+    /// <summary>Their copies in the index only: the library (PostgreSQL) keeps them.</summary>
+    [Given("the index lost the video {string} and the channel {string}")]
+    public async Task IndexLost(string video, string channel)
+    {
+        await Services
+            .GetRequiredService<VideoIndex>()
+            .DeleteAsync([TestIds.Video(video)], default);
+        await Services
+            .GetRequiredService<ChannelIndex>()
+            .DeleteAsync([TestIds.Channel(channel)], default);
         await RefreshAsync();
     }
 

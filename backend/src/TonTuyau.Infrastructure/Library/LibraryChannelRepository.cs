@@ -44,7 +44,7 @@ internal sealed class LibraryChannelRepository(ChannelStore store, ChannelIndex 
         store.GetAsync(id, cancellationToken);
 
     public Task<StoredChannel?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
-        index.GetStoredAsync(id, cancellationToken);
+        store.GetStoredAsync(id, cancellationToken);
 
     public Task<long> CountAsync(CancellationToken cancellationToken) => store.CountAsync(cancellationToken);
 
