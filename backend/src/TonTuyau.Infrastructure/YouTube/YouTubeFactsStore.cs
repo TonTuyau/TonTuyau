@@ -3,10 +3,15 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Library;
 
 namespace TonTuyau.Infrastructure.YouTube;
 
-/// <summary>Writes TonTuyau's own facts (a singleton like the refresh, a database context per call).</summary>
+/// <summary>
+/// Writes what a refresh learned (a singleton like the refresh, a database context per call): since 2.0, the video's or
+/// channel's row in the library, its state and, when read, its metadata in the columns the import filled. A video or
+/// channel that left the library meanwhile has nothing recorded.
+/// </summary>
 internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeFactsStore
 {
     public async Task SaveVideoAsync(VideoFacts facts, CancellationToken cancellationToken)
@@ -16,53 +21,18 @@ internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeF
         await using (scope.ConfigureAwait(false))
         {
             TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-            YouTubeVideoRow? row = await db.YouTubeVideos
-                .FirstOrDefaultAsync(v => v.VideoId == facts.VideoId, cancellationToken)
+            VideoRow? row = await db.Videos
+                .FirstOrDefaultAsync(v => v.Id == facts.VideoId, cancellationToken)
                 .ConfigureAwait(false);
             if (row is null)
             {
-                row = new YouTubeVideoRow { VideoId = facts.VideoId, ChannelId = facts.ChannelId };
-                db.YouTubeVideos.Add(row);
+                return;
             }
 
-            // Its channel has a row before it (the foreign key): "not checked" until TonTuyau reads the channel.
-            bool channelKnown = await db.YouTubeChannels
-                .AnyAsync(c => c.ChannelId == facts.ChannelId, cancellationToken)
+            Dictionary<string, CategoryRow> categories = await LibraryCategories
+                .FindOrAddAsync(db, [facts.Refreshed?.Categories ?? []], cancellationToken)
                 .ConfigureAwait(false);
-            if (!channelKnown)
-            {
-                db.YouTubeChannels.Add(new YouTubeChannelRow
-                {
-                    ChannelId = facts.ChannelId,
-                    State = YouTubeState.NotChecked,
-                });
-            }
-
-            row.ChannelId = facts.ChannelId;
-
-            row.State = facts.Status.State;
-            row.CheckedAt = facts.Status.CheckedAt;
-            row.Reason = facts.Status.Reason;
-            row.RefreshedAt = facts.Status.RefreshedAt;
-            RefreshedVideo? refreshed = facts.Refreshed;
-            row.Title = refreshed?.Title;
-            row.ChannelName = refreshed?.ChannelName;
-            row.Description = refreshed?.Description;
-            row.Tags = [.. refreshed?.Tags ?? []];
-            row.Categories = [.. refreshed?.Categories ?? []];
-            row.Views = refreshed?.Views;
-            row.Likes = refreshed?.Likes;
-            row.CommentCount = refreshed?.CommentCount;
-            row.Chapters =
-            [
-                .. (refreshed?.Chapters ?? []).Select(c => new VideoChapterRow
-                {
-                    Start = c.StartSeconds,
-                    End = c.EndSeconds,
-                    Title = c.Title,
-                }),
-            ];
-            row.ThumbnailPath = refreshed?.ThumbnailPath;
+            LibraryRows.WriteFacts(row, facts, LibraryCategories.Of(facts.Refreshed?.Categories ?? [], categories));
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -80,9 +50,14 @@ internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeF
         await using (scope.ConfigureAwait(false))
         {
             TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-            YouTubeVideoRow row = await db.YouTubeVideos
-                .FirstAsync(v => v.VideoId == videoId, cancellationToken)
+            VideoRow? row = await db.Videos
+                .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken)
                 .ConfigureAwait(false);
+            if (row is null)
+            {
+                return;
+            }
+
             IDbContextTransaction transaction = await db.Database
                 .BeginTransactionAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -114,26 +89,15 @@ internal sealed class YouTubeFactsStore(IServiceScopeFactory scopes) : IYouTubeF
         await using (scope.ConfigureAwait(false))
         {
             TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-            YouTubeChannelRow? row = await db.YouTubeChannels
-                .FirstOrDefaultAsync(c => c.ChannelId == facts.ChannelId, cancellationToken)
+            ChannelRow? row = await db.Channels
+                .FirstOrDefaultAsync(c => c.Id == facts.ChannelId, cancellationToken)
                 .ConfigureAwait(false);
             if (row is null)
             {
-                row = new YouTubeChannelRow { ChannelId = facts.ChannelId };
-                db.YouTubeChannels.Add(row);
+                return;
             }
 
-            row.State = facts.Status.State;
-            row.CheckedAt = facts.Status.CheckedAt;
-            row.Reason = facts.Status.Reason;
-            row.RefreshedAt = facts.Status.RefreshedAt;
-            RefreshedChannel? refreshed = facts.Refreshed;
-            row.Name = refreshed?.Name;
-            row.Description = refreshed?.Description;
-            row.Subscribers = refreshed?.Subscribers;
-            row.Tags = [.. refreshed?.Tags ?? []];
-            row.ThumbPath = refreshed?.ThumbPath;
-            row.BannerPath = refreshed?.BannerPath;
+            LibraryRows.WriteFacts(row, facts);
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);

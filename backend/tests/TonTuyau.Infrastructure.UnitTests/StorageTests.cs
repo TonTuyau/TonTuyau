@@ -142,38 +142,6 @@ public sealed class StorageTests : IDisposable
         Assert.Throws<ArgumentException>(() => new FileArtStore(_root).Find(path));
     }
 
-    [Fact]
-    public async Task Deletion_lists_round_trip_as_jsonl()
-    {
-        DeletionLog log = new(_root);
-        string run = SyncRun.NewId(DateTimeOffset.UtcNow);
-        DeletionEntry[] entries =
-        [
-            new(
-                "video",
-                "abcdefghijk",
-                "Titre « accentué »",
-                "UCaaaaaaaaaaaaaaaaaaaaaa",
-                "video",
-                DateTimeOffset.UnixEpoch,
-                "run-x"),
-            new("channel", "UCaaaaaaaaaaaaaaaaaaaaaa", "Chaîne", null, null, null, null),
-        ];
-
-        string file = await log.WriteAsync(run, entries, Ct);
-
-        Assert.Equal(2, (await File.ReadAllLinesAsync(file, Ct)).Length);
-        Assert.Equal(entries, await log.ReadAsync(run, Ct));
-    }
-
-    [Fact]
-    public async Task A_run_without_a_list_reads_as_null_and_bad_run_ids_are_refused()
-    {
-        DeletionLog log = new(_root);
-
-        Assert.Null(await log.ReadAsync(SyncRun.NewId(DateTimeOffset.UtcNow), Ct));
-        await Assert.ThrowsAsync<ArgumentException>(() => log.ReadAsync("../../etc/passwd", Ct));
-    }
 
     public void Dispose()
     {

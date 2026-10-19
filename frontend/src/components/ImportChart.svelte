@@ -3,9 +3,9 @@
 </script>
 
 <script lang="ts">
-  // The import history of a period: one bar per step (a sync run, a day, a week or a month, oldest left), stacked
+  // The import history of a period: one bar per step (an import, a day, a week or a month, oldest left), stacked
   // by type, the runs of 1.1 (which didn't record the types) in grey. Every step has its slot, an empty one too, so
-  // time stays linear. Hovering a bar names its step and its counts. Dates are those of the sync's time zone, as
+  // time stays linear. Hovering a bar names its step and its counts. Dates are those of TONTUYAU_TZ, as
   // the backend counted them. The vertical scale is linear or logarithmic (log10(1 + n): 0 stays on the baseline and
   // a single video still has a bar), for a big import not to flatten the others. The same numbers are in a table for
   // screen readers.

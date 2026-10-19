@@ -1,10 +1,33 @@
 using TonTuyau.Application.Library;
+using TonTuyau.Application.Store;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Infrastructure.Elasticsearch.Documents;
 
 internal static class DocumentMapper
 {
+    /// <summary>The whole document of a video: its content (and that content's hash), then its bookkeeping.</summary>
+    public static VideoDocument ToDocument(StoredVideo stored)
+    {
+        ArgumentNullException.ThrowIfNull(stored);
+        return ToDocument(stored.Video) with
+        {
+            MediaMissing = stored.MediaMissing,
+            ThumbnailArt = stored.ThumbnailArt is null ? null : ToDocument(stored.ThumbnailArt),
+        };
+    }
+
+    /// <summary>The whole document of a channel: its content (and that content's hash), then its bookkeeping.</summary>
+    public static ChannelDocument ToDocument(StoredChannel stored)
+    {
+        ArgumentNullException.ThrowIfNull(stored);
+        return ToDocument(stored.Channel) with
+        {
+            ThumbArt = stored.ThumbArt is null ? null : ToDocument(stored.ThumbArt),
+            BannerArt = stored.BannerArt is null ? null : ToDocument(stored.BannerArt),
+        };
+    }
+
     public static VideoDocument ToDocument(Video v)
     {
         VideoDocument doc = new(
@@ -15,12 +38,9 @@ internal static class DocumentMapper
             v.Description,
             v.Tags,
             v.Categories,
-            v.PlaylistIds,
             TypeName(v.Type),
-            v.Active,
             v.Published,
             v.Downloaded,
-            v.LastRefreshed,
             v.Duration.TotalSeconds,
             v.MediaSize,
             v.MediaPath,
@@ -37,10 +57,10 @@ internal static class DocumentMapper
                     t.Width,
                     t.Height))
                 .ToArray(),
-            StateName(v.CurrentYouTube.State),
-            v.CurrentYouTube.CheckedAt,
-            v.CurrentYouTube.Reason,
-            v.CurrentYouTube.RefreshedAt);
+            StateName(v.YouTube.State),
+            v.YouTube.CheckedAt,
+            v.YouTube.Reason,
+            v.YouTube.RefreshedAt);
         return doc with { ContentHash = StoreJson.ContentHash(doc) };
     }
 
@@ -51,10 +71,8 @@ internal static class DocumentMapper
         d.Title,
         d.Description,
         ParseType(d.Type),
-        d.Active,
         d.Published,
         d.Downloaded,
-        d.LastRefreshed,
         TimeSpan.FromSeconds(d.DurationSeconds),
         d.MediaSize,
         d.MediaPath,
@@ -62,7 +80,6 @@ internal static class DocumentMapper
         d.ThumbnailPath,
         d.Tags,
         d.Categories,
-        d.PlaylistIds,
         new VideoStats(d.Views, d.Likes, d.Dislikes),
         d.Tracks
             .Select(t => new MediaTrack(
@@ -81,19 +98,14 @@ internal static class DocumentMapper
             c.Name,
             c.Description,
             c.Subscribers,
-            c.Active,
-            c.LastRefreshed,
             c.Tags,
-            c.Tabs
-                .Select(TypeName)
-                .ToArray(),
             c.ThumbPath,
             c.BannerPath,
             c.TvArtPath,
-            StateName(c.CurrentYouTube.State),
-            c.CurrentYouTube.CheckedAt,
-            c.CurrentYouTube.Reason,
-            c.CurrentYouTube.RefreshedAt);
+            StateName(c.YouTube.State),
+            c.YouTube.CheckedAt,
+            c.YouTube.Reason,
+            c.YouTube.RefreshedAt);
         return doc with { ContentHash = StoreJson.ContentHash(doc) };
     }
 
@@ -102,12 +114,7 @@ internal static class DocumentMapper
         d.Name,
         d.Description,
         d.Subscribers,
-        d.Active,
-        d.LastRefreshed,
         d.Tags,
-        d.Tabs
-            .Select(ParseType)
-            .ToArray(),
         d.ThumbPath,
         d.BannerPath,
         d.TvartPath,
@@ -136,13 +143,12 @@ internal static class DocumentMapper
         _ => YouTubeState.NotChecked,
     };
 
-    /// <summary>A document written before 1.5 has no state: the TubeArchivist flag then says it.</summary>
-    private static YouTubeStatus? StatusOf(
+    private static YouTubeStatus StatusOf(
         string? state,
         DateTimeOffset? checkedAt,
         string? reason,
         DateTimeOffset? refreshedAt) =>
-        state is null ? null : new YouTubeStatus(ParseState(state), checkedAt, reason, refreshedAt);
+        new(ParseState(state), checkedAt, reason, refreshedAt);
 
     public static ArtVersions? ToArt(ArtDocument? document) =>
         document is null ? null : new ArtVersions(document.Width, document.Sizes ?? []);

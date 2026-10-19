@@ -1,7 +1,7 @@
 @elasticsearch @sync @api @youtube
 Feature: Refreshing videos and channels on YouTube
   An admin (or the command line) reads a video, a channel, or a channel and each of its videos on YouTube (1.5): a run
-  like the syncs, in the history and the log. What YouTube answers becomes TonTuyau's facts, then the index shows them:
+  like the import, in the history and the log. What YouTube answers becomes TonTuyau's facts, then the index shows them:
   found, its metadata wins over TubeArchivist's; gone (removed, private, terminated), it's flagged; no answer to trust
   (the network, a timeout), it's to retry, and nothing TonTuyau confirmed before changes; YouTube refusing (a bot check,
   too many requests) puts the run on hold (YouTubeHold.feature). yt-dlp is a fake here.
@@ -9,7 +9,7 @@ Feature: Refreshing videos and channels on YouTube
   Background:
     Given TubeArchivist has the channel "alpha" with 3 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
     And I logged in as the admin
 
   Scenario: A video found on YouTube takes YouTube's metadata
@@ -26,7 +26,8 @@ Feature: Refreshing videos and channels on YouTube
     When I request the video "alpha-01" of TubeArchivist
     Then "title" is "Le vrai titre"
     And "views" is "1234"
-    And "channel.name" is "Alpha on YouTube"
+    # Its channel's name is the channel's: a refresh of the channel reads it.
+    And "channel.name" is "alpha"
     And "active" is "true"
 
   Scenario: A video YouTube says is removed is flagged
@@ -231,7 +232,7 @@ Feature: Refreshing videos and channels on YouTube
     Then the response status is 409
     When I send POST "/api/admin/tasks/refreshVideo/runs" with my session
     Then the response status is 400
-    When I send POST "/api/admin/tasks/full/runs?target=alpha-01___" with my session
+    When I send POST "/api/admin/tasks/import/runs?target=alpha-01___" with my session
     Then the response status is 400
 
   Scenario: From the command line
@@ -251,5 +252,5 @@ Feature: Refreshing videos and channels on YouTube
     And "items[0].task" is "refreshVideo"
     When I request "/api/admin/runs?task=refreshChannel" with my session
     Then "total" is "0"
-    When I request "/api/admin/runs?task=applyDeletions" with my session
+    When I request "/api/admin/runs?task=indexRebuild" with my session
     Then "total" is "0"

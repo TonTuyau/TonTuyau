@@ -11,7 +11,7 @@ using TonTuyau.Application.Validation;
 namespace TonTuyau.Application.YouTube;
 
 /// <summary>
-/// Reads videos and channels of the library on YouTube (1.5), as runs like the syncs (the same lock, history, log):
+/// Reads videos and channels of the library on YouTube (1.5), as runs like the import (the same lock, history, log):
 /// a video, a channel, or a channel and each of its videos. What YouTube answers becomes TonTuyau's facts
 /// (PostgreSQL), then the index is updated with them:
 /// <list type="bullet">
@@ -258,8 +258,6 @@ public sealed partial class YouTubeRefreshService(
             state,
             run,
             new HashSet<string>(),
-            guardPercent: 100,
-            guardMinimum: 0,
             new BothProgress(progress, logged),
             clock.GetUtcNow(),
             linked.Token);
@@ -314,7 +312,7 @@ public sealed partial class YouTubeRefreshService(
             else
             {
                 string reason = lockLost
-                    ? "The sync lock was lost (another process holds it): stopped."
+                    ? "The run lock was lost (another process holds it): stopped."
                     : ex.Message;
                 context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
                 LogFailed(run.Id, reason);
@@ -542,8 +540,9 @@ public sealed partial class YouTubeRefreshService(
             context.Count(c => c with { CommentsRead = c.CommentsRead + read.Count });
         }
 
+        // The index's copy again from PostgreSQL, where the refresh wrote what it read (2.0).
         UpsertResult written = await videos
-            .UpsertAsync([YouTubeOverlay.On(video, learned)], runId: null, ct)
+            .ReindexAsync([videoId], ct)
             .ConfigureAwait(false);
         context.Count(c => Add(c, written));
         if (thumbnail?.Versions is { } versions)
@@ -639,7 +638,7 @@ public sealed partial class YouTubeRefreshService(
         }
 
         UpsertResult written = await channels
-            .UpsertAsync([YouTubeOverlay.On(channel, learned)], runId: null, ct)
+            .ReindexAsync([channelId], ct)
             .ConfigureAwait(false);
         context.Count(c => Add(c, written));
         foreach ((ArtSubject subject, SavedPicture? picture) in new[]

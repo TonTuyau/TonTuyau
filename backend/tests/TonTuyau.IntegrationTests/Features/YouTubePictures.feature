@@ -9,7 +9,7 @@ Feature: YouTube's pictures, into TonTuyau's art volume
     Given YouTube's pictures can be downloaded
     And TubeArchivist has the channel "alpha" with 2 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
     And I logged in as the admin
 
   Scenario: A video's largest thumbnail replaces TubeArchivist's copy, resized

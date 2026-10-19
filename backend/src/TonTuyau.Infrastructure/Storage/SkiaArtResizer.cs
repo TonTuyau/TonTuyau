@@ -7,7 +7,7 @@ namespace TonTuyau.Infrastructure.Storage;
 /// <summary>
 /// Resized WebP versions with SkiaSharp (QA09): one decode of the original for all widths, Mitchell cubic sampling,
 /// quality 80, no metadata (no EXIF, ICC or XMP chunk is written), never upscaled, each file written atomically.
-/// Thread-safe: the sync runs several at once.
+/// Thread-safe: the import runs several at once.
 /// </summary>
 internal sealed class SkiaArtResizer(FileArtStore store) : IArtResizer
 {

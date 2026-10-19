@@ -20,10 +20,8 @@ public sealed class VideoDtoValidatorTests
         ChannelNameBlank,
         TitleBlank,
         TypeUnknown,
-        ActiveMissing,
         PublishedBad,
         DownloadedZero,
-        RefreshBad,
         SizeNegative,
         DurationMissing,
         DurationNegative,
@@ -70,6 +68,15 @@ public sealed class VideoDtoValidatorTests
         }
 
         Assert.True(count > 400);
+    }
+
+    /// <summary>TubeArchivist's own flag and refresh date aren't kept (2.0): a document without them is valid.</summary>
+    [Fact]
+    public void Its_active_flag_and_refresh_date_are_not_needed()
+    {
+        VideoDto v = ValidVideo() with { Active = null, VidLastRefresh = "soon" };
+
+        _validator.Validate(v);
     }
 
     [Theory, CombinatorialData]
@@ -169,10 +176,8 @@ public sealed class VideoDtoValidatorTests
                 "channel.channel_name"),
             Broken.TitleBlank => (v with { Title = "  " }, "title"),
             Broken.TypeUnknown => (v with { VidType = "live" }, "vid_type"),
-            Broken.ActiveMissing => (v with { Active = null }, "active"),
             Broken.PublishedBad => (v with { Published = "yesterday" }, "published"),
             Broken.DownloadedZero => (v with { DateDownloaded = 0 }, "date_downloaded"),
-            Broken.RefreshBad => (v with { VidLastRefresh = "soon" }, "vid_last_refresh"),
             Broken.SizeNegative => (v with { MediaSize = -1 }, "media_size"),
             Broken.DurationMissing => (v with { Player = null }, "player.duration"),
             Broken.DurationNegative => (v with { Player = new PlayerDto(-3) }, "player.duration"),

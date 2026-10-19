@@ -1,28 +1,27 @@
 @elasticsearch @api
 Feature: The admin dashboard's import history
-  The new videos of the finished sync runs (never an index rebuild, which writes every video again, nor a run that
-  only applied a deletion list), over a period:
-  the last day a bar per sync (an empty one too), the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
-  every month since the first import. Days are those of the sync's time zone (Europe/Paris here: UTC+2 in summer,
+  The new videos of the finished TubeArchivist imports (2.0: never a refresh, nor an index rebuild, which adds
+  none), over a period:
+  the last day a bar per import (an empty one too), the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
+  every month since the first import. Days are those of TONTUYAU_TZ (Europe/Paris here: UTC+2 in summer,
   UTC+1 in winter). Every step has its bar, an empty one too. Runs of 1.1 didn't record the types.
 
   Background:
     Given the clock shows "2026-10-14T10:00:00Z"
-    And the sync runs:
+    And the TubeArchivist imports:
       | started              | outcome   | new   | videos | shorts | streams | rebuild |
       | 2025-03-10T07:00:00Z | succeeded | 40000 |        |        |         | false   |
       | 2025-11-03T07:00:00Z | succeeded | 5     | 5      | 0      | 0       | false   |
       | 2026-09-20T07:00:00Z | succeeded | 3     | 2      | 1      | 0       | false   |
-      | 2026-10-04T01:00:00Z | succeeded | 40003 | 40000  | 3      | 0       | true    |
       | 2026-10-09T07:00:00Z | failed    | 2     | 1      | 1      | 0       | false   |
       | 2026-10-13T21:30:00Z | succeeded | 4     | 3      | 0      | 1       | false   |
       | 2026-10-14T08:00:00Z | succeeded | 6     | 3      | 2      | 1       | false   |
       | 2026-10-14T09:00:00Z | running   | 2     | 2      | 0      | 0       | false   |
       | 2026-10-14T09:30:00Z | succeeded | 0     | 0      | 0      | 0       | false   |
-    And a run applied a deletion list at "2026-10-14T09:45:00Z"
+    And a refresh ran at "2026-10-14T09:45:00Z"
 
-  # 1.2.1: every sync of the last day has its bar, an empty one for a sync that brought nothing.
-  Scenario: The last day: a bar per sync of the last 24 hours, an empty one too
+  # 1.2.1: every import of the last day has its bar, an empty one for an import that brought nothing.
+  Scenario: The last day: a bar per import of the last 24 hours, an empty one too
     When I log in as the admin
     And I request "/api/admin/dashboard/imports?period=day" with my session
     Then the response status is 200

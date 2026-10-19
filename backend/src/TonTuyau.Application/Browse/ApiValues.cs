@@ -94,12 +94,11 @@ public static class ApiValues
     };
 
     /// <summary>The import history's periods (the admin dashboard).</summary>
-    /// <summary>The Tasks page's tasks (1.4): the kinds of run.</summary>
+    /// <summary>The kinds of run (1.4), as the Tasks page and the run history name them.</summary>
     public static readonly Table<SyncMode> Tasks = new()
     {
-        ["incremental"] = SyncMode.Incremental,
-        ["full"] = SyncMode.Full,
-        ["applyDeletions"] = SyncMode.ApplyDeletions,
+        ["import"] = SyncMode.Import,
+        ["indexRebuild"] = SyncMode.IndexRebuild,
         ["refreshVideo"] = SyncMode.RefreshVideo,
         ["refreshChannel"] = SyncMode.RefreshChannel,
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,

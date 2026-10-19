@@ -5,9 +5,9 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Application.Sync;
 
 /// <summary>
-/// Starts the runs of this backend in the background (the scheduled ones; in 1.4 the Tasks page's and the command
-/// line's) and knows the one going on: one at a time (the sync lock, across processes), cancellable by its id while it
-/// runs, canceled when the backend stops (<see cref="StopAsync"/>). The startup index rebuild isn't one of them.
+/// Starts the runs of this backend in the background (the Tasks page's, the command line's, the import at startup)
+/// and knows the one going on: one at a time (the run lock, across processes), cancellable by its id while it runs,
+/// canceled when the backend stops (<see cref="StopAsync"/>). The startup index rebuild isn't one of them.
 /// It owns nothing to dispose: each run's cancellation source is disposed when the run ends.
 /// </summary>
 public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService refresh, ILogger<SyncRunner> logger)
@@ -29,25 +29,22 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
         }
     }
 
-    /// <summary>Starts a run, and returns once it has started (its record exists): it goes on by itself.</summary>
-    /// <param name="appliesTo">For <see cref="SyncMode.ApplyDeletions"/>: the full run whose list to apply.</param>
+    /// <summary>
+    /// Starts the TubeArchivist import, and returns once it has started (its record exists): it goes on by itself.
+    /// </summary>
     /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
-    /// <exception cref="SyncRefusedException">The list can't be applied (see <see cref="SyncService"/>).</exception>
+    /// <exception cref="SyncRefusedException">TubeArchivist isn't set up.</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
-    public Task<StartedRun> StartAsync(
-        SyncMode mode,
-        SyncTrigger trigger,
-        string? appliesTo = null,
-        string? startedBy = null) =>
-        StartAsync((progress, token) => mode == SyncMode.ApplyDeletions
-            ? sync.ApplyDeletionsAsync(
-                appliesTo ?? throw new ArgumentNullException(nameof(appliesTo)),
-                trigger,
-                startedBy,
-                progress,
-                token)
-            : sync.RunAsync(mode, trigger, startedBy, progress, token));
+    public Task<StartedRun> StartImportAsync(SyncTrigger trigger, string? startedBy = null)
+    {
+        if (!sync.CanImport)
+        {
+            throw new SyncRefusedException(SyncService.NoTubeArchivist);
+        }
+
+        return StartAsync((progress, token) => sync.ImportAsync(trigger, startedBy, progress, token));
+    }
 
     /// <summary>Starts an index rebuild (<c>tontuyau index rebuild</c>), a run like the others.</summary>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
@@ -96,7 +93,7 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
 
         if (await Task.WhenAny(starting.Id, run).ConfigureAwait(false) == run)
         {
-            // Over before it started: the lock was busy or the list refused (thrown here), or the backend stopped.
+            // Over before it started: the lock was busy (thrown here), or the backend stopped.
             SyncRun ended = await run.ConfigureAwait(false);
             return new StartedRun(ended.Id, run);
         }
@@ -104,12 +101,13 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
         return new StartedRun(await starting.Id.ConfigureAwait(false), run);
     }
 
-    /// <summary>Starts a run and waits for its end (the scheduler).</summary>
+    /// <summary>Starts the TubeArchivist import and waits for its end (at startup).</summary>
     /// <param name="cancellationToken">Stops the waiting, not the run (<see cref="Cancel"/> does).</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
-    public async Task<SyncRun> RunAsync(SyncMode mode, SyncTrigger trigger, CancellationToken cancellationToken)
+    /// <exception cref="SyncRefusedException">TubeArchivist isn't set up.</exception>
+    public async Task<SyncRun> RunImportAsync(SyncTrigger trigger, CancellationToken cancellationToken)
     {
-        StartedRun started = await StartAsync(mode, trigger).ConfigureAwait(false);
+        StartedRun started = await StartImportAsync(trigger).ConfigureAwait(false);
         return await started.Finished
             .WaitAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -186,7 +184,7 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Sync {RunId}: canceled by {By}.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Run {RunId}: canceled by {By}.")]
     private partial void LogCancel(string runId, string by);
 
     private sealed record Running(string Id, CancellationTokenSource Cancel);

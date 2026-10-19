@@ -13,15 +13,8 @@ public static class TonTuyauOptionsReader
     public const string DefaultDenoPath = "deno";
     public const string DefaultToolsRoot = "/data/tools";
     public const string DefaultArtRoot = "/data/art";
-    public const string DefaultIncrementalCron = "0 7-23 * * *";
-    public const string DefaultFullCron = "0 1 * * 6";
     public const string DefaultTimeZone = "Europe/Paris";
-    public const string DefaultSyncLogRoot = "/data/logs/sync";
-    public const int DefaultMaxDeletions = 100;
-    public const int DefaultMarginHours = 24;
     public const int DefaultTaResultWindow = 10_000;
-    public const int DefaultRejectGuardPercent = 50;
-    public const int DefaultRejectGuardMinDocuments = 20;
     public const string DefaultDbHost = "tontuyau-db";
     public const string DefaultDbName = "tontuyau";
     public const string DefaultDbUsername = "tontuyau";
@@ -71,8 +64,12 @@ public static class TonTuyauOptionsReader
             return fallback;
         }
 
+        // TubeArchivist is optional (2.0): without its address and token, TonTuyau runs without it.
+        TubeArchivistOptions? tubeArchivist = Get(ConfigKeys.TaUrl).Length == 0 && Get(ConfigKeys.TaToken).Length == 0
+            ? null
+            : new TubeArchivistOptions(Get(ConfigKeys.TaUrl), Get(ConfigKeys.TaToken));
         return new TonTuyauOptions(
-            new TubeArchivistOptions(Get(ConfigKeys.TaUrl), Get(ConfigKeys.TaToken)),
+            tubeArchivist,
             new ElasticsearchOptions(
                 Get(ConfigKeys.EsUrl),
                 Get(ConfigKeys.EsUsername, DefaultEsUsername),
@@ -82,16 +79,8 @@ public static class TonTuyauOptionsReader
                 Get(ConfigKeys.MediaRoot, DefaultMediaRoot),
                 Get(ConfigKeys.ArtRoot, DefaultArtRoot)),
             new SyncOptions(
-                Get(ConfigKeys.SyncIncrementalCron, DefaultIncrementalCron),
-                Get(ConfigKeys.SyncFullCron, DefaultFullCron),
                 Get(ConfigKeys.TimeZone, DefaultTimeZone),
-                Get(ConfigKeys.SyncLogRoot, DefaultSyncLogRoot),
-                GetInt(ConfigKeys.SyncMaxDeletions, DefaultMaxDeletions),
-                GetInt(ConfigKeys.SyncMarginHours, DefaultMarginHours),
-                GetBool(ConfigKeys.SyncSchedulerEnabled, true),
                 GetInt(ConfigKeys.TaResultWindow, DefaultTaResultWindow),
-                GetInt(ConfigKeys.SyncRejectGuardPercent, DefaultRejectGuardPercent),
-                GetInt(ConfigKeys.SyncRejectGuardMinDocuments, DefaultRejectGuardMinDocuments),
                 GetInt(ConfigKeys.ArtResizeParallelism, Environment.ProcessorCount)),
             new DatabaseOptions(
                 Get(ConfigKeys.DbHost, DefaultDbHost),

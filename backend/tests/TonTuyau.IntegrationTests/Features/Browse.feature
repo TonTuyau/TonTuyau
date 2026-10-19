@@ -160,8 +160,8 @@ Feature: Browsing the library
       | mp4       | h264+mp3   | video/mp4; codecs="avc1.640028, mp4a.6B"    |
       | mp4       | prores+pcm | video/mp4; codecs="prores, pcm"             |
 
-  Scenario: A file the full sync found missing is reported as unavailable
-    Given the full sync flagged the file of the video "huiles" as missing
+  Scenario: A file the import found missing is reported as unavailable
+    Given the import flagged the file of the video "huiles" as missing
     When I request "/api/videos/{video:huiles}"
     Then "mediaAvailable" is "false"
 
@@ -192,21 +192,21 @@ Feature: Browsing the library
       | private  | private  |
       | unlisted | unlisted |
 
-  Scenario Outline: Anything short of confirmed gone isn't flagged (1.5): TubeArchivist's flag alone never is
+  Scenario Outline: Anything short of confirmed gone isn't flagged (1.5)
     Given the videos:
-      | key   | title  | channel | active   | youtube   | published  |
-      | maybe | Peut-ê | zeste   | <active> | <youtube> | 2026-11-01 |
+      | key   | title  | channel | youtube   | published  |
+      | maybe | Peut-ê | zeste   | <youtube> | 2026-11-01 |
     When I list "/api/videos?size=1"
     Then "items[0].active" is "true"
     When I request "/api/videos/{video:maybe}"
     Then "active" is "true"
 
     Examples:
-      | active | youtube     |
-      | false  |             |
-      | false  | retry later |
-      | true   | not checked |
-      | true   | on YouTube  |
+      | youtube     |
+      |             |
+      | retry later |
+      | not checked |
+      | on YouTube  |
 
   Scenario: No URL is given for an image that was never copied
     Given the thumbnail of the video "huiles" was never copied
@@ -219,9 +219,9 @@ Feature: Browsing the library
 
   # ---------------------------------------------------------------- resized art (QA09, contract v1.4)
 
-  Scenario: Cards list the versions the sync recorded, smallest first, the original last
-    Given the sync recorded the thumbnail of the video "huiles" as 1280 px wide with the versions "360, 720"
-    And the sync recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "48, 96, 176, 320"
+  Scenario: Cards list the versions the import recorded, smallest first, the original last
+    Given the import recorded the thumbnail of the video "huiles" as 1280 px wide with the versions "360, 720"
+    And the import recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "48, 96, 176, 320"
     When I request "/api/videos/{video:huiles}"
     Then "thumbnails" lists the widths "360, 720, 1280"
     And "thumbnails[0].url" is "/art/videos/{video:huiles}/360"
@@ -232,20 +232,20 @@ Feature: Browsing the library
     And "channel.thumbnails[4].url" is "/art/channels/{channel:tomcooks}/thumb"
 
   Scenario: Lists show the recorded versions too
-    Given the sync recorded the thumbnail of the video "huiles" as 1280 px wide with the versions "360"
+    Given the import recorded the thumbnail of the video "huiles" as 1280 px wide with the versions "360"
     When I list "/api/channels/{channel:tomcooks}/videos?sort=oldest"
     Then "items[0].thumbnails" lists the widths "360, 1280"
     And "items[0].thumbnails[1].url" is "/art/videos/{video:huiles}"
 
-  Scenario: An image the sync hasn't recorded yet is described from the art store
+  Scenario: An image not recorded yet is described from the art store
     Given the resized versions of the video "huiles" were made
     When I request "/api/videos/{video:huiles}"
     Then "thumbnails" lists the widths "360, 720, 800"
     And "channel.thumbnails" lists the widths "400"
 
   Scenario: A channel's page lists its picture and banner versions
-    Given the sync recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "48, 96"
-    And the sync recorded the banner of the channel "tomcooks" as 2560 px wide with the versions "1280"
+    Given the import recorded the thumbnail of the channel "tomcooks" as 900 px wide with the versions "48, 96"
+    And the import recorded the banner of the channel "tomcooks" as 2560 px wide with the versions "1280"
     When I request "/api/channels/{channel:tomcooks}"
     Then "thumbnails" lists the widths "48, 96, 900"
     And "banners" lists the widths "1280, 2560"

@@ -87,7 +87,7 @@ Feature: API keys
       | method | path                              |
       | GET    | /api/admin/tasks                  |
       | GET    | /api/admin/dashboard              |
-      | POST   | /api/admin/tasks/incremental/runs |
+      | POST   | /api/admin/tasks/import/runs      |
       | GET    | /api/admin/api-keys               |
       | POST   | /api/admin/api-keys/1/disable     |
 

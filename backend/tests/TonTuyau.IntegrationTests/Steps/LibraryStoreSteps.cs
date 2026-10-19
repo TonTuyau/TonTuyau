@@ -20,7 +20,7 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     private UpsertResult? _added;
     private Exception? _failure;
 
-    private static readonly YouTubeStatus NotChecked = new(YouTubeState.NotChecked, null, null, null);
+    private static readonly YouTubeStatus NotChecked = YouTubeStatus.NotChecked;
 
     private IServiceProvider Services => state.Backend.Services;
 
@@ -48,13 +48,6 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         _videos[id] = VideoFor(id) with { Title = title };
         await VideosAreAdded(ids);
-    }
-
-    [When("the video {string}, inactive in TubeArchivist, is added to the library")]
-    public async Task InactiveVideoIsAdded(string id)
-    {
-        _videos[id] = VideoFor(id) with { Active = false };
-        await VideosAreAdded(id);
     }
 
     [When("the videos {string} in the category {string} are added to the library")]
@@ -107,25 +100,12 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     {
         Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
         Video added = VideoFor(id);
-        // TubeArchivist's refresh date and playlists aren't kept; the channel's name is the channel's.
+        // The channel's name is the channel's.
         Assert.Equal(
-            added with
-            {
-                ChannelName = ChannelFor(DefaultChannel).Name,
-                LastRefreshed = null,
-                PlaylistIds = [],
-                YouTube = NotChecked,
-            },
-            stored with
-            {
-                Tags = added.Tags,
-                Categories = added.Categories,
-                PlaylistIds = [],
-                Tracks = added.Tracks,
-            });
+            added with { ChannelName = ChannelFor(DefaultChannel).Name },
+            stored with { Tags = added.Tags, Categories = added.Categories, Tracks = added.Tracks });
         Assert.Equal(added.Tags, stored.Tags);
         Assert.Equal(added.Categories, stored.Categories);
-        Assert.Empty(stored.PlaylistIds);
         Assert.Equal(added.Tracks, stored.Tracks);
     }
 
@@ -152,15 +132,6 @@ public sealed class LibraryStoreSteps(ScenarioState state)
                 .ToListAsync();
             Assert.Equal(Names(categories), names.Order(StringComparer.Ordinal));
         }
-    }
-
-    [Then("the library's video {string} is not checked on YouTube, and active")]
-    public async Task VideoIsNotChecked(string id)
-    {
-        Video stored = (await Videos.GetAsync(id, CancellationToken.None))!;
-        Assert.Equal(NotChecked, stored.YouTube);
-        Assert.True(stored.Active);
-        Assert.False(stored.GoneFromYouTube);
     }
 
     [Then("the library's video {string} has the title {string}")]
@@ -234,17 +205,13 @@ public sealed class LibraryStoreSteps(ScenarioState state)
             new Dictionary<string, ArtVersions> { [id] = new(width, Widths(versions)) },
             CancellationToken.None);
 
-    [Then("the library's channel {string} is the one added, tabs and tags included")]
+    [Then("the library's channel {string} is the one added, tags included")]
     public async Task ChannelIsTheOneAdded(string id)
     {
         Channel stored = (await Channels.GetAsync(id, CancellationToken.None))!;
         Channel added = ChannelFor(id);
-        // TubeArchivist's refresh date and tabs aren't kept.
-        Assert.Equal(
-            added with { LastRefreshed = null, Tabs = [], YouTube = NotChecked },
-            stored with { Tags = added.Tags, Tabs = [] });
+        Assert.Equal(added, stored with { Tags = added.Tags });
         Assert.Equal(added.Tags, stored.Tags);
-        Assert.Empty(stored.Tabs);
     }
 
     [Then("the library's channel {string} has the name {string}")]
@@ -271,10 +238,8 @@ public sealed class LibraryStoreSteps(ScenarioState state)
                 $"Vidéo {id}",
                 "Une description.",
                 VideoType.Short,
-                true,
                 new DateTimeOffset(2026, 3, 1, 10, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2026, 3, 2, 10, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2026, 3, 3, 10, 0, 0, TimeSpan.Zero),
                 TimeSpan.FromSeconds(61.5),
                 123_456,
                 $"{DefaultChannel}/{id}.mp4",
@@ -282,12 +247,12 @@ public sealed class LibraryStoreSteps(ScenarioState state)
                 $"/cache/videos/{id[0]}/{id}.jpg",
                 ["pompe", "tuyau"],
                 ["Science"],
-                ["PLaaaa"],
                 new VideoStats(10, 2, 1),
                 [
                     new MediaTrack(MediaTrackKind.Video, "vp9", 1_000_000, 1920, 1080),
                     new MediaTrack(MediaTrackKind.Audio, "opus", 128_000, null, null),
-                ]);
+                ],
+                NotChecked);
             _videos[id] = video;
         }
 
@@ -303,13 +268,11 @@ public sealed class LibraryStoreSteps(ScenarioState state)
                 $"Chaîne {id}",
                 "Sa description.",
                 4_200,
-                true,
-                new DateTimeOffset(2026, 3, 3, 10, 0, 0, TimeSpan.Zero),
                 ["pompe"],
-                [VideoType.Video, VideoType.Short],
                 $"/cache/channels/{id}_thumb.jpg",
                 $"/cache/channels/{id}_banner.jpg",
-                null);
+                null,
+                NotChecked);
             _channels[id] = channel;
         }
 

@@ -1,8 +1,8 @@
 namespace TonTuyau.Application.Library;
 
 /// <summary>
-/// What the art store holds for one copied image, as the sync recorded it (Q9, contract v1.4): the original's width,
-/// and the widths of the resized WebP versions that exist, smallest first.
+/// What the art store holds for one copied image, as the import or a refresh recorded it (Q9, contract v1.4): the
+/// original's width, and the widths of the resized WebP versions that exist, smallest first.
 /// </summary>
 /// <param name="OriginalWidth">The original image's width in pixels.</param>
 /// <param name="Widths">Resized versions that exist, ascending; never one at or above the original's width.</param>

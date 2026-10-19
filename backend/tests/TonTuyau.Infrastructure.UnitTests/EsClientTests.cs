@@ -15,9 +15,8 @@ public sealed class EsClientTests
     /// <summary>The exact strings the term queries use (keyword fields are case-sensitive).</summary>
     private static readonly Dictionary<SyncMode, string> Modes = new()
     {
-        [SyncMode.Incremental] = "incremental",
-        [SyncMode.Full] = "full",
-        [SyncMode.ApplyDeletions] = "apply_deletions",
+        [SyncMode.Import] = "import",
+        [SyncMode.IndexRebuild] = "index_rebuild",
         [SyncMode.RefreshVideo] = "refresh_video",
         [SyncMode.RefreshChannel] = "refresh_channel",
         [SyncMode.RefreshChannelVideos] = "refresh_channel_videos",
@@ -69,7 +68,6 @@ public sealed class EsClientTests
     public void Field_names_inferred_from_expressions_match_the_mappings()
     {
         Assert.Equal("channel_id", Client.Infer.Field(Infer.Field<VideoDocument>(v => v.ChannelId)));
-        Assert.Equal("seen_in_run", Client.Infer.Field(Infer.Field<VideoDocument>(v => v.SeenInRun!)));
         Assert.Equal("media_missing", Client.Infer.Field(Infer.Field<VideoDocument>(v => v.MediaMissing!)));
         Assert.Equal("started_at", Client.Infer.Field(Infer.Field<SyncRun>(r => r.StartedAt)));
     }

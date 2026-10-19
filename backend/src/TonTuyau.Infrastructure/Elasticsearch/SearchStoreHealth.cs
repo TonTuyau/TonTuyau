@@ -120,7 +120,7 @@ internal sealed partial class IndexInitializer(
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Index {Index} was created by an older index definition: it needs a rebuild (automatic at startup "
-            + "when the scheduler is on, else at the next sync, or now with `tontuyau index rebuild`).")]
+        Message = "Index {Index} was created by an older index definition: it needs a rebuild (automatic at startup, "
+            + "else at the next import, or now with `tontuyau index rebuild`).")]
     private partial void LogOutdated(string index);
 }

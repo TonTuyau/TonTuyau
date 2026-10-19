@@ -110,7 +110,7 @@ const contract: Endpoint[] = [
     params: {
       task: {
         kind: 'enum',
-        values: ['incremental', 'full', 'applyDeletions', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
+        values: ['import', 'indexRebuild', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
       },
       before: { kind: 'cursor' },
       size: size(100),

@@ -37,16 +37,6 @@ public sealed partial class CliSteps(ScenarioState state, SyncSteps sync) : IDis
             .RunAsync(args[1..], _ctrlC.Token);
     }
 
-    [When("I run {string} for the latest full run")]
-    public async Task RunForLatestFullRun(string commandLine)
-    {
-        SyncRun? latest = await state.Backend.Services
-            .GetRequiredService<ISyncStateStore>()
-            .GetLatestFullRunAsync(CancellationToken.None);
-        Assert.NotNull(latest);
-        await Run($"{commandLine} {latest.Id}");
-    }
-
     [Then("the command exits with code {int}")]
     public void ExitCode(int code) => Assert.True(code == _exitCode, $"exit {_exitCode}:\n{_output}");
 

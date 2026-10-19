@@ -112,7 +112,7 @@ public sealed class VideoDetail
 
     public required string DownloadUrl { get; init; }
 
-    /// <summary>False when the full sync found the file missing on the share.</summary>
+    /// <summary>False when the import found the file missing on the share.</summary>
     public required bool MediaAvailable { get; init; }
 
     /// <summary>Its chapters, in order (1.5, contract v1.13): none until TonTuyau refreshed it, or when YouTube marks none.</summary>

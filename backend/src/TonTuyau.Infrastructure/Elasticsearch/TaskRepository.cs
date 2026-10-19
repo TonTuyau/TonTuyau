@@ -20,9 +20,6 @@ internal sealed class TaskRepository(ElasticsearchClient client, IndexNames name
         new() { Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.Id), Order = SortOrder.Desc } },
     ];
 
-    /// <summary>How many runs that applied a list are looked through for one full run's (there are few).</summary>
-    private const int AppliesLookedAt = 50;
-
     public async Task<SyncRun?> GetLatestRunAsync(SyncMode mode, CancellationToken cancellationToken)
     {
         SearchResponse<SyncRun> response = await SearchAsync(OfMode(mode), 1, null, cancellationToken)
@@ -68,23 +65,6 @@ internal sealed class TaskRepository(ElasticsearchClient client, IndexNames name
                 .OfType<SyncRun>()
                 .OrderBy(r => r.ResumeAt),
         ];
-    }
-
-    public async Task<bool> WasAppliedAsync(string fullRunId, CancellationToken cancellationToken)
-    {
-        // applies_to isn't indexed (the mapping indexes what's searched for, and isn't changed for this): the latest
-        // runs that applied a list are read, and their source looked at.
-        BoolQuery succeededApplies = new()
-        {
-            Filter =
-            [
-                OfMode(SyncMode.ApplyDeletions),
-                new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" },
-            ],
-        };
-        SearchResponse<SyncRun> response = await SearchAsync(succeededApplies, AppliesLookedAt, null, cancellationToken)
-            .ConfigureAwait(false);
-        return response.Hits.Any(h => h.Source?.AppliesTo == fullRunId);
     }
 
     private static TermQuery OfMode(SyncMode mode) =>

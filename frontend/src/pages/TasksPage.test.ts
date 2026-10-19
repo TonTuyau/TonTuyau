@@ -15,7 +15,7 @@ const failed = run({
 })
 const canceled = run({
   id: 'run-20261012T071204Z-5b87a2',
-  task: 'full',
+  task: 'indexRebuild',
   trigger: 'admin',
   startedBy: 'claire',
   state: 'canceled',
@@ -37,22 +37,31 @@ const rows = () =>
 describe('TasksPage', () => {
   beforeEach(() => goTo('/admin/tasks'))
 
-  it('shows the three tasks: their command, when they run next, how they last ran, the list waiting', async () => {
+  it('shows the import: its command, when it runs, how it last ran', async () => {
     fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
     render(TasksPage)
 
-    const incremental = await screen.findByRole('article', { name: 'Incremental sync' })
-    expect(within(incremental).getByText('tontuyau sync incremental')).toBeInTheDocument()
-    expect(within(incremental).getByText('0 7-23 * * *')).toBeInTheDocument()
-    expect(within(incremental).getByText(/^next /)).toBeInTheDocument()
-    expect(within(incremental).getByText('Succeeded')).toBeInTheDocument()
-    expect(within(incremental).getByText(/· 7 s$/)).toBeInTheDocument()
-
-    const deletions = screen.getByRole('article', { name: 'Apply deletions' })
-    expect(within(deletions).getByText('312 deletions waiting')).toBeInTheDocument()
-    expect(within(deletions).getByText(/^from the full sync of /)).toBeInTheDocument()
-    expect(within(deletions).getByText('Never')).toBeInTheDocument()
+    const card = await screen.findByRole('article', { name: 'TubeArchivist import' })
+    expect(within(card).getByText('tontuyau import')).toBeInTheDocument()
+    expect(within(card).getByText('When the backend starts, and on demand')).toBeInTheDocument()
+    expect(within(card).getByText('Succeeded')).toBeInTheDocument()
+    expect(within(card).getByText(/· 7 s$/)).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Run now' })).toBeEnabled()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('says why the import can’t start without TubeArchivist', async () => {
+    const reason = "TubeArchivist isn't set up (TA_URL, TA_TOKEN): there is nothing to import."
+    fakeApi({
+      '/api/admin/tasks': tasks({ tasks: [{ task: 'import', lastRun: null, unavailable: reason }] }),
+      '/api/admin/runs': page([]),
+    })
+    render(TasksPage)
+
+    const card = await screen.findByRole('article', { name: 'TubeArchivist import' })
+    expect(within(card).getByText(reason)).toBeInTheDocument()
+    expect(within(card).getByText('Never')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Run now' })).toBeDisabled()
   })
 
   it('says what is going on, and the running run’s duration goes up by itself', async () => {
@@ -63,13 +72,13 @@ describe('TasksPage', () => {
       startedAt: '2026-10-12T14:00:00Z',
       finishedAt: null,
     })
-    const busy = tasks({ lock: { task: 'incremental', trigger: 'scheduler', since: '2026-10-12T14:00:00Z' } })
-    busy.tasks = busy.tasks.map((info) => (info.task === 'incremental' ? { ...info, lastRun: running } : info))
+    const busy = tasks({ lock: { task: 'import', trigger: 'startup', since: '2026-10-12T14:00:00Z' } })
+    busy.tasks = busy.tasks.map((info) => (info.task === 'import' ? { ...info, lastRun: running } : info))
     fakeApi({ '/api/admin/tasks': busy, '/api/admin/runs': page([running]) })
     render(TasksPage)
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Incremental sync is going on, started by Schedule')
-    const card = screen.getByRole('article', { name: 'Incremental sync' })
+    expect(await screen.findByRole('status')).toHaveTextContent('TubeArchivist import is going on, started by Startup')
+    const card = screen.getByRole('article', { name: 'TubeArchivist import' })
     expect(within(card).getByText('for 20 s')).toBeInTheDocument()
     await vi.advanceTimersByTimeAsync(2_000)
     expect(within(card).getByText('for 22 s')).toBeInTheDocument()
@@ -84,29 +93,29 @@ describe('TasksPage', () => {
     expect(screen.getByText('3 runs')).toBeInTheDocument()
     const [first, second, third] = rows()
     expect(first?.[0]).toBe('Canceled')
-    expect(first?.[1]).toBe(`Full sync ${canceled.id}`)
+    expect(first?.[1]).toBe(`Index rebuild ${canceled.id}`)
     expect(first?.[2]).toBe('claire')
     expect(first?.[4]).toBe('4 min 32 s')
     expect(first?.[5]).toBe('Stopped')
-    expect(second?.[2]).toBe('Schedule')
-    expect(second?.[5]).toBe('8 new · 3 changed')
+    expect(second?.[2]).toBe('Startup')
+    expect(second?.[5]).toBe('8 new · 50 already there')
     expect(third?.[5]).toBe('TubeArchivist failed (502).')
     expect(screen.getByRole('link', { name: canceled.id })).toHaveAttribute('href', `/admin/runs/${canceled.id}`)
   })
 
   it('shows one task’s runs from the URL, and the chips link to each task', async () => {
-    goTo('/admin/tasks?task=full')
+    goTo('/admin/tasks?task=indexRebuild')
     const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([canceled]) })
     render(TasksPage)
 
     await screen.findByRole('table', { name: 'Run history' })
-    expect(api.requests('/api/admin/runs').map((url) => url.search)).toEqual(['?task=full'])
+    expect(api.requests('/api/admin/runs').map((url) => url.search)).toEqual(['?task=indexRebuild'])
     const chips = screen.getByRole('navigation', { name: 'Task' })
-    expect(within(chips).getByRole('link', { name: 'Full sync' })).toHaveAttribute('aria-current', 'true')
+    expect(within(chips).getByRole('link', { name: 'Index rebuild' })).toHaveAttribute('aria-current', 'true')
     expect(within(chips).getByRole('link', { name: 'All tasks' })).toHaveAttribute('href', '/admin/tasks')
-    expect(within(chips).getByRole('link', { name: 'Apply deletions' })).toHaveAttribute(
+    expect(within(chips).getByRole('link', { name: 'TubeArchivist import' })).toHaveAttribute(
       'href',
-      '/admin/tasks?task=applyDeletions',
+      '/admin/tasks?task=import',
     )
   })
 
@@ -129,7 +138,7 @@ describe('TasksPage', () => {
   it('keeps up to date while a run goes on, without redrawing the rows that are there', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     const running = run({ id: 'run-20261012T140000Z-25ede6', state: 'running', finishedAt: null })
-    const busy = tasks({ lock: { task: 'incremental', trigger: 'scheduler', since: running.startedAt } })
+    const busy = tasks({ lock: { task: 'import', trigger: 'startup', since: running.startedAt } })
     let over = false
     fakeApi({
       '/api/admin/tasks': () => (over ? tasks() : busy),
@@ -155,10 +164,9 @@ describe('TasksPage', () => {
     fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
     render(TasksPage)
 
-    expect(await screen.findByRole('article', { name: 'Synchronisation incrémentale' })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Import de TubeArchivist' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Tâches', level: 1 })).toBeInTheDocument()
-    expect(screen.getByText('312 suppressions en attente')).toBeInTheDocument()
-    expect(await screen.findByText('8 nouvelles · 3 modifiées')).toBeInTheDocument()
+    expect(await screen.findByText('8 nouvelles · 50 déjà là')).toBeInTheDocument()
     i18n.setLang('en')
   })
 
@@ -224,52 +232,35 @@ describe('TasksPage', () => {
       expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute('href', '/admin/youtube')
     })
 
-    it('starts the incremental sync at once, then shows its run', async () => {
+    it('asks before an import, then shows its run', async () => {
       const user = userEvent.setup()
       const api = fakeApi({
         '/api/admin/tasks': tasks(),
         '/api/admin/runs': page([run()]),
-        '/api/admin/tasks/incremental/runs': started,
+        '/api/admin/tasks/import/runs': started,
       })
       render(TasksPage)
 
-      const card = await screen.findByRole('article', { name: 'Incremental sync' })
+      const card = await screen.findByRole('article', { name: 'TubeArchivist import' })
       await user.click(within(card).getByRole('button', { name: 'Run now' }))
+      expect(within(card).getByRole('group')).toHaveTextContent(/up to an hour/)
+      await user.click(within(card).getByRole('button', { name: 'Back' }))
+      expect(api.requests('/api/admin/tasks/import/runs')).toHaveLength(0)
+
+      await user.click(within(card).getByRole('button', { name: 'Run now' }))
+      await user.click(within(card).getByRole('button', { name: 'Start the import' }))
       await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
-      expect(api.requests('/api/admin/tasks/incremental/runs')).toHaveLength(1)
-    })
-
-    it('asks before a full sync, and before applying the list that waits', async () => {
-      const user = userEvent.setup()
-      const api = fakeApi({
-        '/api/admin/tasks': tasks(),
-        '/api/admin/runs': page([run()]),
-        '/api/admin/tasks/full/runs': started,
-        '/api/admin/tasks/applyDeletions/runs': started,
-      })
-      render(TasksPage)
-
-      const full = await screen.findByRole('article', { name: 'Full sync' })
-      await user.click(within(full).getByRole('button', { name: 'Run now' }))
-      expect(within(full).getByText(/about an hour/)).toBeInTheDocument()
-      await user.click(within(full).getByRole('button', { name: 'Back' }))
-      expect(api.requests('/api/admin/tasks/full/runs')).toHaveLength(0)
-
-      const deletions = screen.getByRole('article', { name: 'Apply deletions' })
-      await user.click(within(deletions).getByRole('button', { name: 'Apply 312 deletions' }))
-      expect(within(deletions).getByRole('group')).toHaveTextContent('Removes 312 videos from TonTuyau')
-      await user.click(within(deletions).getByRole('button', { name: 'Apply 312 deletions' }))
-      await vi.waitFor(() => expect(api.requests('/api/admin/tasks/applyDeletions/runs')).toHaveLength(1))
+      expect(api.requests('/api/admin/tasks/import/runs')).toHaveLength(1)
     })
 
     it('one run at a time: the other buttons wait, this task’s run can be canceled (asked first)', async () => {
       const user = userEvent.setup()
       const running = run({ id: 'run-20261014T090000Z-bbbbbb', state: 'running', finishedAt: null })
       const busy = tasks({
-        lock: { task: 'incremental', trigger: 'scheduler', since: running.startedAt },
+        lock: { task: 'import', trigger: 'startup', since: running.startedAt },
         runningHere: running.id,
       })
-      busy.tasks = busy.tasks.map((info) => (info.task === 'incremental' ? { ...info, lastRun: running } : info))
+      busy.tasks = busy.tasks.map((info) => (info.task === 'import' ? { ...info, lastRun: running } : info))
       const api = fakeApi({
         '/api/admin/tasks': busy,
         '/api/admin/runs': page([running]),
@@ -277,30 +268,30 @@ describe('TasksPage', () => {
       })
       render(TasksPage)
 
-      const full = await screen.findByRole('article', { name: 'Full sync' })
-      expect(within(full).getByRole('button', { name: 'Run now' })).toBeDisabled()
-      expect(within(full).getByText('Incremental sync is going on: one run at a time.')).toBeInTheDocument()
+      const video = await screen.findByRole('article', { name: 'Refresh a video' })
+      expect(within(video).getByRole('button', { name: 'Refresh' })).toBeDisabled()
+      expect(within(video).getByText('TubeArchivist import is going on: one run at a time.')).toBeInTheDocument()
 
-      const incremental = screen.getByRole('article', { name: 'Incremental sync' })
-      expect(within(incremental).getByRole('link', { name: 'Follow its log' })).toHaveAttribute(
+      const card = screen.getByRole('article', { name: 'TubeArchivist import' })
+      expect(within(card).getByRole('link', { name: 'Follow its log' })).toHaveAttribute(
         'href',
         `/admin/runs/${running.id}`,
       )
-      await user.click(within(incremental).getByRole('button', { name: 'Cancel' }))
-      await user.click(within(incremental).getByRole('button', { name: 'Cancel the run' }))
+      await user.click(within(card).getByRole('button', { name: 'Cancel' }))
+      await user.click(within(card).getByRole('button', { name: 'Cancel the run' }))
       await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${running.id}/cancel`)).toHaveLength(1))
     })
 
     it('a run going on in another process can only be stopped there', async () => {
       const running = run({ state: 'running', finishedAt: null, trigger: 'cli' })
-      const busy = tasks({ lock: { task: 'incremental', trigger: 'cli', since: running.startedAt } })
-      busy.tasks = busy.tasks.map((info) => (info.task === 'incremental' ? { ...info, lastRun: running } : info))
+      const busy = tasks({ lock: { task: 'import', trigger: 'cli', since: running.startedAt } })
+      busy.tasks = busy.tasks.map((info) => (info.task === 'import' ? { ...info, lastRun: running } : info))
       fakeApi({ '/api/admin/tasks': busy, '/api/admin/runs': page([running]) })
       render(TasksPage)
 
-      const incremental = await screen.findByRole('article', { name: 'Incremental sync' })
-      expect(within(incremental).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
-      expect(within(incremental).getByText(/stop it there/)).toBeInTheDocument()
+      const card = await screen.findByRole('article', { name: 'TubeArchivist import' })
+      expect(within(card).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+      expect(within(card).getByText(/stop it there/)).toBeInTheDocument()
     })
 
     it('shows a refresh on hold: what it read and has left, Resume now (then its run), Cancel it', async () => {
@@ -350,13 +341,14 @@ describe('TasksPage', () => {
       fakeApi({
         '/api/admin/tasks': tasks(),
         '/api/admin/runs': page([run()]),
-        '/api/admin/tasks/incremental/runs': problemResponse(409, 'A sync is already running.'),
+        '/api/admin/tasks/import/runs': problemResponse(409, 'A run is already going on.'),
       })
       render(TasksPage)
 
-      const card = await screen.findByRole('article', { name: 'Incremental sync' })
+      const card = await screen.findByRole('article', { name: 'TubeArchivist import' })
       await user.click(within(card).getByRole('button', { name: 'Run now' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A sync is already running.')
+      await user.click(within(card).getByRole('button', { name: 'Start the import' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A run is already going on.')
       expect(location.pathname).toBe('/admin/tasks')
     })
   })

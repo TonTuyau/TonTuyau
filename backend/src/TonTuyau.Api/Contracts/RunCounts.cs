@@ -2,8 +2,8 @@ using TonTuyau.Application.Sync;
 
 namespace TonTuyau.Api.Contracts;
 
-/// <summary>A run's counters (contract v1.7): what it read, wrote, copied and deleted.</summary>
-/// <param name="Kept">Videos or channels a deletion list named, kept because TubeArchivist still has them.</param>
+/// <summary>A run's counters (contract v1.7; v2.0: nothing is deleted any more): what it read, wrote and copied.</summary>
+/// <param name="Unchanged">An import (2.0): what TubeArchivist has that TonTuyau had already, left as it is.</param>
 /// <param name="FoundOnYouTube">A refresh (1.5): videos and channels YouTube answered with their metadata.</param>
 /// <param name="UnlistedOnYouTube">A refresh: of those found, the videos YouTube has unlisted (contract v1.16).</param>
 /// <param name="GoneFromYouTube">A refresh: those YouTube says are removed, or their account terminated.</param>
@@ -23,8 +23,6 @@ public sealed record RunCounts(
     int ArtResized,
     int ArtResizeFailed,
     int MediaMissing,
-    int Deleted,
-    int Kept,
     int FoundOnYouTube,
     int UnlistedOnYouTube,
     int GoneFromYouTube,
@@ -48,8 +46,6 @@ public sealed record RunCounts(
             counts.ArtResized,
             counts.ArtResizeFailed,
             counts.MediaMissing,
-            counts.Deleted,
-            counts.KeptStillInTubeArchivist,
             counts.FoundOnYouTube,
             counts.UnlistedOnYouTube,
             counts.GoneFromYouTube,

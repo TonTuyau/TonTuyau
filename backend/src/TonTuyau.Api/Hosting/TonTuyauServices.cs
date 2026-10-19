@@ -23,7 +23,6 @@ internal static class TonTuyauServices
         services.AddSearchStore();
         services.AddSingleton<SyncService>();
         services.AddSingleton<YouTubeRefreshService>();
-        services.AddSingleton(sp => new SyncSchedule(sp.GetRequiredService<TonTuyauOptions>().Sync));
         return services;
     }
 

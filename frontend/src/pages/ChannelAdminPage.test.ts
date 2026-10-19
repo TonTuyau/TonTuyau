@@ -151,13 +151,13 @@ describe('ChannelAdminPage', () => {
   it('says why a refresh was refused', async () => {
     const user = userEvent.setup()
     routes({
-      '/api/admin/tasks/refreshChannelVideos/runs': problemResponse(409, 'A sync is already running.', 'Conflict'),
+      '/api/admin/tasks/refreshChannelVideos/runs': problemResponse(409, 'A run is already going on.', 'Conflict'),
     })
     render(ChannelAdminPage, { id })
 
     await user.click(await screen.findByRole('button', { name: 'Refresh the channel and its videos' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A sync is already running.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A run is already going on.')
   })
 
   it('says when the channel is not in TonTuyau', async () => {

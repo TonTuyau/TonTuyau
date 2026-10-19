@@ -1,24 +1,22 @@
 @elasticsearch @sync
 Feature: Automatic index rebuild
   After an upgrade whose index definitions changed (QA10 M5-10), the indices rebuild themselves: when the backend
-  starts (in the background, users keep the current indices meanwhile), or else at the next sync, which rebuilds
-  instead of its normal run until a rebuild succeeds. It's a sync like the others: same lock, TubeArchivist read-only,
-  every safety of a full run. With the scheduler off, the backend never starts it by itself.
+  starts (in the background, users keep the current indices meanwhile), or else at the next import, which rebuilds
+  them first. It's a run like the others (same lock, history, log), and since 2.0 it writes the library from
+  PostgreSQL: nothing is read from TubeArchivist, which may be down or gone.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 12 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
 
   Scenario: Indices from the current definitions: nothing happens at startup
-    Given the scheduler is on, with no sync due soon
     When the backend restarts and is ready
-    Then no sync starts by itself
+    Then no run starts by itself
     And reads and writes of "videos" both use generation 1
 
   Scenario: Changed definitions: the backend rebuilds at startup and switches users to the new indices
     Given the live "videos" index was made by an older version
-    And the scheduler is on, with no sync due soon
     When the backend restarts and is ready
     Then an index rebuild started by the backend succeeds
     And reads and writes of "videos" both use generation 2
@@ -26,42 +24,28 @@ Feature: Automatic index rebuild
     And the "videos" index is reported as up to date
     And TonTuyau has 12 videos and 1 channel
 
-  Scenario: TubeArchivist unreachable: users keep the old indices, and the next scheduled sync rebuilds instead
+  Scenario: TubeArchivist unreachable: the backend rebuilds at startup all the same
     Given the live "videos" index was made by an older version
-    And the scheduler is on, with no sync due soon
     And TubeArchivist answers 503 to everything
     When the backend restarts and is ready
-    Then an index rebuild started by the backend fails
-    And reads and writes of "videos" both use generation 1
-    And the "videos" index is reported as outdated
-    And TonTuyau has 12 videos
-    When TubeArchivist works again
-    And an incremental sync runs
-    Then the run succeeded
-    And the run rebuilt the indices instead
+    Then an index rebuild started by the backend succeeds
     And reads and writes of "videos" both use generation 2
-    When an incremental sync runs
-    Then the run succeeded as an incremental run
-    And the run didn't rebuild the indices
+    And the "videos" index is reported as up to date
+    And TonTuyau has 12 videos
 
-  Scenario: With the scheduler off, the backend never starts the rebuild by itself
+  Scenario: An import while a rebuild is pending rebuilds first, then imports, and says so
     Given the live "videos" index was made by an older version
-    When the backend restarts and is ready
-    Then no sync starts by itself
-    And reads and writes of "videos" both use generation 1
-    And the "videos" index is reported as outdated
-
-  Scenario: A sync from the command line rebuilds instead while a rebuild is pending, and says so
-    Given the live "videos" index was made by an older version
-    When I run "tontuyau sync incremental"
+    And TubeArchivist downloads 2 new videos in "alpha"
+    When I run "tontuyau import"
     Then the command exits with code 0
     And the output mentions "Index rebuild pending (the index definitions changed):"
-    And the output mentions "this run rebuilt the indices instead of the sync asked for."
-    And the output mentions "Index rebuild instead of the incremental sync"
+    And the output mentions "this run rebuilt the indices first, then imported."
+    And the output mentions "Index rebuild first"
     And reads and writes of "videos" both use generation 2
+    And TonTuyau has 14 videos
 
   Scenario: The status says a rebuild is pending
     Given the live "videos" index was made by an older version
-    When I run "tontuyau sync status"
+    When I run "tontuyau status"
     Then the command exits with code 0
     And the output mentions "Index rebuild  : pending"

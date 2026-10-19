@@ -2,12 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Library;
 
 namespace TonTuyau.Infrastructure.YouTube;
 
 /// <summary>
-/// TonTuyau's own facts for the sync's writes (one query per page): a singleton like the sync, a database context per
-/// call.
+/// What TonTuyau knows of videos and channels on YouTube, read from the library's rows (2.0): a singleton like the
+/// refresh, a database context per call.
 /// </summary>
 internal sealed class YouTubeFactsSource(IServiceScopeFactory scopes) : IYouTubeFactsSource
 {
@@ -23,14 +24,14 @@ internal sealed class YouTubeFactsSource(IServiceScopeFactory scopes) : IYouTube
         AsyncServiceScope scope = scopes.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
-            List<YouTubeVideoRow> rows = await scope.ServiceProvider
+            List<VideoRow> rows = await scope.ServiceProvider
                 .GetRequiredService<TonTuyauDbContext>()
-                .YouTubeVideos
+                .Videos
                 .AsNoTracking()
-                .Where(v => ids.Contains(v.VideoId))
+                .Where(v => ids.Contains(v.Id))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return rows.ToDictionary(r => r.VideoId, r => (VideoFacts)r, StringComparer.Ordinal);
+            return rows.ToDictionary(r => r.Id, LibraryRows.FactsOf, StringComparer.Ordinal);
         }
     }
 
@@ -46,14 +47,14 @@ internal sealed class YouTubeFactsSource(IServiceScopeFactory scopes) : IYouTube
         AsyncServiceScope scope = scopes.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
-            List<YouTubeChannelRow> rows = await scope.ServiceProvider
+            List<ChannelRow> rows = await scope.ServiceProvider
                 .GetRequiredService<TonTuyauDbContext>()
-                .YouTubeChannels
+                .Channels
                 .AsNoTracking()
-                .Where(c => ids.Contains(c.ChannelId))
+                .Where(c => ids.Contains(c.Id))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return rows.ToDictionary(r => r.ChannelId, r => (ChannelFacts)r, StringComparer.Ordinal);
+            return rows.ToDictionary(r => r.Id, LibraryRows.FactsOf, StringComparer.Ordinal);
         }
     }
 }

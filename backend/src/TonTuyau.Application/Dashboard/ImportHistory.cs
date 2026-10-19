@@ -5,9 +5,9 @@ namespace TonTuyau.Application.Dashboard;
 
 /// <summary>
 /// The import history's bars: the finished runs' new videos, added up per step. The last day has a bar for every
-/// sync, an empty one for a sync that brought nothing (1.2.1: with only the syncs that brought videos, five bars side
-/// by side didn't read as 24 hours). The days, weeks (from Monday) and months are those of the sync's time zone, as
-/// its crons, so a bar is a day as the admin lives it; every step of those periods has its bar, an empty one too, so
+/// import, an empty one for an import that brought nothing (1.2.1: with only the runs that brought videos, five bars
+/// side by side didn't read as 24 hours). The days, weeks (from Monday) and months are those of TONTUYAU_TZ, so a bar
+/// is a day as the admin lives it; every step of those periods has its bar, an empty one too, so
 /// that time stays linear along the chart.
 /// </summary>
 public static class ImportHistory
@@ -41,9 +41,10 @@ public static class ImportHistory
         ArgumentNullException.ThrowIfNull(zone);
         ImportStep step = StepOf(period);
 
-        // An index rebuild writes the whole library again into new indices: every video counts as new there.
+        // The imports (2.0): one that rebuilt the indices first counts its new videos as any other (a rebuild adds
+        // none: it writes the library from PostgreSQL).
         SyncRun[] finished = runs
-            .Where(r => r.FinishedAt is not null && !r.IndexRebuild)
+            .Where(r => r.FinishedAt is not null)
             .OrderBy(r => r.StartedAt)
             .ToArray();
         if (step == ImportStep.Run)

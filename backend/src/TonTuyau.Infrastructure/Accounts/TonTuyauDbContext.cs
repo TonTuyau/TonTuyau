@@ -10,10 +10,9 @@ namespace TonTuyau.Infrastructure.Accounts;
 
 /// <summary>
 /// TonTuyau's PostgreSQL: the accounts, the keys that sign the login cookies (so a restart logs nobody out), the
-/// runs' logs (1.4), the API keys, the YouTube cookie, the yt-dlp chosen, TonTuyau's own facts about videos and
-/// channels (1.5: their YouTube state, refreshed metadata, chapters and comments), and the library itself (2.0: its
-/// videos and channels, the source of truth Elasticsearch indexes). Table and column names are snake_case, as
-/// PostgreSQL likes them.
+/// runs' logs (1.4), the API keys, the YouTube cookie and settings, the yt-dlp chosen, and the library itself (2.0:
+/// its videos and channels, their state on YouTube, categories and comments; the source of truth Elasticsearch
+/// indexes). Table and column names are snake_case, as PostgreSQL likes them.
 /// </summary>
 public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> options)
     : DbContext(options), IDataProtectionKeyContext
@@ -29,10 +28,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<YouTubeCookieRow> YouTubeCookie => Set<YouTubeCookieRow>();
 
     public DbSet<YtdlpSettingsRow> YtdlpSettings => Set<YtdlpSettingsRow>();
-
-    public DbSet<YouTubeVideoRow> YouTubeVideos => Set<YouTubeVideoRow>();
-
-    public DbSet<YouTubeChannelRow> YouTubeChannels => Set<YouTubeChannelRow>();
 
     public DbSet<VideoCommentRow> VideoComments => Set<VideoCommentRow>();
 
@@ -139,63 +134,6 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             settings.Property(s => s.CheckedAt).HasColumnName("checked_at");
             settings.Property(s => s.Error).HasColumnName("error");
         });
-        modelBuilder.Entity<YouTubeVideoRow>(video =>
-        {
-            video.ToTable("youtube_videos");
-            video.HasKey(v => v.VideoId);
-            video.Property(v => v.VideoId).HasColumnName("video_id");
-            video.Property(v => v.ChannelId).HasColumnName("channel_id");
-            video
-                .HasOne<YouTubeChannelRow>()
-                .WithMany()
-                .HasForeignKey(v => v.ChannelId)
-                .OnDelete(DeleteBehavior.Cascade);
-            video
-                .Property(v => v.State)
-                .HasColumnName("state")
-                .HasConversion<string>();
-            video.Property(v => v.CheckedAt).HasColumnName("checked_at");
-            video.Property(v => v.Reason).HasColumnName("reason");
-            video.Property(v => v.RefreshedAt).HasColumnName("refreshed_at");
-            video.Property(v => v.Title).HasColumnName("title");
-            video.Property(v => v.ChannelName).HasColumnName("channel_name");
-            video.Property(v => v.Description).HasColumnName("description");
-            video.Property(v => v.Tags).HasColumnName("tags");
-            video.Property(v => v.Categories).HasColumnName("categories");
-            video.Property(v => v.Views).HasColumnName("views");
-            video.Property(v => v.Likes).HasColumnName("likes");
-            video.Property(v => v.CommentCount).HasColumnName("comment_count");
-            video.Property(v => v.CommentsReadAt).HasColumnName("comments_read_at");
-            video.OwnsMany(
-                v => v.Chapters,
-                chapter =>
-                {
-                    chapter.ToJson("chapters");
-                    chapter.Property(c => c.Start).HasJsonPropertyName("start");
-                    chapter.Property(c => c.End).HasJsonPropertyName("end");
-                    chapter.Property(c => c.Title).HasJsonPropertyName("title");
-                });
-            video.Property(v => v.ThumbnailPath).HasColumnName("thumbnail_path");
-        });
-        modelBuilder.Entity<YouTubeChannelRow>(channel =>
-        {
-            channel.ToTable("youtube_channels");
-            channel.HasKey(c => c.ChannelId);
-            channel.Property(c => c.ChannelId).HasColumnName("channel_id");
-            channel
-                .Property(c => c.State)
-                .HasColumnName("state")
-                .HasConversion<string>();
-            channel.Property(c => c.CheckedAt).HasColumnName("checked_at");
-            channel.Property(c => c.Reason).HasColumnName("reason");
-            channel.Property(c => c.RefreshedAt).HasColumnName("refreshed_at");
-            channel.Property(c => c.Name).HasColumnName("name");
-            channel.Property(c => c.Description).HasColumnName("description");
-            channel.Property(c => c.Subscribers).HasColumnName("subscribers");
-            channel.Property(c => c.Tags).HasColumnName("tags");
-            channel.Property(c => c.ThumbPath).HasColumnName("thumb_path");
-            channel.Property(c => c.BannerPath).HasColumnName("banner_path");
-        });
         modelBuilder.Entity<YouTubeSettingsRow>(settings =>
         {
             settings.ToTable("youtube_settings");
@@ -231,8 +169,9 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             comment.Property(c => c.ByUploader).HasColumnName("by_uploader");
             comment.Property(c => c.Hearted).HasColumnName("hearted");
             comment.HasIndex(c => new { c.VideoId, c.Position });
+            // A video's comments go with it.
             comment
-                .HasOne<YouTubeVideoRow>()
+                .HasOne<VideoRow>()
                 .WithMany()
                 .HasForeignKey(c => c.VideoId)
                 .OnDelete(DeleteBehavior.Cascade);

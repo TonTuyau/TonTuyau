@@ -32,15 +32,12 @@
         }
       },
       "subscribers": { "type": "long" },
-      "active": { "type": "boolean" },
-      "last_refreshed": { "type": "date" },
       "tags": {
         "type": "text",
         "analyzer": "tontuyau_folded",
         "index_prefixes": { "min_chars": 1, "max_chars": 5 },
         "fields": { "keyword": { "type": "keyword" } }
       },
-      "tabs": { "type": "keyword" },
       "thumb_path": { "type": "keyword", "index": false, "doc_values": false },
       "banner_path": { "type": "keyword", "index": false, "doc_values": false },
       "thumb_art": { "type": "object", "enabled": false },
@@ -50,7 +47,6 @@
       "youtube_checked_at": { "type": "date" },
       "youtube_reason": { "type": "keyword", "index": false, "doc_values": false },
       "youtube_refreshed_at": { "type": "date" },
-      "seen_in_run": { "type": "keyword" },
       "content_hash": { "type": "keyword", "index": false, "doc_values": false }
     }
   }

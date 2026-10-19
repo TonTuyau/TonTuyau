@@ -15,7 +15,7 @@ public sealed class BackendClient(HttpClient http)
 {
     private static readonly JsonSerializerOptions Json = Options();
 
-    /// <param name="path">The command's endpoint, e.g. <c>cli/sync/full</c>.</param>
+    /// <param name="path">The command's endpoint, e.g. <c>cli/import</c>.</param>
     /// <returns>The id of the run it started.</returns>
     /// <exception cref="CliRefusalException">Another run holds the lock, or the run was refused.</exception>
     public async Task<string> StartAsync(string path, CancellationToken cancellationToken)

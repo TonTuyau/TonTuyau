@@ -14,7 +14,6 @@ public sealed class TestSettings
         [ConfigKeys.EnvironmentName(ConfigKeys.TaToken)] = Token,
         [ConfigKeys.EnvironmentName(ConfigKeys.EsUrl)] = "http://es.test:9200",
         [ConfigKeys.EnvironmentName(ConfigKeys.EsPassword)] = "es-password",
-        [ConfigKeys.EnvironmentName(ConfigKeys.SyncSchedulerEnabled)] = "false",
         // PostgresHooks points every scenario at a database of its own; the admin is created at its first start.
         [ConfigKeys.EnvironmentName(ConfigKeys.DbPassword)] = "db-password",
         [ConfigKeys.EnvironmentName(ConfigKeys.AdminPassword)] = AdminPassword,

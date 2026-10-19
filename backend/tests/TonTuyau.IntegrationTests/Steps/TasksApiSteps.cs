@@ -14,16 +14,6 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
 
     private ISyncStateStore Store => Services.GetRequiredService<ISyncStateStore>();
 
-    /// <summary>The scheduler on with the default crons; the backend restarts with it (and the scenario's clock).</summary>
-    [Given("the scheduler is on with the default schedule")]
-    public void SchedulerOnDefaults()
-    {
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncSchedulerEnabled), "true");
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncIncrementalCron), null);
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncFullCron), null);
-        state.StopBackend();
-    }
-
     /// <summary>A run of TonTuyau 1.3 or older, finished long ago: it has no log.</summary>
     [Given("a run from before 1.4, {string}")]
     public async Task OldRun(string id)
@@ -37,8 +27,8 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         SyncRun run = new()
         {
             Id = id,
-            Mode = SyncMode.Incremental,
-            Trigger = SyncTrigger.Scheduler,
+            Mode = SyncMode.Import,
+            Trigger = SyncTrigger.Cli,
             StartedAt = started,
             FinishedAt = started.AddMinutes(1),
             Outcome = SyncOutcome.Succeeded,
@@ -84,13 +74,6 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     [Then("{string} is the latest run's id")]
     public async Task IsLatestRunId(string path) =>
         Assert.Equal(await LatestRunIdAsync(), ApiSteps.Scalar(api.At(path)));
-
-    [Then("{string} is the latest full run's id")]
-    public async Task IsLatestFullRunId(string path)
-    {
-        SyncRun? latest = await Store.GetLatestFullRunAsync(CancellationToken.None);
-        Assert.Equal(latest?.Id, ApiSteps.Scalar(api.At(path)));
-    }
 
     [Then("the latest run ends {word} within {int} seconds")]
     public async Task LatestEnds(string outcome, int seconds)

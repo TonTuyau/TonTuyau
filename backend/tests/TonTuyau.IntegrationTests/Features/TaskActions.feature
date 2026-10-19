@@ -14,17 +14,17 @@ Feature: Starting a task, canceling a run, from the Tasks page
 
     Examples:
       | path                                                   |
-      | /api/admin/tasks/incremental/runs                      |
+      | /api/admin/tasks/import/runs                      |
       | /api/admin/runs/run-20260101T000000Z-abcdef/cancel     |
 
   Scenario: A task started from the page runs in the background, started by the account
-    Given a first sync has run
+    Given a first import has run
     And TubeArchivist downloads 15 new videos in "alpha"
     And TubeArchivist holds its answer to page 2 until told
     When I log in as the admin
-    And I send POST "/api/admin/tasks/incremental/runs" with my session
+    And I send POST "/api/admin/tasks/import/runs" with my session
     Then the response status is 202
-    And "task" is "incremental"
+    And "task" is "import"
     And "state" is "running"
     And "trigger" is "admin"
     And "startedBy" is "admin"
@@ -34,56 +34,43 @@ Feature: Starting a task, canceling a run, from the Tasks page
     Then the latest run ends succeeded within 30 seconds
 
   Scenario: Another run going on: the start is refused
-    Given another process holds the sync lock
+    Given another process holds the run lock
     When I log in as the admin
-    And I send POST "/api/admin/tasks/full/runs" with my session
+    And I send POST "/api/admin/tasks/import/runs" with my session
     Then the response status is 409
-    And "detail" mentions "already running"
+    And "detail" mentions "already going on"
 
   Scenario: Not a task
     When I log in as the admin
-    And I send POST "/api/admin/tasks/rebuild/runs" with my session
+    And I send POST "/api/admin/tasks/indexRebuild/runs" with my session
     Then the response status is 400
 
-  Scenario: Applying deletions without a list waiting is refused
-    Given a first sync has run
+  Scenario: Without TubeArchivist's settings, the import is refused
+    Given TubeArchivist isn't set up
     When I log in as the admin
-    And I send POST "/api/admin/tasks/applyDeletions/runs" with my session
+    And I send POST "/api/admin/tasks/import/runs" with my session
     Then the response status is 409
-    And "detail" mentions "No deletion list"
-
-  Scenario: Applying deletions applies the list that waits
-    Given the deletion limit is 1
-    And a first sync has run
-    And TubeArchivist deletes 2 videos of "alpha"
-    And a full sync has run
-    When I log in as the admin
-    And I send POST "/api/admin/tasks/applyDeletions/runs" with my session
-    Then the response status is 202
-    And "task" is "applyDeletions"
-    And "appliesTo" is the latest full run's id
-    And the latest run ends succeeded within 30 seconds
-    And TonTuyau has 3 videos
+    And "detail" mentions "TubeArchivist isn't set up"
 
   Scenario: Canceling the run going on: it ends canceled, and its log says who asked
-    Given a first sync has run
+    Given a first import has run
     And TubeArchivist downloads 15 new videos in "alpha"
     And TubeArchivist holds its answer to page 2 until told
     When I log in as the admin
-    And I send POST "/api/admin/tasks/incremental/runs" with my session
+    And I send POST "/api/admin/tasks/import/runs" with my session
     And I cancel the latest run with my session
     Then the response status is 202
     And "cancellable" is "true"
     When TubeArchivist answers
     Then the latest run ends canceled within 30 seconds
     And the last run's log has, in order, lines with:
-      | level       | text                         |
-      | information | started: Incremental by Admin |
-      | warning     | canceled by admin            |
-      | information | finished: Canceled           |
+      | level       | text                   |
+      | information | started: Import by Admin |
+      | warning     | canceled by admin      |
+      | information | finished: Canceled     |
 
   Scenario: A run that's over can't be canceled
-    Given a first sync has run
+    Given a first import has run
     When I log in as the admin
     And I cancel the latest run with my session
     Then the response status is 409

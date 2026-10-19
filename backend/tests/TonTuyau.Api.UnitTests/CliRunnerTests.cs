@@ -13,7 +13,9 @@ public sealed class CliRunnerTests : IDisposable
     public void Dispose() => _nowhere.Dispose();
 
     [Theory]
-    [InlineData(new[] { "sync", "incremental" }, true)]
+    [InlineData(new[] { "import" }, true)]
+    [InlineData(new[] { "status" }, true)]
+    [InlineData(new[] { "sync", "incremental" }, false)]
     [InlineData(new[] { "index", "rebuild" }, true)]
     [InlineData(new[] { "help" }, true)]
     [InlineData(new[] { "--version" }, true)]
@@ -22,11 +24,9 @@ public sealed class CliRunnerTests : IDisposable
     public void Only_cli_verbs_start_the_cli(string[] args, bool cli) => Assert.Equal(cli, CliRunner.IsCommand(args));
 
     [Theory]
-    [InlineData("sync")]
-    [InlineData("sync everything")]
-    [InlineData("sync apply-deletions")]
+    [InlineData("import everything")]
+    [InlineData("status now")]
     [InlineData("index")]
-    [InlineData("sync full extra")]
     public async Task Unknown_commands_print_the_usage_and_exit_2(string commandLine)
     {
         using StringWriter output = new();
@@ -42,16 +42,13 @@ public sealed class CliRunnerTests : IDisposable
 
     // The runs go through the backend (1.4): only the status reads Elasticsearch itself.
     [Theory]
-    [InlineData("sync incremental", false)]
-    [InlineData("sync full", false)]
-    [InlineData("sync status", true)]
-    [InlineData("sync apply-deletions run-x", false)]
+    [InlineData("import", false)]
+    [InlineData("status", true)]
+    [InlineData("sync status", false)]
     [InlineData("index rebuild", false)]
     [InlineData("help", false)]
     [InlineData("--version", false)]
-    [InlineData("sync", false)]
-    [InlineData("sync everything", false)]
-    [InlineData("sync apply-deletions", false)]
+    [InlineData("status everything", false)]
     public void Only_real_commands_need_the_store(string commandLine, bool needsStore) =>
         Assert.Equal(needsStore, CliRunner.NeedsStore(commandLine.Split(' ')));
 

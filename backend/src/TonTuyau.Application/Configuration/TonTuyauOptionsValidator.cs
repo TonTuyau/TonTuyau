@@ -1,4 +1,3 @@
-using Cronos;
 using TonTuyau.Application.Validation;
 
 namespace TonTuyau.Application.Configuration;
@@ -13,26 +12,23 @@ public sealed partial class TonTuyauOptionsValidator : IValidator<TonTuyauOption
         ArgumentNullException.ThrowIfNull(value);
         ValidationErrors errors = new();
 
-        RequireHttpUrl(errors, ConfigKeys.TaUrl, value.TubeArchivist.BaseUrl);
-        RequireValue(errors, ConfigKeys.TaToken, value.TubeArchivist.Token);
+        // Both or neither (2.0: TubeArchivist is optional).
+        if (value.TubeArchivist is not null)
+        {
+            RequireHttpUrl(errors, ConfigKeys.TaUrl, value.TubeArchivist.BaseUrl);
+            RequireValue(errors, ConfigKeys.TaToken, value.TubeArchivist.Token);
+        }
+
         RequireHttpUrl(errors, ConfigKeys.EsUrl, value.Elasticsearch.Url);
         RequireValue(errors, ConfigKeys.EsUsername, value.Elasticsearch.Username);
         RequireValue(errors, ConfigKeys.EsPassword, value.Elasticsearch.Password);
         RequireIndexPrefix(errors, ConfigKeys.EsIndexPrefix, value.Elasticsearch.IndexPrefix);
         RequireAbsolutePath(errors, ConfigKeys.MediaRoot, value.Storage.MediaRoot);
         RequireAbsolutePath(errors, ConfigKeys.ArtRoot, value.Storage.ArtRoot);
-        RequireCron(errors, ConfigKeys.SyncIncrementalCron, value.Sync.IncrementalCron);
-        RequireCron(errors, ConfigKeys.SyncFullCron, value.Sync.FullCron);
         RequireTimeZone(errors, ConfigKeys.TimeZone, value.Sync.TimeZone);
-        RequireAbsolutePath(errors, ConfigKeys.SyncLogRoot, value.Sync.LogRoot);
         if (value.Sync.TaResultWindow < 1)
         {
             errors.Add(Field(ConfigKeys.TaResultWindow), "must be 1 or more.");
-        }
-
-        if (value.Sync.RejectGuardPercent is < 0 or > 100)
-        {
-            errors.Add(Field(ConfigKeys.SyncRejectGuardPercent), "must be between 0 and 100.");
         }
 
         if (value.Sync.ArtResizeParallelism is < 1 or > MaxArtResizeParallelism)
@@ -100,18 +96,6 @@ public sealed partial class TonTuyauOptionsValidator : IValidator<TonTuyauOption
         if (!Path.IsPathFullyQualified(value))
         {
             errors.Add(Field(key), "must be an absolute path.");
-        }
-    }
-
-    private static void RequireCron(ValidationErrors errors, string key, string value)
-    {
-        try
-        {
-            CronExpression.Parse(value, CronFormat.Standard);
-        }
-        catch (CronFormatException)
-        {
-            errors.Add(Field(key), "must be a 5-field cron expression (minute hour day month weekday).");
         }
     }
 

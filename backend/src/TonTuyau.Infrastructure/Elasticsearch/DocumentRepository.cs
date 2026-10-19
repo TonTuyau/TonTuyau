@@ -10,21 +10,20 @@ using TonTuyau.Infrastructure.Elasticsearch.Documents;
 namespace TonTuyau.Infrastructure.Elasticsearch;
 
 /// <summary>
-/// Upsert-by-id with content-hash skipping, get, count, delete, and the queries the sync needs. Shared by the video
-/// and channel repositories.
+/// The index's copy of the library (2.0: written from PostgreSQL): index by id with content-hash skipping, delete,
+/// partial updates, the read alias's searches. Shared by the video and channel indices.
 /// </summary>
 /// <remarks>
-/// Bookkeeping fields (<c>seen_in_run</c>, <c>media_missing</c> for videos, the art records) are not content: a
-/// rewrite of a document's content keeps the values it had.
+/// A document carries the bookkeeping the lists need (<c>media_missing</c> for videos, the art records): its copy is
+/// written whole from PostgreSQL, the bookkeeping updated in place when only it changes.
 /// </remarks>
-internal abstract class DocumentRepository<TDomain, TDocument>(
+internal abstract class DocumentRepository<TStored, TDocument>(
     ElasticsearchClient client,
     IndexNames names,
     StoreIndex index)
     where TDocument : class, IStoreDocument
 {
     public const int BatchSize = 500;
-    public const int SearchPageSize = 1000;
 
     protected ElasticsearchClient Client => client;
 
@@ -32,14 +31,15 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
 
     protected string WriteAlias => names.WriteAlias(index);
 
-    public async Task<UpsertResult> UpsertAsync(
-        IReadOnlyCollection<TDomain> items,
-        string? runId,
-        CancellationToken cancellationToken)
+    /// <summary>
+    /// Writes these documents on the write alias (during a rebuild: the generation being built). One whose content
+    /// is already there (same hash) isn't rewritten.
+    /// </summary>
+    public async Task<UpsertResult> IndexAsync(IReadOnlyCollection<TStored> items, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(items);
 
-        // Same id twice in one call: the last one wins, like successive upserts would.
+        // Same id twice in one call: the last one wins, like successive writes would.
         TDocument[] documents = items
             .Select(ToDocument)
             .GroupBy(d => d.Id, StringComparer.Ordinal)
@@ -48,29 +48,10 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
         UpsertResult result = UpsertResult.None;
         foreach (TDocument[] batch in documents.Chunk(BatchSize))
         {
-            result = result.Add(await UpsertBatchAsync(batch, runId, cancellationToken).ConfigureAwait(false));
+            result = result.Add(await IndexBatchAsync(batch, cancellationToken).ConfigureAwait(false));
         }
 
         return result;
-    }
-
-    public async Task<TDomain?> GetAsync(string id, CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(id);
-        GetResponse<TDocument> response = (await client
-            .GetAsync<TDocument>(new GetRequest(ReadAlias, id), cancellationToken)
-            .ConfigureAwait(false))
-            .Ensure($"Get {ReadAlias}/{id}", 404);
-        return response.Found && response.Source is not null ? ToDomain(response.Source) : default;
-    }
-
-    public async Task<long> CountAsync(CancellationToken cancellationToken)
-    {
-        CountResponse response = (await client
-            .CountAsync(new CountRequest(ReadAlias), cancellationToken)
-            .ConfigureAwait(false))
-            .Ensure($"Count {ReadAlias}");
-        return response.Count;
     }
 
     public async Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken)
@@ -93,18 +74,8 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
         return deleted;
     }
 
-    public Task MarkSeenAsync(IReadOnlyCollection<string> ids, string runId, CancellationToken cancellationToken) =>
-        PartialUpdateAsync(ids, new SeenInRunPartial(runId), cancellationToken);
-
-    protected abstract TDocument ToDocument(TDomain item);
-
-    protected abstract TDomain ToDomain(TDocument document);
-
-    /// <summary>
-    /// The document with the bookkeeping it must carry: the run's mark (or the one it had), and what it had before for
-    /// the rest (<paramref name="previous"/> is null for a new document).
-    /// </summary>
-    protected abstract TDocument WithBookkeeping(TDocument document, string? seenInRun, StoreBookkeeping? previous);
+    /// <summary>The whole document: the content (its hash included) and the bookkeeping, from PostgreSQL.</summary>
+    protected abstract TDocument ToDocument(TStored item);
 
     /// <summary>Sets the same partial document on every id that exists (unknown ids are ignored).</summary>
     protected async Task PartialUpdateAsync<TPartial>(
@@ -141,45 +112,6 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
                     p => new BulkUpdateOperationWithPartial<TPartial>(p.Key, WriteAlias, p.Value))],
             };
             await BulkAsync(bulk, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    /// Every document matching <paramref name="query"/> on the write alias (during a rebuild: the generation being
-    /// built), paged with <c>search_after</c> on the id, so there's no 10k window. Returns only <paramref name="fields"/>.
-    /// </summary>
-    protected async Task<IReadOnlyList<TSource>> SearchAllAsync<TSource>(
-        Query query,
-        Fields fields,
-        CancellationToken cancellationToken)
-    {
-        List<TSource> results = [];
-        ICollection<FieldValue>? after = null;
-        while (true)
-        {
-            SearchRequest<TDocument> request = new(WriteAlias)
-            {
-                Size = SearchPageSize,
-                Query = query,
-                Source = new SourceConfig(new SourceFilter { Includes = fields }),
-                Sort = [new SortOptions {
-                    Field = new FieldSort { Field = Infer.Field<TDocument>(d => d.Id), Order = SortOrder.Asc } }],
-                SearchAfter = after,
-            };
-            SearchResponse<TSource> response = (await client
-                .SearchAsync<TSource>(request, cancellationToken)
-                .ConfigureAwait(false))
-                .Ensure($"Search {WriteAlias}");
-            results.AddRange(response.Hits
-                .Select(h => h.Source)
-                .OfType<TSource>());
-
-            if (response.Hits.Count < SearchPageSize)
-            {
-                return results;
-            }
-
-            after = response.Hits.Last().Sort?.ToArray();
         }
     }
 
@@ -245,10 +177,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             .ToArray();
     }
 
-    private async Task<UpsertResult> UpsertBatchAsync(
-        TDocument[] batch,
-        string? runId,
-        CancellationToken cancellationToken)
+    private async Task<UpsertResult> IndexBatchAsync(TDocument[] batch, CancellationToken cancellationToken)
     {
         Dictionary<string, StoreBookkeeping> existing = await GetBookkeepingAsync(batch, cancellationToken)
             .ConfigureAwait(false);
@@ -263,14 +192,6 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
             if (found && previous!.ContentHash == document.ContentHash)
             {
                 unchanged++;
-                if (runId is not null && previous.SeenInRun != runId)
-                {
-                    operations.Add(new BulkUpdateOperationWithPartial<SeenInRunPartial>(
-                        document.Id,
-                        WriteAlias,
-                        new SeenInRunPartial(runId)));
-                }
-
                 continue;
             }
 
@@ -284,10 +205,8 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
                 createdIds.Add(document.Id);
             }
 
-            // A content rewrite keeps the bookkeeping it had; a run's id replaces the old "seen" mark.
             changed.Add(document.Id);
-            TDocument toWrite = WithBookkeeping(document, runId ?? previous?.SeenInRun, previous);
-            operations.Add(new BulkIndexOperation<TDocument>(toWrite, WriteAlias) { Id = document.Id });
+            operations.Add(new BulkIndexOperation<TDocument>(document, WriteAlias) { Id = document.Id });
         }
 
         if (operations.Count > 0)
@@ -305,13 +224,7 @@ internal abstract class DocumentRepository<TDomain, TDocument>(
         MultiGetRequest request = new(WriteAlias)
         {
             Ids = new Ids(batch.Select(d => d.Id)),
-            SourceIncludes = Infer.Fields<StoreBookkeeping>(
-                b => b.ContentHash!,
-                b => b.SeenInRun!,
-                b => b.MediaMissing!,
-                b => b.ThumbnailArt!,
-                b => b.ThumbArt!,
-                b => b.BannerArt!),
+            SourceIncludes = Infer.Fields<StoreBookkeeping>(b => b.ContentHash!),
         };
         MultiGetResponse<StoreBookkeeping> response = (await client
             .MultiGetAsync<StoreBookkeeping>(request, cancellationToken)

@@ -6,57 +6,19 @@ using TonTuyau.Infrastructure.Elasticsearch.Documents;
 
 namespace TonTuyau.Infrastructure.Elasticsearch;
 
-internal sealed partial class VideoRepository(ElasticsearchClient client, IndexNames names)
-    : DocumentRepository<Video, VideoDocument>(client, names, StoreIndex.Videos), IVideoRepository
+/// <summary>
+/// The index's copy of the library's videos (2.0): written from PostgreSQL (<c>LibraryVideoRepository</c>), read by
+/// the lists, the search and the counts.
+/// </summary>
+internal sealed partial class VideoIndex(ElasticsearchClient client, IndexNames names)
+    : DocumentRepository<StoredVideo, VideoDocument>(client, names, StoreIndex.Videos)
 {
-    private static readonly Fields SummaryFields = Infer.Fields<VideoSummaryDocument>(
-        v => v.Id,
-        v => v.Title,
-        v => v.ChannelId,
-        v => v.Type,
-        v => v.Downloaded,
-        v => v.SeenInRun!,
-        v => v.ThumbnailPath);
-
-    public Task<IReadOnlyList<VideoSummary>> FindNotSeenAsync(
-        string runId,
-        IReadOnlyCollection<string> channelIds,
-        CancellationToken cancellationToken)
-    {
-        BoolQuery query = new()
-        {
-            Filter = [InChannels(channelIds)],
-            MustNot = [new TermQuery { Field = Infer.Field<VideoDocument>(v => v.SeenInRun!), Value = runId }],
-        };
-        return SummariesAsync(query, cancellationToken);
-    }
-
-    public Task<IReadOnlyList<VideoSummary>> FindByChannelsAsync(
-        IReadOnlyCollection<string> channelIds,
-        CancellationToken cancellationToken) =>
-        SummariesAsync(new BoolQuery { Filter = [InChannels(channelIds)] }, cancellationToken);
-
-    public async Task<IReadOnlySet<string>> GetMediaMissingIdsAsync(CancellationToken cancellationToken)
-    {
-        TermQuery flagged = new() { Field = Infer.Field<VideoDocument>(v => v.MediaMissing!), Value = true };
-        IReadOnlyList<IdDocument> hits = await SearchAllAsync<IdDocument>(
-            flagged,
-            Infer.Fields<IdDocument>(d => d.Id),
-            cancellationToken)
-            .ConfigureAwait(false);
-        return hits
-            .Select(h => h.Id)
-            .ToHashSet(StringComparer.Ordinal);
-    }
-
+    /// <summary>Sets or clears the "file missing on the share" flag of the documents there.</summary>
     public Task SetMediaMissingAsync(IReadOnlyCollection<string> ids, bool missing, CancellationToken cancellationToken)
         =>
         PartialUpdateAsync(ids, new MediaMissingPartial(missing), cancellationToken);
 
-    protected override VideoDocument ToDocument(Video item) => DocumentMapper.ToDocument(item);
-
-    protected override Video ToDomain(VideoDocument document) => DocumentMapper.ToVideo(document);
-
+    /// <summary>Records the thumbnails' versions in the documents there.</summary>
     public Task SetThumbnailArtAsync(IReadOnlyDictionary<string, ArtVersions> art, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(art);
@@ -65,80 +27,21 @@ internal sealed partial class VideoRepository(ElasticsearchClient client, IndexN
             cancellationToken);
     }
 
-    protected override VideoDocument WithBookkeeping(
-        VideoDocument document,
-        string? seenInRun,
-        StoreBookkeeping? previous) =>
-        document with
-        {
-            SeenInRun = seenInRun,
-            MediaMissing = previous?.MediaMissing,
-            ThumbnailArt = previous?.ThumbnailArt,
-        };
+    protected override VideoDocument ToDocument(StoredVideo item) => DocumentMapper.ToDocument(item);
 
     private static TermsQuery InChannels(IReadOnlyCollection<string> channelIds) => new()
     {
         Field = Infer.Field<VideoDocument>(v => v.ChannelId),
         Terms = new TermsQueryField([.. channelIds.Select(FieldValue.String)]),
     };
-
-    private async Task<IReadOnlyList<VideoSummary>> SummariesAsync(Query query, CancellationToken cancellationToken)
-    {
-        IReadOnlyList<VideoSummaryDocument> hits = await SearchAllAsync<VideoSummaryDocument>(
-            query,
-            SummaryFields,
-            cancellationToken)
-            .ConfigureAwait(false);
-        return hits
-            .Select(h => new VideoSummary(
-                h.Id,
-                h.Title,
-                h.ChannelId,
-                DocumentMapper.ParseType(h.Type),
-                h.Downloaded,
-                h.SeenInRun,
-                h.ThumbnailPath))
-            .ToArray();
-    }
 }
 
-internal sealed partial class ChannelRepository(ElasticsearchClient client, IndexNames names)
-    : DocumentRepository<Channel, ChannelDocument>(client, names, StoreIndex.Channels), IChannelRepository
+/// <summary>The index's copy of the library's channels (2.0). Same rules as <see cref="VideoIndex"/>.</summary>
+internal sealed partial class ChannelIndex(ElasticsearchClient client, IndexNames names)
+    : DocumentRepository<StoredChannel, ChannelDocument>(client, names, StoreIndex.Channels)
 {
-    private static readonly Fields SummaryFields = Infer.Fields<ChannelSummaryDocument>(
-        c => c.Id,
-        c => c.Name,
-        c => c.SeenInRun!,
-        c => c.ThumbPath!,
-        c => c.BannerPath!,
-        c => c.TvartPath!);
-
-    public async Task<IReadOnlyList<ChannelSummary>> FindNotSeenAsync(string runId, CancellationToken cancellationToken)
-    {
-        BoolQuery query = new()
-        {
-            MustNot = [new TermQuery { Field = Infer.Field<ChannelDocument>(c => c.SeenInRun!), Value = runId }],
-        };
-        IReadOnlyList<ChannelSummaryDocument> hits = await SearchAllAsync<ChannelSummaryDocument>(
-            query,
-            SummaryFields,
-            cancellationToken)
-            .ConfigureAwait(false);
-        return hits
-            .Select(h => new ChannelSummary(
-                h.Id,
-                h.Name,
-                h.SeenInRun,
-                new[] { h.ThumbPath, h.BannerPath, h.TvartPath }
-                    .OfType<string>()
-                    .ToArray()))
-            .ToArray();
-    }
-
-    protected override ChannelDocument ToDocument(Channel item) => DocumentMapper.ToDocument(item);
-
-    protected override Channel ToDomain(ChannelDocument document) => DocumentMapper.ToChannel(document);
-
+    /// <summary>Records one kind of the channels' pictures' versions (thumb or banner) in the documents there.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">Not a channel thumb or banner.</exception>
     public Task SetArtAsync(
         ArtSubject subject,
         IReadOnlyDictionary<string, ArtVersions> art,
@@ -157,9 +60,5 @@ internal sealed partial class ChannelRepository(ElasticsearchClient client, Inde
         };
     }
 
-    protected override ChannelDocument WithBookkeeping(
-        ChannelDocument document,
-        string? seenInRun,
-        StoreBookkeeping? previous) =>
-        document with { SeenInRun = seenInRun, ThumbArt = previous?.ThumbArt, BannerArt = previous?.BannerArt };
+    protected override ChannelDocument ToDocument(StoredChannel item) => DocumentMapper.ToDocument(item);
 }

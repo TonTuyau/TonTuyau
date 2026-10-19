@@ -3,29 +3,24 @@ namespace TonTuyau.Application.Sync;
 /// <summary>The steps of a run, in the order they happen. A run goes through some of them only.</summary>
 public enum SyncPhase
 {
-    /// <summary>Full run: TubeArchivist's channel list, with the channels' art.</summary>
+    /// <summary>Import: TubeArchivist's channel list, the new channels' art.</summary>
     Channels,
 
-    /// <summary>Full run: each channel's videos, with their thumbnails, resized versions and file check.</summary>
+    /// <summary>Import: each channel's videos, the new ones' thumbnails, resized versions and file check.</summary>
     ChannelVideos,
 
-    /// <summary>Incremental run: the newest downloads, page by page, down to the watermark.</summary>
-    NewVideos,
 
-    /// <summary>Full run: recording which video files the walk found missing on the media share.</summary>
+    /// <summary>Import: recording which new videos' files the walk found missing on the media share.</summary>
     MediaCheck,
 
-    /// <summary><c>apply-deletions</c>: which entries of the list TonTuyau still stores.</summary>
-    DeletionList,
 
-    /// <summary>The planned deletions, each confirmed with TubeArchivist first.</summary>
-    Deletions,
 
-    /// <summary>More deletions planned than the limit allows: none is made.</summary>
-    DeletionsOverLimit,
 
     /// <summary>Art that failed earlier (this run or a previous one), tried again.</summary>
     ArtRetry,
+
+    /// <summary>Index rebuild (2.0): the library's channels and videos written to the new indices from PostgreSQL.</summary>
+    Indexing,
 
     /// <summary>Index rebuild: switching readers to the new indices.</summary>
     IndexSwitch,
@@ -38,14 +33,13 @@ public enum SyncPhase
 }
 
 /// <summary>
-/// Where a running sync is, for whoever watches it (the CLI). In-process only: nothing of it is stored.
+/// Where a run is while it goes on, for whoever watches it (the CLI). In-process only: nothing of it is stored.
 /// </summary>
 /// <param name="Phase">The current step.</param>
-/// <param name="StartedAt">When the command started (for <c>apply-deletions</c>: now, not the run's own start).</param>
+/// <param name="StartedAt">When the command started.</param>
 /// <param name="Done">
 /// How much of the step is done: channel documents read (<see cref="SyncPhase.Channels"/>), channels walked
-/// (<see cref="SyncPhase.ChannelVideos"/>), pages read (<see cref="SyncPhase.NewVideos"/>), entries looked up,
-/// deletions confirmed, images retried.
+/// (<see cref="SyncPhase.ChannelVideos"/>), rows indexed, images retried.
 /// </param>
 /// <param name="Total">The step's end when it's exactly known, else null. Never an estimate.</param>
 /// <param name="Counts">The run's counts so far (the ones its report shows).</param>
@@ -61,8 +55,9 @@ public sealed record SyncProgress(
     int FilesMissing);
 
 /// <summary>
-/// Receives a running sync's progress. Called often (per page, per image) and from several threads at once (the art
-/// resizing runs in parallel): an implementation must be cheap and thread-safe. Each call carries the whole state.
+/// Receives a run's progress while it goes on. Called often (per page, per image) and from several threads at once
+/// (the art resizing runs in parallel): an implementation must be cheap and thread-safe. Each call carries the whole
+/// state.
 /// </summary>
 public interface ISyncProgressReporter
 {

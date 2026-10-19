@@ -1,12 +1,12 @@
 <script lang="ts">
-  // The admin's Tasks page (1.4): the incremental sync, the full sync and applying deletions (when they run, how they
-  // last ran, the deletion list waiting), the refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
+  // The admin's Tasks page (1.4): the TubeArchivist import (2.0: how it last ran, or why it can't start), the
+  // refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
   // pasted as a link or an id; a warning when there's no YouTube cookie; the refreshes on hold, with Resume now and
   // Cancel it), and the run history, all tasks' or one's (?task=, the chips). Kept up to
   // date by itself: asked again every 3 s while a run goes on, every 30 s else, without redrawing what didn't change
   // (Svelte updates the values that did: a row under the pointer stays); a running duration ticks every second from
   // its start, without asking. Starting a task opens its run's page (its live log); a refusal (409: a run going on,
-  // nothing to apply) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
+  // TubeArchivist not set up) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
   // login page.
   import { untrack } from 'svelte'
   import Chips from '../components/Chips.svelte'
@@ -30,7 +30,7 @@
 
   const BUSY_EVERY = 3_000
   const IDLE_EVERY = 30_000
-  const tasksOrder: RunTask[] = ['incremental', 'full', 'applyDeletions', ...refreshTasks]
+  const tasksOrder: RunTask[] = ['import', 'indexRebuild', ...refreshTasks]
 
   const tasks = new Remote<Tasks>()
   const history = new Pager<Run>()

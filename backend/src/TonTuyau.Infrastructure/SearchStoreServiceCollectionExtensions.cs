@@ -25,8 +25,8 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton(sp => EsClient.Create(sp.GetRequiredService<TonTuyauOptions>().Elasticsearch));
         services.AddSingleton(sp => new IndexNames(sp.GetRequiredService<TonTuyauOptions>().Elasticsearch.IndexPrefix));
         services.AddSingleton<IIndexManager, IndexManager>();
-        services.AddSingleton<IVideoRepository, VideoRepository>();
-        services.AddSingleton<IChannelRepository, ChannelRepository>();
+        services.AddSingleton<VideoIndex>();
+        services.AddSingleton<ChannelIndex>();
         services.AddSingleton<IDashboardRepository, DashboardRepository>();
         services.AddSingleton<ITaskRepository, TaskRepository>();
         services.AddSingleton<SearchStoreReadiness>();
@@ -39,17 +39,19 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IArtResizer>(sp => new SkiaArtResizer(sp.GetRequiredService<FileArtStore>()));
         services.AddSingleton<IMediaLibrary>(
             sp => new MediaLibrary(sp.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot));
-        services.AddSingleton<IDeletionLog>(
-            sp => new DeletionLog(sp.GetRequiredService<TonTuyauOptions>().Sync.LogRoot));
         services.AddHostedService<IndexInitializer>();
-        // TonTuyau's own facts the sync lays over TubeArchivist's (1.5), read from PostgreSQL (AddAccounts).
+        // What a refresh learned (1.5), in the library's rows in PostgreSQL (AddAccounts).
         services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();
         services.AddSingleton<IYouTubeFactsStore, YouTubeFactsStore>();
         services.AddSingleton<ICommentRepository, CommentRepository>();
         // The library itself (2.0), in PostgreSQL: a database context per call, like the facts, so the command line
-        // (no PostgreSQL) can still build what it doesn't use.
-        services.AddSingleton<IVideoStore, VideoStore>();
-        services.AddSingleton<IChannelStore, ChannelStore>();
+        // (no PostgreSQL) can still build what it doesn't use. Writes go there first, then to the index.
+        services.AddSingleton<VideoStore>();
+        services.AddSingleton<IVideoStore>(sp => sp.GetRequiredService<VideoStore>());
+        services.AddSingleton<ChannelStore>();
+        services.AddSingleton<IChannelStore>(sp => sp.GetRequiredService<ChannelStore>());
+        services.AddSingleton<IVideoRepository, LibraryVideoRepository>();
+        services.AddSingleton<IChannelRepository, LibraryChannelRepository>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);
         return services;
     }

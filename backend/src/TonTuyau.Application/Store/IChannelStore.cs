@@ -30,4 +30,9 @@ public interface IChannelStore
         ArtSubject subject,
         IReadOnlyDictionary<string, ArtVersions> art,
         CancellationToken cancellationToken);
+
+    /// <summary>The library's channel ids in order, a page at a time (an index rebuild walks them all).</summary>
+    /// <param name="after">The previous page's last id; null for the first page.</param>
+    /// <returns>At most <paramref name="count"/> ids; fewer at the end, none past it.</returns>
+    Task<IReadOnlyList<string>> GetIdsAfterAsync(string? after, int count, CancellationToken cancellationToken);
 }

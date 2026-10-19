@@ -183,7 +183,11 @@ internal sealed class DashboardRepository(
             Size = 1,
             Query = new BoolQuery
             {
-                Filter = [Syncs(), new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" }],
+                Filter =
+                [
+                    Imports(),
+                    new TermQuery { Field = Infer.Field<SyncRun>(r => r.Outcome), Value = "succeeded" },
+                ],
             },
             Sort = [ByStart(SortOrder.Desc)],
             Source = new SourceConfig(new SourceFilter { Includes = RunFields }),
@@ -206,7 +210,7 @@ internal sealed class DashboardRepository(
             {
                 Filter =
                 [
-                    Syncs(),
+                    Imports(),
                     new DateRangeQuery
                     {
                         Field = Infer.Field<SyncRun>(r => r.StartedAt),
@@ -214,7 +218,7 @@ internal sealed class DashboardRepository(
                     },
                 ],
             }
-            : Syncs();
+            : Imports();
         List<SyncRun> runs = [];
         ICollection<FieldValue>? after = null;
         while (true)
@@ -248,13 +252,9 @@ internal sealed class DashboardRepository(
         }
     }
 
-    /// <summary>The syncs: incremental and full runs, not the runs that only applied a deletion list (1.4).</summary>
-    private static TermsQuery Syncs() =>
-        new()
-        {
-            Field = Infer.Field<SyncRun>(r => r.Mode),
-            Terms = new TermsQueryField([FieldValue.String("incremental"), FieldValue.String("full")]),
-        };
+    /// <summary>The TubeArchivist imports (2.0), whose new videos the dashboard counts.</summary>
+    private static TermQuery Imports() =>
+        new() { Field = Infer.Field<SyncRun>(r => r.Mode), Value = TaskRepository.ModeName(SyncMode.Import) };
 
     private static SortOptions ByStart(SortOrder order) =>
         new() { Field = new FieldSort { Field = Infer.Field<SyncRun>(r => r.StartedAt), Order = order } };

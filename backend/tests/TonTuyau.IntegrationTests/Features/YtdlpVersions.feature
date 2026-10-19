@@ -84,12 +84,12 @@ Feature: Which yt-dlp runs
   Scenario: A version chosen while a task runs waits for it to end
     Given TubeArchivist has the channel "alpha" with 5 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
     And TubeArchivist downloads 15 new videos in "alpha"
     And TubeArchivist holds its answer to page 2 until told
     When I log in as the admin
     Then yt-dlp runs "2026.09.30" within 30 seconds
-    When I send POST "/api/admin/tasks/incremental/runs" with my session
+    When I send POST "/api/admin/tasks/import/runs" with my session
     And I choose yt-dlp "nightly" "2026.10.10.233141" with my session
     Then yt-dlp "2026.10.10.233141" waits for the task going on within 30 seconds
     And "running" is "2026.09.30"

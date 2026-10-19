@@ -40,7 +40,7 @@ describe('routes', () => {
     expect(href.home()).toBe('/')
     expect(href.admin()).toBe('/admin')
     expect(href.adminTasks()).toBe('/admin/tasks')
-    expect(href.adminTasks('full')).toBe('/admin/tasks?task=full')
+    expect(href.adminTasks('import')).toBe('/admin/tasks?task=import')
     expect(href.adminRun('run-20261012T120000Z-3f9a1c')).toBe('/admin/runs/run-20261012T120000Z-3f9a1c')
     expect(href.short('a/b')).toBe('/shorts/a%2Fb')
     expect(href.watch('a b&c')).toBe('/watch?v=a+b%26c')
