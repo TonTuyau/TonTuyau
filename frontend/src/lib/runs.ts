@@ -21,6 +21,7 @@ export const taskCommands: Record<RunTask, string> = {
   refreshVideo: 'tontuyau youtube video <id>',
   refreshChannel: 'tontuyau youtube channel <id>',
   refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
+  downloadVideo: 'tontuyau youtube download <id>',
 }
 
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
@@ -29,6 +30,11 @@ export const refreshTasks: RunTask[] = ['refreshVideo', 'refreshChannel', 'refre
 /** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
 export function isRefresh(run: Run): boolean {
   return run.task === 'refreshVideo' || run.task === 'refreshChannel' || run.task === 'refreshChannelVideos'
+}
+
+/** A run that asks YouTube (1.5: a refresh; 2.0: a download): it can be put on hold. */
+export function asksYouTube(run: Run): boolean {
+  return isRefresh(run) || run.task === 'downloadVideo'
 }
 
 /** Its result in a few words: what it changed, or why it stopped. */

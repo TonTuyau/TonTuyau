@@ -73,8 +73,8 @@ public sealed class SearchStoreSteps(ScenarioState state)
         // Their channel first, as the import adds it.
         await Services
             .GetRequiredService<IChannelRepository>()
-            .AddMissingAsync([Channel], CancellationToken.None);
-        await Videos.AddMissingAsync(VideosFor(ids), CancellationToken.None);
+            .AddMissingAsync([Channel], LibraryOrigin.TubeArchivist, CancellationToken.None);
+        await Videos.AddMissingAsync(VideosFor(ids), LibraryOrigin.TubeArchivist, CancellationToken.None);
         await Indices.RefreshAsync(CancellationToken.None);
     }
 

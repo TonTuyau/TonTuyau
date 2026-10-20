@@ -263,6 +263,25 @@ describe('RunPage', () => {
     expect(api.requests(`/api/admin/runs/${going.id}/hold`)).toHaveLength(1)
   })
 
+  it('a download going on links to its video, and can be put on hold like a refresh', async () => {
+    const going = run({
+      task: 'downloadVideo',
+      target: 'jNQXAC9IVRw',
+      state: 'running',
+      finishedAt: null,
+      cancellable: true,
+    })
+    fakeApi({
+      [`/api/admin/runs/${going.id}`]: going,
+      [`/api/admin/runs/${going.id}/log`]: log([line(1, 'Downloading jNQXAC9IVRw.')], false),
+    })
+    render(RunPage, { id: going.id })
+
+    expect(await screen.findByRole('heading', { name: 'Download a video', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'jNQXAC9IVRw' })).toHaveAttribute('href', '/watch?v=jNQXAC9IVRw')
+    expect(screen.getByRole('button', { name: 'Put on hold' })).toBeInTheDocument()
+  })
+
   it('offers no hold for an import going on: only Cancel', async () => {
     const going = run({ state: 'running', finishedAt: null, cancellable: true })
     fakeApi({

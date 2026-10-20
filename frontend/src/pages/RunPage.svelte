@@ -22,7 +22,7 @@
   import type { TextKey } from '../lib/i18n/types'
   import { Remote } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
-  import { isRefresh, runSeconds, startedBy } from '../lib/runs'
+  import { asksYouTube, isRefresh, runSeconds, startedBy } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   let { id }: { id: string } = $props()
@@ -182,7 +182,7 @@
             </div>
           </div>
         {:else}
-          {#if isRefresh(run)}
+          {#if asksYouTube(run)}
             <Button onclick={() => (askingHold = true)}>{t('hold.put')}</Button>
           {/if}
           <Button onclick={() => (asking = true)}>{t('task.cancelRun')}</Button>
@@ -232,8 +232,10 @@
       {#if run.target}
         <p>
           {t('run.target')}
-          <a href={run.task === 'refreshVideo' ? href.watch(run.target) : href.channel(run.target)}
-            ><code>{run.target}</code></a
+          <a
+            href={run.task === 'refreshVideo' || run.task === 'downloadVideo'
+              ? href.watch(run.target)
+              : href.channel(run.target)}><code>{run.target}</code></a
           >
         </p>
       {/if}

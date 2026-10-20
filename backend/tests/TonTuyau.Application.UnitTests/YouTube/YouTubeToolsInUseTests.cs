@@ -91,6 +91,13 @@ public sealed class YouTubeToolsInUseTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
+            string videoId,
+            string format,
+            string folder,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }

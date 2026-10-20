@@ -12,7 +12,11 @@ public interface IChannelStore
     /// Adds the channels TonTuyau doesn't have, "not checked" on YouTube; the others are left as they are
     /// (<see cref="UpsertResult.Unchanged"/>: already there).
     /// </summary>
-    Task<UpsertResult> AddMissingAsync(IReadOnlyCollection<Channel> channels, CancellationToken cancellationToken);
+    /// <param name="origin">Where they come from: TubeArchivist's import, or TonTuyau's own downloads.</param>
+    Task<UpsertResult> AddMissingAsync(
+        IReadOnlyCollection<Channel> channels,
+        LibraryOrigin origin,
+        CancellationToken cancellationToken);
 
     Task<Channel?> GetAsync(string id, CancellationToken cancellationToken);
 

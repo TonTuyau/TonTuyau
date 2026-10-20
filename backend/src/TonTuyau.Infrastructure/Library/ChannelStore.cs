@@ -11,6 +11,7 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
 {
     public async Task<UpsertResult> AddMissingAsync(
         IReadOnlyCollection<Channel> channels,
+        LibraryOrigin origin,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channels);
@@ -21,7 +22,7 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
         UpsertResult result = UpsertResult.None;
         foreach (Channel[] batch in distinct.Chunk(VideoStore.BatchSize))
         {
-            result = result.Add(await AddBatchAsync(batch, cancellationToken).ConfigureAwait(false));
+            result = result.Add(await AddBatchAsync(batch, origin, cancellationToken).ConfigureAwait(false));
         }
 
         return result;
@@ -102,7 +103,10 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
         }
     }
 
-    private async Task<UpsertResult> AddBatchAsync(Channel[] batch, CancellationToken cancellationToken)
+    private async Task<UpsertResult> AddBatchAsync(
+        Channel[] batch,
+        LibraryOrigin origin,
+        CancellationToken cancellationToken)
     {
         string[] ids = [.. batch.Select(c => c.Id)];
         return await WithContextAsync(async db =>
@@ -116,7 +120,7 @@ internal sealed class ChannelStore(IServiceScopeFactory scopes) : IChannelStore
             List<string> created = [];
             foreach (Channel channel in batch.Where(c => !existing.Contains(c.Id)))
             {
-                db.Channels.Add(LibraryRows.NewRow(channel));
+                db.Channels.Add(LibraryRows.NewRow(channel, origin));
                 created.Add(channel.Id);
             }
 

@@ -9,12 +9,8 @@ public enum SyncPhase
     /// <summary>Import: each channel's videos, the new ones' thumbnails, resized versions and file check.</summary>
     ChannelVideos,
 
-
     /// <summary>Import: recording which new videos' files the walk found missing on the media share.</summary>
     MediaCheck,
-
-
-
 
     /// <summary>Art that failed earlier (this run or a previous one), tried again.</summary>
     ArtRetry,
@@ -30,6 +26,9 @@ public enum SyncPhase
 
     /// <summary>A refresh: reading the videos on YouTube, one by one.</summary>
     YouTubeVideos,
+
+    /// <summary>A download (2.0): yt-dlp downloading the video, then the library recording it.</summary>
+    YouTubeDownload,
 }
 
 /// <summary>

@@ -335,6 +335,7 @@ export const en = {
   'task.refreshVideo': 'Refresh a video',
   'task.refreshChannel': 'Refresh a channel',
   'task.refreshChannelVideos': 'Refresh a channel and its videos',
+  'task.downloadVideo': 'Download a video',
   'task.import.what':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
@@ -342,6 +343,8 @@ export const en = {
     'Reads a video on YouTube: whether it is still there, and its title, description and views.',
   'task.refreshChannel.what': 'Reads a channel on YouTube: whether it is still there, and its name and description.',
   'task.refreshChannelVideos.what': 'Reads a channel on YouTube, then each of its videos in the library.',
+  'task.downloadVideo.what':
+    "Downloads a video from YouTube into the videos folder, then adds it to the library, with its channel when it's new.",
   'task.when': 'When',
   'task.lastRun': 'Last run',
   'task.atStartup': 'When the backend starts, and on demand',

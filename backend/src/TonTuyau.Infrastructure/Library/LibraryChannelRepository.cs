@@ -10,9 +10,10 @@ internal sealed class LibraryChannelRepository(ChannelStore store, ChannelIndex 
 {
     public async Task<UpsertResult> AddMissingAsync(
         IReadOnlyCollection<Channel> channels,
+        LibraryOrigin origin,
         CancellationToken cancellationToken)
     {
-        UpsertResult added = await store.AddMissingAsync(channels, cancellationToken).ConfigureAwait(false);
+        UpsertResult added = await store.AddMissingAsync(channels, origin, cancellationToken).ConfigureAwait(false);
         await ReindexAsync(added.ChangedIds, cancellationToken).ConfigureAwait(false);
         return added;
     }

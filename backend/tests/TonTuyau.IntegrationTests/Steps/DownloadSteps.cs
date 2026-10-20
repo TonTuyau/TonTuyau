@@ -1,0 +1,57 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using TonTuyau.Application.Configuration;
+using TonTuyau.Application.Library;
+using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Library;
+using TonTuyau.Infrastructure.Storage;
+using TonTuyau.IntegrationTests.Support;
+
+namespace TonTuyau.IntegrationTests.Steps;
+
+/// <summary>
+/// TonTuyau's own downloads (2.0), through the fake yt-dlp (<see cref="YouTubeSteps.Answers"/>): what it left in the
+/// media folder, and what it was asked for.
+/// </summary>
+[Binding]
+public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube)
+{
+    private string MediaRoot => state.Backend.Services.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot;
+
+    [Then("the media folder has the file of the video {string} with {int} bytes")]
+    public void FileInPlace(string name, int bytes)
+    {
+        string file = Path.Combine(
+            MediaRoot,
+            FakeTubeArchivist.ChannelId(name.Split('-')[0]),
+            FakeTubeArchivist.VideoId(name) + ".mkv");
+        Assert.True(File.Exists(file), $"no {file}");
+        Assert.Equal(bytes, new FileInfo(file).Length);
+    }
+
+    [Then("no download is left in the media folder")]
+    public void NothingLeft()
+    {
+        string downloads = Path.Combine(MediaRoot, MediaLibrary.DownloadsFolder);
+        Assert.True(
+            !Directory.Exists(downloads) || !Directory.EnumerateFileSystemEntries(downloads).Any(),
+            string.Join(", ", Directory.EnumerateFileSystemEntries(downloads)));
+    }
+
+    [Then("yt-dlp was asked for the format {string} for the video {string}")]
+    public async Task FormatAsked(string format, string name) =>
+        Assert.Equal(
+            format,
+            await File.ReadAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".format")));
+
+    [Then("the video {string} and its channel {string} are TonTuyau's own")]
+    public async Task TonTuyausOwn(string video, string channel)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+        VideoRow row = await db.Videos.SingleAsync(v => v.Id == FakeTubeArchivist.VideoId(video));
+        Assert.Equal(LibraryOrigin.TonTuyau, row.Origin);
+        Assert.Equal(LibraryOrigin.TonTuyau, row.Channel.Origin);
+        Assert.Equal(FakeTubeArchivist.ChannelId(channel), row.ChannelId);
+    }
+}

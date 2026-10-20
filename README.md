@@ -8,7 +8,7 @@ A self-hosted, YouTube-like web UI for the library of a [TubeArchivist](https://
 
 - **Backend**: ASP.NET Core (.NET 10), REST API, its PostgreSQL (the library, the accounts, the runs) and its own Elasticsearch 9 (the search indices, written from PostgreSQL), an import from TubeArchivist at startup.
 - **Frontend**: Svelte 5 + Vite + TypeScript, built with pnpm, tested with Vitest.
-- **Playback**: the original files, straight from your videos folder (mounted read-only); no transcoding.
+- **Videos**: the original files, straight from your videos folder, no transcoding; since 2.0 TonTuyau downloads videos there itself (yt-dlp, merged into `.mkv` by ffmpeg).
 
 Status: **1.0.0**. Runs as three Docker containers: see [Install with Docker](#install-with-docker). Plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md); milestone notes: [docs/milestones/](docs/milestones/).
 
@@ -40,7 +40,15 @@ TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: t
 
 ### 1. The videos folder
 
-TonTuyau reads the videos from **one folder** on the VM: TubeArchivist's `youtube` folder, with one folder per channel (`<channel id>/<video id>.<ext>`). Set its path in `.env` as `TONTUYAU_MEDIA_PATH` (e.g. `/mnt/youtube`); the stack mounts it **read-only**, so TonTuyau can't change the files. Where the folder comes from is up to you: TonTuyau only needs to read it.
+TonTuyau keeps the videos in **one folder** on the VM: TubeArchivist's `youtube` folder, with one folder per channel (`<channel id>/<video id>.<ext>`). Set its path in `.env` as `TONTUYAU_MEDIA_PATH` (e.g. `/mnt/youtube`). Where the folder comes from is up to you (a local folder, a share mounted there).
+
+Since 2.0, TonTuyau **writes its own downloads** there, in the same layout (`<channel id>/<video id>.mkv`), going through a hidden `.tontuyau-downloads` folder first, so a half-downloaded file never shows. The backend runs as uid 1654: give it write access to the folder, for example
+
+```bash
+sudo setfacl -R -m u:1654:rwX -m d:u:1654:rwX /mnt/youtube   # or: sudo chown -R 1654:1654 /mnt/youtube
+```
+
+On an NFS share, the export must allow writing for that user (or map it with `all_squash`/`anonuid`). TubeArchivist's files are never changed; a download that can't write fails with "The media folder can't be written to".
 
 Check it lists channel folders (`UC…`):
 
@@ -151,7 +159,7 @@ services:
 | `tontuyau-es-data` | TonTuyau's search indices (Elasticsearch) | Not needed: `tontuyau index rebuild` writes them again from PostgreSQL |
 | `tontuyau-art` | the images copied from TubeArchivist and their resized versions (about 6 GB) | **Yes** once TubeArchivist is shut down; while it's there, an import copies and resizes what's missing again |
 | `tontuyau-tools` | the yt-dlp versions TonTuyau downloaded (1.5), about 40 MB | Not needed: downloaded again |
-| `TONTUYAU_MEDIA_PATH` (a folder, not a volume) | your videos | Yours: TonTuyau never writes there |
+| `TONTUYAU_MEDIA_PATH` (a folder, not a volume) | your videos: TubeArchivist's, and TonTuyau's downloads (2.0) | **Yes**, as any folder: once TubeArchivist is shut down, TonTuyau's downloads exist only there |
 | `.env` | the settings and secrets | **Yes** (it holds the passwords, and the TubeArchivist token while it's there: keep the copy private) |
 
 A volume to a tarball, for example (a folder, see above: back it up like any folder): `docker run --rm -v tontuyau_tontuyau-art:/v:ro -v "$PWD":/b busybox tar czf /b/art.tgz -C /v .` (Compose prefixes the volume names with the project name `tontuyau_`; `docker volume ls` lists them.)
@@ -167,6 +175,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau youtube video <id>
 docker exec tontuyau-backend tontuyau youtube channel <id>
 docker exec tontuyau-backend tontuyau youtube channel-videos <id>
+docker exec tontuyau-backend tontuyau youtube download <id>
 docker exec tontuyau-backend tontuyau health
 docker exec tontuyau-backend tontuyau --version
 ```
@@ -250,6 +259,7 @@ All settings are environment variables prefixed `TONTUYAU_` (see [.env.example](
 | `TONTUYAU_CLI_SOCKET` | no | `/tmp/tontuyau.sock`: the Unix socket the command line reaches the backend through, inside the container (empty: none, and the command line can't run anything) |
 | `TONTUYAU_YTDLP_PATH` | no | `yt-dlp`: the yt-dlp program TonTuyau reads YouTube with (1.5); the image has it, pinned |
 | `TONTUYAU_DENO_PATH` | no | `deno`: the Deno program yt-dlp runs YouTube's JavaScript with; the image has it, pinned |
+| `TONTUYAU_FFMPEG_PATH` | no | `ffmpeg`: the ffmpeg yt-dlp merges a download with (2.0; ffprobe next to it); the image has both, pinned (FFmpeg 9.0, LGPL) |
 | `TONTUYAU_TOOLS_ROOT` | no | `/data/tools`: where the yt-dlp versions TonTuyau downloads go (a volume in the stack) |
 | `TONTUYAU_TRUSTED_PROXIES` | no | empty. Your reverse proxy's address (several: commas), so each visitor behind it gets their own login attempts |
 | `TONTUYAU_PUBLIC_URL` | no | empty: no link previews. The address people reach TonTuyau at (`https://tontuyau.example.net`, no path), read by the front server: a link shared in Discord, Messenger… then shows the channel, the title and the video. Their servers fetch the page and the video there |
@@ -260,7 +270,7 @@ Read by the compose file only:
 |---|---|
 | `TONTUYAU_VERSION` | `latest`: the images' tag (`1.0.0`, `1.0` or `latest`; or a pre-release to try, such as `1.3.0-alpha.1`) |
 | `TONTUYAU_HTTP_PORT` | `80`: the port of the web app on the VM, the only one the stack publishes |
-| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), mounted read-only |
+| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), written to by TonTuyau's downloads (uid 1654) |
 
 ## Logging in
 
@@ -308,7 +318,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that start a run show its progress while it runs, then the report. Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another run is going on, 4 refused (an import without TubeArchivist's settings), 5 a refresh put on hold (YouTube refused; 1.5). Only one run goes on at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `status` reads the store itself. `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the import (one at a time with it).
+The commands that start a run show its progress while it runs, then the report. Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 3 another run is going on, 4 refused (an import without TubeArchivist's settings), 5 a refresh put on hold (YouTube refused; 1.5). Only one run goes on at a time across the backend and the CLI. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `status` reads the store itself. `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the import (one at a time with it). `youtube download <id>` (2.0) downloads a video the library doesn't have into the videos folder (`<channel id>/<id>.mkv`), with the YouTube page's format (`bestvideo+bestaudio` by default), and adds it, with its channel when it's new; a video of the library is refused (exit code 4), YouTube refusing puts it on hold (exit code 5).
 
 ## Before going public
 

@@ -622,6 +622,13 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("comments_max");
 
+                    b.Property<string>("DownloadFormat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("bestvideo+bestaudio")
+                        .HasColumnName("download_format");
+
                     b.Property<int>("HoldMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("hold_minutes");

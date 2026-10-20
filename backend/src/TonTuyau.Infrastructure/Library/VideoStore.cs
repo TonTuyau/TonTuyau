@@ -16,6 +16,7 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
 
     public async Task<UpsertResult> AddMissingAsync(
         IReadOnlyCollection<Video> videos,
+        LibraryOrigin origin,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(videos);
@@ -26,7 +27,7 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
         UpsertResult result = UpsertResult.None;
         foreach (Video[] batch in distinct.Chunk(BatchSize))
         {
-            result = result.Add(await AddBatchAsync(batch, cancellationToken).ConfigureAwait(false));
+            result = result.Add(await AddBatchAsync(batch, origin, cancellationToken).ConfigureAwait(false));
         }
 
         return result;
@@ -131,7 +132,10 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
         }
     }
 
-    private async Task<UpsertResult> AddBatchAsync(Video[] batch, CancellationToken cancellationToken)
+    private async Task<UpsertResult> AddBatchAsync(
+        Video[] batch,
+        LibraryOrigin origin,
+        CancellationToken cancellationToken)
     {
         string[] ids = [.. batch.Select(v => v.Id)];
         return await WithContextAsync(async db =>
@@ -150,7 +154,7 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
             List<string> created = [];
             foreach (Video video in missing)
             {
-                db.Videos.Add(LibraryRows.NewRow(video, LibraryCategories.Of(video.Categories, categories)));
+                db.Videos.Add(LibraryRows.NewRow(video, origin, LibraryCategories.Of(video.Categories, categories)));
                 created.Add(video.Id);
             }
 

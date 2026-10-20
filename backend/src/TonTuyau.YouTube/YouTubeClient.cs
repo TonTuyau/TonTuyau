@@ -6,6 +6,7 @@ using ManuHub.Ytdlp.NET;
 using ManuHub.Ytdlp.NET.Core;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.YouTube;
 using TonTuyau.YouTube.Dtos;
 
@@ -36,6 +37,9 @@ internal sealed partial class YouTubeClient(
 
     /// <summary>Up to this many comments, <see cref="CommentsTimeout"/> is enough.</summary>
     public const int QuickComments = 500;
+
+    /// <summary>The longest a download may take (2.0): hours of video, on a slow connection.</summary>
+    public static readonly TimeSpan DownloadTimeout = TimeSpan.FromHours(12);
 
     /// <summary>
     /// Every run: no user config file, no cache (the image's home isn't writable), plain text, nothing downloaded.
@@ -109,6 +113,71 @@ internal sealed partial class YouTubeClient(
         return new YouTubeLookup<YouTubeChannel>(YouTubeAnswer.Found, ChannelOf(info), null);
     }
 
+    /// <remarks>
+    /// yt-dlp is started directly here, with its arguments one by one: the format is the admin's, in yt-dlp's syntax,
+    /// which Ytdlp.NET's own check refuses (it takes the <c>&gt;</c> of <c>height&gt;=720</c> for a shell redirection).
+    /// </remarks>
+    public async Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
+        string videoId,
+        string format,
+        string folder,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(videoId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
+        ArgumentException.ThrowIfNullOrEmpty(folder);
+        List<string> arguments =
+        [
+            "--ignore-config", "--no-cache-dir", "--color", "never", "--no-playlist", "--no-progress", "--no-mtime",
+            "--format", format,
+            // One .mkv: the video and audio merged into it, or the one file remuxed; chapters and metadata inside.
+            "--merge-output-format", "mkv", "--remux-video", "mkv", "--embed-chapters", "--embed-metadata",
+            "--paths", $"home:{folder}", "--paths", $"temp:{folder}", "--output", "%(id)s.%(ext)s",
+            // What it downloaded, as the info dict yt-dlp writes next to it: the metadata read with the download.
+            "--write-info-json", "--no-write-playlist-metafiles",
+            $"https://www.youtube.com/watch?v={videoId}",
+        ];
+        // A name (the default, "ffmpeg") is found on the PATH by yt-dlp itself, ffprobe with it; a path is passed on.
+        if (options.YouTube.FfmpegPath.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            arguments.InsertRange(arguments.Count - 1, ["--ffmpeg-location", options.YouTube.FfmpegPath]);
+        }
+
+        YtdlpRun run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken).ConfigureAwait(false);
+        if (run.Failure is not null)
+        {
+            return new YouTubeLookup<YouTubeDownload>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
+        }
+
+        string infoFile = Path.Combine(folder, $"{videoId}.info.json");
+        string file = Path.Combine(folder, $"{videoId}.mkv");
+        VideoInfoDto? info = File.Exists(infoFile)
+            ? Parse<VideoInfoDto>(
+                await File.ReadAllTextAsync(infoFile, cancellationToken).ConfigureAwait(false),
+                videoId)
+            : null;
+        if (info is null
+            || !File.Exists(file)
+            || info.Id != videoId
+            || string.IsNullOrWhiteSpace(info.Title)
+            || info.ChannelId is null)
+        {
+            LogNoDownload(videoId);
+            return new YouTubeLookup<YouTubeDownload>(
+                YouTubeAnswer.CheckFailed,
+                null,
+                "yt-dlp didn't leave the video's file and metadata.");
+        }
+
+        YouTubeDownload download = new(
+            VideoOf(info, withComments: false),
+            file,
+            new FileInfo(file).Length,
+            TypeOf(info),
+            TracksOf(info));
+        return new YouTubeLookup<YouTubeDownload>(YouTubeAnswer.Found, download, null);
+    }
+
     public async Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken)
     {
         string? running = null;
@@ -173,6 +242,66 @@ internal sealed partial class YouTubeClient(
         withComments ? CommentsOf(info.Comments) : null,
         ChaptersOf(info.Chapters),
         info.Availability);
+
+    /// <summary>A stream when it was (or is) live, a short when YouTube says so, a video otherwise.</summary>
+    internal static VideoType TypeOf(VideoInfoDto info) =>
+        info.LiveStatus is "was_live" or "is_live" or "post_live" || info.MediaType == "livestream"
+            ? VideoType.Stream
+            : info.MediaType == "short"
+                ? VideoType.Short
+                : VideoType.Video;
+
+    /// <summary>The downloaded formats' tracks: each format's video and its audio, those it has.</summary>
+    internal static List<MediaTrack> TracksOf(VideoInfoDto info)
+    {
+        IReadOnlyList<FormatDto> formats = info.RequestedFormats is { Count: > 0 } requested
+            ? requested
+            : [new FormatDto(info.Vcodec, info.Acodec, info.Width, info.Height, info.Tbr)];
+        List<MediaTrack> tracks = [];
+        foreach (FormatDto format in formats)
+        {
+            long bitrate = format.Tbr is { } kbits ? (long)Math.Round(kbits * 1000) : 0;
+            if (CodecName(format.Vcodec) is { } video)
+            {
+                tracks.Add(new MediaTrack(MediaTrackKind.Video, video, bitrate, format.Width, format.Height));
+            }
+
+            if (CodecName(format.Acodec) is { } audio)
+            {
+                tracks.Add(new MediaTrack(MediaTrackKind.Audio, audio, bitrate, null, null));
+            }
+        }
+
+        return tracks;
+    }
+
+    /// <summary>
+    /// YouTube's codec string as ffprobe names the codec (as TubeArchivist's tracks do): <c>vp09.00.40.08</c> →
+    /// <c>vp9</c>, <c>av01…</c> → <c>av1</c>, <c>avc1…</c> → <c>h264</c>, <c>mp4a…</c> → <c>aac</c>; null for none.
+    /// </summary>
+    internal static string? CodecName(string? codec)
+    {
+        if (string.IsNullOrWhiteSpace(codec) || codec == "none")
+        {
+            return null;
+        }
+
+        string family = codec
+            .Split('.')[0]
+            .ToLowerInvariant();
+        return family switch
+        {
+            "vp09" or "vp9" => "vp9",
+            "vp08" or "vp8" => "vp8",
+            "av01" or "av1" => "av1",
+            "avc1" or "avc3" or "h264" => "h264",
+            "hev1" or "hvc1" or "hevc" or "h265" => "hevc",
+            "mp4a" or "aac" => "aac",
+            "ec-3" or "eac3" => "eac3",
+            "ac-3" or "ac3" => "ac3",
+            _ => family,
+        };
+    }
 
     internal static YouTubeChannel ChannelOf(ChannelInfoDto info) => new(
         info.ChannelId!,
@@ -337,6 +466,114 @@ internal sealed partial class YouTubeClient(
         return YtdlpRun.Failed(answer, reason) with { Silent = YtdlpErrors.ReasonOf(log.Errors).Length == 0 };
     }
 
+    /// <summary>
+    /// One run of yt-dlp started directly (a download: its arguments one by one, no shell), signed in with the cookie
+    /// when there's one, as <see cref="RunAsync"/>. Its error lines classified the same way.
+    /// </summary>
+    private async Task<YtdlpRun> RunDirectAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        CancellationToken cancellationToken)
+    {
+        string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (cookie is null)
+        {
+            return await RunProcessAsync(arguments, limit, cancellationToken).ConfigureAwait(false);
+        }
+
+        string file = Path.Combine(Path.GetTempPath(), $"tontuyau-cookies-{Guid.NewGuid():N}.txt");
+        try
+        {
+            await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
+            return await RunProcessAsync(["--cookies", file, .. arguments], limit, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    private async Task<YtdlpRun> RunProcessAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        CancellationToken cancellationToken)
+    {
+        ProcessStartInfo start = new(ytdlp.Path)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        foreach (string argument in arguments)
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using Process process = new() { StartInfo = start };
+        List<string> errors = [];
+        process.ErrorDataReceived += (_, line) =>
+        {
+            if (line.Data is { Length: > 0 } text)
+            {
+                lock (errors)
+                {
+                    errors.Add(text);
+                }
+
+                LogDownloadLine(text);
+            }
+        };
+        // Its output (what it's doing) isn't read: drained, so that yt-dlp never waits on a full pipe.
+        process.OutputDataReceived += (_, _) => { };
+        try
+        {
+            process.Start();
+        }
+        catch (Win32Exception ex)
+        {
+            LogToolMissing(ytdlp.Path, ex.Message);
+            return YtdlpRun.Failed(YouTubeAnswer.CheckFailed, "yt-dlp can't be run here.");
+        }
+
+        process.BeginErrorReadLine();
+        process.BeginOutputReadLine();
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(limit);
+        try
+        {
+            await process
+                .WaitForExitAsync(timeout.Token)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // yt-dlp and the ffmpeg it started: a half download is left in its folder, which the caller removes.
+            process.Kill(entireProcessTree: true);
+            await process
+                .WaitForExitAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            LogTimedOut(limit);
+            return YtdlpRun.Failed(YouTubeAnswer.CheckFailed, "yt-dlp took too long.");
+        }
+
+        if (process.ExitCode == 0)
+        {
+            return new YtdlpRun("", null);
+        }
+
+        string[] lines;
+        lock (errors)
+        {
+            lines = [.. errors];
+        }
+
+        (YouTubeAnswer answer, string reason) = YtdlpErrors.Classify(lines, process.ExitCode);
+        LogRefused(answer, reason);
+        return YtdlpRun.Failed(answer, reason) with { Silent = YtdlpErrors.ReasonOf(lines).Length == 0 };
+    }
+
     /// <summary>Ytdlp.NET over the configured program, or null (logged) when it's not there or can't be run.</summary>
     private Ytdlp? Start(YtdlpLog log)
     {
@@ -415,6 +652,12 @@ internal sealed partial class YouTubeClient(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp's answer about {Id} isn't JSON: {Error}")]
     private partial void LogNotJson(string id, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp ended without leaving {Id}'s file and metadata.")]
+    private partial void LogNoDownload(string id);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "yt-dlp (download): {Line}")]
+    private partial void LogDownloadLine(string line);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp answered, but not with {Id}'s metadata.")]
     private partial void LogUnexpectedAnswer(string id);

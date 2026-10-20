@@ -102,6 +102,7 @@ public static class ApiValues
         ["refreshVideo"] = SyncMode.RefreshVideo,
         ["refreshChannel"] = SyncMode.RefreshChannel,
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
+        ["downloadVideo"] = SyncMode.DownloadVideo,
     };
 
     /// <summary>How a video's comments are listed (1.5, the watch page).</summary>

@@ -47,6 +47,7 @@ internal sealed class YouTubeSettingsRepository(IServiceScopeFactory scopes) : I
             row.HoldMinutes = settings.HoldMinutes;
             row.ChangedBy = settings.ChangedBy;
             row.ChangedAt = settings.ChangedAt;
+            row.DownloadFormat = settings.DownloadFormat;
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);

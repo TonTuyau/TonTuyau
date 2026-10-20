@@ -203,6 +203,7 @@ public sealed class SearchServiceTests
 
         public Task<UpsertResult> AddMissingAsync(
             IReadOnlyCollection<Video> videos,
+            LibraryOrigin origin,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
@@ -286,6 +287,7 @@ public sealed class SearchServiceTests
 
         public Task<UpsertResult> AddMissingAsync(
             IReadOnlyCollection<Channel> channels,
+            LibraryOrigin origin,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

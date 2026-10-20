@@ -22,6 +22,9 @@ public sealed class YouTubeSettingsRow
 
     public DateTimeOffset? ChangedAt { get; set; }
 
+    /// <summary>What a download asks yt-dlp for (2.0), in its syntax.</summary>
+    public string DownloadFormat { get; set; } = YouTubeSettings.DefaultDownloadFormat;
+
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -31,6 +34,7 @@ public sealed class YouTubeSettingsRow
             row.PauseSeconds,
             row.HoldMinutes,
             row.ChangedBy,
-            row.ChangedAt);
+            row.ChangedAt,
+            row.DownloadFormat);
     }
 }

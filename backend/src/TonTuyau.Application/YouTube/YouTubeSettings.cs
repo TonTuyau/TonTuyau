@@ -13,14 +13,21 @@ namespace TonTuyau.Application.YouTube;
 /// When YouTube refuses (a bot check, too many requests): how long a refresh waits, on hold, before it resumes by itself.
 /// </param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
+/// <param name="DownloadFormat">
+/// What a download asks yt-dlp for (2.0), in its own syntax: the best video and the best audio by default (B6 sets it on
+/// the page).
+/// </param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
     int PauseSeconds,
     int HoldMinutes,
     string? ChangedBy,
-    DateTimeOffset? ChangedAt)
+    DateTimeOffset? ChangedAt,
+    string DownloadFormat = YouTubeSettings.DefaultDownloadFormat)
 {
+    public const string DefaultDownloadFormat = "bestvideo+bestaudio";
+
     public const int DefaultCommentsMax = 500;
     public const int DefaultPauseSeconds = 10;
     public const int DefaultHoldMinutes = 60;

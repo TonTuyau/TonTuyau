@@ -61,7 +61,10 @@ public enum MediaRootState
     Empty,
 }
 
-/// <summary>The video files on the (read-only) NFS share, under <c>TONTUYAU_MEDIA_ROOT</c>.</summary>
+/// <summary>
+/// The video files under <c>TONTUYAU_MEDIA_ROOT</c>: TubeArchivist's share, which TonTuyau writes its own downloads to
+/// since 2.0 (same layout, <c>&lt;channel id&gt;/&lt;video id&gt;.&lt;ext&gt;</c>).
+/// </summary>
 public interface IMediaLibrary
 {
     /// <summary>Missing or empty root = the share is probably not mounted: never conclude "every file is gone".</summary>
@@ -73,4 +76,20 @@ public interface IMediaLibrary
     /// <returns>The file, or null when it isn't on the share (right now).</returns>
     /// <exception cref="ArgumentException">Not a media path (see <c>LibraryPaths.IsMediaPath</c>).</exception>
     StoredFile? Find(string mediaPath);
+
+    /// <summary>
+    /// A new, empty folder for one download (2.0), on the media folder's file system so that placing the file is a
+    /// rename: a half-downloaded file never shows in the library's folders.
+    /// </summary>
+    /// <exception cref="IOException">The media folder can't be written to.</exception>
+    string NewDownloadFolder(string videoId);
+
+    /// <summary>Moves a downloaded file to its place in the library, replacing a file there.</summary>
+    /// <param name="mediaPath">Where it goes, e.g. <c>UCxxx/abcdefghijk.mkv</c>.</param>
+    /// <exception cref="ArgumentException">Not a media path.</exception>
+    /// <exception cref="IOException">It can't be moved there.</exception>
+    void Place(string file, string mediaPath);
+
+    /// <summary>Deletes a download's folder and whatever is left in it; nothing when it's gone already.</summary>
+    void RemoveDownloadFolder(string folder);
 }

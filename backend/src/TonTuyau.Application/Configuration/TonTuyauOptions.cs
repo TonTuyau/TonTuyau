@@ -19,10 +19,15 @@ public sealed record TubeArchivistOptions(string BaseUrl, string Token);
 /// <param name="YtdlpPath">The image's yt-dlp (1.5): a path, or a name found on the PATH; the default and fallback.</param>
 /// <param name="DenoPath">The Deno program yt-dlp runs YouTube's JavaScript with; only its version is read here.</param>
 /// <param name="ToolsRoot">TonTuyau's own folder for the yt-dlp versions it downloads (a volume in the stack).</param>
+/// <param name="FfmpegPath">
+/// The ffmpeg program yt-dlp merges a download's video and audio with (2.0): a path (its ffprobe next to it), or the name
+/// found on the PATH; the image has both, pinned.
+/// </param>
 public sealed record YouTubeOptions(
     string YtdlpPath = TonTuyauOptionsReader.DefaultYtdlpPath,
     string DenoPath = TonTuyauOptionsReader.DefaultDenoPath,
-    string ToolsRoot = TonTuyauOptionsReader.DefaultToolsRoot);
+    string ToolsRoot = TonTuyauOptionsReader.DefaultToolsRoot,
+    string FfmpegPath = TonTuyauOptionsReader.DefaultFfmpegPath);
 
 /// <param name="IndexPrefix">Prefix of every TonTuyau index and alias, e.g. <c>tontuyau</c> → <c>tontuyau-videos</c>.</param>
 public sealed record ElasticsearchOptions(
@@ -31,7 +36,9 @@ public sealed record ElasticsearchOptions(
     string Password,
     string IndexPrefix = TonTuyauOptionsReader.DefaultIndexPrefix);
 
-/// <param name="MediaRoot">Where TubeArchivist's <c>/youtube</c> share is mounted (read-only).</param>
+/// <param name="MediaRoot">
+/// Where the videos are (TubeArchivist's <c>/youtube</c> share): read, and written to by TonTuyau's downloads (2.0).
+/// </param>
 /// <param name="ArtRoot">TonTuyau's own volume for copied thumbnails and channel art.</param>
 public sealed record StorageOptions(string MediaRoot, string ArtRoot);
 

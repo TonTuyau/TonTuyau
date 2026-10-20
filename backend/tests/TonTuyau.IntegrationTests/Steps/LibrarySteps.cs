@@ -73,7 +73,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
 
         await state.WaitUntilReadyAsync();
         IChannelRepository channels = Services.GetRequiredService<IChannelRepository>();
-        await channels.AddMissingAsync([.. _channels.Values], default);
+        await channels.AddMissingAsync([.. _channels.Values], LibraryOrigin.TubeArchivist, default);
         // Added not checked, as the import adds them; their state as a refresh records it.
         IYouTubeFactsStore facts = Services.GetRequiredService<IYouTubeFactsStore>();
         Channel[] checkedOnes = [.. _channels.Values.Where(c => c.YouTube != YouTubeStatus.NotChecked)];
@@ -135,7 +135,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
 
         await state.WaitUntilReadyAsync();
         IVideoRepository videos = Services.GetRequiredService<IVideoRepository>();
-        await videos.AddMissingAsync(added, default);
+        await videos.AddMissingAsync(added, LibraryOrigin.TubeArchivist, default);
         // Added not checked, as the import adds them; their state as a refresh records it.
         IYouTubeFactsStore facts = Services.GetRequiredService<IYouTubeFactsStore>();
         Video[] checkedOnes = [.. added.Where(v => v.YouTube != YouTubeStatus.NotChecked)];

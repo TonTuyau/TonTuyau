@@ -11,6 +11,7 @@ public static class TonTuyauOptionsReader
     public const string DefaultMediaRoot = "/youtube";
     public const string DefaultYtdlpPath = "yt-dlp";
     public const string DefaultDenoPath = "deno";
+    public const string DefaultFfmpegPath = "ffmpeg";
     public const string DefaultToolsRoot = "/data/tools";
     public const string DefaultArtRoot = "/data/art";
     public const string DefaultTimeZone = "Europe/Paris";
@@ -95,7 +96,8 @@ public static class TonTuyauOptionsReader
             new YouTubeOptions(
                 Get(ConfigKeys.YtdlpPath, DefaultYtdlpPath),
                 Get(ConfigKeys.DenoPath, DefaultDenoPath),
-                Get(ConfigKeys.ToolsRoot, DefaultToolsRoot)))
+                Get(ConfigKeys.ToolsRoot, DefaultToolsRoot),
+                Get(ConfigKeys.FfmpegPath, DefaultFfmpegPath)))
         {
             Unparsable = unparsable,
         };
