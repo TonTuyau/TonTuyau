@@ -30,23 +30,26 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     /// <summary>
     /// Asks for a task (2.0: queued, started at once when nothing else goes on; it goes on in the background). The
     /// import (2.0) adds what TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube;
-    /// a download (2.0, "Add a video") downloads a video into the library. 409 when TubeArchivist isn't set up, the
-    /// target isn't one of the library (a refresh), or is already, with its file (a download).
+    /// a download (2.0, "Add a video") downloads a video into the library; "Add a channel" (2.0) subscribes to a channel,
+    /// added when it's new. 409 when TubeArchivist isn't set up, the target isn't one of the library (a refresh), or is
+    /// already (a download: with its file; a channel: subscribed to).
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo.")]
+        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel.")]
         string task,
         [FromQuery]
-        [Description("Refreshes, downloadVideo only: the video's or channel's YouTube id (downloadVideo: or a link).")]
+        [Description("Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link.")]
         string? target,
+        [FromQuery, Description("addChannel only: videos,shorts,streams or some of them (default: the three).")]
+        string? tabs,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, target, Account(), cancellationToken)
+            .StartAsync(task, target, tabs, Account(), cancellationToken)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }

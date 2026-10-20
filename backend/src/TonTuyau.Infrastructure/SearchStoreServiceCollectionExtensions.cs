@@ -59,6 +59,7 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IVideoStore>(sp => sp.GetRequiredService<VideoStore>());
         services.AddSingleton<ChannelStore>();
         services.AddSingleton<IChannelStore>(sp => sp.GetRequiredService<ChannelStore>());
+        services.AddSingleton<ISubscriptionStore, SubscriptionStore>();
         services.AddSingleton<IVideoRepository, LibraryVideoRepository>();
         services.AddSingleton<IChannelRepository, LibraryChannelRepository>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);

@@ -19,6 +19,7 @@ public sealed partial class SyncService(
     ITubeArchivistGateway tubeArchivist,
     IVideoRepository videos,
     IChannelRepository channels,
+    ISubscriptionStore subscriptions,
     IIndexManager indices,
     ISyncStateStore state,
     IArtStore art,
@@ -331,14 +332,14 @@ public sealed partial class SyncService(
         int channelDocuments = 0;
         for (int number = 1; ; number++)
         {
-            Page<Channel> page = await tubeArchivist.GetChannelPageAsync(number, ct).ConfigureAwait(false);
+            Page<TaChannel> page = await tubeArchivist.GetChannelPageAsync(number, ct).ConfigureAwait(false);
             if (page.IsPastEnd)
             {
                 break;
             }
 
             await ProcessChannelsAsync(page, context).ConfigureAwait(false);
-            walkedChannels.AddRange(page.Items);
+            walkedChannels.AddRange(page.Items.Select(c => c.Channel));
             channelDocuments += page.Items.Count + page.Rejected.Count;
             context.Progressed(channelDocuments);
         }
@@ -463,20 +464,30 @@ public sealed partial class SyncService(
         await ResizeArtAsync([.. added.Select(v => v.ThumbnailPath)], context).ConfigureAwait(false);
     }
 
-    private async Task ProcessChannelsAsync(Page<Channel> page, RunContext context)
+    private async Task ProcessChannelsAsync(Page<TaChannel> page, RunContext context)
     {
         CancellationToken ct = context.CancellationToken;
         context.Count(c => c with { ChannelsRead = c.ChannelsRead + page.Items.Count + page.Rejected.Count });
         LogRejected(page.Rejected);
         context.Rejected(page.Rejected);
         UpsertResult result = await channels
-            .AddMissingAsync(page.Items, LibraryOrigin.TubeArchivist, ct)
+            .AddMissingAsync([.. page.Items.Select(c => c.Channel)], LibraryOrigin.TubeArchivist, ct)
             .ConfigureAwait(false);
         HashSet<string> created = new(result.CreatedIds, StringComparer.Ordinal);
         Channel[] added = page.Items
+            .Select(c => c.Channel)
             .Where(c => created.Contains(c.Id))
             .DistinctBy(c => c.Id, StringComparer.Ordinal)
             .ToArray();
+        // TubeArchivist's subscriptions come with the channels the import adds (question 13): a channel TonTuyau had
+        // keeps its own, so one unsubscribed in TonTuyau isn't subscribed again by the next import.
+        DateTimeOffset now = clock.GetUtcNow();
+        ChannelSubscription[] subscribed = page.Items
+            .Where(c => c.Subscribed && created.Contains(c.Channel.Id))
+            .Select(c => new ChannelSubscription(c.Channel.Id, ChannelTabs.All, now, null, LibraryOrigin.TubeArchivist))
+            .ToArray();
+        int taken = await subscriptions.AddMissingAsync(subscribed, ct).ConfigureAwait(false);
+        context.Count(c => c with { Subscribed = c.Subscribed + taken });
         foreach (Channel channel in added)
         {
             await CopyChannelArtAsync(channel, context).ConfigureAwait(false);

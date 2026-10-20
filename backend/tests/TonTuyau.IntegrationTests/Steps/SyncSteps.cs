@@ -409,6 +409,9 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [Then("the run corrected {int} media path(s)")]
     public void Corrected(int count) => Assert.Equal(count, _run!.Counts.Corrected);
 
+    [Then("the run counted {int} subscription(s)")]
+    public void CountedSubscriptions(int count) => Assert.True(_run!.Counts.Subscribed == count, Describe());
+
     [Then("the run counted {int} missing media file(s)")]
     public void MissingMedia(int count) => Assert.Equal(count, _run!.Counts.MediaMissing);
 

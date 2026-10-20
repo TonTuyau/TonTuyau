@@ -342,6 +342,7 @@ export const fr: Dictionary = {
   'task.refreshChannel': 'Actualiser une chaîne',
   'task.refreshChannelVideos': 'Actualiser une chaîne et ses vidéos',
   'task.downloadVideo': 'Télécharger une vidéo',
+  'task.addChannel': 'Ajouter une chaîne',
   'task.import.what':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
@@ -349,6 +350,8 @@ export const fr: Dictionary = {
     'Lit une vidéo sur YouTube : si elle y est toujours, et son titre, sa description et ses vues.',
   'task.refreshChannel.what': 'Lit une chaîne sur YouTube : si elle y est toujours, et son nom et sa description.',
   'task.refreshChannelVideos.what': 'Lit une chaîne sur YouTube, puis chacune de ses vidéos de la bibliothèque.',
+  'task.addChannel.what':
+    "Lit une chaîne sur YouTube, l'ajoute à la bibliothèque si elle est nouvelle, et s'y abonne : les synchronisations YouTube téléchargeront les vidéos des onglets cochés. Rien n'est encore téléchargé.",
   'task.downloadVideo.what':
     "Télécharge une vidéo de YouTube dans le dossier des vidéos, puis l'ajoute à la bibliothèque, avec sa chaîne si elle est nouvelle. Une vidéo de la bibliothèque n'est téléchargée que si son fichier manque.",
   'task.when': 'Quand',
@@ -377,6 +380,15 @@ export const fr: Dictionary = {
   'task.refresh': 'Actualiser',
   'task.refreshThem': 'Les actualiser',
   'task.download': 'Télécharger',
+  'task.add': 'Ajouter',
+  'task.target.channelOrHandle': "Lien, @pseudo ou id d'une chaîne",
+  'task.target.notChannelOrHandle':
+    "Ce n'est pas un id de chaîne (UC…), un @pseudo, ni un lien YouTube vers l'un d'eux.",
+  'tabs.legend': 'Onglets à télécharger',
+  'tabs.videos': 'Vidéos',
+  'tabs.shorts': 'Shorts',
+  'tabs.streams': 'Directs',
+  'tabs.none': 'Cochez au moins un onglet.',
   'task.cancelRefused': 'Pas annulée : {reason}',
   'run.state.running': 'En cours',
   'run.state.succeeded': 'Réussie',
@@ -413,6 +425,7 @@ export const fr: Dictionary = {
   'run.by.cli': 'Ligne de commande',
   'run.by.startup': 'Démarrage',
   'run.result.import': '{created} nouvelles · {unchanged} déjà là',
+  'run.result.addChannel': 'Abonné : {tabs}',
   'run.result.rebuild': 'Index réécrits',
   'run.result.refresh':
     '{found} trouvées ({unlisted} non répertoriées) · {gone} disparues · {private} privées · {failed} à réessayer',
@@ -494,6 +507,18 @@ export const fr: Dictionary = {
   'channelAdmin.refreshAll': 'Actualiser la chaîne et ses vidéos',
   'channelAdmin.refreshHint':
     "« Actualiser la chaîne » lit son nom, sa description, ses images et ses abonnés. « …et ses vidéos » lit ensuite chacune de ses vidéos de TonTuyau, l'une après l'autre.",
+  'subscription.title': 'Abonnement',
+  'subscription.none': 'Pas abonné : les synchronisations YouTube laissent cette chaîne telle quelle.',
+  'subscription.since': 'Abonné {when} par {by}.',
+  'subscription.sinceTubeArchivist': 'Abonné {when}, repris de TubeArchivist.',
+  'subscription.sinceCli': 'Abonné {when} depuis la ligne de commande.',
+  'subscription.hint':
+    'Les synchronisations YouTube téléchargent les vidéos des onglets cochés. Se désabonner garde la chaîne et ses vidéos.',
+  'subscription.subscribe': "S'abonner",
+  'subscription.save': 'Enregistrer les onglets',
+  'subscription.unsubscribe': 'Se désabonner',
+  'subscription.saved': 'Enregistré.',
+  'subscription.refused': 'Pas enregistré : {reason}',
   'channelAdmin.videosOnYouTube': 'Ses vidéos sur YouTube',
   'channelAdmin.statesHint':
     "« À réessayer » : la dernière vérification n'a pas eu de réponse fiable (YouTube a refusé, une erreur réseau), ou la vidéo est venue de TubeArchivist comme indisponible et TonTuyau ne l'a pas vérifiée. Seul YouTube disant « supprimée » (ou son compte fermé) rend une vidéo « Disparue », et une vidéo disparue n'est plus actualisée ; « Privée » est relue à chaque actualisation. Elle reste dans TonTuyau dans tous les cas.",

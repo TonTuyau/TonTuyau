@@ -336,6 +336,7 @@ export const en = {
   'task.refreshChannel': 'Refresh a channel',
   'task.refreshChannelVideos': 'Refresh a channel and its videos',
   'task.downloadVideo': 'Download a video',
+  'task.addChannel': 'Add a channel',
   'task.import.what':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
@@ -343,6 +344,8 @@ export const en = {
     'Reads a video on YouTube: whether it is still there, and its title, description and views.',
   'task.refreshChannel.what': 'Reads a channel on YouTube: whether it is still there, and its name and description.',
   'task.refreshChannelVideos.what': 'Reads a channel on YouTube, then each of its videos in the library.',
+  'task.addChannel.what':
+    'Reads a channel on YouTube, adds it to the library when it is new, and subscribes to it: the YouTube syncs will download the videos of the tabs ticked. Nothing is downloaded yet.',
   'task.downloadVideo.what':
     "Downloads a video from YouTube into the videos folder, then adds it to the library, with its channel when it's new. A video of the library is downloaded only when its file is missing.",
   'task.when': 'When',
@@ -370,6 +373,14 @@ export const en = {
   'task.refresh': 'Refresh',
   'task.refreshThem': 'Refresh them',
   'task.download': 'Download',
+  'task.add': 'Add',
+  'task.target.channelOrHandle': 'Channel link, @handle or id',
+  'task.target.notChannelOrHandle': "That isn't a channel id (UC…), an @handle, or a YouTube link to either.",
+  'tabs.legend': 'Tabs to download',
+  'tabs.videos': 'Videos',
+  'tabs.shorts': 'Shorts',
+  'tabs.streams': 'Streams',
+  'tabs.none': 'Tick at least one tab.',
   'task.cancelRefused': 'Not canceled: {reason}',
   'run.state.running': 'Running',
   'run.state.succeeded': 'Succeeded',
@@ -404,6 +415,7 @@ export const en = {
   'run.by.cli': 'Command line',
   'run.by.startup': 'Startup',
   'run.result.import': '{created} new · {unchanged} already there',
+  'run.result.addChannel': 'Subscribed: {tabs}',
   'run.result.rebuild': 'Indices written again',
   'run.result.refresh': '{found} found ({unlisted} unlisted) · {gone} gone · {private} private · {failed} to retry',
   'run.result.canceled': 'Stopped',
@@ -485,6 +497,18 @@ export const en = {
   'channelAdmin.refreshHint':
     '"Refresh the channel" reads its name, description, pictures and subscribers. "…and its videos" then reads each of its videos in TonTuyau, one after the other.',
   'channelAdmin.videosOnYouTube': 'Its videos on YouTube',
+  'subscription.title': 'Subscription',
+  'subscription.none': 'Not subscribed: the YouTube syncs leave this channel as it is.',
+  'subscription.since': 'Subscribed {when} by {by}.',
+  'subscription.sinceTubeArchivist': 'Subscribed {when}, taken from TubeArchivist.',
+  'subscription.sinceCli': 'Subscribed {when} from the command line.',
+  'subscription.hint':
+    'The YouTube syncs download the videos of the tabs ticked. Unsubscribing keeps the channel and its videos.',
+  'subscription.subscribe': 'Subscribe',
+  'subscription.save': 'Save the tabs',
+  'subscription.unsubscribe': 'Unsubscribe',
+  'subscription.saved': 'Saved.',
+  'subscription.refused': 'Not saved: {reason}',
   'channelAdmin.statesHint':
     '"Retry later": the last check had no answer to trust (YouTube refused, a network error), or the video came from TubeArchivist as unavailable and TonTuyau hasn\'t checked it. Only YouTube saying "removed" (or its account terminated) makes a video "Gone", and a gone video isn\'t refreshed any more; "Private" is read again at each refresh. It stays in TonTuyau either way.',
   'channelAdmin.videos': 'Its videos',

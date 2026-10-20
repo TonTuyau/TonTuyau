@@ -47,6 +47,44 @@ public static partial class LibraryIds
         return IsVideoId(id) ? id : null;
     }
 
+    /// <summary>
+    /// A channel from what an admin pastes (2.0, "Add a channel"): its id, its <c>@handle</c>, or a YouTube link to
+    /// either (<c>youtube.com/channel/UC…</c>, <c>youtube.com/@name</c>, a tab of it like <c>/videos</c> included).
+    /// </summary>
+    /// <returns>Its id (<c>UC…</c>) or its handle (<c>@name</c>); null when it's neither.</returns>
+    public static string? ChannelTargetOf(string? text)
+    {
+        string trimmed = text?.Trim() ?? "";
+        if (IsChannelId(trimmed) || IsHandle(trimmed))
+        {
+            return trimmed;
+        }
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? link) || link.Scheme is not ("https" or "http"))
+        {
+            if (!Uri.TryCreate("https://" + trimmed, UriKind.Absolute, out link))
+            {
+                return null;
+            }
+        }
+
+        string host = link.Host.ToLowerInvariant();
+        host = host.StartsWith("www.", StringComparison.Ordinal) ? host[4..]
+            : host.StartsWith("m.", StringComparison.Ordinal) ? host[2..]
+            : host;
+        string[] path = link.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        string? target = (host, path) switch
+        {
+            ("youtube.com", ["channel", string id, ..]) => id,
+            ("youtube.com", [string handle, ..]) when handle.StartsWith('@') => Uri.UnescapeDataString(handle),
+            _ => null,
+        };
+        return IsChannelId(target) || IsHandle(target) ? target : null;
+    }
+
+    /// <summary>A YouTube handle, <c>@</c> and 3 to 30 letters, digits, <c>_</c>, <c>-</c> or <c>.</c>.</summary>
+    public static bool IsHandle(string? text) => text is not null && Handle().IsMatch(text);
+
     private static string? QueryValue(string query, string name) =>
         query
             .TrimStart('?')
@@ -61,4 +99,7 @@ public static partial class LibraryIds
 
     [GeneratedRegex("^UC[A-Za-z0-9_-]{22}\\z")]
     private static partial Regex ChannelId();
+
+    [GeneratedRegex("^@[A-Za-z0-9_.-]{3,30}\\z")]
+    private static partial Regex Handle();
 }

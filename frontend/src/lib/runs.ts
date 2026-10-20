@@ -1,5 +1,5 @@
 // What the Tasks page shows of a run (1.4), from what the API gave: never a count it didn't send.
-import type { Run, RunTask } from './api/types'
+import type { ChannelTabs, Run, RunTask } from './api/types'
 import { formatDateTime, formatNumber } from './format'
 import { i18n, t } from './i18n/i18n.svelte'
 
@@ -21,14 +21,15 @@ export const taskCommands: Record<RunTask, string> = {
   refreshVideo: 'tontuyau youtube video <id>',
   refreshChannel: 'tontuyau youtube channel <id>',
   refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
-  downloadVideo: 'tontuyau youtube download <id>',
+  downloadVideo: 'tontuyau youtube download <id|link>',
+  addChannel: 'tontuyau youtube add-channel <id|@handle> [videos,shorts,streams]',
 }
 
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
 export const refreshTasks: RunTask[] = ['refreshVideo', 'refreshChannel', 'refreshChannelVideos']
 
-/** The YouTube cards of the Tasks page: a download ("Add a video", 2.0), then the refreshes. */
-export const youTubeTasks: RunTask[] = ['downloadVideo', ...refreshTasks]
+/** The YouTube cards of the Tasks page: a download ("Add a video", 2.0), "Add a channel" (2.0), the refreshes. */
+export const youTubeTasks: RunTask[] = ['downloadVideo', 'addChannel', ...refreshTasks]
 
 /** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
 export function isRefresh(run: Run): boolean {
@@ -37,7 +38,18 @@ export function isRefresh(run: Run): boolean {
 
 /** A run that asks YouTube (1.5: a refresh; 2.0: a download): it can be put on hold. */
 export function asksYouTube(run: Run): boolean {
-  return isRefresh(run) || run.task === 'downloadVideo'
+  return isRefresh(run) || run.task === 'downloadVideo' || run.task === 'addChannel'
+}
+
+/** A channel's tabs (2.0), in order: videos, shorts, streams. */
+export const channelTabs = ['videos', 'shorts', 'streams'] as const
+
+/** The tabs ticked, named: "Videos · Shorts". */
+export function tabsText(tabs: ChannelTabs): string {
+  return channelTabs
+    .filter((tab) => tabs[tab])
+    .map((tab) => t(`tabs.${tab}`))
+    .join(' · ')
 }
 
 /** Its result in a few words: what it changed, or why it stopped. */
@@ -64,6 +76,9 @@ export function runResult(run: Run): string {
   }
   if (run.task === 'indexRebuild') {
     return t('run.result.rebuild')
+  }
+  if (run.task === 'addChannel' && run.tabs) {
+    return t('run.result.addChannel', { tabs: tabsText(run.tabs) })
   }
   if (isRefresh(run)) {
     return t('run.result.refresh', {

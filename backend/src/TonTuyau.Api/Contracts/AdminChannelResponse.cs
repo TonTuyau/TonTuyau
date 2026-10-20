@@ -7,7 +7,12 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="Channel">The channel, as its card in the lists.</param>
 /// <param name="YouTube">What TonTuyau knows of it on YouTube.</param>
 /// <param name="Videos">How many of its videos are in each state on YouTube.</param>
-public sealed record AdminChannelResponse(ChannelCard Channel, YouTubeStatusResponse YouTube, YouTubeStateCounts Videos)
+/// <param name="Subscription">TonTuyau's subscription to it (contract v2.3); null: not subscribed.</param>
+public sealed record AdminChannelResponse(
+    ChannelCard Channel,
+    YouTubeStatusResponse YouTube,
+    YouTubeStateCounts Videos,
+    SubscriptionResponse? Subscription)
 {
     public static explicit operator AdminChannelResponse(ChannelAdminView view)
     {
@@ -22,6 +27,7 @@ public sealed record AdminChannelResponse(ChannelCard Channel, YouTubeStatusResp
                 states.GetValueOrDefault(YouTubeState.Unlisted),
                 states.GetValueOrDefault(YouTubeState.Private),
                 states.GetValueOrDefault(YouTubeState.RetryLater),
-                states.GetValueOrDefault(YouTubeState.Gone)));
+                states.GetValueOrDefault(YouTubeState.Gone)),
+            view.Subscription is null ? null : (SubscriptionResponse)view.Subscription);
     }
 }

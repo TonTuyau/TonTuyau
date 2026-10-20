@@ -68,6 +68,121 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/channels/{id}/subscription': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['SubscriptionRequest']
+          'application/*+json': components['schemas']['SubscriptionRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['SubscriptionResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    post?: never
+    delete: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/channels/{id}/videos': {
     parameters: {
       query?: never
@@ -2066,12 +2181,14 @@ export interface paths {
     post: {
       parameters: {
         query?: {
-          /** @description Refreshes, downloadVideo only: the video's or channel's YouTube id (downloadVideo: or a link). */
+          /** @description Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link. */
           target?: string
+          /** @description addChannel only: videos,shorts,streams or some of them (default: the three). */
+          tabs?: string
         }
         header?: never
         path: {
-          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo. */
+          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel. */
           task: string
         }
         cookie?: never
@@ -2960,6 +3077,7 @@ export interface components {
       channel: components['schemas']['ChannelCard']
       youTube: components['schemas']['YouTubeStatusResponse']
       videos: components['schemas']['YouTubeStateCounts']
+      subscription: null | components['schemas']['SubscriptionResponse']
     }
     AdminVideoResponse: {
       video: components['schemas']['VideoCard']
@@ -3002,6 +3120,11 @@ export interface components {
       banners: components['schemas']['ImageSize'][]
       tags: string[]
       active: boolean
+    }
+    ChannelTabsResponse: {
+      videos: boolean
+      shorts: boolean
+      streams: boolean
     }
     ChannelTotals: {
       id: string
@@ -3125,6 +3248,8 @@ export interface components {
     }
     /** @enum {string} */
     ImportStep: 'run' | 'day' | 'week' | 'month'
+    /** @enum {string} */
+    LibraryOrigin: 'tubeArchivist' | 'tonTuyau'
     LibraryTotals: {
       /** Format: int64 */
       channels: number
@@ -3223,6 +3348,8 @@ export interface components {
       checkFailed: number
       /** Format: int32 */
       commentsRead: number
+      /** Format: int32 */
+      subscribed: number
     }
     RunLock: {
       task: components['schemas']['SyncMode']
@@ -3261,6 +3388,7 @@ export interface components {
       error: null | string
       counts: components['schemas']['RunCounts']
       target: null | string
+      tabs: null | components['schemas']['ChannelTabsResponse']
       /** Format: date-time */
       resumeAt: null | string
       /** Format: int32 */
@@ -3276,6 +3404,18 @@ export interface components {
     SendCookieRequest: {
       cookies: null | string
     }
+    SubscriptionRequest: {
+      videos: null | boolean
+      shorts: null | boolean
+      streams: null | boolean
+    }
+    SubscriptionResponse: {
+      tabs: components['schemas']['ChannelTabsResponse']
+      /** Format: date-time */
+      since: string
+      by: null | string
+      origin: components['schemas']['LibraryOrigin']
+    }
     Suggestion: {
       text: string
       kind: components['schemas']['SuggestionKind']
@@ -3287,7 +3427,14 @@ export interface components {
       suggestions: components['schemas']['Suggestion'][]
     }
     /** @enum {string} */
-    SyncMode: 'import' | 'indexRebuild' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos' | 'downloadVideo'
+    SyncMode:
+      | 'import'
+      | 'indexRebuild'
+      | 'refreshVideo'
+      | 'refreshChannel'
+      | 'refreshChannelVideos'
+      | 'downloadVideo'
+      | 'addChannel'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */

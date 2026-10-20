@@ -294,6 +294,7 @@ public sealed class FakeTubeArchivist : IAsyncDisposable
         ["channel_name"] = c.Name,
         ["channel_description"] = $"Description of {c.Name}",
         ["channel_active"] = true,
+        ["channel_subscribed"] = c.Subscribed,
         ["channel_subs"] = 1000,
         ["channel_last_refresh"] = "2026-09-01T00:00:00+00:00",
         ["channel_tags"] = new JsonArray("fake"),
@@ -347,7 +348,8 @@ public sealed class FakeTubeArchivist : IAsyncDisposable
     }
 }
 
-public sealed record FakeChannel(string Id, string Name);
+/// <param name="Subscribed">Whether TubeArchivist is subscribed to it (<c>channel_subscribed</c>, 2.0 B4).</param>
+public sealed record FakeChannel(string Id, string Name, bool Subscribed = false);
 
 public sealed class FakeVideo(string id, string channelId, long downloaded)
 {

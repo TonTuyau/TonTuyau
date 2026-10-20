@@ -5,7 +5,8 @@ namespace TonTuyau.Api.Contracts;
 
 /// <summary>A run of the history (contract v1.7, TonTuyau 1.4).</summary>
 /// <param name="Task">
-/// import | indexRebuild (contract v2.0) | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo.
+/// import | indexRebuild (contract v2.0) | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo |
+/// addChannel (v2.3).
 /// </param>
 /// <param name="Trigger">
 /// What started it: scheduler (a refresh resuming by itself) | cli | startup (the import, or the rebuild after an
@@ -20,7 +21,11 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="QueuedAt">When it was asked for (2.0); null for a run TonTuyau started at once by itself.</param>
 /// <param name="Position">Queued (2.0): its place in line, 1 for the next to start; null otherwise.</param>
 /// <param name="Error">Why it failed; null otherwise.</param>
-/// <param name="Target">A refresh (1.5): the video's or channel's YouTube id it reads.</param>
+/// <param name="Target">
+/// A refresh (1.5): the video's or channel's YouTube id it reads; a download's video (2.0); the channel
+/// <c>addChannel</c> adds (v2.3: its id, or its <c>@handle</c> until the run read its id).
+/// </param>
+/// <param name="Tabs"><c>addChannel</c> (v2.3): the tabs it subscribes to; null for the other runs.</param>
 /// <param name="ResumeAt">A refresh on hold (1.5, <c>onHold</c>): when it resumes by itself; null otherwise, and when put on hold by hand (it waits for Resume now).</param>
 /// <param name="Left">A refresh on hold: how many channels and videos it has left to read; 0 otherwise.</param>
 /// <param name="IndexRebuild">It rebuilt the indices (asked for, or before an import after an upgrade).</param>
@@ -41,6 +46,7 @@ public sealed record RunResponse(
     string? Error,
     RunCounts Counts,
     string? Target,
+    ChannelTabsResponse? Tabs,
     DateTime? ResumeAt,
     int Left,
     bool IndexRebuild,
@@ -64,6 +70,7 @@ public sealed record RunResponse(
             run.Error,
             (RunCounts)run.Counts,
             run.Target,
+            run.Tabs is null ? null : (ChannelTabsResponse)run.Tabs,
             run.ResumeAt?.UtcDateTime,
             run.Remaining.Count,
             run.IndexRebuild,

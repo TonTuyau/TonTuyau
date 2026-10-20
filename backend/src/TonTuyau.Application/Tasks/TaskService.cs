@@ -81,8 +81,11 @@ public sealed class TaskService(
     /// Asks for a task (2.0: through the run queue): the run, started at once when nothing else goes on, else queued.
     /// </summary>
     /// <param name="target">
-    /// A refresh's video or channel (its YouTube id, 1.5), a download's video (its id or a YouTube link to it, 2.0);
-    /// null for the other tasks.
+    /// A refresh's video or channel (its YouTube id, 1.5), a download's video (its id or a YouTube link to it, 2.0),
+    /// the channel "Add a channel" adds (its id, @handle, or a link to either, B4); null for the other tasks.
+    /// </param>
+    /// <param name="tabs">
+    /// "Add a channel" (B4): the tabs to subscribe to, <c>videos,shorts,streams</c> or some of them; null: the three.
     /// </param>
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
@@ -93,6 +96,7 @@ public sealed class TaskService(
     public async Task<RunView> StartAsync(
         string task,
         string? target,
+        string? tabs,
         string account,
         CancellationToken cancellationToken)
     {
@@ -101,13 +105,14 @@ public sealed class TaskService(
         {
             throw RequestRules.Invalid(
                 "task",
-                "must be import, refreshVideo, refreshChannel, refreshChannelVideos or downloadVideo.");
+                "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo or addChannel.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo
             or SyncMode.RefreshChannel
             or SyncMode.RefreshChannelVideos
-            or SyncMode.DownloadVideo;
+            or SyncMode.DownloadVideo
+            or SyncMode.AddChannel;
         if (refresh && target is null)
         {
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
@@ -115,7 +120,12 @@ public sealed class TaskService(
 
         if (!refresh && target is not null)
         {
-            throw RequestRules.Invalid("target", "is only for the refreshes and the downloads.");
+            throw RequestRules.Invalid("target", "is only for the refreshes, the downloads and addChannel.");
+        }
+
+        if (mode != SyncMode.AddChannel && tabs is not null)
+        {
+            throw RequestRules.Invalid("tabs", "is only for addChannel.");
         }
 
         if (mode == SyncMode.DownloadVideo)
@@ -127,7 +137,18 @@ public sealed class TaskService(
         StartedRun started;
         try
         {
-            started = refresh
+            started = mode == SyncMode.AddChannel
+                ? await runner
+                    .StartAddChannelAsync(
+                        LibraryIds.ChannelTargetOf(target)
+                            ?? throw RequestRules.Invalid(
+                                "target",
+                                "must be a YouTube channel's id, its @handle, or a link to either."),
+                        TabsOf(tabs),
+                        SyncTrigger.Admin,
+                        account)
+                    .ConfigureAwait(false)
+                : refresh
                 ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
                 : await runner.StartImportAsync(SyncTrigger.Admin, account).ConfigureAwait(false);
         }
@@ -228,6 +249,13 @@ public sealed class TaskService(
 
         return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <exception cref="ValidationException">Not tabs: <c>videos</c>, <c>shorts</c>, <c>streams</c>, by commas.</exception>
+    private static ChannelTabs TabsOf(string? tabs) =>
+        tabs is null
+            ? ChannelTabs.All
+            : ChannelTabs.Parse(tabs)
+            ?? throw RequestRules.Invalid("tabs", "must be videos, shorts or streams, or some of them, by commas.");
 
     /// <summary>A run can be canceled while it goes on here, or while it's on hold (1.5).</summary>
     private static RunView View(SyncRun run, string? runningHere) =>

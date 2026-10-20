@@ -45,6 +45,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 
     public DbSet<ChannelStateRow> ChannelStates => Set<ChannelStateRow>();
 
+    public DbSet<ChannelSubscriptionRow> ChannelSubscriptions => Set<ChannelSubscriptionRow>();
+
     public DbSet<RunRow> Runs => Set<RunRow>();
 
     public DbSet<SyncLockRow> SyncLock => Set<SyncLockRow>();
@@ -193,6 +195,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         modelBuilder.Entity<CategoryRow>(MapCategories);
         modelBuilder.Entity<ChannelRow>(MapChannels);
         modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
+        modelBuilder.Entity<ChannelSubscriptionRow>(MapChannelSubscriptions);
         MapRuns(modelBuilder);
     }
 
@@ -275,6 +278,28 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         category
             .HasIndex(c => c.Name)
             .IsUnique();
+    }
+
+    /// <summary>The channels TonTuyau is subscribed to (2.0, B4): a row each, deleted with its channel.</summary>
+    private static void MapChannelSubscriptions(EntityTypeBuilder<ChannelSubscriptionRow> subscription)
+    {
+        subscription.ToTable("channel_subscriptions");
+        subscription.HasKey(s => s.ChannelId);
+        subscription.Property(s => s.ChannelId).HasColumnName("channel_id");
+        subscription.Property(s => s.Videos).HasColumnName("videos");
+        subscription.Property(s => s.Shorts).HasColumnName("shorts");
+        subscription.Property(s => s.Streams).HasColumnName("streams");
+        subscription.Property(s => s.SubscribedAt).HasColumnName("subscribed_at");
+        subscription.Property(s => s.SubscribedBy).HasColumnName("subscribed_by");
+        subscription
+            .Property(s => s.Origin)
+            .HasColumnName("origin")
+            .HasConversion<string>();
+        subscription
+            .HasOne<ChannelRow>()
+            .WithOne()
+            .HasForeignKey<ChannelSubscriptionRow>(s => s.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void MapChannelStates(EntityTypeBuilder<ChannelStateRow> state)

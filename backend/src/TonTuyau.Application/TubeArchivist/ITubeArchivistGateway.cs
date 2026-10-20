@@ -24,7 +24,7 @@ public interface ITubeArchivistGateway
     Task<long?> GetChannelVideoTotalAsync(string channelId, CancellationToken cancellationToken);
 
     /// <param name="page">1-based. A page with nothing on it means past the end.</param>
-    Task<Page<Channel>> GetChannelPageAsync(int page, CancellationToken cancellationToken);
+    Task<Page<TaChannel>> GetChannelPageAsync(int page, CancellationToken cancellationToken);
 
     /// <param name="page">1-based. A page with nothing on it means past the end.</param>
     Task<Page<Video>> GetVideoPageAsync(VideoPageQuery query, int page, CancellationToken cancellationToken);

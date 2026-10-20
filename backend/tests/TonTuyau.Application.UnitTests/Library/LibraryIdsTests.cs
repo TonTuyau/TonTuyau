@@ -34,4 +34,41 @@ public sealed class LibraryIdsTests
     [InlineData("ftp://youtu.be/dQw4w9WgXcQ")]
     [InlineData("not a link at all")]
     public void Anything_else_gives_no_id(string? text) => Assert.Null(LibraryIds.VideoIdOf(text));
+
+    [Theory]
+    [InlineData("UCmw5b3sYz6v1sFkwM1HLs1g", "UCmw5b3sYz6v1sFkwM1HLs1g")]
+    [InlineData("https://www.youtube.com/channel/UCmw5b3sYz6v1sFkwM1HLs1g", "UCmw5b3sYz6v1sFkwM1HLs1g")]
+    [InlineData("youtube.com/channel/UCmw5b3sYz6v1sFkwM1HLs1g/videos", "UCmw5b3sYz6v1sFkwM1HLs1g")]
+    [InlineData("@UnderTheCity", "@UnderTheCity")]
+    [InlineData("  @under.the-city_2  ", "@under.the-city_2")]
+    [InlineData("https://www.youtube.com/@UnderTheCity", "@UnderTheCity")]
+    [InlineData("https://m.youtube.com/@UnderTheCity/streams?view=0", "@UnderTheCity")]
+    public void A_channel_is_read_from_its_id_its_handle_or_a_link_to_either(string text, string expected) =>
+        Assert.Equal(expected, LibraryIds.ChannelTargetOf(text));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("@ab")]
+    [InlineData("@has space")]
+    [InlineData("UCshort")]
+    [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("https://www.youtube.com/c/OldCustomName")]
+    [InlineData("https://vimeo.com/@UnderTheCity")]
+    [InlineData("https://evil.example/youtube.com/@UnderTheCity")]
+    public void Anything_else_gives_no_channel(string? text) => Assert.Null(LibraryIds.ChannelTargetOf(text));
+
+    [Theory]
+    [InlineData("videos,shorts,streams", true, true, true)]
+    [InlineData("streams, videos", true, false, true)]
+    [InlineData("shorts", false, true, false)]
+    public void Tabs_are_read_by_their_names(string names, bool videos, bool shorts, bool streams) =>
+        Assert.Equal(new ChannelTabs(videos, shorts, streams), ChannelTabs.Parse(names));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(",")]
+    [InlineData("videos,podcasts")]
+    [InlineData("Videos")]
+    public void Anything_else_is_no_tabs(string names) => Assert.Null(ChannelTabs.Parse(names));
 }

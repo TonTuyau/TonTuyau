@@ -1,6 +1,7 @@
 <script lang="ts">
   // A channel's admin page (1.5, from the dashboard's Manage): the channel as TonTuyau knows it on YouTube, how many of
-  // its videos are in each state, the refreshes (the channel, the channel and its videos, one video), and its videos,
+  // its videos are in each state, its subscription (2.0: subscribe, its tabs, unsubscribe), the refreshes (the channel,
+  // the channel and its videos, one video), and its videos,
   // latest first, by state (?state=, the chips) or words. One task at a time: while one goes on (any), the buttons
   // wait and a line says which; the page asks again every 3 s then, and shows what changed once it's over. A refusal
   // says why; a 401 ends the session.
@@ -12,6 +13,7 @@
   import Icon from '../components/Icon.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import Skeleton from '../components/Skeleton.svelte'
+  import SubscriptionCard from '../components/SubscriptionCard.svelte'
   import Thumbnail from '../components/Thumbnail.svelte'
   import YouTubeStateBadge from '../components/YouTubeStateBadge.svelte'
   import { api, ApiError } from '../lib/api/client'
@@ -213,6 +215,8 @@
         </dl>
         <p class="hint">{t('channelAdmin.statesHint')}</p>
       </section>
+
+      <SubscriptionCard channelId={card.id} subscription={data.subscription} onchange={() => channel.refresh()} />
     </div>
 
     <section class="videos" aria-labelledby="videos-title">

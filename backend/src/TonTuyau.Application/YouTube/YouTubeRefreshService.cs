@@ -44,6 +44,7 @@ public sealed partial class YouTubeRefreshService(
     IMediaLibrary media,
     IVideoRepository videos,
     IChannelRepository channels,
+    ISubscriptionStore subscriptions,
     ISyncStateStore state,
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
@@ -439,6 +440,11 @@ public sealed partial class YouTubeRefreshService(
                     context.BeginPhase(SyncPhase.YouTubeDownload, 1);
                     refused = await DownloadVideoAsync(id, read, context).ConfigureAwait(false);
                 }
+                else if (mode == SyncMode.AddChannel)
+                {
+                    context.BeginPhase(SyncPhase.YouTubeChannel);
+                    refused = await AddChannelAsync(id, context).ConfigureAwait(false);
+                }
                 else if (LibraryIds.IsChannelId(id))
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
@@ -553,6 +559,21 @@ public sealed partial class YouTubeRefreshService(
             {
                 throw new SyncRefusedException(
                     $"The video \"{video.Title}\" is gone from YouTube: it isn't refreshed any more.");
+            }
+        }
+        else if (mode == SyncMode.AddChannel)
+        {
+            if (!LibraryIds.IsChannelId(target) && !LibraryIds.IsHandle(target))
+            {
+                throw new SyncRefusedException($"{target} isn't a YouTube channel's id or @handle.");
+            }
+
+            // A handle's channel is known once YouTube gave its id: the run checks it then.
+            if (LibraryIds.IsChannelId(target)
+                && await subscriptions.GetAsync(target, cancellationToken).ConfigureAwait(false) is not null)
+            {
+                throw new SyncRefusedException(await SubscribedAlreadyAsync(target, cancellationToken)
+                    .ConfigureAwait(false));
             }
         }
         else if (mode is SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
@@ -678,6 +699,22 @@ public sealed partial class YouTubeRefreshService(
             return lookup.Reason ?? "YouTube refused";
         }
 
+        await RecordChannelAsync(channel, lookup, context, counted).ConfigureAwait(false);
+        return null;
+    }
+
+    /// <summary>
+    /// Records what YouTube answered of a channel of the library (not a refusal): its state, and when it's there its
+    /// name, description and pictures; then its index copy.
+    /// </summary>
+    private async Task RecordChannelAsync(
+        Channel channel,
+        YouTubeLookup<YouTubeChannel> lookup,
+        RunContext context,
+        bool counted)
+    {
+        CancellationToken ct = context.CancellationToken;
+        string channelId = channel.Id;
         context.Count(c => c with { ChannelsRead = c.ChannelsRead + 1 });
         ChannelFacts? known = (await facts.GetChannelsAsync([channelId], ct).ConfigureAwait(false))
             .GetValueOrDefault(channelId);
@@ -757,8 +794,93 @@ public sealed partial class YouTubeRefreshService(
                     .ConfigureAwait(false);
             }
         }
+    }
+
+    /// <summary>
+    /// "Add a channel" (2.0, B4): reads the channel on YouTube by its id or @handle, adds it to the library when it's
+    /// new (its name, description and pictures recorded as a refresh records them), then subscribes to it with the
+    /// run's tabs. Nothing is downloaded: the YouTube syncs (B5) do (question 14).
+    /// </summary>
+    /// <returns>What YouTube said when it refused (nothing is recorded then); null otherwise.</returns>
+    /// <exception cref="ChannelNotAddedException">Gone, private, or no answer to trust: the run fails.</exception>
+    private async Task<string?> AddChannelAsync(string target, RunContext context)
+    {
+        CancellationToken ct = context.CancellationToken;
+        YouTubeLookup<YouTubeChannel> lookup = await youTube.GetChannelAsync(target, ct).ConfigureAwait(false);
+        if (lookup.Answer == YouTubeAnswer.Refused)
+        {
+            return lookup.Reason ?? "YouTube refused";
+        }
+
+        if (lookup.Item is not { } found)
+        {
+            Logged(target, lookup);
+            throw new ChannelNotAddedException(lookup.Answer switch
+            {
+                YouTubeAnswer.Gone => $"Not added: {target} isn't on YouTube ({lookup.Reason}).",
+                YouTubeAnswer.Private => $"Not added: {target} is private on YouTube ({lookup.Reason}).",
+                _ => $"Not added: no answer to trust from YouTube ({lookup.Reason}); try again later.",
+            });
+        }
+
+        // A handle becomes the channel's id: the run links to the channel's page.
+        context.Update(r => r with { Target = found.Id });
+        Channel? channel = await channels.GetAsync(found.Id, ct).ConfigureAwait(false);
+        if (channel is null)
+        {
+            channel = new Channel(found.Id, found.Name, "", 0, [], null, null, null, YouTubeStatus.NotChecked);
+            UpsertResult added = await channels
+                .AddMissingAsync([channel], LibraryOrigin.TonTuyau, ct)
+                .ConfigureAwait(false);
+            context.Count(c => Add(c, added));
+        }
+
+        await RecordChannelAsync(channel, lookup, context, counted: true).ConfigureAwait(false);
+        ChannelTabs tabs = context.Run.Tabs ?? ChannelTabs.All;
+        ChannelSubscription? had = await subscriptions.GetAsync(found.Id, ct).ConfigureAwait(false);
+        ChannelSubscription subscription = new(
+            found.Id,
+            tabs,
+            clock.GetUtcNow(),
+            context.Run.StartedBy,
+            LibraryOrigin.TonTuyau);
+        await subscriptions
+            .SetAsync(subscription, ct)
+            .ConfigureAwait(false);
+        if (had is null)
+        {
+            context.Count(c => c with { Subscribed = c.Subscribed + 1 });
+            context.Note($"Subscribed to \"{found.Name}\": {TabsText(tabs)}. Its videos come with the YouTube syncs.");
+        }
+        else
+        {
+            context.Note($"Subscribed to \"{found.Name}\" already: its tabs are now {TabsText(tabs)}.");
+        }
 
         return null;
+    }
+
+    private async Task<string> SubscribedAlreadyAsync(string channelId, CancellationToken cancellationToken)
+    {
+        Channel? channel = await channels.GetAsync(channelId, cancellationToken).ConfigureAwait(false);
+        return $"TonTuyau is subscribed to \"{channel?.Name ?? channelId}\" already: its admin page changes its tabs.";
+    }
+
+    /// <summary>"videos, shorts and streams", "videos only"…</summary>
+    private static string TabsText(ChannelTabs tabs)
+    {
+        string[] names =
+        [
+            .. new[] { (tabs.Videos, "videos"), (tabs.Shorts, "shorts"), (tabs.Streams, "streams") }
+                .Where(t => t.Item1)
+                .Select(t => t.Item2),
+        ];
+        return names switch
+        {
+            [] => "no tab",
+            [string one] => one + " only",
+            [.. string[] first, string last] => string.Join(", ", first) + " and " + last,
+        };
     }
 
     /// <summary>
@@ -1076,6 +1198,7 @@ public sealed partial class YouTubeRefreshService(
             or DbException
             or ValidationException
             or YouTubeDownloadException
+            or ChannelNotAddedException
         || ex.InnerException is DbException;
 
     /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
