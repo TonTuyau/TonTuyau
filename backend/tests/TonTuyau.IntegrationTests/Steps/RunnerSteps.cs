@@ -13,6 +13,9 @@ public sealed class RunnerSteps(ScenarioState state, SyncSteps sync) : IDisposab
     private SyncRun? _ended;
     private bool? _canceled;
 
+    /// <summary>The backend stopping, in the background (from TubeArchivist's answer); null when it doesn't.</summary>
+    private Task? _stopping;
+
     private SyncRunner Runner => state.Backend.Services.GetRequiredService<SyncRunner>();
 
     /// <summary>Keeps the run going on, at a known point, until the scenario lets it go on.</summary>
@@ -29,7 +32,7 @@ public sealed class RunnerSteps(ScenarioState state, SyncSteps sync) : IDisposab
 
     [Given("the backend stops right before TubeArchivist answers page {int}")]
     public void StopBeforePage(int page) =>
-        sync.Fake.BeforeAnswer[Page(page)] = () => _ = Task.Run(state.StopBackend);
+        sync.Fake.BeforeAnswer[Page(page)] = () => _stopping = Task.Run(state.StopBackend);
 
     [When("the backend's runs are stopped")]
     public Task StopRuns() => Runner.StopAsync();
@@ -50,8 +53,19 @@ public sealed class RunnerSteps(ScenarioState state, SyncSteps sync) : IDisposab
     [When("TubeArchivist answers")]
     public void Answer() => _answer.Release();
 
+    /// <summary>
+    /// Its end, and the backend's stop when the scenario stops it: since the run queue (2.0), a run's end is told as soon
+    /// as it's recorded, before the backend has stopped, and the next steps would reach a backend half disposed.
+    /// </summary>
     [When("the started run ends")]
-    public async Task Ends() => _ended = await _started!.Finished.WaitAsync(TimeSpan.FromSeconds(60));
+    public async Task Ends()
+    {
+        _ended = await _started!.Finished.WaitAsync(TimeSpan.FromSeconds(60));
+        if (_stopping is not null)
+        {
+            await _stopping.WaitAsync(TimeSpan.FromSeconds(60));
+        }
+    }
 
     [When("the run {string} is canceled in the backend")]
     public void CancelById(string runId) => _canceled = Runner.Cancel(runId, "admin");
