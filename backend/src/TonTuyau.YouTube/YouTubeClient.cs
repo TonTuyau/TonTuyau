@@ -57,9 +57,9 @@ internal sealed partial class YouTubeClient(
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(videoId);
-        if (comments?.Max is { } max)
+        if (comments?.Max is not null)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(max, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(comments.Max.Value, 1);
         }
 
         string arguments = $"{CommonArguments} --dump-single-json --no-playlist {CommentArguments(comments)}"
@@ -225,12 +225,15 @@ internal sealed partial class YouTubeClient(
                 return stopped;
             })
             .ConfigureAwait(false);
-        if (run.Failure is { } failure)
+        if (run.Failure is not null)
         {
             // A channel without this tab (no shorts, never streamed): nothing to list.
-            return failure.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
+            return run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
                 ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null)
-                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(failure.Answer, null, failure.Reason);
+                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                    run.Failure.Value.Answer,
+                    null,
+                    run.Failure.Value.Reason);
         }
 
         return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
@@ -313,7 +316,7 @@ internal sealed partial class YouTubeClient(
         info.ChannelId!,
         info.Channel ?? "",
         PublishedOf(info),
-        info.Duration is { } seconds ? (int)Math.Round(seconds) : null,
+        info.Duration is null ? null : (int)Math.Round(info.Duration.Value),
         info.ViewCount,
         info.LikeCount,
         info.Tags ?? [],
@@ -342,7 +345,7 @@ internal sealed partial class YouTubeClient(
         List<MediaTrack> tracks = [];
         foreach (FormatDto format in formats)
         {
-            long bitrate = format.Tbr is { } kbits ? (long)Math.Round(kbits * 1000) : 0;
+            long bitrate = format.Tbr is null ? 0 : (long)Math.Round(format.Tbr.Value * 1000);
             if (CodecName(format.Vcodec) is { } video)
             {
                 tracks.Add(new MediaTrack(MediaTrackKind.Video, video, bitrate, format.Width, format.Height));
@@ -421,7 +424,7 @@ internal sealed partial class YouTubeClient(
                     c.Author ?? "",
                     c.AuthorId,
                     c.AuthorThumbnail,
-                    c.Timestamp is { } seconds ? DateTimeOffset.FromUnixTimeSeconds(seconds) : null,
+                    c.Timestamp is null ? null : DateTimeOffset.FromUnixTimeSeconds(c.Timestamp.Value),
                     c.LikeCount,
                     c.IsPinned == true,
                     c.AuthorIsUploader == true,
@@ -440,9 +443,9 @@ internal sealed partial class YouTubeClient(
     /// <summary>To the second (<c>timestamp</c>) when YouTube says, else the day (<c>upload_date</c>), else unknown.</summary>
     private static DateTimeOffset? PublishedOf(VideoInfoDto info)
     {
-        if (info.Timestamp is { } seconds)
+        if (info.Timestamp is not null)
         {
-            return DateTimeOffset.FromUnixTimeSeconds(seconds);
+            return DateTimeOffset.FromUnixTimeSeconds(info.Timestamp.Value);
         }
 
         return DateTime.TryParseExact(
@@ -617,7 +620,7 @@ internal sealed partial class YouTubeClient(
         using CancellationTokenSource enough = new();
         process.OutputDataReceived += (_, line) =>
         {
-            if (output is not null && line.Data is { } text && !enough.IsCancellationRequested && output(text))
+            if (output is not null && line.Data is not null && !enough.IsCancellationRequested && output(line.Data))
             {
                 enough.Cancel();
             }

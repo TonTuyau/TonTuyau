@@ -72,7 +72,7 @@ internal static class LibraryRows
             row.MediaPathCorrected,
             row.ThumbnailPath,
             row.Tags,
-            row.Category is { } category ? [category.Name] : [],
+            row.Category is null ? [] : [row.Category.Name],
             new VideoStats(row.Views, row.Likes, row.Dislikes),
             [.. row.Tracks.Select(t => new MediaTrack(t.Kind, t.Codec, t.Bitrate, t.Width, t.Height))],
             ToStatus(row.YouTube));
@@ -103,7 +103,7 @@ internal static class LibraryRows
                     row.Channel.Name,
                     row.Description,
                     row.Tags,
-                    row.Category is { } category ? [category.Name] : [],
+                    row.Category is null ? [] : [row.Category.Name],
                     row.Views,
                     row.Likes,
                     row.CommentCount,
@@ -132,45 +132,45 @@ internal static class LibraryRows
     public static void WriteFacts(VideoRow row, VideoFacts facts, CategoryRow? category)
     {
         WriteStatus(row.YouTube, facts.Status);
-        if (facts.Refreshed is not { } refreshed)
+        if (facts.Refreshed is null)
         {
             return;
         }
 
-        row.Title = refreshed.Title;
-        row.Description = refreshed.Description;
-        row.Tags = [.. refreshed.Tags];
+        row.Title = facts.Refreshed.Title;
+        row.Description = facts.Refreshed.Description;
+        row.Tags = [.. facts.Refreshed.Tags];
         row.Category = category;
-        row.Views = refreshed.Views;
-        row.Likes = refreshed.Likes;
-        row.CommentCount = refreshed.CommentCount;
+        row.Views = facts.Refreshed.Views;
+        row.Likes = facts.Refreshed.Likes;
+        row.CommentCount = facts.Refreshed.CommentCount;
         row.Chapters =
         [
-            .. refreshed.Chapters.Select(c => new VideoChapterRow
+            .. facts.Refreshed.Chapters.Select(c => new VideoChapterRow
             {
                 Start = c.StartSeconds,
                 End = c.EndSeconds,
                 Title = c.Title,
             }),
         ];
-        row.ThumbnailPath = refreshed.ThumbnailPath ?? row.ThumbnailPath;
+        row.ThumbnailPath = facts.Refreshed.ThumbnailPath ?? row.ThumbnailPath;
     }
 
     /// <summary>Writes what a refresh learned of a channel, like <see cref="WriteFacts(VideoRow, VideoFacts, CategoryRow?)"/>.</summary>
     public static void WriteFacts(ChannelRow row, ChannelFacts facts)
     {
         WriteStatus(row.YouTube, facts.Status);
-        if (facts.Refreshed is not { } refreshed)
+        if (facts.Refreshed is null)
         {
             return;
         }
 
-        row.Name = refreshed.Name;
-        row.Description = refreshed.Description;
-        row.Subscribers = refreshed.Subscribers;
-        row.Tags = [.. refreshed.Tags];
-        row.ThumbPath = refreshed.ThumbPath ?? row.ThumbPath;
-        row.BannerPath = refreshed.BannerPath ?? row.BannerPath;
+        row.Name = facts.Refreshed.Name;
+        row.Description = facts.Refreshed.Description;
+        row.Subscribers = facts.Refreshed.Subscribers;
+        row.Tags = [.. facts.Refreshed.Tags];
+        row.ThumbPath = facts.Refreshed.ThumbPath ?? row.ThumbPath;
+        row.BannerPath = facts.Refreshed.BannerPath ?? row.BannerPath;
     }
 
     public static List<MediaTrackRow> ToRows(IEnumerable<MediaTrack> tracks) =>

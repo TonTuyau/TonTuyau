@@ -20,7 +20,7 @@ internal sealed class CommentRepository(IServiceScopeFactory scopes) : ICommentR
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken)
                 .ConfigureAwait(false);
-            if (video?.CommentsReadAt is not { } readAt)
+            if (video?.CommentsReadAt is null)
             {
                 return null;
             }
@@ -28,7 +28,7 @@ internal sealed class CommentRepository(IServiceScopeFactory scopes) : ICommentR
             long kept = await db.VideoComments
                 .LongCountAsync(c => c.VideoId == videoId, cancellationToken)
                 .ConfigureAwait(false);
-            return new CommentsRead(readAt, kept, video.CommentCount);
+            return new CommentsRead(video.CommentsReadAt.Value, kept, video.CommentCount);
         }
     }
 

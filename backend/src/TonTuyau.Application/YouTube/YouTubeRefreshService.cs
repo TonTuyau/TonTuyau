@@ -653,10 +653,10 @@ public sealed partial class YouTubeRefreshService(
             .GetValueOrDefault(videoId);
         DateTimeOffset now = clock.GetUtcNow();
         SavedPicture? thumbnail = null;
-        if (lookup.Item is { } found)
+        if (lookup.Item is not null)
         {
             Picture wanted = new(
-                YouTubePictures.Thumbnail(found.Thumbnails),
+                YouTubePictures.Thumbnail(lookup.Item.Thumbnails),
                 video.ThumbnailPath,
                 YouTubePictures.VideoStem(videoId),
                 ArtSubject.VideoThumbnail);
@@ -696,10 +696,10 @@ public sealed partial class YouTubeRefreshService(
         }
 
         // Null: yt-dlp couldn't read them; those read before stay.
-        if (lookup.Item?.Comments is { } read)
+        if (lookup.Item?.Comments is not null)
         {
-            await store.SaveCommentsAsync(videoId, read, now, ct).ConfigureAwait(false);
-            context.Count(c => c with { CommentsRead = c.CommentsRead + read.Count });
+            await store.SaveCommentsAsync(videoId, lookup.Item.Comments, now, ct).ConfigureAwait(false);
+            context.Count(c => c with { CommentsRead = c.CommentsRead + lookup.Item.Comments.Count });
         }
 
         // The index's copy again from PostgreSQL, where the refresh wrote what it read (2.0).
@@ -707,10 +707,10 @@ public sealed partial class YouTubeRefreshService(
             .ReindexAsync([videoId], ct)
             .ConfigureAwait(false);
         context.Count(c => Add(c, written));
-        if (thumbnail?.Versions is { } versions)
+        if (thumbnail?.Versions is not null)
         {
             await videos
-                .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = versions }, ct)
+                .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = thumbnail.Versions }, ct)
                 .ConfigureAwait(false);
         }
 
@@ -759,15 +759,15 @@ public sealed partial class YouTubeRefreshService(
         DateTimeOffset now = clock.GetUtcNow();
         SavedPicture? avatar = null;
         SavedPicture? banner = null;
-        if (lookup.Item is { } found)
+        if (lookup.Item is not null)
         {
             Picture wantedAvatar = new(
-                YouTubePictures.Avatar(found.Thumbnails),
+                YouTubePictures.Avatar(lookup.Item.Thumbnails),
                 channel.ThumbPath,
                 YouTubePictures.ChannelStem(channelId, "thumb"),
                 ArtSubject.ChannelThumb);
             Picture wantedBanner = new(
-                YouTubePictures.Banner(found.Thumbnails),
+                YouTubePictures.Banner(lookup.Item.Thumbnails),
                 channel.BannerPath,
                 YouTubePictures.ChannelStem(channelId, "banner"),
                 ArtSubject.ChannelBanner);
@@ -825,10 +825,10 @@ public sealed partial class YouTubeRefreshService(
             (ArtSubject.ChannelBanner, banner),
         })
         {
-            if (picture?.Versions is { } versions)
+            if (picture?.Versions is not null)
             {
                 await channels
-                    .SetArtAsync(subject, new Dictionary<string, ArtVersions> { [channelId] = versions }, ct)
+                    .SetArtAsync(subject, new Dictionary<string, ArtVersions> { [channelId] = picture.Versions }, ct)
                     .ConfigureAwait(false);
             }
         }
@@ -850,7 +850,7 @@ public sealed partial class YouTubeRefreshService(
             return lookup.Reason ?? "YouTube refused";
         }
 
-        if (lookup.Item is not { } found)
+        if (lookup.Item is null)
         {
             Logged(target, lookup);
             throw new ChannelNotAddedException(lookup.Answer switch
@@ -862,11 +862,20 @@ public sealed partial class YouTubeRefreshService(
         }
 
         // A handle becomes the channel's id: the run links to the channel's page.
-        context.Update(r => r with { Target = found.Id });
-        Channel? channel = await channels.GetAsync(found.Id, ct).ConfigureAwait(false);
+        context.Update(r => r with { Target = lookup.Item.Id });
+        Channel? channel = await channels.GetAsync(lookup.Item.Id, ct).ConfigureAwait(false);
         if (channel is null)
         {
-            channel = new Channel(found.Id, found.Name, "", 0, [], null, null, null, YouTubeStatus.NotChecked);
+            channel = new Channel(
+                lookup.Item.Id,
+                lookup.Item.Name,
+                "",
+                0,
+                [],
+                null,
+                null,
+                null,
+                YouTubeStatus.NotChecked);
             UpsertResult added = await channels
                 .AddMissingAsync([channel], LibraryOrigin.TonTuyau, ct)
                 .ConfigureAwait(false);
@@ -876,9 +885,9 @@ public sealed partial class YouTubeRefreshService(
         await RecordChannelAsync(channel, lookup, context, counted: true).ConfigureAwait(false);
         // Named when it was asked for (the settings' default then); a run from before B6 without any: the three.
         ChannelTabs tabs = context.Run.Tabs ?? ChannelTabs.All;
-        ChannelSubscription? had = await subscriptions.GetAsync(found.Id, ct).ConfigureAwait(false);
+        ChannelSubscription? had = await subscriptions.GetAsync(lookup.Item.Id, ct).ConfigureAwait(false);
         ChannelSubscription subscription = new(
-            found.Id,
+            lookup.Item.Id,
             tabs,
             clock.GetUtcNow(),
             context.Run.StartedBy,
@@ -889,11 +898,12 @@ public sealed partial class YouTubeRefreshService(
         if (had is null)
         {
             context.Count(c => c with { Subscribed = c.Subscribed + 1 });
-            context.Note($"Subscribed to \"{found.Name}\": {TabsText(tabs)}. Its videos come with the YouTube syncs.");
+            context.Note(
+                $"Subscribed to \"{lookup.Item.Name}\": {TabsText(tabs)}. Its videos come with the YouTube syncs.");
         }
         else
         {
-            context.Note($"Subscribed to \"{found.Name}\" already: its tabs are now {TabsText(tabs)}.");
+            context.Note($"Subscribed to \"{lookup.Item.Name}\" already: its tabs are now {TabsText(tabs)}.");
         }
 
         return null;
@@ -943,14 +953,14 @@ public sealed partial class YouTubeRefreshService(
                 return lookup.Reason ?? "YouTube refused";
             }
 
-            if (lookup.Item is not { } download)
+            if (lookup.Item is null)
             {
                 throw YouTubeDownloadException.NotDownloaded(lookup.Reason ?? "yt-dlp didn't say why");
             }
 
             context.Count(c => c with { VideosRead = c.VideosRead + 1, FoundOnYouTube = c.FoundOnYouTube + 1 });
             context.Progressed(1);
-            YouTubeVideo found = download.Video;
+            YouTubeVideo found = lookup.Item.Video;
             // The library's, its file missing (CheckAsync, when the run started); null: a new one.
             Video? known = await videos.GetAsync(videoId, ct).ConfigureAwait(false);
             // Its channel first: a video's channel is in the library before it.
@@ -974,8 +984,8 @@ public sealed partial class YouTubeRefreshService(
             }
 
             string mediaPath = $"{found.ChannelId}/{videoId}.mkv";
-            media.Place(download.File, mediaPath);
-            LogPlaced(videoId, mediaPath, download.Size);
+            media.Place(lookup.Item.File, mediaPath);
+            LogPlaced(videoId, mediaPath, lookup.Item.Size);
             Picture wanted = new(
                 YouTubePictures.Thumbnail(found.Thumbnails),
                 known?.ThumbnailPath,
@@ -984,9 +994,9 @@ public sealed partial class YouTubeRefreshService(
             SavedPicture? thumbnail = await SavePictureAsync(wanted, context).ConfigureAwait(false);
             DateTimeOffset now = clock.GetUtcNow();
             Video video = known is null
-                ? await AddDownloadedAsync(videoId, found, download, mediaPath, thumbnail, now, context)
+                ? await AddDownloadedAsync(videoId, found, lookup.Item, mediaPath, thumbnail, now, context)
                     .ConfigureAwait(false)
-                : await SetFileAsync(known, download, mediaPath, now, context).ConfigureAwait(false);
+                : await SetFileAsync(known, lookup.Item, mediaPath, now, context).ConfigureAwait(false);
             // What YouTube said of it, as a refresh records it: its state, chapters, comment count.
             await store
                 .SaveVideoAsync(
@@ -1000,10 +1010,10 @@ public sealed partial class YouTubeRefreshService(
             await videos
                 .ReindexAsync([videoId], ct)
                 .ConfigureAwait(false);
-            if (thumbnail?.Versions is { } versions)
+            if (thumbnail?.Versions is not null)
             {
                 await videos
-                    .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = versions }, ct)
+                    .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = thumbnail.Versions }, ct)
                     .ConfigureAwait(false);
             }
 
