@@ -159,6 +159,67 @@ describe('TasksPage', () => {
     vi.useRealTimers()
   })
 
+  it('lists the runs waiting their turn, each with who asked and Cancel; the cards add to the queue', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-10-12T14:00:20Z') })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const running = run({ id: 'run-20261012T140000Z-25ede6', state: 'running', finishedAt: null })
+    const waiting = run({
+      id: 'run-20261012T140010Z-aaaaaa',
+      task: 'refreshChannelVideos',
+      target: 'UCmw5b3sYz6v1sFkwM1HLs1g',
+      trigger: 'admin',
+      startedBy: 'claire',
+      state: 'queued',
+      startedAt: '2026-10-12T14:00:10Z',
+      queuedAt: '2026-10-12T14:00:10Z',
+      finishedAt: null,
+      position: 1,
+      cancellable: true,
+    })
+    const busy = tasks({
+      lock: { task: 'import', trigger: 'startup', since: running.startedAt },
+      queue: [waiting],
+    })
+    const api = fakeApi({
+      '/api/admin/tasks': busy,
+      '/api/admin/runs': page([waiting, running], 2),
+      [`/api/admin/runs/${waiting.id}/cancel`]: { ...waiting, state: 'canceled', cancellable: false },
+    })
+    render(TasksPage)
+
+    const queue = await screen.findByRole('region', { name: 'Waiting · 1' })
+    expect(queue).toHaveTextContent('One at a time, in this order')
+    expect(queue).toHaveTextContent('Refresh a channel and its videos UCmw5b3sYz6v1sFkwM1HLs1g')
+    expect(queue).toHaveTextContent('claire · 10 seconds ago')
+    const video = screen.getByRole('article', { name: 'Refresh a video' })
+    expect(within(video).getByRole('button', { name: 'Add to the queue' })).toBeEnabled()
+    expect(within(video).getByText('A run is going on: this one waits its turn.')).toBeInTheDocument()
+
+    await user.click(within(queue).getByRole('button', { name: 'Cancel' }))
+    await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${waiting.id}/cancel`)).toHaveLength(1))
+    vi.useRealTimers()
+  })
+
+  it('says the queue waits while a run is on hold', async () => {
+    const held = run({
+      id: 'run-20261016T140200Z-7c31aa',
+      task: 'refreshChannelVideos',
+      state: 'onHold',
+      target: 'UCunderTheCity',
+      resumeAt: '2026-10-16T15:20:00Z',
+      cancellable: true,
+    })
+    const waiting = run({ id: 'run-20261016T141000Z-bbbbbb', state: 'queued', position: 1, finishedAt: null })
+    fakeApi({ '/api/admin/tasks': tasks({ onHold: [held], queue: [waiting] }), '/api/admin/runs': page([waiting]) })
+    render(TasksPage)
+
+    const queue = await screen.findByRole('region', { name: 'Waiting · 1' })
+    expect(within(queue).getByRole('status')).toHaveTextContent(
+      'The queue is on hold: Refresh a channel and its videos is on hold.',
+    )
+    expect(queue).toHaveTextContent(/On hold until/)
+  })
+
   it('speaks French', async () => {
     i18n.setLang('fr')
     fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
@@ -253,7 +314,7 @@ describe('TasksPage', () => {
       expect(api.requests('/api/admin/tasks/import/runs')).toHaveLength(1)
     })
 
-    it('one run at a time: the other buttons wait, this task’s run can be canceled (asked first)', async () => {
+    it('one run at a time: the other buttons add to the queue, this task’s run can be canceled (asked first)', async () => {
       const user = userEvent.setup()
       const running = run({ id: 'run-20261014T090000Z-bbbbbb', state: 'running', finishedAt: null })
       const busy = tasks({
@@ -269,8 +330,8 @@ describe('TasksPage', () => {
       render(TasksPage)
 
       const video = await screen.findByRole('article', { name: 'Refresh a video' })
-      expect(within(video).getByRole('button', { name: 'Refresh' })).toBeDisabled()
-      expect(within(video).getByText('TubeArchivist import is going on: one run at a time.')).toBeInTheDocument()
+      expect(within(video).getByRole('button', { name: 'Add to the queue' })).toBeEnabled()
+      expect(within(video).getByText('A run is going on: this one waits its turn.')).toBeInTheDocument()
 
       const card = screen.getByRole('article', { name: 'TubeArchivist import' })
       expect(within(card).getByRole('link', { name: 'Follow its log' })).toHaveAttribute(

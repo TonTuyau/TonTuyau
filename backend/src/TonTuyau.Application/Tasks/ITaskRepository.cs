@@ -24,4 +24,7 @@ public interface ITaskRepository
     /// <returns>The refreshes on hold (1.5), the first to resume first.</returns>
     Task<IReadOnlyList<SyncRun>> GetOnHoldRunsAsync(CancellationToken cancellationToken);
 
+    /// <returns>The runs waiting their turn (2.0), in the order they start: the first asked for first.</returns>
+    Task<IReadOnlyList<SyncRun>> GetQueuedRunsAsync(CancellationToken cancellationToken);
+
 }

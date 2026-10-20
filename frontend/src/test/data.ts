@@ -201,6 +201,8 @@ export function run(overrides: Partial<Run> = {}): Run {
     startedBy: null,
     state: 'succeeded',
     startedAt: '2026-10-12T12:00:00Z',
+    queuedAt: '2026-10-12T12:00:00Z',
+    position: null,
     finishedAt: '2026-10-12T12:00:07Z',
     error: null,
     counts: {
@@ -240,6 +242,7 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
     runningHere: null,
     tasks: [{ task: 'import', lastRun: run(), unavailable: null }],
     onHold: [],
+    queue: [],
     ...overrides,
   }
 }

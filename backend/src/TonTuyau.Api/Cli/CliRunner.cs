@@ -10,8 +10,9 @@ namespace TonTuyau.Api.Cli;
 
 /// <summary>
 /// The <c>tontuyau</c> command line (inside the container: <c>docker exec tontuyau-backend tontuyau …</c>).
-/// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 3 another
-/// run is going on, 4 refused, 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down).
+/// Exit codes: 0 done, 1 the run failed or was canceled (or the backend can't be reached), 2 usage error, 4 refused,
+/// 5 a refresh put on hold (YouTube refused: it resumes by itself after the cool-down). 3 (another run is going on)
+/// isn't used since 2.0: the run waits its turn in the queue.
 /// <para>
 /// Since 1.4 the commands that run something ask the backend to (<see cref="BackendClient"/>, through its Unix socket):
 /// the run is in the backend's log and on the Tasks page. They print its log as it comes (its start, progress lines,
@@ -24,7 +25,6 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     public const int Ok = 0;
     public const int RunFailed = 1;
     public const int Usage = 2;
-    public const int Busy = 3;
     public const int Refused = 4;
     public const int OnHold = 5;
 

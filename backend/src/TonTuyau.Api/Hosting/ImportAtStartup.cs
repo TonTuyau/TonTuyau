@@ -6,7 +6,8 @@ namespace TonTuyau.Api.Hosting;
 /// <summary>
 /// Imports TubeArchivist's library when the backend starts (2.0), when its settings are there: what TonTuyau doesn't
 /// have is added, nothing else changes. Once it ran, TubeArchivist can be shut down and its settings removed. It waits
-/// for the indices first; another run holding the lock (the rebuild at startup, a refresh) makes it try again later.
+/// for the indices first, then joins the run queue: it starts when its turn comes (after the rebuild at startup, a
+/// refresh going on…).
 /// </summary>
 internal sealed partial class ImportAtStartup(
     SyncService sync,
@@ -14,7 +15,7 @@ internal sealed partial class ImportAtStartup(
     TimeProvider clock,
     ILogger<ImportAtStartup> logger) : BackgroundService
 {
-    /// <summary>How long to wait between two tries, while the indices aren't there or another run goes on.</summary>
+    /// <summary>How long to wait between two tries, while the indices aren't there.</summary>
     public static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,7 +41,7 @@ internal sealed partial class ImportAtStartup(
         }
     }
 
-    /// <returns>False when it's to try again: the indices aren't there yet, or another run goes on.</returns>
+    /// <returns>False when it's to try again: the indices aren't there yet.</returns>
     private async Task<bool> TryImportAsync(CancellationToken stoppingToken)
     {
         try
@@ -54,18 +55,13 @@ internal sealed partial class ImportAtStartup(
             return false;
         }
 
-        try
-        {
-            LogStarting();
-            SyncRun run = await runner.RunImportAsync(SyncTrigger.Startup, stoppingToken).ConfigureAwait(false);
-            LogFinished(run.Id, run.Outcome);
-            return true;
-        }
-        catch (SyncBusyException ex)
-        {
-            LogRetry(ex.Message, RetryDelay.TotalSeconds);
-            return false;
-        }
+        LogStarting();
+        StartedRun started = await runner.StartImportAsync(SyncTrigger.Startup).ConfigureAwait(false);
+        SyncRun run = await started.Finished
+            .WaitAsync(stoppingToken)
+            .ConfigureAwait(false);
+        LogFinished(run.Id, run.Outcome);
+        return true;
     }
 
     [LoggerMessage(
@@ -73,7 +69,9 @@ internal sealed partial class ImportAtStartup(
         Message = "No TubeArchivist import at startup: its settings (TONTUYAU_TA_URL, TONTUYAU_TA_TOKEN) aren't there.")]
     private partial void LogNoTubeArchivist();
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Importing TubeArchivist's library, in the background.")]
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Importing TubeArchivist's library, in the background (in the run queue).")]
     private partial void LogStarting();
 
     [LoggerMessage(Level = LogLevel.Information, Message = "TubeArchivist import {RunId}: {Outcome}.")]

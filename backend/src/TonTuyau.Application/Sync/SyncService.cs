@@ -81,6 +81,34 @@ public sealed partial class SyncService(
         CancellationToken cancellationToken) =>
         WithLockAsync(SyncMode.IndexRebuild, trigger, null, progress, cancellationToken);
 
+    /// <summary>
+    /// Runs a queued import or index rebuild (2.0, the run queue): the same run goes on, from <c>queued</c>. One
+    /// canceled meanwhile is left as it is.
+    /// </summary>
+    /// <exception cref="SyncBusyException">Another run holds the lock: it stays queued.</exception>
+    public async Task<SyncRun> RunQueuedAsync(
+        SyncRun queued,
+        ISyncProgressReporter progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(queued);
+        if (queued.Mode == SyncMode.Import && !CanImport)
+        {
+            // TubeArchivist's settings went away since it was asked for (a restart).
+            SyncRun refused = queued with
+            {
+                Outcome = SyncOutcome.Failed,
+                Error = NoTubeArchivist,
+                FinishedAt = clock.GetUtcNow(),
+            };
+            await state.SaveRunAsync(refused, cancellationToken).ConfigureAwait(false);
+            return refused;
+        }
+
+        return await WithLockAsync(queued.Mode, queued.Trigger, queued.StartedBy, progress, cancellationToken, queued)
+            .ConfigureAwait(false);
+    }
+
     public async Task<SyncStatus> GetStatusAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<IndexStatus> indexStatus;
@@ -119,12 +147,14 @@ public sealed partial class SyncService(
         return pending;
     }
 
+    /// <param name="queued">The queued run to go on with; null: a new run.</param>
     private async Task<SyncRun> WithLockAsync(
         SyncMode mode,
         SyncTrigger trigger,
         string? startedBy,
         ISyncProgressReporter progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SyncRun? queued = null)
     {
         ISyncLease lease = await state.TryAcquireLockAsync(mode, trigger, cancellationToken).ConfigureAwait(false)
             ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
@@ -133,14 +163,30 @@ public sealed partial class SyncService(
             using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 lease.Lost);
-            SyncRun run = new()
+            SyncRun run;
+            if (queued is null)
             {
-                Id = SyncRun.NewId(clock.GetUtcNow()),
-                Mode = mode,
-                Trigger = trigger,
-                StartedAt = clock.GetUtcNow(),
-                StartedBy = startedBy,
-            };
+                run = new SyncRun
+                {
+                    Id = SyncRun.NewId(clock.GetUtcNow()),
+                    Mode = mode,
+                    Trigger = trigger,
+                    StartedAt = clock.GetUtcNow(),
+                    StartedBy = startedBy,
+                };
+            }
+            else
+            {
+                // Again under the lock: it may have been canceled while it waited.
+                SyncRun? current = await state.GetRunAsync(queued.Id, cancellationToken).ConfigureAwait(false);
+                if (current?.Outcome != SyncOutcome.Queued)
+                {
+                    return current ?? queued;
+                }
+
+                run = current with { Outcome = SyncOutcome.Running, StartedAt = clock.GetUtcNow() };
+            }
+
             IReadOnlySet<string> pending = await state.GetPendingArtAsync(linked.Token).ConfigureAwait(false);
             using ProgressLines logged = new(LogProgress, clock);
             RunContext context = new(

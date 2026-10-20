@@ -58,6 +58,12 @@ public enum SyncOutcome
     /// itself at <see cref="SyncRun.ResumeAt"/> (or when asked), from <see cref="SyncRun.Remaining"/>.
     /// </summary>
     OnHold,
+
+    /// <summary>
+    /// Asked for while another run went on (2.0, the run queue): it waits its turn, first come first served, and
+    /// starts by itself (<see cref="SyncRun.StartedAt"/> is then when it starts).
+    /// </summary>
+    Queued,
 }
 
 /// <summary>Who holds the run lock, and until when (renewed while the run lives).</summary>
@@ -122,7 +128,7 @@ public sealed record SyncCounts
     public int CommentsRead { get; init; }
 }
 
-/// <summary>One run (an import, an index rebuild, a refresh), as kept in the run history.</summary>
+/// <summary>One run (an import, an index rebuild, a refresh, a download), as kept in the run history.</summary>
 public sealed record SyncRun
 {
     public required string Id { get; init; }
@@ -131,7 +137,11 @@ public sealed record SyncRun
 
     public required SyncTrigger Trigger { get; init; }
 
+    /// <summary>When it started; while it's queued, when it was asked for.</summary>
     public required DateTimeOffset StartedAt { get; init; }
+
+    /// <summary>When it was asked for (2.0: the queue); null for the runs TonTuyau starts at once by itself.</summary>
+    public DateTimeOffset? QueuedAt { get; init; }
 
     /// <summary>The account that started it from the Tasks page (<see cref="SyncTrigger.Admin"/>), or null.</summary>
     public string? StartedBy { get; init; }

@@ -3253,6 +3253,10 @@ export interface components {
       /** Format: date-time */
       startedAt: string
       /** Format: date-time */
+      queuedAt: null | string
+      /** Format: int32 */
+      position: null | number
+      /** Format: date-time */
       finishedAt: null | string
       error: null | string
       counts: components['schemas']['RunCounts']
@@ -3285,7 +3289,7 @@ export interface components {
     /** @enum {string} */
     SyncMode: 'import' | 'indexRebuild' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos' | 'downloadVideo'
     /** @enum {string} */
-    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold'
+    SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */
     SyncTrigger: 'scheduler' | 'cli' | 'startup' | 'admin'
     TaskResponse: {
@@ -3298,6 +3302,7 @@ export interface components {
       runningHere: null | string
       tasks: components['schemas']['TaskResponse'][]
       onHold: components['schemas']['RunResponse'][]
+      queue: components['schemas']['RunResponse'][]
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']

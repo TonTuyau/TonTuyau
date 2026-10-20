@@ -24,13 +24,14 @@ Feature: The Tasks page's API
     And I request "/api/admin/tasks" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
-    And the answer has exactly the fields "lock, runningHere, tasks, onHold"
+    And the answer has exactly the fields "lock, runningHere, tasks, onHold, queue"
     And "lock" is null
     And "runningHere" is null
     And "tasks" has 1 item
     And "tasks[0].task" is "import"
     And "tasks[0].lastRun" is null
     And "tasks[0].unavailable" is null
+    And "queue" has 0 items
 
   Scenario: Without TubeArchivist's settings, the import says why it can't start
     Given TubeArchivist isn't set up
@@ -78,7 +79,7 @@ Feature: The Tasks page's API
     When I log in as the admin
     And I request the latest run's "" with my session
     Then the response status is 200
-    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, finishedAt, error, counts, target, resumeAt, left, indexRebuild, notes, cancellable"
+    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, queuedAt, position, finishedAt, error, counts, target, resumeAt, left, indexRebuild, notes, cancellable"
     And "id" is the latest run's id
     And "state" is "succeeded"
     And "trigger" is "cli"

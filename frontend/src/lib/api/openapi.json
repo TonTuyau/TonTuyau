@@ -3627,6 +3627,8 @@
           "startedBy",
           "state",
           "startedAt",
+          "queuedAt",
+          "position",
           "finishedAt",
           "error",
           "counts",
@@ -3657,6 +3659,14 @@
           "startedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "queuedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "position": {
+            "type": ["null", "integer"],
+            "format": "int32"
           },
           "finishedAt": {
             "type": ["null", "string"],
@@ -3753,7 +3763,7 @@
         "type": "string"
       },
       "SyncOutcome": {
-        "enum": ["running", "succeeded", "failed", "canceled", "onHold"],
+        "enum": ["running", "succeeded", "failed", "canceled", "onHold", "queued"],
         "type": "string"
       },
       "SyncTrigger": {
@@ -3783,7 +3793,7 @@
         }
       },
       "TasksResponse": {
-        "required": ["lock", "runningHere", "tasks", "onHold"],
+        "required": ["lock", "runningHere", "tasks", "onHold", "queue"],
         "type": "object",
         "properties": {
           "lock": {
@@ -3806,6 +3816,12 @@
             }
           },
           "onHold": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            }
+          },
+          "queue": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RunResponse"

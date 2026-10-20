@@ -33,10 +33,13 @@ Feature: The backend's runs
     When the run "run-20260101T000000Z-abcdef" is canceled in the backend
     Then the backend says that run isn't going on here
 
-  Scenario: Another run holds the lock: the start is refused
+  Scenario: Another run holds the lock: the start waits in the queue, and starts once it's let go
     Given another process holds the run lock
     When an import starts in the backend
-    Then it is refused because "already going on"
+    Then the started run waits in the queue
+    Given the other process lets go of the run lock in 1 seconds
+    When the started run ends
+    Then the started run succeeded
 
   # The scenario's end stops the backend once more: stopping again is harmless (a CI run once failed on it).
   Scenario: Once the runs are stopped, none starts any more

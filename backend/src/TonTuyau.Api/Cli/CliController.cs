@@ -64,17 +64,13 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
             ? Accepted()
             : new ProblemResult(Problems.Conflict("This run isn't going on in the backend."));
 
-    /// <summary>202 and the run's id; 409 when the lock is busy or the run refused (the exit codes 3 and 4).</summary>
+    /// <summary>202 and the run's id (queued when another run goes on); 409 when the run is refused (exit code 4).</summary>
     private async Task<IActionResult> StartAsync(Func<Task<StartedRun>> start)
     {
         try
         {
             StartedRun run = await start().ConfigureAwait(false);
             return Accepted(new CliStarted(run.Id));
-        }
-        catch (SyncBusyException ex)
-        {
-            return new ProblemResult(Problems.SyncBusy(ex.Message));
         }
         catch (SyncRefusedException ex)
         {

@@ -64,6 +64,19 @@ internal sealed class TaskRepository(IServiceScopeFactory scopes) : ITaskReposit
             .OrderBy(r => r.ResumeAt)];
     }
 
+    public async Task<IReadOnlyList<SyncRun>> GetQueuedRunsAsync(CancellationToken cancellationToken)
+    {
+        // While it's queued, a run's start is when it was asked for: the queue's order, ties by id.
+        List<string> found = await WithContextAsync(db => db.Runs
+            .Where(r => r.Outcome == SyncOutcome.Queued)
+            .OrderBy(r => r.StartedAt)
+            .ThenBy(r => r.Id)
+            .Select(r => r.Run)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return [.. found.Select(RunJson.Read)];
+    }
+
     /// <returns>The latest TubeArchivist import that succeeded, or null when none did.</returns>
     public async Task<SyncRun?> GetLatestSuccessfulSyncAsync(CancellationToken cancellationToken)
     {

@@ -38,6 +38,8 @@
 
   const run = $derived(remote.data)
   const running = $derived(run?.state === 'running')
+  /** Waiting its turn (2.0): asked again as often as a run going on, to see it start. */
+  const queued = $derived(run?.state === 'queued')
   const held = $derived(run?.state === 'onHold')
 
   let now = $state(Date.now())
@@ -46,7 +48,7 @@
       const timer = setInterval(() => void remote.refresh(), HELD_EVERY)
       return () => clearInterval(timer)
     }
-    if (!running) {
+    if (!running && !queued) {
       return
     }
     const timer = setInterval(() => {
@@ -163,6 +165,14 @@
       </p>
     </div>
 
+    {#if run.state === 'queued'}
+      <div class="actions">
+        <p>{t('run.queued', { position: run.position ?? '–' })}</p>
+        {#if run.cancellable}
+          <Button onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
+        {/if}
+      </div>
+    {/if}
     {#if running && run.cancellable}
       <div class="actions">
         {#if asking}

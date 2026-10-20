@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.Tasks;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -50,6 +51,15 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     public async Task CancelLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
 
+    /// <summary>The first run on hold of the Tasks page (1.5), canceled: it won't resume.</summary>
+    [When("I cancel the run on hold with my session")]
+    public async Task CancelHeld()
+    {
+        await auth.RequestWithSession("/api/admin/tasks");
+        string id = ApiSteps.Scalar(api.At("onHold[0].id"));
+        await auth.PostWithSession($"/api/admin/runs/{id}/cancel");
+    }
+
     [When("I put the latest run on hold with my session")]
     public async Task HoldLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/hold");
@@ -83,7 +93,11 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         while (true)
         {
             IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(1, CancellationToken.None);
-            if (runs[0].Outcome != SyncOutcome.Running)
+            // Queued ones (2.0) end later: the latest run is the last to start once the queue is empty.
+            bool queued = (await state.Backend.Services
+                .GetRequiredService<ITaskRepository>()
+                .GetQueuedRunsAsync(CancellationToken.None)).Count > 0;
+            if (runs[0].Outcome is not (SyncOutcome.Running or SyncOutcome.Queued) && !queued)
             {
                 Assert.Equal(expected, runs[0].Outcome);
                 return;

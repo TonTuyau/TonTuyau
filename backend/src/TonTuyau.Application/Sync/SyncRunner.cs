@@ -1,5 +1,8 @@
+using System.Data.Common;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.RunLogs;
+using TonTuyau.Application.Store;
+using TonTuyau.Application.Tasks;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Sync;
@@ -8,11 +11,30 @@ namespace TonTuyau.Application.Sync;
 /// Starts the runs of this backend in the background (the Tasks page's, the command line's, the import at startup)
 /// and knows the one going on: one at a time (the run lock, across processes), cancellable by its id while it runs,
 /// canceled when the backend stops (<see cref="StopAsync"/>). The startup index rebuild isn't one of them.
-/// It owns nothing to dispose: each run's cancellation source is disposed when the run ends.
 /// </summary>
-public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService refresh, ILogger<SyncRunner> logger)
+/// <remarks>
+/// The run queue (2.0): a run asked for is recorded <c>queued</c> at once, then started in order, first come first
+/// served, when the lock is free and no run is on hold (YouTube refused one, or an admin held it: the queue waits
+/// with it). The next one is looked for when one is asked for, when a run of this backend ends, and every few
+/// seconds (<see cref="TryStartNextAsync"/>, for the lock another process or the startup rebuild let go). Resuming a
+/// run on hold doesn't wait in the queue: it goes first. Each run's cancellation source is disposed when it ends.
+/// </remarks>
+public sealed partial class SyncRunner(
+    SyncService sync,
+    YouTubeRefreshService refresh,
+    ISyncStateStore state,
+    ITaskRepository runs,
+    TimeProvider clock,
+    ILogger<SyncRunner> logger) : IDisposable
 {
     private readonly Lock _gate = new();
+
+    /// <summary>One at a time looks for the next queued run, and cancels a queued one: never both at once.</summary>
+    private readonly SemaphoreSlim _dispatching = new(1, 1);
+
+    /// <summary>The ends of the queued runs asked for in this backend, by id.</summary>
+    private readonly Dictionary<string, TaskCompletionSource<SyncRun>> _waiting = new(StringComparer.Ordinal);
+
     private Running? _current;
     private Task _latest = Task.CompletedTask;
     private bool _stopping;
@@ -30,10 +52,10 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
     }
 
     /// <summary>
-    /// Starts the TubeArchivist import, and returns once it has started (its record exists): it goes on by itself.
+    /// Asks for the TubeArchivist import: queued, and started at once when nothing else goes on. Returns once it's
+    /// recorded; it goes on by itself.
     /// </summary>
     /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
-    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
     /// <exception cref="SyncRefusedException">TubeArchivist isn't set up.</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public Task<StartedRun> StartImportAsync(SyncTrigger trigger, string? startedBy = null)
@@ -43,27 +65,30 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
             throw new SyncRefusedException(SyncService.NoTubeArchivist);
         }
 
-        return StartAsync((progress, token) => sync.ImportAsync(trigger, startedBy, progress, token));
+        return QueueAsync(SyncMode.Import, null, trigger, startedBy);
     }
 
-    /// <summary>Starts an index rebuild (<c>tontuyau index rebuild</c>), a run like the others.</summary>
-    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
+    /// <summary>Asks for an index rebuild (<c>tontuyau index rebuild</c>), a run like the others.</summary>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public Task<StartedRun> StartRebuildAsync(SyncTrigger trigger) =>
-        StartAsync((progress, token) => sync.RebuildAsync(trigger, progress, token));
+        QueueAsync(SyncMode.IndexRebuild, null, trigger, null);
 
-    /// <summary>Starts a refresh on YouTube (1.5): a video, a channel, or a channel and its videos.</summary>
+    /// <summary>
+    /// Asks for a refresh on YouTube (1.5: a video, a channel, or a channel and its videos) or a download (2.0).
+    /// </summary>
     /// <param name="target">The video's or channel's YouTube id.</param>
     /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
-    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
-    /// <exception cref="SyncRefusedException">Not one of the library.</exception>
+    /// <exception cref="SyncRefusedException">Not one of the library (a refresh), one of it already (a download).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
-    public Task<StartedRun> StartRefreshAsync(
+    public async Task<StartedRun> StartRefreshAsync(
         SyncMode mode,
         string target,
         SyncTrigger trigger,
-        string? startedBy = null) =>
-        StartAsync((progress, token) => refresh.RunAsync(mode, target, trigger, startedBy, progress, token));
+        string? startedBy = null)
+    {
+        await refresh.CheckAsync(mode, target, CancellationToken.None).ConfigureAwait(false);
+        return await QueueAsync(mode, target, trigger, startedBy).ConfigureAwait(false);
+    }
 
     /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
     /// <param name="by">The account asking; null: by itself, after the cool-down.</param>
@@ -73,7 +98,179 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
     public Task<StartedRun> StartResumeAsync(string runId, SyncTrigger trigger, string? by = null) =>
         StartAsync((progress, token) => refresh.ResumeAsync(runId, trigger, by, progress, token));
 
-    private async Task<StartedRun> StartAsync(Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work)
+    /// <summary>
+    /// Starts the next queued run when this backend runs none, the lock is free, and no run is on hold; then the next
+    /// one again when that one was over at once (canceled meanwhile, refused).
+    /// </summary>
+    public async Task TryStartNextAsync()
+    {
+        await _dispatching.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            while (await NextAsync().ConfigureAwait(false) is { } next)
+            {
+                StartedRun started;
+                try
+                {
+                    started = await StartAsync(WorkOf(next), next.Id).ConfigureAwait(false);
+                }
+                catch (SyncBusyException)
+                {
+                    // Another process took the lock meanwhile: it stays queued, tried again later.
+                    return;
+                }
+
+                if (!started.Finished.IsCompleted)
+                {
+                    // It runs: its end looks for the next one.
+                    return;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is DbException or SearchStoreException or InvalidOperationException)
+        {
+            // The database or the index can't be read right now: the next look tries again.
+            LogDispatchFailed(ex);
+        }
+        finally
+        {
+            _dispatching.Release();
+        }
+    }
+
+    /// <summary>
+    /// Cancels a run while it waits in the queue: it won't start; recorded as canceled, before it started.
+    /// </summary>
+    /// <param name="by">Who asks, for its notes.</param>
+    /// <returns>The run canceled; null when it isn't queued (any more).</returns>
+    public async Task<SyncRun?> CancelQueuedAsync(string runId, string by, CancellationToken cancellationToken)
+    {
+        await _dispatching.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            SyncRun? queued = await state.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
+            if (queued?.Outcome != SyncOutcome.Queued)
+            {
+                return null;
+            }
+
+            SyncRun canceled = queued with
+            {
+                Outcome = SyncOutcome.Canceled,
+                FinishedAt = clock.GetUtcNow(),
+                Notes = [.. queued.Notes, $"Canceled by {by} while it waited in the queue: it didn't start."],
+            };
+            await state.SaveRunAsync(canceled, cancellationToken).ConfigureAwait(false);
+            using (logger.BeginScope(new RunLogScope(runId)))
+            {
+                LogCanceledQueued(runId, by);
+            }
+
+            Ended(runId, canceled);
+            return canceled;
+        }
+        finally
+        {
+            _dispatching.Release();
+        }
+    }
+
+    /// <summary>Records the run asked for as queued, then starts it if its turn has come.</summary>
+    private async Task<StartedRun> QueueAsync(SyncMode mode, string? target, SyncTrigger trigger, string? startedBy)
+    {
+        TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        DateTimeOffset now = clock.GetUtcNow();
+        SyncRun queued = new()
+        {
+            Id = SyncRun.NewId(now),
+            Mode = mode,
+            Trigger = trigger,
+            StartedAt = now,
+            QueuedAt = now,
+            StartedBy = startedBy,
+            Target = target,
+            Outcome = SyncOutcome.Queued,
+        };
+        lock (_gate)
+        {
+            if (_stopping)
+            {
+                throw new OperationCanceledException("The backend is stopping: no run starts any more.");
+            }
+
+            _waiting[queued.Id] = finished;
+        }
+
+        await state.SaveRunAsync(queued, CancellationToken.None).ConfigureAwait(false);
+        using (logger.BeginScope(new RunLogScope(queued.Id)))
+        {
+            LogQueued(queued.Id, mode, trigger);
+        }
+
+        await TryStartNextAsync().ConfigureAwait(false);
+        return new StartedRun(queued.Id, finished.Task);
+    }
+
+    /// <returns>The first queued run, when its turn has come; null otherwise.</returns>
+    private async Task<SyncRun?> NextAsync()
+    {
+        lock (_gate)
+        {
+            if (_stopping || _current is not null)
+            {
+                return null;
+            }
+        }
+
+        // A lease run out (a crashed process) is free: the run starting takes it over.
+        if (await state.GetLockAsync(CancellationToken.None).ConfigureAwait(false) is { } held
+                && held.LeaseUntil > clock.GetUtcNow()
+            || (await runs.GetOnHoldRunsAsync(CancellationToken.None).ConfigureAwait(false)).Count > 0)
+        {
+            return null;
+        }
+
+        IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(CancellationToken.None).ConfigureAwait(false);
+        return queue.Count > 0 ? queue[0] : null;
+    }
+
+    private Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> WorkOf(SyncRun queued) =>
+        queued.Mode is SyncMode.Import or SyncMode.IndexRebuild
+            ? (progress, token) => sync.RunQueuedAsync(queued, progress, token)
+            : (progress, token) => refresh.RunQueuedAsync(queued, progress, token);
+
+    /// <summary>A queued run is over (or canceled before it started): whoever waits for it is told.</summary>
+    private void Ended(string runId, SyncRun run)
+    {
+        TaskCompletionSource<SyncRun>? waiter;
+        lock (_gate)
+        {
+            if (_waiting.Remove(runId, out waiter) && run.Outcome == SyncOutcome.Queued)
+            {
+                // Not over: still waiting (another process held the lock).
+                _waiting[runId] = waiter;
+                waiter = null;
+            }
+        }
+
+        waiter?.TrySetResult(run);
+    }
+
+    /// <summary>A queued run threw: whoever waits for it gets the exception.</summary>
+    private void Failed(string runId, Exception error)
+    {
+        TaskCompletionSource<SyncRun>? waiter;
+        lock (_gate)
+        {
+            _waiting.Remove(runId, out waiter);
+        }
+
+        waiter?.TrySetException(error);
+    }
+
+    private async Task<StartedRun> StartAsync(
+        Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work,
+        string? queuedId = null)
     {
         // The run's own: disposed when it ends (RunInBackgroundAsync).
         CancellationTokenSource cancel = new();
@@ -87,7 +284,7 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
                 throw new OperationCanceledException("The backend is stopping: no run starts any more.");
             }
 
-            run = Task.Run(() => RunInBackgroundAsync(work, starting, cancel));
+            run = Task.Run(() => RunInBackgroundAsync(work, starting, cancel, queuedId));
             _latest = run;
         }
 
@@ -99,18 +296,6 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
         }
 
         return new StartedRun(await starting.Id.ConfigureAwait(false), run);
-    }
-
-    /// <summary>Starts the TubeArchivist import and waits for its end (at startup).</summary>
-    /// <param name="cancellationToken">Stops the waiting, not the run (<see cref="Cancel"/> does).</param>
-    /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
-    /// <exception cref="SyncRefusedException">TubeArchivist isn't set up.</exception>
-    public async Task<SyncRun> RunImportAsync(SyncTrigger trigger, CancellationToken cancellationToken)
-    {
-        StartedRun started = await StartImportAsync(trigger).ConfigureAwait(false);
-        return await started.Finished
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -164,11 +349,27 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
     private async Task<SyncRun> RunInBackgroundAsync(
         Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> work,
         Starting starting,
-        CancellationTokenSource cancel)
+        CancellationTokenSource cancel,
+        string? queuedId)
     {
+        bool ran = false;
         try
         {
-            return await work(starting, cancel.Token).ConfigureAwait(false);
+            SyncRun ended = await work(starting, cancel.Token).ConfigureAwait(false);
+            if (queuedId is not null)
+            {
+                Ended(queuedId, ended);
+            }
+
+            ran = starting.Id.IsCompleted;
+            return ended;
+        }
+        catch (Exception ex) when (queuedId is not null && ex is not SyncBusyException)
+        {
+            // Not busy (then it stays queued): whoever waits for it is told why it ended.
+            ran = starting.Id.IsCompleted;
+            Failed(queuedId, ex);
+            throw;
         }
         finally
         {
@@ -181,11 +382,27 @@ public sealed partial class SyncRunner(SyncService sync, YouTubeRefreshService r
             }
 
             cancel.Dispose();
+            if (ran)
+            {
+                // Its end lets the next queued run start (not awaited: this run's end doesn't wait for the next).
+                _ = Task.Run(TryStartNextAsync);
+            }
         }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Run {RunId}: canceled by {By}.")]
     private partial void LogCancel(string runId, string by);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Run {RunId} queued: {Mode} by {Trigger}.")]
+    private partial void LogQueued(string runId, SyncMode mode, SyncTrigger trigger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Run {RunId}: canceled by {By} while it waited in the queue.")]
+    private partial void LogCanceledQueued(string runId, string by);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The run queue can't be looked at right now.")]
+    private partial void LogDispatchFailed(Exception error);
+
+    public void Dispose() => _dispatching.Dispose();
 
     private sealed record Running(string Id, CancellationTokenSource Cancel);
 

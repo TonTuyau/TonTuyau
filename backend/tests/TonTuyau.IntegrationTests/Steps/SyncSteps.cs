@@ -22,6 +22,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     private int _runsBeforeRestart;
     private bool _countedBeforeRestart;
     private ISyncLease? _otherProcessLease;
+    private Task _lettingGo = Task.CompletedTask;
 
     public FakeTubeArchivist Fake => _fake!;
 
@@ -298,6 +299,19 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         _otherProcessLease = await Services
             .GetRequiredService<ISyncStateStore>()
             .TryAcquireLockAsync(SyncMode.Import, SyncTrigger.Cli, CancellationToken.None);
+
+    /// <summary>The other process's run ends meanwhile (while the scenario waits on something else).</summary>
+    [Given("the other process lets go of the run lock in {int} seconds")]
+    public void OtherProcessLetsGo(int seconds)
+    {
+        ISyncLease lease = _otherProcessLease!;
+        _otherProcessLease = null;
+        _lettingGo = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+            await lease.DisposeAsync();
+        });
+    }
 
     // ---------------------------------------------------------------- runs
 
@@ -576,6 +590,8 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         {
             await _otherProcessLease.DisposeAsync();
         }
+
+        await _lettingGo;
 
         if (_fake is not null)
         {
