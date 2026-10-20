@@ -2111,7 +2111,7 @@
           {
             "name": "target",
             "in": "query",
-            "description": "Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link.",
+            "description": "Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.",
             "schema": {
               "type": "string"
             }

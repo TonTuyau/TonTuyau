@@ -114,9 +114,30 @@ public sealed partial class SyncRunner(
     /// </summary>
     /// <param name="full">The full sync: every video of their tabs, and the files missing; else the incremental one.</param>
     /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
+    /// <param name="channelId">
+    /// The full sync of this channel alone ("Download everything" on its page); null: of every subscribed channel.
+    /// </param>
+    /// <exception cref="SyncRefusedException">TonTuyau isn't subscribed to that channel.</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
-    public Task<StartedRun> StartYouTubeSyncAsync(bool full, SyncTrigger trigger, string? startedBy = null) =>
-        QueueAsync(full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync, null, trigger, startedBy);
+    public async Task<StartedRun> StartYouTubeSyncAsync(
+        bool full,
+        SyncTrigger trigger,
+        string? startedBy = null,
+        string? channelId = null)
+    {
+        SyncMode mode = full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync;
+        if (channelId is not null)
+        {
+            if (!full)
+            {
+                throw new ArgumentException("Only the full sync is of one channel.", nameof(channelId));
+            }
+
+            await refresh.CheckAsync(mode, channelId, CancellationToken.None).ConfigureAwait(false);
+        }
+
+        return await QueueAsync(mode, channelId, trigger, startedBy).ConfigureAwait(false);
+    }
 
     /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
     /// <param name="by">The account asking; null: by itself, after the cool-down.</param>

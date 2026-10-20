@@ -46,8 +46,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                                       named (the three when none is)
           youtube sync                list each subscribed channel's tabs down to the first video TonTuyau has,
                                       and download what's new (a channel never synced: everything)
-          youtube full-sync           list each subscribed channel's tabs whole, and download what TonTuyau
-                                      doesn't have, files missing included
+          youtube full-sync [<id>]    list each subscribed channel's tabs whole (or this one's alone), and
+                                      download what TonTuyau doesn't have, files missing included
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -89,6 +89,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                     : Write($"Refused: '{id}' isn't a video id (11 characters) or a YouTube link to one.", Refused),
                 ["youtube", "sync"] => Report(await FollowAsync("cli/youtube/sync", cancellationToken)),
                 ["youtube", "full-sync"] => Report(await FollowAsync("cli/youtube/sync?full=true", cancellationToken)),
+                ["youtube", "full-sync", string id] => LibraryIds.IsChannelId(id)
+                    ? Report(await FollowAsync($"cli/youtube/sync?full=true&channel={id}", cancellationToken))
+                    : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
                 ["youtube", "add-channel", string channel, .. string[] tabs] when tabs.Length <= 1 =>
                     await AddChannelAsync(channel, tabs is [string named] ? named : null, cancellationToken),
                 ["youtube", "channel" or "channel-videos", string id] => LibraryIds.IsChannelId(id)

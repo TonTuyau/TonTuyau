@@ -54,8 +54,8 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
 
     /// <summary>The YouTube syncs (2.0, B5): the incremental one, or the full one.</summary>
     [HttpPost("youtube/sync")]
-    public Task<IActionResult> SyncAsync([FromQuery] bool full) =>
-        StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli));
+    public Task<IActionResult> SyncAsync([FromQuery] bool full, [FromQuery] string? channel) =>
+        StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli, channelId: channel));
 
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]

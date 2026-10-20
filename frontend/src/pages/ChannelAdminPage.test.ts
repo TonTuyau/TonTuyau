@@ -212,6 +212,33 @@ describe('ChannelAdminPage', () => {
     await vi.waitFor(() => expect(method).toBe('DELETE'))
   })
 
+  it('downloads everything of a subscribed channel, asked first, then opens its run', async () => {
+    const user = userEvent.setup()
+    const started = run({ id: 'run-20261020T190000Z-eeeeee', task: 'youTubeFullSync', state: 'queued' })
+    const api = routes({
+      [base]: channel({
+        subscription: {
+          tabs: { videos: true, shorts: false, streams: false },
+          since: '2026-10-20T09:00:00Z',
+          by: 'claire',
+          origin: 'tonTuyau',
+        },
+      }),
+      '/api/admin/tasks/youTubeFullSync/runs': started,
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    await user.click(within(box).getByRole('button', { name: 'Download everything' }))
+    const confirm = within(box).getByRole('group', { name: 'Download everything' })
+    expect(confirm).toHaveTextContent(/up to hours for a big channel/)
+    expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')).toEqual([])
+
+    await user.click(within(confirm).getByRole('button', { name: 'Download everything' }))
+    await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+    expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')[0]?.searchParams.get('target')).toBe(id)
+  })
+
   it('says why a refresh was refused', async () => {
     const user = userEvent.setup()
     routes({

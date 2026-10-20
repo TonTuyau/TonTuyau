@@ -125,9 +125,9 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken cancellationToken)
     {
         // What it reads, in order: the channel first, then its videos, latest downloaded first; not the gone ones.
-        // A YouTube sync (B5): every subscribed channel, the earliest subscribed first; each one's videos to download
-        // come right after it, once it's listed.
-        List<string> work = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+        // A YouTube sync (B5): every subscribed channel, the earliest subscribed first (a full sync of one channel: that
+        // one); each one's videos to download come right after it, once it's listed.
+        List<string> work = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync && target is null
             ? [.. (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Select(s => s.ChannelId)]
             : [target!];
         List<VideoSummary> skipped = [];
@@ -571,9 +571,19 @@ public sealed partial class YouTubeRefreshService(
                     $"The video \"{video.Title}\" is gone from YouTube: it isn't refreshed any more.");
             }
         }
-        else if (mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync)
+        else if (mode == SyncMode.YouTubeSync || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
         {
-            // Nothing to check: no target, and no subscription is nothing to do.
+            // Nothing to check: every subscription, and none is nothing to do.
+        }
+        else if (mode == SyncMode.YouTubeFullSync)
+        {
+            // "Download everything" of one channel: its subscription says which tabs.
+            if (!LibraryIds.IsChannelId(target)
+                || await subscriptions.GetAsync(target, cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new SyncRefusedException(
+                    $"TonTuyau isn't subscribed to the channel {target}: subscribe to it first, with its tabs.");
+            }
         }
         else if (mode == SyncMode.AddChannel)
         {

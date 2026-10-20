@@ -528,6 +528,9 @@ export const en = {
   'subscription.subscribe': 'Subscribe',
   'subscription.save': 'Save the tabs',
   'subscription.unsubscribe': 'Unsubscribe',
+  'subscription.everything': 'Download everything',
+  'subscription.everythingConfirm':
+    'Lists this channel’s ticked tabs whole and downloads all TonTuyau doesn’t have, the files missing included: up to hours for a big channel, during which the other tasks wait.',
   'subscription.saved': 'Saved.',
   'subscription.refused': 'Not saved: {reason}',
   'channelAdmin.statesHint':

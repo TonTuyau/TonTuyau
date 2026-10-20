@@ -539,6 +539,9 @@ export const fr: Dictionary = {
   'subscription.subscribe': "S'abonner",
   'subscription.save': 'Enregistrer les onglets',
   'subscription.unsubscribe': 'Se désabonner',
+  'subscription.everything': 'Tout télécharger',
+  'subscription.everythingConfirm':
+    "Liste en entier les onglets cochés de cette chaîne et télécharge tout ce que TonTuyau n'a pas, fichiers manquants compris : des heures parfois pour une grande chaîne, pendant lesquelles les autres tâches attendent.",
   'subscription.saved': 'Enregistré.',
   'subscription.refused': 'Pas enregistré : {reason}',
   'channelAdmin.videosOnYouTube': 'Ses vidéos sur YouTube',

@@ -1,11 +1,14 @@
 <script lang="ts">
   // A channel's subscription on its admin page (2.0, B4): whether TonTuyau is subscribed, since when and by whom (an
   // account, TubeArchivist at the import, the command line), and which tabs the YouTube syncs download. Subscribe,
-  // change the tabs, unsubscribe (the channel and its videos stay). onchange: the page reads the channel again.
+  // change the tabs, unsubscribe (the channel and its videos stay). Subscribed: "Download everything" (B5), its full
+  // sync alone, asked first (it can take hours), then its run opens. onchange: the page reads the channel again.
   import { api, ApiError } from '../lib/api/client'
   import type { ChannelTabs, Subscription } from '../lib/api/types'
   import { formatAge } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
+  import { router } from '../lib/router/router.svelte'
+  import { href } from '../lib/router/routes'
   import { channelTabs } from '../lib/runs'
   import Button from './Button.svelte'
 
@@ -24,6 +27,7 @@
   let tabs = $derived<ChannelTabs>({ ...(subscription?.tabs ?? all) })
 
   let pending = $state(false)
+  let askingEverything = $state(false)
   let message = $state<{ kind: 'saved' | 'refused'; text: string } | null>(null)
 
   const changed = $derived(subscription === null || channelTabs.some((tab) => tabs[tab] !== subscription?.tabs[tab]))
@@ -36,6 +40,21 @@
       return t('subscription.sinceTubeArchivist', { when })
     }
     return current.by ? t('subscription.since', { when, by: current.by }) : t('subscription.sinceCli', { when })
+  }
+
+  async function downloadEverything() {
+    message = null
+    pending = true
+    try {
+      const started = await api.startTask('youTubeFullSync', channelId)
+      router.navigate(href.adminRun(started.id))
+    } catch (error) {
+      const reason = error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error)
+      message = { kind: 'refused', text: t('task.refused', { reason }) }
+    } finally {
+      pending = false
+      askingEverything = false
+    }
   }
 
   async function act(work: () => Promise<unknown>) {
@@ -84,8 +103,22 @@
       <Button disabled={pending} onclick={() => void act(() => api.unsubscribe(channelId))}>
         {t('subscription.unsubscribe')}
       </Button>
+      <Button disabled={pending || askingEverything} onclick={() => (askingEverything = true)}>
+        {t('subscription.everything')}
+      </Button>
     {/if}
   </div>
+  {#if subscription && askingEverything}
+    <div class="confirm" role="group" aria-label={t('subscription.everything')}>
+      <p>{t('subscription.everythingConfirm')}</p>
+      <div class="actions">
+        <Button variant="filled" disabled={pending} onclick={() => void downloadEverything()}>
+          {t('subscription.everything')}
+        </Button>
+        <Button onclick={() => (askingEverything = false)}>{t('task.back')}</Button>
+      </div>
+    </div>
+  {/if}
   {#if message}
     <p class={message.kind} role={message.kind === 'refused' ? 'alert' : 'status'}>{message.text}</p>
   {/if}
@@ -132,6 +165,12 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .confirm {
+    display: flex;
+    flex-direction: column;
     gap: var(--space-2);
   }
 

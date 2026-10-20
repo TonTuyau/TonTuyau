@@ -72,6 +72,31 @@ Feature: The YouTube syncs
     And the latest run's "counts.created" is "1" within 5 seconds
     And the latest run's "counts.updated" is "1" within 5 seconds
 
+  Scenario: "Download everything" of one channel is its full sync alone
+    Given YouTube has the channel "omega": the name "Omega", 500 subscribers
+    When I add the channel "omega" with the tabs "videos" with my session
+    Then the latest run ends succeeded within 30 seconds
+    Given YouTube has the videos "alpha-03, omega-01"
+    And YouTube lists "alpha-02, alpha-03, alpha-01" on the videos tab of the channel "alpha"
+    And YouTube lists "omega-01" on the videos tab of the channel "omega"
+    When I download everything of the channel "alpha" with my session
+    Then the response status is 202
+    And "task" is "youTubeFullSync"
+    And "target" is "UCalpha_________________"
+    And the latest run ends succeeded within 60 seconds
+    And the media folder has the file of the video "alpha-03" with 4096 bytes
+    And TonTuyau doesn't have the video "omega-01"
+    And the latest run's "counts.channelsRead" is "1" within 5 seconds
+
+  Scenario: "Download everything" needs the channel subscribed to, and a sync of one channel is the full one
+    When I download everything of the channel "nobody" with my session
+    Then the response status is 409
+    And "detail" mentions "subscribe to it first"
+    When I send POST "/api/admin/tasks/youTubeFullSync/runs?target=nope" with my session
+    Then the response status is 400
+    When I send POST "/api/admin/tasks/youTubeSync/runs?target=UCalpha_________________" with my session
+    Then the response status is 400
+
   Scenario: A tab that isn't ticked isn't listed
     Given YouTube has the videos "alpha-07"
     And YouTube lists "alpha-07" on the shorts tab of the channel "alpha"

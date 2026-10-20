@@ -92,7 +92,8 @@ public sealed class TaskService(
     /// </summary>
     /// <param name="target">
     /// A refresh's video or channel (its YouTube id, 1.5), a download's video (its id or a YouTube link to it, 2.0),
-    /// the channel "Add a channel" adds (its id, @handle, or a link to either, B4); null for the other tasks.
+    /// the channel "Add a channel" adds (its id, @handle, or a link to either, B4), the one channel a full sync is of
+    /// (its id, optional, B5); null for the other tasks.
     /// </param>
     /// <param name="tabs">
     /// "Add a channel" (B4): the tabs to subscribe to, <c>videos,shorts,streams</c> or some of them; null: the three.
@@ -129,9 +130,17 @@ public sealed class TaskService(
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
         }
 
-        if (!refresh && target is not null)
+        // The full sync takes one too, optional: "Download everything" of one channel.
+        if (!refresh && mode != SyncMode.YouTubeFullSync && target is not null)
         {
-            throw RequestRules.Invalid("target", "is only for the refreshes, the downloads and addChannel.");
+            throw RequestRules.Invalid(
+                "target",
+                "is only for the refreshes, the downloads, addChannel and youTubeFullSync.");
+        }
+
+        if (mode == SyncMode.YouTubeFullSync && target is not null && !LibraryIds.IsChannelId(target))
+        {
+            throw RequestRules.Invalid("target", "must be a YouTube channel's id (UC…).");
         }
 
         if (mode != SyncMode.AddChannel && tabs is not null)
@@ -150,7 +159,7 @@ public sealed class TaskService(
         {
             started = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
                 ? await runner
-                    .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account)
+                    .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account, target)
                     .ConfigureAwait(false)
                 : mode == SyncMode.AddChannel
                 ? await runner

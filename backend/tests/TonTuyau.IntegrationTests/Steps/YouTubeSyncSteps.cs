@@ -40,5 +40,9 @@ public sealed class YouTubeSyncSteps(YouTubeSteps youTube, AuthSteps auth)
     [When("I start the full YouTube sync with my session")]
     public Task FullSync() => auth.PostWithSession("/api/admin/tasks/youTubeFullSync/runs");
 
+    [When("I download everything of the channel {string} with my session")]
+    public Task Everything(string channel) =>
+        auth.PostWithSession($"/api/admin/tasks/youTubeFullSync/runs?target={Of(channel)}");
+
     private static string Of(string channel) => FakeTubeArchivist.ChannelId(channel);
 }

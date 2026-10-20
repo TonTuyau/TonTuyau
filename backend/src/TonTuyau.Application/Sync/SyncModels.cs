@@ -43,7 +43,8 @@ public enum SyncMode
 
     /// <summary>
     /// The full YouTube sync (2.0, B5): each subscribed channel's ticked tabs, whole; what the library doesn't have is
-    /// downloaded, and so are the files missing of the videos it has. By hand only.
+    /// downloaded, and so are the files missing of the videos it has. By hand only; of one channel alone too
+    /// (<see cref="SyncRun.Target"/>: "Download everything" on its page).
     /// </summary>
     YouTubeFullSync,
 }

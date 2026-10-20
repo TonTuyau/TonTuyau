@@ -2181,7 +2181,7 @@ export interface paths {
     post: {
       parameters: {
         query?: {
-          /** @description Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link. */
+          /** @description Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link. */
           target?: string
           /** @description addChannel only: videos,shorts,streams or some of them (default: the three). */
           tabs?: string
