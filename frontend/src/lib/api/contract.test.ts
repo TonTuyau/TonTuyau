@@ -110,7 +110,18 @@ const contract: Endpoint[] = [
     params: {
       task: {
         kind: 'enum',
-        values: ['import', 'indexRebuild', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
+        values: [
+          'import',
+          'indexRebuild',
+          'refreshVideo',
+          'refreshChannel',
+          'refreshChannelVideos',
+          'downloadVideo',
+          'addChannel',
+          'youTubeSync',
+          'youTubeFullSync',
+          'retryDownloads',
+        ],
       },
       before: { kind: 'cursor' },
       size: size(100),
@@ -118,6 +129,7 @@ const contract: Endpoint[] = [
   },
   { doc: '/api/admin/runs/{id}', path: new RegExp(`^/api/admin/runs/${segment}$`), params: {} },
   { doc: '/api/admin/youtube', path: /^\/api\/admin\/youtube$/, params: {} },
+  { doc: '/api/admin/youtube/settings', path: /^\/api\/admin\/youtube\/settings$/, params: {} },
   { doc: '/api/admin/channels/{id}', path: new RegExp(`^/api/admin/channels/${segment}$`), params: {} },
   {
     doc: '/api/admin/channels/{id}/videos',

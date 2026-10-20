@@ -3131,6 +3131,21 @@
           }
         }
       },
+      "ChannelTabsRequest": {
+        "required": ["videos", "shorts", "streams"],
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": ["null", "boolean"]
+          },
+          "shorts": {
+            "type": ["null", "boolean"]
+          },
+          "streams": {
+            "type": ["null", "boolean"]
+          }
+        }
+      },
       "ChannelTabsResponse": {
         "required": ["videos", "shorts", "streams"],
         "type": "object",
@@ -4519,6 +4534,19 @@
           "syncEveryHours": {
             "type": ["null", "integer"],
             "format": "int32"
+          },
+          "downloadFormat": {
+            "type": ["null", "string"]
+          },
+          "defaultTabs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChannelTabsRequest"
+              }
+            ]
           }
         }
       },
@@ -4529,6 +4557,8 @@
           "pauseSeconds",
           "holdMinutes",
           "syncEveryHours",
+          "downloadFormat",
+          "defaultTabs",
           "changedBy",
           "changedAt"
         ],
@@ -4552,6 +4582,12 @@
           "syncEveryHours": {
             "type": "integer",
             "format": "int32"
+          },
+          "downloadFormat": {
+            "type": "string"
+          },
+          "defaultTabs": {
+            "$ref": "#/components/schemas/ChannelTabsResponse"
           },
           "changedBy": {
             "type": ["null", "string"]

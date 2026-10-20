@@ -54,6 +54,8 @@ function routes(given: Record<string, unknown> = {}) {
       pauseSeconds: 10,
       holdMinutes: 60,
       syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     },
@@ -72,6 +74,8 @@ describe('YouTubePage', () => {
       pauseSeconds: 10,
       holdMinutes: 60,
       syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     }
@@ -118,6 +122,8 @@ describe('YouTubePage', () => {
       pauseSeconds: 10,
       holdMinutes: 60,
       syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     }
@@ -126,7 +132,7 @@ describe('YouTubePage', () => {
         if (init?.method === 'PUT') {
           const body = JSON.parse(String(init.body)) as YouTubeSettings
           sent.push(body)
-          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+          saved = { ...saved, ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
         }
         return saved
       },
@@ -156,6 +162,59 @@ describe('YouTubePage', () => {
     expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90, syncEveryHours: 6 }])
   })
 
+  it('sets the download format and the tabs a channel added gets, checked first', async () => {
+    const user = userEvent.setup()
+    const sent: unknown[] = []
+    let saved: YouTubeSettings = {
+      comments: 'top',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
+      changedBy: null,
+      changedAt: null,
+    }
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as Partial<YouTubeSettings>
+          sent.push(body)
+          saved = { ...saved, ...body }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Downloading' })
+    expect(card).toHaveTextContent(
+      'Downloads ask for bestvideo+bestaudio; a channel added gets: Videos · Shorts · Streams.',
+    )
+    const format = within(card).getByRole('textbox', { name: /^Format/ })
+    await user.clear(format)
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(within(card).getByRole('alert')).toHaveTextContent("yt-dlp's format, on one line")
+    expect(sent).toEqual([])
+
+    await user.type(format, 'bestvideo[[height<=1080]+bestaudio/best')
+    await user.click(within(card).getByRole('checkbox', { name: 'Shorts' }))
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(
+      await within(card).findByText(
+        /Downloads ask for bestvideo\[height<=1080\]\+bestaudio\/best; a channel added gets: Videos · Streams\./,
+      ),
+    ).toBeInTheDocument()
+    expect(sent).toEqual([
+      {
+        comments: 'top',
+        downloadFormat: 'bestvideo[height<=1080]+bestaudio/best',
+        defaultTabs: { videos: true, shorts: false, streams: true },
+      },
+    ])
+  })
+
   it('runs the YouTube sync every few hours, or on demand only at 0, checked first', async () => {
     const user = userEvent.setup()
     const sent: unknown[] = []
@@ -165,6 +224,8 @@ describe('YouTubePage', () => {
       pauseSeconds: 10,
       holdMinutes: 60,
       syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     }
@@ -173,7 +234,7 @@ describe('YouTubePage', () => {
         if (init?.method === 'PUT') {
           const body = JSON.parse(String(init.body)) as YouTubeSettings
           sent.push(body)
-          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+          saved = { ...saved, ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
         }
         return saved
       },
@@ -210,6 +271,8 @@ describe('YouTubePage', () => {
               pauseSeconds: 10,
               holdMinutes: 60,
               syncEveryHours: 6,
+              downloadFormat: 'bestvideo+bestaudio',
+              defaultTabs: { videos: true, shorts: true, streams: true },
               changedBy: null,
               changedAt: null,
             },

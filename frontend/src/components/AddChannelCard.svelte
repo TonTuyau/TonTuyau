@@ -1,6 +1,6 @@
 <script lang="ts">
   // "Add a channel" of the Tasks page (2.0, B4): its id, @handle or a link to either, and the tabs to subscribe to
-  // (the three ticked by default). Refused here when it isn't one or no tab is ticked (the API would refuse it too);
+  // (ticked as the YouTube page's default tabs, B6; the three until they're read). Refused here when it isn't one or no tab is ticked (the API would refuse it too);
   // the page starts it (onstart) and opens its run. While a run goes on (or waits), it's added to the run queue.
   import type { ChannelTabs, RunTask } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -10,14 +10,17 @@
 
   let {
     waits,
+    defaultTabs,
     onstart,
   }: {
     waits: boolean
+    defaultTabs: ChannelTabs | null
     onstart: (task: RunTask, target: string, tabs: ChannelTabs) => Promise<void>
   } = $props()
 
   let value = $state('')
-  let tabs = $state<ChannelTabs>({ videos: true, shorts: true, streams: true })
+  // The default ones, until they're changed here (each change a new value).
+  let tabs = $derived<ChannelTabs>({ ...(defaultTabs ?? { videos: true, shorts: true, streams: true }) })
   let invalid = $state<string | null>(null)
   let pending = $state(false)
 
@@ -68,7 +71,13 @@
     <fieldset>
       <legend>{t('tabs.legend')}</legend>
       {#each channelTabs as tab (tab)}
-        <label class="tab"><input type="checkbox" bind:checked={tabs[tab]} />{t(`tabs.${tab}`)}</label>
+        <label class="tab"
+          ><input
+            type="checkbox"
+            checked={tabs[tab]}
+            onchange={(event) => (tabs = { ...tabs, [tab]: event.currentTarget.checked })}
+          />{t(`tabs.${tab}`)}</label
+        >
       {/each}
     </fieldset>
     {#if invalid}

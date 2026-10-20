@@ -59,9 +59,9 @@ internal sealed class GitHubYtdlpReleases(HttpClient http, TimeProvider clock)
         !release.Draft
         && YtdlpRepositories.IsVersion(release.TagName)
         && release.PublishedAt is not null
-        && release.Assets is { } assets
-        && assets.Any(a => a.Name == YtdlpRepositories.LinuxProgram)
-        && assets.Any(a => a.Name == YtdlpRepositories.Checksums);
+        && release.Assets is not null
+        && release.Assets.Any(a => a.Name == YtdlpRepositories.LinuxProgram)
+        && release.Assets.Any(a => a.Name == YtdlpRepositories.Checksums);
 
     private async Task<IReadOnlyList<ReleaseDto>> PageAsync(
         YtdlpChannel channel,

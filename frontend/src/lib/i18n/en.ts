@@ -252,6 +252,14 @@ export const en = {
     'When YouTube asks for a bot check or says "too many requests", the refresh stops where it is and lets the other tasks run; it resumes by itself after this, or with Resume now.',
   'youTube.easy.minutes': 'min',
   'youTube.easy.hold.invalid': 'A whole number of minutes, 1 or more.',
+  'youTube.downloads': 'Downloading',
+  'youTube.downloads.intro': 'How TonTuyau downloads a video, and what a channel added downloads.',
+  'youTube.downloads.format': 'Format',
+  'youTube.downloads.formatHint':
+    "In yt-dlp's own syntax: bestvideo+bestaudio (the best of each, the default), bestvideo[height<=1080]+bestaudio, or with a fallback after a slash: …/best. A format that picks nothing fails the download, saying why.",
+  'youTube.downloads.format.invalid': "yt-dlp's format, on one line: 1 to 200 characters.",
+  'youTube.downloads.tabs': 'Tabs of a channel added',
+  'youTube.downloads.saved': 'Downloads ask for {format}; a channel added gets: {tabs}.',
   'youTube.sync': 'The YouTube sync',
   'youTube.sync.every': 'Run it by itself every',
   'youTube.sync.everyHint':

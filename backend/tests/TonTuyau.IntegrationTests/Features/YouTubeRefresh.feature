@@ -158,7 +158,7 @@ Feature: Refreshing videos and channels on YouTube
   Scenario: The YouTube settings, off by default, changed by an admin
     When I request "/api/admin/youtube/settings" with my session
     Then the response status is 200
-    And the answer has exactly the fields "comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours, changedBy, changedAt"
+    And the answer has exactly the fields "comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours, downloadFormat, defaultTabs, changedBy, changedAt"
     And "comments" is "off"
     And "commentsMax" is "500"
     And "pauseSeconds" is "10"

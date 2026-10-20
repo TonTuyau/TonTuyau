@@ -376,6 +376,15 @@ export const api = {
     return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours })
   },
 
+  /** The download settings (2.0): the format, the tabs a channel added gets; the reading settings stay as they are. */
+  saveDownloadSettings(
+    comments: YouTubeCommentsChoice,
+    downloadFormat: string,
+    defaultTabs: ChannelTabs,
+  ): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs })
+  },
+
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */
   chooseYtdlp(kind: YtdlpChoiceKind, version: string | null): Promise<YtdlpState> {
     return putFor('/api/admin/youtube/ytdlp', { kind, version })

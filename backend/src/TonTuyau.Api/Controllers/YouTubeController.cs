@@ -116,6 +116,8 @@ public sealed class YouTubeController(
                 request.PauseSeconds,
                 request.HoldMinutes,
                 request.SyncEveryHours,
+                request.DownloadFormat,
+                request.DefaultTabs?.ToTabs("defaultTabs"),
                 Account(),
                 cancellationToken)
             .ConfigureAwait(false);

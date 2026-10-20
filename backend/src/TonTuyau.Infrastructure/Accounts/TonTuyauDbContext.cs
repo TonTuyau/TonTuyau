@@ -172,6 +172,10 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasColumnName("sync_every_hours")
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultSyncEveryHours)
                 .HasSentinel(-1);
+            // No database default (false would then read as "unset"): the migration fills the rows there with true.
+            settings.Property(s => s.DefaultVideos).HasColumnName("default_videos");
+            settings.Property(s => s.DefaultShorts).HasColumnName("default_shorts");
+            settings.Property(s => s.DefaultStreams).HasColumnName("default_streams");
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {

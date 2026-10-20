@@ -82,9 +82,11 @@ public sealed partial class YouTubeRefreshService
         {
             CancellationToken ct = context.CancellationToken;
             DownloadFailure? before = await downloadFailures.GetAsync(videoId, ct).ConfigureAwait(false);
-            if ((listed.ChannelId ?? before?.ChannelId) is not { } channelId)
+            // The channel that listed it, or the one of its failure before; none: "Download a video" of one that never
+            // failed, the run fails, saying why.
+            string? channelId = listed.ChannelId ?? before?.ChannelId;
+            if (channelId is null)
             {
-                // "Download a video" of one that never failed: the run fails, saying why.
                 throw;
             }
 
@@ -146,7 +148,7 @@ public sealed partial class YouTubeRefreshService
                 return (lookup.Reason ?? "YouTube refused", []);
             }
 
-            if (lookup.Item is not { } listed)
+            if (lookup.Item is null)
             {
                 everyTab = false;
                 context.Count(c => c with { CheckFailed = c.CheckFailed + 1 });
@@ -156,7 +158,7 @@ public sealed partial class YouTubeRefreshService
             }
 
             // A video twice (a stream listed on the videos tab too): once.
-            foreach (YouTubeListed entry in listed)
+            foreach (YouTubeListed entry in lookup.Item)
             {
                 bool toDownload = !known.Contains(entry.Id) || missingFiles.Contains(entry.Id);
                 bool leftAlone = !full && failed.GetValueOrDefault(entry.Id)?.Skipped == true;
