@@ -15,9 +15,10 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
 {
     public async Task<UpsertResult> AddMissingAsync(
         IReadOnlyCollection<Video> videos,
+        LibraryOrigin origin,
         CancellationToken cancellationToken)
     {
-        UpsertResult added = await store.AddMissingAsync(videos, cancellationToken).ConfigureAwait(false);
+        UpsertResult added = await store.AddMissingAsync(videos, origin, cancellationToken).ConfigureAwait(false);
         await ReindexAsync(added.ChangedIds, cancellationToken).ConfigureAwait(false);
         return added;
     }

@@ -12,6 +12,8 @@ case "$kind" in
   backend)
     docker run --rm --entrypoint /usr/local/bin/yt-dlp "$image" --version
     docker run --rm --entrypoint /usr/local/bin/deno "$image" --version
+    docker run --rm --entrypoint /usr/local/bin/ffmpeg "$image" -hide_banner -version
+    docker run --rm --entrypoint /usr/local/bin/ffprobe "$image" -hide_banner -version
     docker run --rm "$image" --version
     ;;
   frontend)

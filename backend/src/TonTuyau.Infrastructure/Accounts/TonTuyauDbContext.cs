@@ -158,6 +158,10 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             settings.Property(s => s.HoldMinutes).HasColumnName("hold_minutes");
             settings.Property(s => s.ChangedBy).HasColumnName("changed_by");
             settings.Property(s => s.ChangedAt).HasColumnName("changed_at");
+            settings
+                .Property(s => s.DownloadFormat)
+                .HasColumnName("download_format")
+                .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultDownloadFormat);
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {

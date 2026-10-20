@@ -7,7 +7,7 @@
 # From the repository: docker compose --env-file .env -f docker/docker-compose.yml up -d
 #
 # Everything comes from `.env` (see .env.example). The videos: the folder TONTUYAU_MEDIA_PATH on the VM (a local
-# folder, or a share you mounted there), bind-mounted read-only.
+# folder, or a share you mounted there), bind-mounted: TonTuyau writes its downloads there (2.0).
 name: tontuyau
 
 services:
@@ -86,11 +86,12 @@ services:
       # The container's clock for log timestamps; the dashboard's charts use TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:
-      # Your videos, read-only. A missing folder stops `up` with an error instead of mounting an empty one.
+      # Your videos: TonTuyau reads them, and writes its downloads next to them (2.0). The backend runs as uid 1654:
+      # the folder must let it write (README, "The videos folder"). A missing folder stops `up` with an error instead
+      # of mounting an empty one.
       - type: bind
         source: ${TONTUYAU_MEDIA_PATH:?set TONTUYAU_MEDIA_PATH in .env (the videos folder on the VM)}
         target: /youtube
-        read_only: true
         bind:
           create_host_path: false
       - tontuyau-art:/data/art

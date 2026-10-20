@@ -26,6 +26,12 @@ namespace TonTuyau.Application.YouTube;
 /// included, YouTube's order, or all of them), replacing the ones read before. Its thumbnail, a channel's avatar and
 /// banner, go to TonTuyau's art volume, replacing TubeArchivist's copies; a picture that fails never fails the
 /// refresh (the one there stays).
+/// <para>
+/// A download (2.0, <see cref="SyncMode.DownloadVideo"/>) is a run of the same kind: yt-dlp downloads the video into a
+/// folder of its own on the media folder, the file goes to its place, the video is added to the library with what
+/// YouTube said of it (as a refresh records it), with its channel first when the library doesn't have it (then read on
+/// YouTube like a refresh, for its pictures). YouTube refusing puts it on hold, as a refresh.
+/// </para>
 /// </remarks>
 public sealed partial class YouTubeRefreshService(
     IYouTubeClient youTube,
@@ -35,6 +41,7 @@ public sealed partial class YouTubeRefreshService(
     IYouTubeImages images,
     IArtStore art,
     IArtResizer resizer,
+    IMediaLibrary media,
     IVideoRepository videos,
     IChannelRepository channels,
     ISyncStateStore state,
@@ -42,10 +49,14 @@ public sealed partial class YouTubeRefreshService(
     ILogger<YouTubeRefreshService> logger)
 {
     /// <param name="mode">A refresh: <see cref="SyncMode.RefreshVideo"/>, <see cref="SyncMode.RefreshChannel"/> or
-    /// <see cref="SyncMode.RefreshChannelVideos"/>.</param>
-    /// <param name="target">The video's or channel's YouTube id: one of the library.</param>
+    /// <see cref="SyncMode.RefreshChannelVideos"/>; or a download, <see cref="SyncMode.DownloadVideo"/>.</param>
+    /// <param name="target">
+    /// The video's or channel's YouTube id: one of the library for a refresh, one it doesn't have for a download.
+    /// </param>
     /// <param name="startedBy">The account that started it from the admin pages; null otherwise.</param>
-    /// <exception cref="SyncRefusedException">Not an id, or not one of the library.</exception>
+    /// <exception cref="SyncRefusedException">
+    /// Not an id, not one of the library (a refresh), or one of the library already (a download).
+    /// </exception>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
     public async Task<SyncRun> RunAsync(
         SyncMode mode,
@@ -353,7 +364,12 @@ public sealed partial class YouTubeRefreshService(
                 ct.ThrowIfCancellationRequested();
                 string id = work[index];
                 string? refused;
-                if (LibraryIds.IsChannelId(id))
+                if (mode == SyncMode.DownloadVideo)
+                {
+                    context.BeginPhase(SyncPhase.YouTubeDownload, 1);
+                    refused = await DownloadVideoAsync(id, read, context).ConfigureAwait(false);
+                }
+                else if (LibraryIds.IsChannelId(id))
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
                     // With its videos, the run counts what YouTube answered of them; the channel's answer is a note.
@@ -433,7 +449,20 @@ public sealed partial class YouTubeRefreshService(
 
     private async Task RefuseUnknownAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
-        if (mode == SyncMode.RefreshVideo)
+        if (mode == SyncMode.DownloadVideo)
+        {
+            if (!LibraryIds.IsVideoId(target))
+            {
+                throw new SyncRefusedException($"{target} isn't a YouTube video id.");
+            }
+
+            // TubeArchivist's or TonTuyau's: a video of the library isn't downloaded again (B3).
+            if (await videos.GetAsync(target, cancellationToken).ConfigureAwait(false) is { } video)
+            {
+                throw new SyncRefusedException($"The video \"{video.Title}\" is in the library already.");
+            }
+        }
+        else if (mode == SyncMode.RefreshVideo)
         {
             Video? video = LibraryIds.IsVideoId(target)
                 ? await videos.GetAsync(target, cancellationToken).ConfigureAwait(false)
@@ -659,6 +688,127 @@ public sealed partial class YouTubeRefreshService(
     }
 
     /// <summary>
+    /// Downloads a video into the media folder, then adds it to the library (with its channel first, when it's new).
+    /// </summary>
+    /// <returns>What YouTube said when it refused (nothing is recorded then); null otherwise.</returns>
+    /// <exception cref="YouTubeDownloadException">Gone, private, or not downloaded: the run fails.</exception>
+    private async Task<string?> DownloadVideoAsync(string videoId, YouTubeSettings read, RunContext context)
+    {
+        CancellationToken ct = context.CancellationToken;
+        string folder = media.NewDownloadFolder(videoId);
+        try
+        {
+            LogDownloading(videoId, read.DownloadFormat);
+            YouTubeLookup<YouTubeDownload> lookup = await youTube
+                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, ct)
+                .ConfigureAwait(false);
+            if (lookup.Answer == YouTubeAnswer.Refused)
+            {
+                return lookup.Reason ?? "YouTube refused";
+            }
+
+            if (lookup.Item is not { } download)
+            {
+                throw new YouTubeDownloadException($"Not downloaded: {lookup.Reason ?? "yt-dlp didn't say why"}.");
+            }
+
+            context.Count(c => c with { VideosRead = c.VideosRead + 1, FoundOnYouTube = c.FoundOnYouTube + 1 });
+            context.Progressed(1);
+            YouTubeVideo found = download.Video;
+            // Its channel first: a video's channel is in the library before it.
+            bool newChannel = await channels.GetAsync(found.ChannelId, ct).ConfigureAwait(false) is null;
+            if (newChannel)
+            {
+                Channel channel = new(
+                    found.ChannelId,
+                    found.ChannelName,
+                    "",
+                    0,
+                    [],
+                    null,
+                    null,
+                    null,
+                    YouTubeStatus.NotChecked);
+                await channels
+                    .AddMissingAsync([channel], LibraryOrigin.TonTuyau, ct)
+                    .ConfigureAwait(false);
+            }
+
+            string mediaPath = $"{found.ChannelId}/{videoId}.mkv";
+            media.Place(download.File, mediaPath);
+            LogPlaced(videoId, mediaPath, download.Size);
+            Picture wanted = new(
+                YouTubePictures.Thumbnail(found.Thumbnails),
+                null,
+                YouTubePictures.VideoStem(videoId),
+                ArtSubject.VideoThumbnail);
+            SavedPicture? thumbnail = await SavePictureAsync(wanted, context).ConfigureAwait(false);
+            DateTimeOffset now = clock.GetUtcNow();
+            Video video = new(
+                videoId,
+                found.ChannelId,
+                found.ChannelName,
+                found.Title,
+                found.Description,
+                download.Type,
+                found.Published ?? now,
+                now,
+                TimeSpan.FromSeconds(found.DurationSeconds ?? 0),
+                download.Size,
+                mediaPath,
+                false,
+                thumbnail?.Path ?? "",
+                found.Tags,
+                found.Categories,
+                new VideoStats(found.Views ?? 0, found.Likes ?? 0, 0),
+                download.Tracks,
+                YouTubeStatus.NotChecked);
+            UpsertResult added = await videos
+                .AddMissingAsync([video], LibraryOrigin.TonTuyau, ct)
+                .ConfigureAwait(false);
+            context.Count(c => Add(c, added));
+            // What YouTube said of it, as a refresh records it: its state, chapters, comment count.
+            await store
+                .SaveVideoAsync(
+                    new VideoFacts(
+                        videoId,
+                        found.ChannelId,
+                        new YouTubeStatus(StateOf(found), now, null, now),
+                        RefreshedOf(found, video, null, thumbnail?.Path)),
+                    ct)
+                .ConfigureAwait(false);
+            await videos
+                .ReindexAsync([videoId], ct)
+                .ConfigureAwait(false);
+            if (thumbnail?.Versions is { } versions)
+            {
+                await videos
+                    .SetThumbnailArtAsync(new Dictionary<string, ArtVersions> { [videoId] = versions }, ct)
+                    .ConfigureAwait(false);
+            }
+
+            if (newChannel)
+            {
+                // A new channel's name, description and pictures, read on YouTube as a refresh reads them.
+                context.BeginPhase(SyncPhase.YouTubeChannel);
+                string? refused = await RefreshChannelAsync(found.ChannelId, context, counted: false)
+                    .ConfigureAwait(false);
+                if (refused is not null)
+                {
+                    context.Note(
+                        $"The new channel {found.ChannelId} wasn't read on YouTube ({refused}): refresh it later.");
+                }
+            }
+
+            return null;
+        }
+        finally
+        {
+            media.RemoveDownloadFolder(folder);
+        }
+    }
+
+    /// <summary>
     /// Downloads a picture into the art volume (<see cref="YouTubePictures.PathFor"/>), and makes its resized versions.
     /// </summary>
     /// <returns>Where it went and its versions; null when it couldn't be had (the current one stays).</returns>
@@ -806,9 +956,16 @@ public sealed partial class YouTubeRefreshService(
             or IOException
             or DbException
             or ValidationException
+            or YouTubeDownloadException
         || ex.InnerException is DbException;
 
     /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
+    [LoggerMessage(Level = LogLevel.Information, Message = "Downloading {VideoId} (format {Format}).")]
+    private partial void LogDownloading(string videoId, string format);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Downloaded {VideoId}: {MediaPath}, {Size} bytes.")]
+    private partial void LogPlaced(string videoId, string mediaPath, long size);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "{Line}")]
     private partial void LogProgress(string line);
 

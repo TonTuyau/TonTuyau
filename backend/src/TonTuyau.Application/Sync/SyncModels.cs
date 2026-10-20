@@ -20,6 +20,12 @@ public enum SyncMode
 
     /// <summary>Reads one channel on YouTube, then each of its videos in the library (1.5).</summary>
     RefreshChannelVideos,
+
+    /// <summary>
+    /// Downloads one video from YouTube into the media folder (2.0), then adds it to the library, with its channel when
+    /// the library doesn't have it.
+    /// </summary>
+    DownloadVideo,
 }
 
 public enum SyncTrigger

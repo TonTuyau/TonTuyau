@@ -341,6 +341,7 @@ export const fr: Dictionary = {
   'task.refreshVideo': 'Actualiser une vidéo',
   'task.refreshChannel': 'Actualiser une chaîne',
   'task.refreshChannelVideos': 'Actualiser une chaîne et ses vidéos',
+  'task.downloadVideo': 'Télécharger une vidéo',
   'task.import.what':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
@@ -348,6 +349,8 @@ export const fr: Dictionary = {
     'Lit une vidéo sur YouTube : si elle y est toujours, et son titre, sa description et ses vues.',
   'task.refreshChannel.what': 'Lit une chaîne sur YouTube : si elle y est toujours, et son nom et sa description.',
   'task.refreshChannelVideos.what': 'Lit une chaîne sur YouTube, puis chacune de ses vidéos de la bibliothèque.',
+  'task.downloadVideo.what':
+    "Télécharge une vidéo de YouTube dans le dossier des vidéos, puis l'ajoute à la bibliothèque, avec sa chaîne si elle est nouvelle.",
   'task.when': 'Quand',
   'task.lastRun': 'Dernière',
   'task.atStartup': 'Au démarrage du backend, et à la demande',

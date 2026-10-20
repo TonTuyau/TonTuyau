@@ -3283,7 +3283,7 @@ export interface components {
       suggestions: components['schemas']['Suggestion'][]
     }
     /** @enum {string} */
-    SyncMode: 'import' | 'indexRebuild' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos'
+    SyncMode: 'import' | 'indexRebuild' | 'refreshVideo' | 'refreshChannel' | 'refreshChannelVideos' | 'downloadVideo'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold'
     /** @enum {string} */

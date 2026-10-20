@@ -396,7 +396,9 @@ public sealed partial class SyncService(
         LogRejected(page.Rejected);
         context.Rejected(page.Rejected);
         // Only what TonTuyau doesn't have: a video it has already is left as it is.
-        UpsertResult result = await videos.AddMissingAsync(page.Items, ct).ConfigureAwait(false);
+        UpsertResult result = await videos
+            .AddMissingAsync(page.Items, LibraryOrigin.TubeArchivist, ct)
+            .ConfigureAwait(false);
         HashSet<string> created = new(result.CreatedIds, StringComparer.Ordinal);
         Video[] added = page.Items
             .Where(v => created.Contains(v.Id))
@@ -421,7 +423,9 @@ public sealed partial class SyncService(
         context.Count(c => c with { ChannelsRead = c.ChannelsRead + page.Items.Count + page.Rejected.Count });
         LogRejected(page.Rejected);
         context.Rejected(page.Rejected);
-        UpsertResult result = await channels.AddMissingAsync(page.Items, ct).ConfigureAwait(false);
+        UpsertResult result = await channels
+            .AddMissingAsync(page.Items, LibraryOrigin.TubeArchivist, ct)
+            .ConfigureAwait(false);
         HashSet<string> created = new(result.CreatedIds, StringComparer.Ordinal);
         Channel[] added = page.Items
             .Where(c => created.Contains(c.Id))

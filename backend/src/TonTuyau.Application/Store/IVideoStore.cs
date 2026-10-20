@@ -15,7 +15,11 @@ public interface IVideoStore
     /// call: the last one counts. Their channels are in the library first (<c>videos.channel_id</c> references
     /// <c>channels</c>); <see cref="Video.ChannelName"/> isn't kept, a read gives the channel's.
     /// </summary>
-    Task<UpsertResult> AddMissingAsync(IReadOnlyCollection<Video> videos, CancellationToken cancellationToken);
+    /// <param name="origin">Where they come from: TubeArchivist's import, or TonTuyau's own downloads.</param>
+    Task<UpsertResult> AddMissingAsync(
+        IReadOnlyCollection<Video> videos,
+        LibraryOrigin origin,
+        CancellationToken cancellationToken);
 
     Task<Video?> GetAsync(string id, CancellationToken cancellationToken);
 

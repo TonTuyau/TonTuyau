@@ -33,14 +33,21 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     [When("the videos {string} are added to the library")]
     public async Task VideosAreAdded(string ids)
     {
-        await Channels.AddMissingAsync([ChannelFor(DefaultChannel)], CancellationToken.None);
-        _added = await Videos.AddMissingAsync([.. Ids(ids).Select(id => VideoFor(id))], CancellationToken.None);
+        await Channels.AddMissingAsync(
+            [ChannelFor(DefaultChannel)],
+            LibraryOrigin.TubeArchivist,
+            CancellationToken.None);
+        _added = await Videos.AddMissingAsync(
+            [.. Ids(ids).Select(id => VideoFor(id))],
+            LibraryOrigin.TubeArchivist,
+            CancellationToken.None);
     }
 
     [When("the videos {string} of a channel the library doesn't have are added to the library")]
     public async Task VideosOfUnknownChannel(string ids) =>
         _failure = await Record.ExceptionAsync(() => Videos.AddMissingAsync(
             [.. Ids(ids).Select(id => VideoFor(id) with { ChannelId = "UCzzzzzzzzzzzzzzzzzzzzzz" })],
+            LibraryOrigin.TubeArchivist,
             CancellationToken.None));
 
     [When("the library's video {string} gets the title {string} and the videos {string} are added to the library")]
@@ -189,7 +196,10 @@ public sealed class LibraryStoreSteps(ScenarioState state)
     [Given("the channels {string} are added to the library")]
     [When("the channels {string} are added to the library")]
     public async Task ChannelsAreAdded(string ids) =>
-        _added = await Channels.AddMissingAsync([.. Ids(ids).Select(ChannelFor)], CancellationToken.None);
+        _added = await Channels.AddMissingAsync(
+            [.. Ids(ids).Select(ChannelFor)],
+            LibraryOrigin.TubeArchivist,
+            CancellationToken.None);
 
     [When("the channel {string} gets the name {string} and the channels {string} are added to the library")]
     public async Task NameChangesAndAdd(string id, string name, string ids)

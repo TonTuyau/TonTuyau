@@ -39,6 +39,10 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     public Task<IActionResult> RefreshChannelVideosAsync(string id) =>
         StartAsync(() => runner.StartRefreshAsync(SyncMode.RefreshChannelVideos, id, SyncTrigger.Cli));
 
+    [HttpPost("youtube/download/{id}")]
+    public Task<IActionResult> DownloadVideoAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.DownloadVideo, id, SyncTrigger.Cli));
+
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]
     public async Task<SyncRun> GetRunAsync(string id, CancellationToken cancellationToken) =>

@@ -17,6 +17,19 @@ public interface IYouTubeClient
     /// <param name="channelId">A YouTube channel id (<c>UC…</c>, 24 characters), already checked.</param>
     Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(string channelId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Downloads a video (2.0) into <paramref name="folder"/>, as one <c>.mkv</c> with its chapters and metadata inside,
+    /// merged by ffmpeg when its video and audio come apart; the metadata read with it.
+    /// </summary>
+    /// <param name="videoId">A YouTube video id (11 characters), already checked.</param>
+    /// <param name="format">What to download, in yt-dlp's syntax (<c>bestvideo+bestaudio</c>).</param>
+    /// <param name="folder">An empty folder of the download's own, on the media folder's file system.</param>
+    Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
+        string videoId,
+        string format,
+        string folder,
+        CancellationToken cancellationToken);
+
     Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken);
 
     /// <summary>

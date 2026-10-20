@@ -88,8 +88,8 @@ public sealed class TaskService(
         string account,
         CancellationToken cancellationToken)
     {
-        // An index rebuild starts from the command line only.
-        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode == SyncMode.IndexRebuild)
+        // An index rebuild starts from the command line only; a download too, until B3's "Add a video".
+        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild or SyncMode.DownloadVideo)
         {
             throw RequestRules.Invalid("task", "must be import, refreshVideo, refreshChannel or refreshChannelVideos.");
         }
@@ -178,8 +178,11 @@ public sealed class TaskService(
         }
 
         throw new ConflictException(
-            run.Mode is not (SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
-                ? "Only a refresh on YouTube can be put on hold: the other runs can be canceled."
+            run.Mode is not (SyncMode.RefreshVideo
+                or SyncMode.RefreshChannel
+                or SyncMode.RefreshChannelVideos
+                or SyncMode.DownloadVideo)
+                ? "Only a refresh or a download can be put on hold: the other runs can be canceled."
                 : run.Outcome == SyncOutcome.Running
                 ? "This run goes on in another process (the command line): stop it there."
                 : "This run isn't going on.");

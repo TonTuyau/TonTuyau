@@ -15,10 +15,10 @@ internal static class LibraryRows
     /// A video's new row: its content, not checked on YouTube (TubeArchivist's own flag isn't kept), in its category
     /// (the store finds or adds it). TubeArchivist's playlists aren't kept.
     /// </summary>
-    public static VideoRow NewRow(Video video, CategoryRow? category) => new()
+    public static VideoRow NewRow(Video video, LibraryOrigin origin, CategoryRow? category) => new()
     {
         Id = video.Id,
-        Origin = LibraryOrigin.TubeArchivist,
+        Origin = origin,
         ChannelId = video.ChannelId,
         Title = video.Title,
         Description = video.Description,
@@ -51,10 +51,10 @@ internal static class LibraryRows
     };
 
     /// <summary>A channel's new row: its content, not checked on YouTube. TubeArchivist's tabs aren't kept.</summary>
-    public static ChannelRow NewRow(Channel channel) => new()
+    public static ChannelRow NewRow(Channel channel, LibraryOrigin origin) => new()
     {
         Id = channel.Id,
-        Origin = LibraryOrigin.TubeArchivist,
+        Origin = origin,
         Name = channel.Name,
         Description = channel.Description,
         Subscribers = channel.Subscribers,

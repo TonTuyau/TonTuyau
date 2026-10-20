@@ -3749,7 +3749,7 @@
         }
       },
       "SyncMode": {
-        "enum": ["import", "indexRebuild", "refreshVideo", "refreshChannel", "refreshChannelVideos"],
+        "enum": ["import", "indexRebuild", "refreshVideo", "refreshChannel", "refreshChannelVideos", "downloadVideo"],
         "type": "string"
       },
       "SyncOutcome": {

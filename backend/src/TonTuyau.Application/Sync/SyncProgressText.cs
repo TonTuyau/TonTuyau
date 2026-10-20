@@ -45,6 +45,7 @@ public static class SyncProgressText
         SyncPhase.IndexSwitch => "index switch",
         SyncPhase.YouTubeChannel => "yt channel",
         SyncPhase.YouTubeVideos => "yt videos",
+        SyncPhase.YouTubeDownload => "download",
         _ => phase.ToString(),
     };
 
@@ -59,6 +60,7 @@ public static class SyncProgressText
         SyncPhase.IndexSwitch => "switching to the new indices",
         SyncPhase.YouTubeChannel => "reading the channel",
         SyncPhase.YouTubeVideos => $"{OutOf(p.Done, p.Total)} read" + YouTube(p.Counts),
+        SyncPhase.YouTubeDownload => p.Done == 0 ? "downloading" : "recording it in the library",
         _ => Number(p.Done),
     };
 
