@@ -87,23 +87,26 @@ internal sealed partial class YouTubeClient(
     }
 
     public async Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(
-        string channelId,
+        string channel,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        ArgumentException.ThrowIfNullOrEmpty(channel);
+        bool handle = LibraryIds.IsHandle(channel);
         // The channel's page as a playlist, without a single video of it: only the channel's own fields.
         string arguments = $"{CommonArguments} --dump-single-json --flat-playlist --playlist-items 0 "
-            + $"https://www.youtube.com/channel/{channelId}";
+            + (handle ? $"https://www.youtube.com/{channel}" : $"https://www.youtube.com/channel/{channel}");
         YtdlpRun run = await RunAsync(arguments, CallTimeout, cancellationToken).ConfigureAwait(false);
         if (run.Failure is not null)
         {
             return new YouTubeLookup<YouTubeChannel>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
         }
 
-        ChannelInfoDto? info = Parse<ChannelInfoDto>(run.Output, channelId);
-        if (info is null || info.ChannelId != channelId || string.IsNullOrWhiteSpace(info.Channel))
+        ChannelInfoDto? info = Parse<ChannelInfoDto>(run.Output, channel);
+        // A handle's answer gives the channel's id; an id's must be that one.
+        bool itsId = handle ? LibraryIds.IsChannelId(info?.ChannelId) : info?.ChannelId == channel;
+        if (info is null || !itsId || string.IsNullOrWhiteSpace(info.Channel))
         {
-            LogUnexpectedAnswer(channelId);
+            LogUnexpectedAnswer(channel);
             return new YouTubeLookup<YouTubeChannel>(
                 YouTubeAnswer.CheckFailed,
                 null,

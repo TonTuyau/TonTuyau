@@ -14,8 +14,11 @@ public interface IYouTubeClient
         YouTubeCommentsRequest? comments,
         CancellationToken cancellationToken);
 
-    /// <param name="channelId">A YouTube channel id (<c>UC…</c>, 24 characters), already checked.</param>
-    Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(string channelId, CancellationToken cancellationToken);
+    /// <param name="channel">
+    /// A YouTube channel id (<c>UC…</c>, 24 characters), or its <c>@handle</c> (2.0, "Add a channel"), already checked:
+    /// the answer then gives its id.
+    /// </param>
+    Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(string channel, CancellationToken cancellationToken);
 
     /// <summary>
     /// Downloads a video (2.0) into <paramref name="folder"/>, as one <c>.mkv</c> with its chapters and metadata inside,

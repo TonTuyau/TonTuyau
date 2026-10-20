@@ -96,6 +96,7 @@ public sealed class TaMapperTests
             null,
             null,
             null,
+            null,
             ["videos", "live", "streams", "podcasts"],
             null,
             "",

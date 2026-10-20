@@ -275,7 +275,7 @@ describe('TasksPage', () => {
       render(TasksPage)
 
       const card = await screen.findByRole('article', { name: 'Download a video' })
-      expect(within(card).getByText('tontuyau youtube download <id>')).toBeInTheDocument()
+      expect(within(card).getByText('tontuyau youtube download <id|link>')).toBeInTheDocument()
       expect(card).toHaveTextContent('A video of the library is downloaded only when its file is missing.')
       await user.type(within(card).getByLabelText('Video link or id'), 'https://www.youtube.com/shorts/k3Fq8xZ0aQw')
       await user.click(within(card).getByRole('button', { name: 'Download' }))
@@ -283,6 +283,54 @@ describe('TasksPage', () => {
       await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
       const [request] = api.requests('/api/admin/tasks/downloadVideo/runs')
       expect(request?.searchParams.get('target')).toBe('k3Fq8xZ0aQw')
+    })
+
+    it('adds a channel pasted as its @handle link, with the tabs ticked, then shows its run', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/addChannel/runs': { ...started, task: 'addChannel' },
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Add a channel' })
+      expect(within(card).getByText(/tontuyau youtube add-channel/)).toBeInTheDocument()
+      for (const tab of ['Videos', 'Shorts', 'Streams']) {
+        expect(within(card).getByRole('checkbox', { name: tab })).toBeChecked()
+      }
+      await user.type(
+        within(card).getByLabelText('Channel link, @handle or id'),
+        'https://www.youtube.com/@underthecity/videos',
+      )
+      await user.click(within(card).getByRole('checkbox', { name: 'Shorts' }))
+      await user.click(within(card).getByRole('button', { name: 'Add' }))
+
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+      const [request] = api.requests('/api/admin/tasks/addChannel/runs')
+      expect(request?.searchParams.get('target')).toBe('@underthecity')
+      expect(request?.searchParams.get('tabs')).toBe('videos,streams')
+    })
+
+    it('refuses a channel to add without a tab, or that isn’t one, without asking', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Add a channel' })
+      const field = within(card).getByLabelText('Channel link, @handle or id')
+      await user.type(field, 'https://vimeo.com/@underthecity')
+      await user.click(within(card).getByRole('button', { name: 'Add' }))
+      expect(within(card).getByRole('alert')).toHaveTextContent("That isn't a channel id (UC…), an @handle")
+
+      await user.clear(field)
+      await user.type(field, '@underthecity')
+      for (const tab of ['Videos', 'Shorts', 'Streams']) {
+        await user.click(within(card).getByRole('checkbox', { name: tab }))
+      }
+      await user.click(within(card).getByRole('button', { name: 'Add' }))
+      expect(within(card).getByRole('alert')).toHaveTextContent('Tick at least one tab.')
+      expect(api.requests('/api/admin/tasks/addChannel/runs')).toEqual([])
     })
 
     it('refuses what isn’t a video or a channel, without asking', async () => {

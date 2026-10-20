@@ -9,6 +9,7 @@
   // TubeArchivist not set up) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
   // login page.
   import { untrack } from 'svelte'
+  import AddChannelCard from '../components/AddChannelCard.svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import HoldBar from '../components/HoldBar.svelte'
@@ -19,7 +20,7 @@
   import TaskCard from '../components/TaskCard.svelte'
   import YouTubeTaskCard from '../components/YouTubeTaskCard.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { Run, RunTask, Tasks, YouTubeOverview } from '../lib/api/types'
+  import type { ChannelTabs, Run, RunTask, Tasks, YouTubeOverview } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -88,10 +89,10 @@
   /** Why the last start or cancel was refused; cleared by the next one. */
   let refused = $state<string | null>(null)
 
-  async function onstart(task: RunTask, target?: string) {
+  async function onstart(task: RunTask, target?: string, tabs?: ChannelTabs) {
     refused = null
     try {
-      const started = await api.startTask(task, target)
+      const started = await api.startTask(task, target, tabs)
       router.navigate(href.adminRun(started.id))
     } catch (error) {
       refused = t('task.refused', { reason: reasonOf(error) })
@@ -177,7 +178,11 @@
       {/each}
       <div class="tasks">
         {#each youTubeTasks as task (task)}
-          <YouTubeTaskCard {task} {waits} {onstart} />
+          {#if task === 'addChannel'}
+            <AddChannelCard {waits} {onstart} />
+          {:else}
+            <YouTubeTaskCard {task} {waits} {onstart} />
+          {/if}
         {/each}
       </div>
     </section>

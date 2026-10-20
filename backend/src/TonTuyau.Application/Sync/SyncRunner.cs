@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Microsoft.Extensions.Logging;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Tasks;
@@ -90,6 +91,24 @@ public sealed partial class SyncRunner(
         return await QueueAsync(mode, target, trigger, startedBy).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asks for "Add a channel" (2.0, B4): the channel read on YouTube, added when it's new, and subscribed with these
+    /// tabs.
+    /// </summary>
+    /// <param name="target">The channel's id or <c>@handle</c>.</param>
+    /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <exception cref="SyncRefusedException">Not a channel's id or handle, or one TonTuyau is subscribed to.</exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public async Task<StartedRun> StartAddChannelAsync(
+        string target,
+        ChannelTabs tabs,
+        SyncTrigger trigger,
+        string? startedBy = null)
+    {
+        await refresh.CheckAsync(SyncMode.AddChannel, target, CancellationToken.None).ConfigureAwait(false);
+        return await QueueAsync(SyncMode.AddChannel, target, trigger, startedBy, tabs).ConfigureAwait(false);
+    }
+
     /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
     /// <param name="by">The account asking; null: by itself, after the cool-down.</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
@@ -176,7 +195,12 @@ public sealed partial class SyncRunner(
     }
 
     /// <summary>Records the run asked for as queued, then starts it if its turn has come.</summary>
-    private async Task<StartedRun> QueueAsync(SyncMode mode, string? target, SyncTrigger trigger, string? startedBy)
+    private async Task<StartedRun> QueueAsync(
+        SyncMode mode,
+        string? target,
+        SyncTrigger trigger,
+        string? startedBy,
+        ChannelTabs? tabs = null)
     {
         TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset now = clock.GetUtcNow();
@@ -189,6 +213,7 @@ public sealed partial class SyncRunner(
             QueuedAt = now,
             StartedBy = startedBy,
             Target = target,
+            Tabs = tabs,
             Outcome = SyncOutcome.Queued,
         };
         lock (_gate)

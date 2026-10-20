@@ -72,13 +72,13 @@ internal sealed class TubeArchivistGateway(
             ?? throw new TubeArchivistProtocolException($"{where}: no total_items in the answer.");
     }
 
-    public Task<Page<Channel>> GetChannelPageAsync(int page, CancellationToken cancellationToken)
+    public Task<Page<TaChannel>> GetChannelPageAsync(int page, CancellationToken cancellationToken)
     {
         EnsurePageNumber(page);
         return GetPageAsync(
             $"api/channel/?page={page.ToString(CultureInfo.InvariantCulture)}",
             page,
-            ParseChannel,
+            ParseListedChannel,
             cancellationToken);
     }
 
@@ -168,6 +168,13 @@ internal sealed class TubeArchivistGateway(
         ChannelDto dto = Deserialize<ChannelDto>(json);
         channelValidator.Validate(dto);
         return TaMapper.ToChannel(dto);
+    }
+
+    private TaChannel ParseListedChannel(JsonElement json)
+    {
+        ChannelDto dto = Deserialize<ChannelDto>(json);
+        channelValidator.Validate(dto);
+        return new TaChannel(TaMapper.ToChannel(dto), dto.ChannelSubscribed == true);
     }
 
     private async Task<Page<T>> GetPageAsync<T>(

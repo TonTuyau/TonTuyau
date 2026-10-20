@@ -10,6 +10,9 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="PrivateOnYouTube">A refresh: those YouTube says their owner made private (contract v1.16).</param>
 /// <param name="CheckFailed">A refresh: checks without an answer to trust (a bot check, the network…).</param>
 /// <param name="CommentsRead">A refresh: the comments read with the videos, answers included.</param>
+/// <param name="Subscribed">
+/// The channels subscribed to (contract v2.3): TubeArchivist's, by an import, or the one "Add a channel" added.
+/// </param>
 public sealed record RunCounts(
     int VideosRead,
     int ChannelsRead,
@@ -28,7 +31,8 @@ public sealed record RunCounts(
     int GoneFromYouTube,
     int PrivateOnYouTube,
     int CheckFailed,
-    int CommentsRead)
+    int CommentsRead,
+    int Subscribed)
 {
     public static explicit operator RunCounts(SyncCounts counts)
     {
@@ -51,6 +55,7 @@ public sealed record RunCounts(
             counts.GoneFromYouTube,
             counts.PrivateOnYouTube,
             counts.CheckFailed,
-            counts.CommentsRead);
+            counts.CommentsRead,
+            counts.Subscribed);
     }
 }

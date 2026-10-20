@@ -41,6 +41,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           youtube channel <id>        read a channel of the library on YouTube
           youtube channel-videos <id> read a channel, then each of its videos in the library, on YouTube
           youtube download <id|link>  download a video into the media folder and add it to the library
+          youtube add-channel <id|@handle|link> [videos,shorts,streams]
+                                      subscribe to a channel (added to the library when it's new), to the tabs
+                                      named (the three when none is)
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -80,6 +83,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ["youtube", "download", string id] => LibraryIds.VideoIdOf(id) is { } video
                     ? Report(await FollowAsync($"cli/youtube/download/{video}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a video id (11 characters) or a YouTube link to one.", Refused),
+                ["youtube", "add-channel", string channel, .. string[] tabs] when tabs.Length <= 1 =>
+                    await AddChannelAsync(channel, tabs is [string named] ? named : null, cancellationToken),
                 ["youtube", "channel" or "channel-videos", string id] => LibraryIds.IsChannelId(id)
                     ? Report(await FollowAsync($"cli/youtube/{args[1]}/{id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
@@ -158,6 +163,23 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     }
 
     /// <summary>An import's report, saying first when it rebuilt the indices before (QA10 M5-10).</summary>
+    private async Task<int> AddChannelAsync(string channel, string? tabs, CancellationToken cancellationToken)
+    {
+        if (LibraryIds.ChannelTargetOf(channel) is not { } target)
+        {
+            return Write($"Refused: '{channel}' isn't a channel id, an @handle, or a YouTube link to either.", Refused);
+        }
+
+        if (tabs is not null && ChannelTabs.Parse(tabs) is null)
+        {
+            return Write($"Refused: '{tabs}' isn't tabs: videos, shorts or streams, by commas.", Refused);
+        }
+
+        string path = $"cli/youtube/add-channel?target={Uri.EscapeDataString(target)}"
+            + (tabs is null ? "" : $"&tabs={Uri.EscapeDataString(tabs)}");
+        return Report(await FollowAsync(path, cancellationToken));
+    }
+
     private int ReportImport(SyncRun run)
     {
         if (run.IndexRebuild)
@@ -281,6 +303,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         SyncMode.RefreshChannel => "youtube channel",
         SyncMode.RefreshChannelVideos => "youtube channel-videos",
         SyncMode.DownloadVideo => "youtube download",
+        SyncMode.AddChannel => "youtube add-channel",
         _ => mode.ToString().ToLowerInvariant(),
     };
 }

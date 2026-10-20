@@ -28,14 +28,14 @@ internal static class LibraryScan
         List<RejectedItem> rejected = new();
         for (int page = 1; ; page++)
         {
-            Page<Channel> result = await gateway.GetChannelPageAsync(page, ct);
+            Page<TaChannel> result = await gateway.GetChannelPageAsync(page, ct);
             requests++;
             if (result.IsPastEnd)
             {
                 break;
             }
 
-            channels.AddRange(result.Items);
+            channels.AddRange(result.Items.Select(c => c.Channel));
             rejected.AddRange(result.Rejected);
         }
 

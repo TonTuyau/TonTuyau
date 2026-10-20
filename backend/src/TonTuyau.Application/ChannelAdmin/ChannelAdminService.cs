@@ -10,9 +10,14 @@ namespace TonTuyau.Application.ChannelAdmin;
 /// <summary>
 /// A channel's admin page (1.5): the channel as TonTuyau knows it on YouTube, how many of its videos are in each
 /// state, and its videos with theirs (latest published first, filtered by state or words). Refreshing them is a task
-/// (<see cref="Tasks.TaskService"/>).
+/// (<see cref="Tasks.TaskService"/>). Its subscription (2.0, B4) is set here: subscribed, its tabs, unsubscribed.
 /// </summary>
-public sealed class ChannelAdminService(IChannelRepository channels, IVideoRepository videos, CardBuilder cards)
+public sealed class ChannelAdminService(
+    IChannelRepository channels,
+    IVideoRepository videos,
+    ISubscriptionStore subscriptions,
+    CardBuilder cards,
+    TimeProvider clock)
 {
     public const int MaxQueryLength = 100;
 
@@ -36,10 +41,76 @@ public sealed class ChannelAdminService(IChannelRepository channels, IVideoRepos
         IReadOnlyDictionary<YouTubeState, long> counted = await videos
             .CountYouTubeStatesAsync(id, cancellationToken)
             .ConfigureAwait(false);
+        ChannelSubscription? subscription = await subscriptions
+            .GetAsync(id, cancellationToken)
+            .ConfigureAwait(false);
         return new ChannelAdminView(
             card[0],
             channel.YouTube,
-            Enum.GetValues<YouTubeState>().ToDictionary(s => s, s => counted.GetValueOrDefault(s)));
+            Enum.GetValues<YouTubeState>().ToDictionary(s => s, s => counted.GetValueOrDefault(s)),
+            subscription);
+    }
+
+    /// <summary>
+    /// Subscribes to the channel (2.0, B4), or changes the tabs of its subscription: when, by whom and where from it
+    /// was subscribed then stay.
+    /// </summary>
+    /// <param name="account">Who subscribes it.</param>
+    /// <exception cref="ValidationException">A tab missing, or none of them ticked.</exception>
+    /// <exception cref="NotFoundException">No channel with this id.</exception>
+    public async Task<ChannelSubscription> SubscribeAsync(
+        string id,
+        bool? videos,
+        bool? shorts,
+        bool? streams,
+        string account,
+        CancellationToken cancellationToken)
+    {
+        RequestRules.RequireChannelId(id);
+        ValidationErrors errors = new();
+        foreach ((string field, bool? value) in new[] { ("videos", videos), ("shorts", shorts), ("streams", streams) })
+        {
+            if (value is null)
+            {
+                errors.Add(field, "is required: true or false.");
+            }
+        }
+
+        if (videos == false && shorts == false && streams == false)
+        {
+            errors.Add("videos", "at least one tab: unsubscribe instead.");
+        }
+
+        errors.ThrowIfAny(RequestRules.Subject);
+        if (await channels.GetAsync(id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            throw NotFound(id);
+        }
+
+        ChannelSubscription wanted = new(
+            id,
+            new ChannelTabs(videos!.Value, shorts!.Value, streams!.Value),
+            clock.GetUtcNow(),
+            account,
+            LibraryOrigin.TonTuyau);
+        return await subscriptions
+            .SetAsync(wanted, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Unsubscribes from the channel (2.0, B4): it and its videos stay; nothing is downloaded any more.</summary>
+    /// <exception cref="NotFoundException">No channel with this id.</exception>
+    public async Task UnsubscribeAsync(string id, CancellationToken cancellationToken)
+    {
+        RequestRules.RequireChannelId(id);
+        if (await channels.GetAsync(id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            throw NotFound(id);
+        }
+
+        await subscriptions
+            .RemoveAsync(id, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <exception cref="ValidationException">The request isn't valid.</exception>

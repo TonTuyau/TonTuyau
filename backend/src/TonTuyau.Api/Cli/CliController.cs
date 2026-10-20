@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 
@@ -42,6 +43,14 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     [HttpPost("youtube/download/{id}")]
     public Task<IActionResult> DownloadVideoAsync(string id) =>
         StartAsync(() => runner.StartRefreshAsync(SyncMode.DownloadVideo, id, SyncTrigger.Cli));
+
+    /// <summary>"Add a channel" (2.0, B4): <paramref name="target"/> its id or @handle, checked by the command line.</summary>
+    [HttpPost("youtube/add-channel")]
+    public Task<IActionResult> AddChannelAsync([FromQuery] string target, [FromQuery] string? tabs) =>
+        StartAsync(() => runner.StartAddChannelAsync(
+            target,
+            (tabs is null ? null : ChannelTabs.Parse(tabs)) ?? ChannelTabs.All,
+            SyncTrigger.Cli));
 
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]

@@ -1,3 +1,4 @@
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 
 namespace TonTuyau.Application.Sync;
@@ -26,6 +27,12 @@ public enum SyncMode
     /// the library doesn't have it.
     /// </summary>
     DownloadVideo,
+
+    /// <summary>
+    /// Adds a channel (2.0, B4): read on YouTube by its id or <c>@handle</c>, added to the library when it's new, and
+    /// subscribed with <see cref="SyncRun.Tabs"/>. Nothing is downloaded: B5's syncs do.
+    /// </summary>
+    AddChannel,
 }
 
 public enum SyncTrigger
@@ -126,6 +133,12 @@ public sealed record SyncCounts
 
     /// <summary>A refresh: the comments read with the videos (answers included).</summary>
     public int CommentsRead { get; init; }
+
+    /// <summary>
+    /// The channels subscribed to (2.0, B4): TubeArchivist's, by an import (with the channels it added), or the one
+    /// "Add a channel" added.
+    /// </summary>
+    public int Subscribed { get; init; }
 }
 
 /// <summary>One run (an import, an index rebuild, a refresh, a download), as kept in the run history.</summary>
@@ -152,8 +165,14 @@ public sealed record SyncRun
 
     public string? Error { get; init; }
 
-    /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
+    /// <summary>
+    /// For a refresh (1.5): the video or channel it reads (its YouTube id); a download's video (2.0); the channel
+    /// "Add a channel" adds (its id, or its <c>@handle</c> until the run reads its id on YouTube).
+    /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
+    public ChannelTabs? Tabs { get; init; }
 
     /// <summary>A refresh on hold (1.5): when it resumes by itself; null otherwise.</summary>
     public DateTimeOffset? ResumeAt { get; init; }

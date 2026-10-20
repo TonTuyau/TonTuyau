@@ -13,6 +13,7 @@ const channel = (overrides: Partial<AdminChannel> = {}): AdminChannel => ({
   channel: channelCard(),
   youTube: { state: 'onYouTube', checkedAt: '2026-10-12T08:00:00Z', reason: null, refreshedAt: '2026-10-12T08:00:00Z' },
   videos: { notChecked: 4, onYouTube: 100, unlisted: 6, private: 2, retryLater: 9, gone: 21 },
+  subscription: null,
   ...overrides,
 })
 
@@ -146,6 +147,69 @@ describe('ChannelAdminPage', () => {
     const states = screen.getByRole('region', { name: 'Its videos on YouTube' })
     expect(within(states).getByText('Private')).toHaveClass('state', 'private')
     expect(within(states).getByText('Unlisted').closest('div')).toHaveTextContent('6')
+  })
+
+  it('subscribes to a channel with the tabs ticked, then shows its subscription', async () => {
+    const user = userEvent.setup()
+    const subscribed = {
+      tabs: { videos: true, shorts: false, streams: true },
+      since: '2026-10-20T09:00:00Z',
+      by: 'claire',
+      origin: 'tonTuyau' as const,
+    }
+    let sent: unknown = null
+    let read = 0
+    routes({
+      [base]: () => (read++ === 0 ? channel() : channel({ subscription: subscribed })),
+      [`${base}/subscription`]: (_url: URL, init?: RequestInit) => {
+        sent = { method: init?.method, body: JSON.parse(String(init?.body)) }
+        return subscribed
+      },
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    expect(box).toHaveTextContent('Not subscribed')
+    expect(within(box).queryByRole('button', { name: 'Unsubscribe' })).not.toBeInTheDocument()
+    await user.click(within(box).getByRole('checkbox', { name: 'Shorts' }))
+    await user.click(within(box).getByRole('button', { name: 'Subscribe' }))
+
+    await vi.waitFor(() => expect(box).toHaveTextContent('by claire'))
+    expect(sent).toEqual({ method: 'PUT', body: { videos: true, shorts: false, streams: true } })
+    expect(within(box).getByRole('checkbox', { name: 'Shorts' })).not.toBeChecked()
+    expect(within(box).getByRole('button', { name: 'Save the tabs' })).toBeDisabled()
+    expect(within(box).getByRole('button', { name: 'Unsubscribe' })).toBeEnabled()
+  })
+
+  it("says a subscription taken from TubeArchivist, unsubscribes, and won't save no tab", async () => {
+    const user = userEvent.setup()
+    let method: string | undefined
+    routes({
+      [base]: channel({
+        subscription: {
+          tabs: { videos: true, shorts: true, streams: true },
+          since: '2026-10-18T09:00:00Z',
+          by: null,
+          origin: 'tubeArchivist',
+        },
+      }),
+      [`${base}/subscription`]: (_url: URL, init?: RequestInit) => {
+        method = init?.method
+        return new Response(null, { status: 204 })
+      },
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    expect(box).toHaveTextContent('taken from TubeArchivist')
+    for (const tab of ['Videos', 'Shorts', 'Streams']) {
+      await user.click(within(box).getByRole('checkbox', { name: tab }))
+    }
+    expect(within(box).getByRole('alert')).toHaveTextContent('Tick at least one tab.')
+    expect(within(box).getByRole('button', { name: 'Save the tabs' })).toBeDisabled()
+
+    await user.click(within(box).getByRole('button', { name: 'Unsubscribe' }))
+    await vi.waitFor(() => expect(method).toBe('DELETE'))
   })
 
   it('says why a refresh was refused', async () => {

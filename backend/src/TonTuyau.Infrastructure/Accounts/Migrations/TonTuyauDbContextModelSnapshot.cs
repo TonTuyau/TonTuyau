@@ -239,6 +239,42 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("channel_states", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelSubscriptionRow", b =>
+                {
+                    b.Property<string>("ChannelId")
+                        .HasColumnType("text")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin");
+
+                    b.Property<bool>("Shorts")
+                        .HasColumnType("boolean")
+                        .HasColumnName("shorts");
+
+                    b.Property<bool>("Streams")
+                        .HasColumnType("boolean")
+                        .HasColumnName("streams");
+
+                    b.Property<DateTimeOffset>("SubscribedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("subscribed_at");
+
+                    b.Property<string>("SubscribedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("subscribed_by");
+
+                    b.Property<bool>("Videos")
+                        .HasColumnType("boolean")
+                        .HasColumnName("videos");
+
+                    b.HasKey("ChannelId");
+
+                    b.ToTable("channel_subscriptions", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.Library.VideoRow", b =>
                 {
                     b.Property<string>("Id")
@@ -736,6 +772,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", null)
                         .WithOne("YouTube")
                         .HasForeignKey("TonTuyau.Infrastructure.Library.ChannelStateRow", "ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Library.ChannelSubscriptionRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.ChannelRow", null)
+                        .WithOne()
+                        .HasForeignKey("TonTuyau.Infrastructure.Library.ChannelSubscriptionRow", "ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

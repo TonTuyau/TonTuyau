@@ -9,8 +9,8 @@ using TonTuyau.Application.Paging;
 namespace TonTuyau.Api.Controllers;
 
 /// <summary>
-/// A channel's admin page (1.5): the channel and its videos as TonTuyau knows them on YouTube. Refreshing them is a
-/// task (<c>POST /api/admin/tasks/{task}/runs?target=</c>). An admin's session only.
+/// A channel's admin page (1.5): the channel and its videos as TonTuyau knows them on YouTube, and its subscription
+/// (2.0, B4). Refreshing them is a task (<c>POST /api/admin/tasks/{task}/runs?target=</c>). An admin's session only.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -19,6 +19,9 @@ namespace TonTuyau.Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 public sealed class AdminChannelsController(ChannelAdminService channels) : ControllerBase
 {
+    /// <summary>A subscription's body is three booleans: well under a kilobyte.</summary>
+    private const int MaxRequestBytes = 1024;
+
     /// <summary>The channel, its state on YouTube, how many of its videos are in each state. 404 when unknown.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType<AdminChannelResponse>(StatusCodes.Status200OK)]
@@ -28,6 +31,43 @@ public sealed class AdminChannelsController(ChannelAdminService channels) : Cont
         (AdminChannelResponse)await channels
             .GetAsync(id, cancellationToken)
             .ConfigureAwait(false);
+
+    /// <summary>
+    /// Subscribes to the channel (contract v2.3), or changes the tabs of its subscription. 400 when a tab is missing or
+    /// none is ticked; 404 when the channel is unknown.
+    /// </summary>
+    [HttpPut("{id}/subscription")]
+    [Consumes("application/json")]
+    [RequestSizeLimit(MaxRequestBytes)]
+    [ProducesResponseType<SubscriptionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<SubscriptionResponse> SubscribeAsync(
+        string id,
+        SubscriptionRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (SubscriptionResponse)await channels
+            .SubscribeAsync(id, request.Videos, request.Shorts, request.Streams, Account(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Unsubscribes (contract v2.3): the channel and its videos stay, nothing more is downloaded. 204, subscribed or
+    /// not; 404 when the channel is unknown.
+    /// </summary>
+    [HttpDelete("{id}/subscription")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<IActionResult> UnsubscribeAsync(string id, CancellationToken cancellationToken)
+    {
+        await channels
+            .UnsubscribeAsync(id, cancellationToken)
+            .ConfigureAwait(false);
+        return NoContent();
+    }
 
     /// <summary>Its videos with their state on YouTube, latest published first. 404 when the channel is unknown.</summary>
     [HttpGet("{id}/videos")]
@@ -50,4 +90,8 @@ public sealed class AdminChannelsController(ChannelAdminService channels) : Cont
             page.NextCursor,
             page.Total);
     }
+
+    /// <summary>The logged-in account's name ([Authorize]: there is one).</summary>
+    private string Account() =>
+        User.Identity?.Name ?? throw new InvalidOperationException("A logged-in request without a name.");
 }

@@ -1,4 +1,4 @@
-import { channelIdOf, videoIdOf } from './youtubeTargets'
+import { channelIdOf, channelTargetOf, videoIdOf } from './youtubeTargets'
 
 describe('videoIdOf', () => {
   it.each([
@@ -41,6 +41,26 @@ describe('channelIdOf', () => {
     'refuses %s',
     (input) => {
       expect(channelIdOf(input)).toBeNull()
+    },
+  )
+})
+
+describe('channelTargetOf', () => {
+  it.each([
+    ['UCx7Lm2QpB0vK9sTq4aZ1wYc', 'UCx7Lm2QpB0vK9sTq4aZ1wYc'],
+    ['https://www.youtube.com/channel/UCx7Lm2QpB0vK9sTq4aZ1wYc/videos', 'UCx7Lm2QpB0vK9sTq4aZ1wYc'],
+    ['@underthecity', '@underthecity'],
+    ['  @under.the-city_2 ', '@under.the-city_2'],
+    ['https://www.youtube.com/@underthecity', '@underthecity'],
+    ['m.youtube.com/@underthecity/streams', '@underthecity'],
+  ])('reads %s', (input, target) => {
+    expect(channelTargetOf(input)).toBe(target)
+  })
+
+  it.each(['', '@ab', 'https://www.youtube.com/watch?v=k3Fq8xZ0aQw', 'https://vimeo.com/@underthecity', 'UCshort'])(
+    'refuses %s',
+    (input) => {
+      expect(channelTargetOf(input)).toBeNull()
     },
   )
 })
