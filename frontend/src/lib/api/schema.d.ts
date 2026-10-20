@@ -2066,12 +2066,12 @@ export interface paths {
     post: {
       parameters: {
         query?: {
-          /** @description For the refreshes only: the video's or channel's YouTube id. */
+          /** @description Refreshes, downloadVideo only: the video's or channel's YouTube id (downloadVideo: or a link). */
           target?: string
         }
         header?: never
         path: {
-          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos. */
+          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo. */
           task: string
         }
         cookie?: never

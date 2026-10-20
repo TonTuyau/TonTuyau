@@ -528,10 +528,12 @@ public sealed partial class YouTubeRefreshService(
                 throw new SyncRefusedException($"{target} isn't a YouTube video id.");
             }
 
-            // TubeArchivist's or TonTuyau's: a video of the library isn't downloaded again (B3).
-            if (await videos.GetAsync(target, cancellationToken).ConfigureAwait(false) is { } video)
+            // TubeArchivist's or TonTuyau's: a video of the library isn't downloaded again (B3), unless its file is
+            // missing: then its file is.
+            if (await videos.GetStoredAsync(target, cancellationToken).ConfigureAwait(false) is { MediaMissing: false }
+                stored)
             {
-                throw new SyncRefusedException($"The video \"{video.Title}\" is in the library already.");
+                throw new SyncRefusedException($"The video \"{stored.Video.Title}\" is in the library already.");
             }
         }
         else if (mode == SyncMode.RefreshVideo)
@@ -760,7 +762,8 @@ public sealed partial class YouTubeRefreshService(
     }
 
     /// <summary>
-    /// Downloads a video into the media folder, then adds it to the library (with its channel first, when it's new).
+    /// Downloads a video into the media folder, then adds it to the library (with its channel first, when it's new);
+    /// a video of the library whose file was missing (B3) gets its file, the rest of it refreshed as a refresh does.
     /// </summary>
     /// <returns>What YouTube said when it refused (nothing is recorded then); null otherwise.</returns>
     /// <exception cref="YouTubeDownloadException">Gone, private, or not downloaded: the run fails.</exception>
@@ -787,8 +790,11 @@ public sealed partial class YouTubeRefreshService(
             context.Count(c => c with { VideosRead = c.VideosRead + 1, FoundOnYouTube = c.FoundOnYouTube + 1 });
             context.Progressed(1);
             YouTubeVideo found = download.Video;
+            // The library's, its file missing (CheckAsync, when the run started); null: a new one.
+            Video? known = await videos.GetAsync(videoId, ct).ConfigureAwait(false);
             // Its channel first: a video's channel is in the library before it.
-            bool newChannel = await channels.GetAsync(found.ChannelId, ct).ConfigureAwait(false) is null;
+            bool newChannel = known is null
+                && await channels.GetAsync(found.ChannelId, ct).ConfigureAwait(false) is null;
             if (newChannel)
             {
                 Channel channel = new(
@@ -811,34 +817,15 @@ public sealed partial class YouTubeRefreshService(
             LogPlaced(videoId, mediaPath, download.Size);
             Picture wanted = new(
                 YouTubePictures.Thumbnail(found.Thumbnails),
-                null,
+                known?.ThumbnailPath,
                 YouTubePictures.VideoStem(videoId),
                 ArtSubject.VideoThumbnail);
             SavedPicture? thumbnail = await SavePictureAsync(wanted, context).ConfigureAwait(false);
             DateTimeOffset now = clock.GetUtcNow();
-            Video video = new(
-                videoId,
-                found.ChannelId,
-                found.ChannelName,
-                found.Title,
-                found.Description,
-                download.Type,
-                found.Published ?? now,
-                now,
-                TimeSpan.FromSeconds(found.DurationSeconds ?? 0),
-                download.Size,
-                mediaPath,
-                false,
-                thumbnail?.Path ?? "",
-                found.Tags,
-                found.Categories,
-                new VideoStats(found.Views ?? 0, found.Likes ?? 0, 0),
-                download.Tracks,
-                YouTubeStatus.NotChecked);
-            UpsertResult added = await videos
-                .AddMissingAsync([video], LibraryOrigin.TonTuyau, ct)
-                .ConfigureAwait(false);
-            context.Count(c => Add(c, added));
+            Video video = known is null
+                ? await AddDownloadedAsync(videoId, found, download, mediaPath, thumbnail, now, context)
+                    .ConfigureAwait(false)
+                : await SetFileAsync(known, download, mediaPath, now, context).ConfigureAwait(false);
             // What YouTube said of it, as a refresh records it: its state, chapters, comment count.
             await store
                 .SaveVideoAsync(
@@ -878,6 +865,66 @@ public sealed partial class YouTubeRefreshService(
         {
             media.RemoveDownloadFolder(folder);
         }
+    }
+
+    /// <summary>Adds a video downloaded (its channel is in the library already).</summary>
+    private async Task<Video> AddDownloadedAsync(
+        string videoId,
+        YouTubeVideo found,
+        YouTubeDownload download,
+        string mediaPath,
+        SavedPicture? thumbnail,
+        DateTimeOffset now,
+        RunContext context)
+    {
+        Video video = new(
+            videoId,
+            found.ChannelId,
+            found.ChannelName,
+            found.Title,
+            found.Description,
+            download.Type,
+            found.Published ?? now,
+            now,
+            TimeSpan.FromSeconds(found.DurationSeconds ?? 0),
+            download.Size,
+            mediaPath,
+            false,
+            thumbnail?.Path ?? "",
+            found.Tags,
+            found.Categories,
+            new VideoStats(found.Views ?? 0, found.Likes ?? 0, 0),
+            download.Tracks,
+            YouTubeStatus.NotChecked);
+        UpsertResult added = await videos
+            .AddMissingAsync([video], LibraryOrigin.TonTuyau, context.CancellationToken)
+            .ConfigureAwait(false);
+        context.Count(c => Add(c, added));
+        return video;
+    }
+
+    /// <summary>Records the file downloaded for a video of the library whose file was missing (B3).</summary>
+    private async Task<Video> SetFileAsync(
+        Video known,
+        YouTubeDownload download,
+        string mediaPath,
+        DateTimeOffset now,
+        RunContext context)
+    {
+        VideoFile file = new(mediaPath, download.Size, now, download.Tracks);
+        await videos
+            .SetFileAsync(known.Id, file, context.CancellationToken)
+            .ConfigureAwait(false);
+        context.Count(c => c with { Updated = c.Updated + 1 });
+        context.Note($"The video \"{known.Title}\" had no file: it's downloaded now, {mediaPath}.");
+        return known with
+        {
+            MediaPath = mediaPath,
+            MediaPathCorrected = false,
+            MediaSize = download.Size,
+            Downloaded = now,
+            Tracks = download.Tracks,
+        };
     }
 
     /// <summary>

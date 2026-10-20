@@ -26,12 +26,12 @@
   import { Pager, Remote } from '../lib/remote.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href } from '../lib/router/routes'
-  import { refreshTasks, runResult, runSeconds, startedBy } from '../lib/runs'
+  import { runResult, runSeconds, startedBy, youTubeTasks } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   const BUSY_EVERY = 3_000
   const IDLE_EVERY = 30_000
-  const tasksOrder: RunTask[] = ['import', 'indexRebuild', ...refreshTasks]
+  const tasksOrder: RunTask[] = ['import', 'indexRebuild', ...youTubeTasks]
 
   const tasks = new Remote<Tasks>()
   const history = new Pager<Run>()
@@ -176,7 +176,7 @@
         <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
       {/each}
       <div class="tasks">
-        {#each refreshTasks as task (task)}
+        {#each youTubeTasks as task (task)}
           <YouTubeTaskCard {task} {waits} {onstart} />
         {/each}
       </div>

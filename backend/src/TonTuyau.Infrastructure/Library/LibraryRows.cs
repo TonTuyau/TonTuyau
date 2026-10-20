@@ -36,17 +36,7 @@ internal static class LibraryRows
         Views = video.Stats.Views,
         Likes = video.Stats.Likes,
         Dislikes = video.Stats.Dislikes,
-        Tracks =
-        [
-            .. video.Tracks.Select(t => new MediaTrackRow
-            {
-                Kind = t.Kind,
-                Codec = t.Codec,
-                Bitrate = t.Bitrate,
-                Width = t.Width,
-                Height = t.Height,
-            }),
-        ],
+        Tracks = ToRows(video.Tracks),
         YouTube = new VideoStateRow { VideoId = video.Id },
     };
 
@@ -182,6 +172,18 @@ internal static class LibraryRows
         row.ThumbPath = refreshed.ThumbPath ?? row.ThumbPath;
         row.BannerPath = refreshed.BannerPath ?? row.BannerPath;
     }
+
+    public static List<MediaTrackRow> ToRows(IEnumerable<MediaTrack> tracks) =>
+    [
+        .. tracks.Select(t => new MediaTrackRow
+        {
+            Kind = t.Kind,
+            Codec = t.Codec,
+            Bitrate = t.Bitrate,
+            Width = t.Width,
+            Height = t.Height,
+        }),
+    ];
 
     public static StoredVideo ToStored(VideoRow row) =>
         new(ToVideo(row), row.MediaMissing, ToVersions(row.ThumbnailArt));

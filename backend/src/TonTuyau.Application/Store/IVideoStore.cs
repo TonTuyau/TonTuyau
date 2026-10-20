@@ -33,6 +33,13 @@ public interface IVideoStore
         IReadOnlyCollection<string> channelIds,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Records the file TonTuyau downloaded for a video of the library (B3: its file was missing): its path, size,
+    /// tracks and download date, and clears the "file missing" flag. The rest of the video is left as it is.
+    /// </summary>
+    /// <returns>False when there's no video with this id.</returns>
+    Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken);
+
     /// <summary>Sets or clears the "file missing on the share" flag. Unknown ids are ignored.</summary>
     Task SetMediaMissingAsync(IReadOnlyCollection<string> ids, bool missing, CancellationToken cancellationToken);
 

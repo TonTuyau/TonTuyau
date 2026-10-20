@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 
@@ -41,7 +42,8 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
 
     [HttpPost("youtube/download/{id}")]
     public Task<IActionResult> DownloadVideoAsync(string id) =>
-        StartAsync(() => runner.StartRefreshAsync(SyncMode.DownloadVideo, id, SyncTrigger.Cli));
+        StartAsync(() => runner
+            .StartRefreshAsync(SyncMode.DownloadVideo, LibraryIds.VideoIdOf(id) ?? id, SyncTrigger.Cli));
 
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]

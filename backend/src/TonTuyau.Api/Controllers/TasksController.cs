@@ -28,18 +28,21 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
             .ConfigureAwait(false);
 
     /// <summary>
-    /// Starts a task now: the run, just started (it goes on in the background). The import (2.0) adds what
-    /// TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube. 409 when a run is
-    /// going on, TubeArchivist isn't set up, or the target isn't one of the library.
+    /// Asks for a task (2.0: queued, started at once when nothing else goes on; it goes on in the background). The
+    /// import (2.0) adds what TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube;
+    /// a download (2.0, "Add a video") downloads a video into the library. 409 when TubeArchivist isn't set up, the
+    /// target isn't one of the library (a refresh), or is already, with its file (a download).
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos.")]
+        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo.")]
         string task,
-        [FromQuery, Description("For the refreshes only: the video's or channel's YouTube id.")] string? target,
+        [FromQuery]
+        [Description("Refreshes, downloadVideo only: the video's or channel's YouTube id (downloadVideo: or a link).")]
+        string? target,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks

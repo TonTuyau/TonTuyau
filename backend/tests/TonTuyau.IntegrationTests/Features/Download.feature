@@ -5,7 +5,9 @@ Feature: Downloading a video from YouTube
   the media folder first, then to its place, <channel id>/<video id>.mkv, as TubeArchivist lays its files out. The
   video is added to the library with what YouTube said of it, as a refresh records it; its channel first when the
   library doesn't have it, then read on YouTube for its name and pictures. A video of the library isn't downloaded
-  again. It's a run like the refreshes: YouTube refusing puts it on hold. yt-dlp is a fake here.
+  again, unless its file is missing (B3): then its file is, and the flag is cleared. It's a run like the refreshes:
+  YouTube refusing puts it on hold. It starts from the command line or the Tasks page ("Add a video", B3: an id or a
+  YouTube link), through the run queue. yt-dlp is a fake here.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 3 videos
@@ -48,6 +50,46 @@ Feature: Downloading a video from YouTube
     When I run "tontuyau youtube download alpha-01___"
     Then the command exits with code 4
     And the output mentions "is in the library already"
+
+  Scenario: From the Tasks page, a video pasted as a link is downloaded through the queue
+    Given YouTube has the video "omega-04": the title "Par le lien", 7 views
+    When I download "https://www.youtube.com/watch?v=omega-04___&t=42s" with my session
+    Then the response status is 202
+    And "task" is "downloadVideo"
+    And "target" is "omega-04___"
+    And "trigger" is "admin"
+    And the latest run ends succeeded within 30 seconds
+    And the media folder has the file of the video "omega-04" with 4096 bytes
+    And the video "omega-04" and its channel "omega" are TonTuyau's own
+
+  Scenario: From the Tasks page, a video of the library with its file is refused
+    When I download "alpha-01___" with my session
+    Then the response status is 409
+    And "detail" mentions "is in the library already"
+
+  Scenario Outline: From the Tasks page, what isn't a video is refused
+    When I download "<target>" with my session
+    Then the response status is 400
+
+    Examples:
+      | target                                   |
+      | not a video                              |
+      | https://www.youtube.com/@alpha           |
+      | https://vimeo.com/watch?v=alpha-01___    |
+
+  Scenario: A video of the library whose file is missing gets its file, and the flag is cleared
+    Given YouTube has the video "alpha-02": the title "Revenue", 12 views
+    And the file of the video "alpha-02" was found missing
+    When I download "https://youtu.be/alpha-02___" with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And the media folder has the file of the video "alpha-02" with 4096 bytes
+    And the video "alpha-02" isn't flagged as missing its file
+    And the video "alpha-02" has the file TonTuyau downloaded, and is still TubeArchivist's
+    And the latest run's notes mention "had no file: it's downloaded now"
+    When I request the video "alpha-02" of TubeArchivist
+    Then the response status is 200
+    And "title" is "Revenue"
 
   Scenario: A video YouTube says is removed isn't added, and nothing is left behind
     Given YouTube says of the video "omega-02": "ERROR: [youtube] omega-02___: Video unavailable. This video has been removed by the uploader"

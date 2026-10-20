@@ -1982,7 +1982,7 @@
           {
             "name": "task",
             "in": "path",
-            "description": "import | refreshVideo | refreshChannel | refreshChannelVideos.",
+            "description": "import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo.",
             "required": true,
             "schema": {
               "type": "string"
@@ -1991,7 +1991,7 @@
           {
             "name": "target",
             "in": "query",
-            "description": "For the refreshes only: the video's or channel's YouTube id.",
+            "description": "Refreshes, downloadVideo only: the video's or channel's YouTube id (downloadVideo: or a link).",
             "schema": {
               "type": "string"
             }

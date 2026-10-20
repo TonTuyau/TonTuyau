@@ -80,11 +80,15 @@ public sealed class TaskService(
     /// <summary>
     /// Asks for a task (2.0: through the run queue): the run, started at once when nothing else goes on, else queued.
     /// </summary>
-    /// <param name="target">A refresh's video or channel (its YouTube id, 1.5); null for the other tasks.</param>
+    /// <param name="target">
+    /// A refresh's video or channel (its YouTube id, 1.5), a download's video (its id or a YouTube link to it, 2.0);
+    /// null for the other tasks.
+    /// </param>
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
     /// <exception cref="ConflictException">
-    /// TubeArchivist isn't set up (the import), or the target isn't one of the library.
+    /// TubeArchivist isn't set up (the import), the target isn't one of the library (a refresh), or is already, with its
+    /// file (a download).
     /// </exception>
     public async Task<RunView> StartAsync(
         string task,
@@ -92,13 +96,18 @@ public sealed class TaskService(
         string account,
         CancellationToken cancellationToken)
     {
-        // An index rebuild starts from the command line only; a download too, until B3's "Add a video".
-        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild or SyncMode.DownloadVideo)
+        // An index rebuild starts from the command line only.
+        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild)
         {
-            throw RequestRules.Invalid("task", "must be import, refreshVideo, refreshChannel or refreshChannelVideos.");
+            throw RequestRules.Invalid(
+                "task",
+                "must be import, refreshVideo, refreshChannel, refreshChannelVideos or downloadVideo.");
         }
 
-        bool refresh = mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos;
+        bool refresh = mode is SyncMode.RefreshVideo
+            or SyncMode.RefreshChannel
+            or SyncMode.RefreshChannelVideos
+            or SyncMode.DownloadVideo;
         if (refresh && target is null)
         {
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
@@ -106,7 +115,13 @@ public sealed class TaskService(
 
         if (!refresh && target is not null)
         {
-            throw RequestRules.Invalid("target", "is only for the refreshes.");
+            throw RequestRules.Invalid("target", "is only for the refreshes and the downloads.");
+        }
+
+        if (mode == SyncMode.DownloadVideo)
+        {
+            target = LibraryIds.VideoIdOf(target)
+                ?? throw RequestRules.Invalid("target", "must be a YouTube video's id or a link to it.");
         }
 
         StartedRun started;

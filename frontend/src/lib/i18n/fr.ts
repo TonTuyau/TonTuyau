@@ -334,7 +334,7 @@ export const fr: Dictionary = {
   'tasks.intro': 'Les tâches de TonTuyau : quand elles tournent, et ce que chaque exécution a fait.',
   'tasks.busy': '{task} en cours, lancée par {by} {ago}.',
   'tasks.youTube.intro':
-    "Lu directement sur YouTube avec yt-dlp, connecté avec le cookie envoyé par votre extension de navigateur. Rien n'est téléchargé en 1.5 : seulement ce que YouTube en dit.",
+    'Lu ou téléchargé directement sur YouTube avec yt-dlp, connecté avec le cookie envoyé par votre extension de navigateur. Une actualisation lit seulement ce que YouTube en dit ; un téléchargement ajoute la vidéo, son fichier dans le dossier des vidéos.',
   'tasks.youTube.noCookie': "Pas de cookie YouTube : YouTube peut refuser. L'extension en envoie un ; voir",
   'task.import': 'Import de TubeArchivist',
   'task.indexRebuild': "Reconstruction de l'index",
@@ -350,7 +350,7 @@ export const fr: Dictionary = {
   'task.refreshChannel.what': 'Lit une chaîne sur YouTube : si elle y est toujours, et son nom et sa description.',
   'task.refreshChannelVideos.what': 'Lit une chaîne sur YouTube, puis chacune de ses vidéos de la bibliothèque.',
   'task.downloadVideo.what':
-    "Télécharge une vidéo de YouTube dans le dossier des vidéos, puis l'ajoute à la bibliothèque, avec sa chaîne si elle est nouvelle.",
+    "Télécharge une vidéo de YouTube dans le dossier des vidéos, puis l'ajoute à la bibliothèque, avec sa chaîne si elle est nouvelle. Une vidéo de la bibliothèque n'est téléchargée que si son fichier manque.",
   'task.when': 'Quand',
   'task.lastRun': 'Dernière',
   'task.atStartup': 'Au démarrage du backend, et à la demande',
@@ -376,6 +376,7 @@ export const fr: Dictionary = {
     "Ce n'est pas un id de chaîne (UC…) ni son lien /channel/. Un @pseudo ne peut pas encore être lu.",
   'task.refresh': 'Actualiser',
   'task.refreshThem': 'Les actualiser',
+  'task.download': 'Télécharger',
   'task.cancelRefused': 'Pas annulée : {reason}',
   'run.state.running': 'En cours',
   'run.state.succeeded': 'Réussie',

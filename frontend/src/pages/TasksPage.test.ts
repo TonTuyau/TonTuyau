@@ -265,6 +265,26 @@ describe('TasksPage', () => {
       expect(request?.searchParams.get('target')).toBe('k3Fq8xZ0aQw')
     })
 
+    it('downloads a video pasted as a link, with its id, then shows its run', async () => {
+      const user = userEvent.setup()
+      const api = fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/tasks/downloadVideo/runs': { ...started, task: 'downloadVideo' },
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Download a video' })
+      expect(within(card).getByText('tontuyau youtube download <id>')).toBeInTheDocument()
+      expect(card).toHaveTextContent('A video of the library is downloaded only when its file is missing.')
+      await user.type(within(card).getByLabelText('Video link or id'), 'https://www.youtube.com/shorts/k3Fq8xZ0aQw')
+      await user.click(within(card).getByRole('button', { name: 'Download' }))
+
+      await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+      const [request] = api.requests('/api/admin/tasks/downloadVideo/runs')
+      expect(request?.searchParams.get('target')).toBe('k3Fq8xZ0aQw')
+    })
+
     it('refuses what isn’t a video or a channel, without asking', async () => {
       const user = userEvent.setup()
       const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })

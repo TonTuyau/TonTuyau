@@ -59,6 +59,17 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
         CancellationToken cancellationToken) =>
         store.FindByChannelsAsync(channelIds, cancellationToken);
 
+    public async Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken)
+    {
+        if (!await store.SetFileAsync(id, file, cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        await ReindexAsync([id], cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     public async Task SetMediaMissingAsync(
         IReadOnlyCollection<string> ids,
         bool missing,

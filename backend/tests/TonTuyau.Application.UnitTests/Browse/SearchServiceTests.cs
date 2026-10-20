@@ -233,6 +233,9 @@ public sealed class SearchServiceTests
             bool missing,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>Counts channel searches; suggests <see cref="NamesFound"/> names at most.</summary>

@@ -328,7 +328,7 @@ export const en = {
   'tasks.intro': "TonTuyau's jobs: when they run, and what each run did.",
   'tasks.busy': '{task} is going on, started by {by} {ago}.',
   'tasks.youTube.intro':
-    'Read straight from YouTube with yt-dlp, signed in with the cookie your browser extension sent. Nothing is downloaded in 1.5: only what YouTube says of it.',
+    'Read or downloaded straight from YouTube with yt-dlp, signed in with the cookie your browser extension sent. A refresh only reads what YouTube says; a download adds the video, its file in the videos folder.',
   'tasks.youTube.noCookie': 'No YouTube cookie: YouTube may refuse. The extension sends one; see',
   'task.import': 'TubeArchivist import',
   'task.indexRebuild': 'Index rebuild',
@@ -344,7 +344,7 @@ export const en = {
   'task.refreshChannel.what': 'Reads a channel on YouTube: whether it is still there, and its name and description.',
   'task.refreshChannelVideos.what': 'Reads a channel on YouTube, then each of its videos in the library.',
   'task.downloadVideo.what':
-    "Downloads a video from YouTube into the videos folder, then adds it to the library, with its channel when it's new.",
+    "Downloads a video from YouTube into the videos folder, then adds it to the library, with its channel when it's new. A video of the library is downloaded only when its file is missing.",
   'task.when': 'When',
   'task.lastRun': 'Last run',
   'task.atStartup': 'When the backend starts, and on demand',
@@ -369,6 +369,7 @@ export const en = {
   'task.target.notChannel': "That isn't a channel id (UC…) or its /channel/ link. An @handle can't be read yet.",
   'task.refresh': 'Refresh',
   'task.refreshThem': 'Refresh them',
+  'task.download': 'Download',
   'task.cancelRefused': 'Not canceled: {reason}',
   'run.state.running': 'Running',
   'run.state.succeeded': 'Succeeded',

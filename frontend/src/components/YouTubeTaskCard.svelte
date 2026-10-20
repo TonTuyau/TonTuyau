@@ -1,6 +1,6 @@
 <script lang="ts">
-  // A refresh on YouTube of the Tasks page (1.5): what it reads, its command, and what to read, pasted as a link or an
-  // id. Refused here when it isn't one (the API would refuse it too); the page starts it (onstart) and opens its run.
+  // A refresh on YouTube of the Tasks page (1.5), or a download (2.0, "Add a video"): what it does, its command, and
+  // its video or channel, pasted as a link or an id. Refused here when it isn't one (the API would refuse it too); the page starts it (onstart) and opens its run.
   // One run at a time: while one goes on (or waits), it's added to the run queue (2.0) and waits its turn.
   import type { RunTask } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -22,7 +22,7 @@
   let invalid = $state<string | null>(null)
   let pending = $state(false)
 
-  const video = $derived(task === 'refreshVideo')
+  const video = $derived(task === 'refreshVideo' || task === 'downloadVideo')
   const uid = $props.id()
 
   async function submit(event: SubmitEvent) {
@@ -71,7 +71,11 @@
         {#if waits}
           {t('task.addToQueue')}
         {:else}
-          {task === 'refreshChannelVideos' ? t('task.refreshThem') : t('task.refresh')}
+          {task === 'downloadVideo'
+            ? t('task.download')
+            : task === 'refreshChannelVideos'
+              ? t('task.refreshThem')
+              : t('task.refresh')}
         {/if}
       </Button>
       {#if waits}
