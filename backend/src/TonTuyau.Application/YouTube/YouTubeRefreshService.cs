@@ -67,7 +67,61 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(progress);
-        await RefuseUnknownAsync(mode, target, cancellationToken).ConfigureAwait(false);
+        await CheckAsync(mode, target, cancellationToken).ConfigureAwait(false);
+        return await StartAsync(mode, target, trigger, startedBy, null, progress, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs a queued refresh or download (2.0, the run queue): the same run goes on, from <c>queued</c>. One canceled
+    /// meanwhile is left as it is; one whose target no longer fits (a video added since, for a download) fails, saying
+    /// why.
+    /// </summary>
+    /// <exception cref="SyncBusyException">Another run holds the lock: it stays queued.</exception>
+    public async Task<SyncRun> RunQueuedAsync(
+        SyncRun queued,
+        ISyncProgressReporter progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(queued);
+        ArgumentNullException.ThrowIfNull(progress);
+        try
+        {
+            await CheckAsync(queued.Mode, queued.Target ?? "", cancellationToken).ConfigureAwait(false);
+        }
+        catch (SyncRefusedException ex)
+        {
+            SyncRun refused = queued with
+            {
+                Outcome = SyncOutcome.Failed,
+                Error = ex.Message,
+                FinishedAt = clock.GetUtcNow(),
+            };
+            await state.SaveRunAsync(refused, cancellationToken).ConfigureAwait(false);
+            return refused;
+        }
+
+        Task<SyncRun> run = StartAsync(
+            queued.Mode,
+            queued.Target!,
+            queued.Trigger,
+            queued.StartedBy,
+            queued,
+            progress,
+            cancellationToken);
+        return await run.ConfigureAwait(false);
+    }
+
+    /// <param name="queued">The queued run to go on with; null: a new run.</param>
+    private async Task<SyncRun> StartAsync(
+        SyncMode mode,
+        string target,
+        SyncTrigger trigger,
+        string? startedBy,
+        SyncRun? queued,
+        ISyncProgressReporter progress,
+        CancellationToken cancellationToken)
+    {
         // What it reads, in order: the channel first, then its videos, latest downloaded first; not the gone ones.
         List<string> work = [target];
         List<VideoSummary> skipped = [];
@@ -96,15 +150,31 @@ public sealed partial class YouTubeRefreshService(
             ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
         await using (lease.ConfigureAwait(false))
         {
-            SyncRun run = new()
+            SyncRun run;
+            if (queued is null)
             {
-                Id = SyncRun.NewId(clock.GetUtcNow()),
-                Mode = mode,
-                Trigger = trigger,
-                StartedAt = clock.GetUtcNow(),
-                StartedBy = startedBy,
-                Target = target,
-            };
+                run = new SyncRun
+                {
+                    Id = SyncRun.NewId(clock.GetUtcNow()),
+                    Mode = mode,
+                    Trigger = trigger,
+                    StartedAt = clock.GetUtcNow(),
+                    StartedBy = startedBy,
+                    Target = target,
+                };
+            }
+            else
+            {
+                // Again under the lock: it may have been canceled while it waited.
+                SyncRun? current = await state.GetRunAsync(queued.Id, cancellationToken).ConfigureAwait(false);
+                if (current?.Outcome != SyncOutcome.Queued)
+                {
+                    return current ?? queued;
+                }
+
+                run = current with { Outcome = SyncOutcome.Running, StartedAt = clock.GetUtcNow() };
+            }
+
             return await RunLockedAsync(run, work, skipped, resumedBy: null, lease, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -447,7 +517,9 @@ public sealed partial class YouTubeRefreshService(
         await Task.Delay(TimeSpan.FromSeconds(wait), clock, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RefuseUnknownAsync(SyncMode mode, string target, CancellationToken cancellationToken)
+    /// <summary>Refuses a refresh of what the library doesn't have, a download of what it has (and a non-id).</summary>
+    /// <exception cref="SyncRefusedException">Why it can't run.</exception>
+    public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
         if (mode == SyncMode.DownloadVideo)
         {

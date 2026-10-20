@@ -48,6 +48,8 @@ export function runResult(run: Run): string {
       return run.error ?? ''
     case 'canceled':
       return t('run.result.canceled')
+    case 'queued':
+      return t('run.result.queued', { position: run.position ?? '–' })
     case 'onHold':
       return t(run.resumeAt ? 'run.result.onHold' : 'run.result.onHoldByHand', {
         at: run.resumeAt ? formatDateTime(run.resumeAt, i18n.lang) : '–',

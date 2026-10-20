@@ -29,9 +29,7 @@ public sealed class BackendClient(HttpClient http)
                 .ReadFromJsonAsync<ProblemDetails>(Json, cancellationToken)
                 .ConfigureAwait(false);
             string detail = problem?.Detail ?? "The backend refused.";
-            throw problem?.Type?.EndsWith(Problems.SyncBusySlug, StringComparison.Ordinal) == true
-                ? new CliRefusalException(CliRunner.Busy, detail)
-                : new CliRefusalException(CliRunner.Refused, "Refused: " + detail);
+            throw new CliRefusalException(CliRunner.Refused, "Refused: " + detail);
         }
 
         answer.EnsureSuccessStatusCode();

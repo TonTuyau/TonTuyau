@@ -2,8 +2,8 @@
   // A task of the Tasks page (1.4; 2.0: the TubeArchivist import): what it does, its command, when it runs, how it
   // last ran, and its buttons. `now` (a clock ticking every second) keeps a running run's duration going up, without
   // asking the API. Run now asks first (an import can take an hour); without TubeArchivist's settings it can't start,
-  // and says why. One run at a time: while one holds the lock, the button waits; this task's run, going on in this
-  // backend, can be canceled (asked first too). The page does the requests (onstart, oncancel).
+  // and says why. One run at a time: while one goes on (or waits), it's added to the run queue (2.0); this task's run,
+  // going on in this backend, can be canceled (asked first too). The page does the requests (onstart, oncancel).
   import type { RunTask, TaskInfo, Tasks } from '../lib/api/types'
   import { formatAge, formatRunTime } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
@@ -15,6 +15,7 @@
   let {
     info,
     now,
+    waits,
     lock,
     runningHere,
     onstart,
@@ -22,6 +23,7 @@
   }: {
     info: TaskInfo
     now: number
+    waits: boolean
     lock: Tasks['lock']
     runningHere: string | null
     onstart: (task: RunTask) => Promise<void>
@@ -110,22 +112,18 @@
       <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
         <p>{t('task.confirmImport')}</p>
         <div>
-          <Button
-            variant="filled"
-            disabled={pending || lock !== null}
-            onclick={() => void act(() => onstart(info.task))}
-          >
-            {t('task.startImport')}
+          <Button variant="filled" disabled={pending} onclick={() => void act(() => onstart(info.task))}>
+            {waits ? t('task.addToQueue') : t('task.startImport')}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
         </div>
       </div>
     {:else}
-      <Button variant="filled" disabled={pending || lock !== null || info.unavailable !== null} onclick={start}>
-        {t('task.runNow')}
+      <Button variant="filled" disabled={pending || info.unavailable !== null} onclick={start}>
+        {waits ? t('task.addToQueue') : t('task.runNow')}
       </Button>
-      {#if lock}
-        <small>{t('task.oneAtATime', { task: t(`task.${lock.task}`) })}</small>
+      {#if waits}
+        <small>{t('task.waitsItsTurn')}</small>
       {/if}
     {/if}
   </div>

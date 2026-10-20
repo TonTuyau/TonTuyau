@@ -13,6 +13,7 @@
   import ErrorState from '../components/ErrorState.svelte'
   import HoldBar from '../components/HoldBar.svelte'
   import LoadMore from '../components/LoadMore.svelte'
+  import RunQueue from '../components/RunQueue.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import TaskCard from '../components/TaskCard.svelte'
@@ -38,7 +39,11 @@
   const youTube = new Remote<YouTubeOverview>()
 
   const filter = $derived(tasksOrder.find((task) => task === router.query.get('task')) ?? null)
-  const busy = $derived(tasks.data?.lock != null)
+  const busy = $derived(tasks.data?.lock != null || (tasks.data?.queue.length ?? 0) > 0)
+  /** A task asked for now waits its turn (2.0): a run goes on, one is on hold, or others wait already. */
+  const waits = $derived(
+    tasks.data != null && (tasks.data.lock != null || tasks.data.onHold.length > 0 || tasks.data.queue.length > 0),
+  )
 
   $effect(() => tasks.run((signal) => api.tasks(signal)))
   $effect(() => youTube.run((signal) => api.youTube(signal)))
@@ -152,11 +157,12 @@
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
+    <RunQueue queue={data.queue} onHold={data.onHold} {now} {oncancel} />
     <section class="group" aria-labelledby="ta-title">
       <h2 id="ta-title">TubeArchivist</h2>
       <div class="tasks">
         {#each data.tasks as info (info.task)}
-          <TaskCard {info} {now} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+          <TaskCard {info} {now} {waits} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
         {/each}
       </div>
     </section>
@@ -171,7 +177,7 @@
       {/each}
       <div class="tasks">
         {#each refreshTasks as task (task)}
-          <YouTubeTaskCard {task} lock={data.lock} {onstart} />
+          <YouTubeTaskCard {task} {waits} {onstart} />
         {/each}
       </div>
     </section>

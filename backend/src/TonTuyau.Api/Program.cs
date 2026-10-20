@@ -24,6 +24,8 @@ builder.Services.AddTonTuyau();
 builder.Services.AddSingleton<SyncRunner>();
 // TubeArchivist's library imported at startup, when its settings are there (2.0).
 builder.Services.AddHostedService<ImportAtStartup>();
+// The run queue's look every few seconds (2.0).
+builder.Services.AddHostedService<RunQueueWatcher>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddHostedService<YtdlpUpdater>();
 builder.Services.AddHostedService<RefreshResumer>();

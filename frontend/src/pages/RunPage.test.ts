@@ -282,6 +282,19 @@ describe('RunPage', () => {
     expect(screen.getByRole('button', { name: 'Put on hold' })).toBeInTheDocument()
   })
 
+  it('a run waiting in the queue says its place in line, and can be canceled', async () => {
+    const waiting = run({ state: 'queued', position: 2, finishedAt: null, cancellable: true })
+    fakeApi({
+      [`/api/admin/runs/${waiting.id}`]: waiting,
+      [`/api/admin/runs/${waiting.id}/log`]: log([line(1, `Run ${waiting.id} queued: Import by Admin.`)], false),
+    })
+    render(RunPage, { id: waiting.id })
+
+    expect(await screen.findByText('Waiting')).toBeInTheDocument()
+    expect(screen.getByText('#2 in line. It starts by itself when its turn comes.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel the run' })).toBeInTheDocument()
+  })
+
   it('offers no hold for an import going on: only Cancel', async () => {
     const going = run({ state: 'running', finishedAt: null, cancellable: true })
     fakeApi({

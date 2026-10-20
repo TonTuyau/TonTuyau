@@ -56,11 +56,13 @@ Feature: Command line
     And the output mentions ": canceled by the command line."
     And the output mentions "CANCELED"
 
-  Scenario: Another run is going on
+  Scenario: Another run is going on: the command queues it, and follows it once it starts
     Given another process holds the run lock
+    And the other process lets go of the run lock in 2 seconds
     When I run "tontuyau import"
-    Then the command exits with code 3
-    And the output mentions "already going on"
+    Then the command exits with code 0
+    And the output mentions "queued: Import by Cli"
+    And the output mentions "SUCCEEDED"
 
   Scenario: A run that fails exits with 1 and says why
     Given TubeArchivist answers 503 to everything

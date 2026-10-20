@@ -56,6 +56,16 @@ public sealed class RunnerSteps(ScenarioState state, SyncSteps sync) : IDisposab
     [When("the run {string} is canceled in the backend")]
     public void CancelById(string runId) => _canceled = Runner.Cancel(runId, "admin");
 
+    /// <summary>Asked for while another run holds the lock (2.0): it waits its turn, first in line.</summary>
+    [Then("the started run waits in the queue")]
+    public async Task Queued()
+    {
+        SyncRun? stored = await Store().GetRunAsync(_started!.Id, CancellationToken.None);
+        Assert.Equal(SyncOutcome.Queued, stored?.Outcome);
+        Assert.Null(Runner.RunningId);
+        Assert.False(_started.Finished.IsCompleted);
+    }
+
     [Then("the backend says the started run is going on")]
     public async Task GoingOn()
     {

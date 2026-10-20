@@ -2,7 +2,7 @@
 Feature: Starting a task, canceling a run, from the Tasks page
   POST /api/admin/tasks/{task}/runs starts a task now, in the backend's background (202, the run just started);
   POST /api/admin/runs/{id}/cancel asks the run going on to stop (202; it ends canceled soon after). One run at a
-  time: 409 while another goes on (contract v1.7, TonTuyau 1.4). Logged-in accounts only.
+  time; one asked for while another goes on waits its turn in the run queue (2.0). Logged-in accounts only.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 5 videos
@@ -33,12 +33,23 @@ Feature: Starting a task, canceling a run, from the Tasks page
     When TubeArchivist answers
     Then the latest run ends succeeded within 30 seconds
 
-  Scenario: Another run going on: the start is refused
+  Scenario: Another run going on: the import waits in the queue, and can be taken out of it
     Given another process holds the run lock
     When I log in as the admin
     And I send POST "/api/admin/tasks/import/runs" with my session
-    Then the response status is 409
-    And "detail" mentions "already going on"
+    Then the response status is 202
+    And "state" is "queued"
+    And "position" is "1"
+    And "cancellable" is "true"
+    When I request "/api/admin/tasks" with my session
+    Then "queue" has 1 item
+    And "queue[0].task" is "import"
+    When I cancel the latest run with my session
+    Then the response status is 202
+    And "state" is "canceled"
+    And "notes[0]" mentions "while it waited in the queue"
+    When I request "/api/admin/tasks" with my session
+    Then "queue" has 0 items
 
   Scenario: Not a task
     When I log in as the admin
