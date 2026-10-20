@@ -6,6 +6,7 @@
   // comments a refresh reads: none (the default), the top N, or all; going easy on YouTube (the pause between videos,
   // how long a refresh YouTube refused waits on hold). A refusal says why; a 401 ends the session.
   import Button from '../components/Button.svelte'
+  import DownloadSettings from '../components/DownloadSettings.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
@@ -563,6 +564,10 @@
       </p>
     {/if}
   </section>
+
+  {#if settings.data}
+    <DownloadSettings current={settings.data} onsaved={() => settings.refresh()} />
+  {/if}
 </div>
 
 <style>

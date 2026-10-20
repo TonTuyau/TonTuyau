@@ -173,9 +173,11 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     public Task Pause(int seconds) =>
         SendSettingsAsync($"{{\"comments\":\"off\",\"pauseSeconds\":{seconds}}}");
 
+    /// <param name="body">JSON; <c>&lt;201 characters&gt;</c> stands for that many, a format too long.</param>
     [When("I send the YouTube settings {string} with my session")]
     public async Task SendSettingsAsync(string body)
     {
+        body = body.Replace("<201 characters>", new string('b', 201), StringComparison.Ordinal);
         using HttpRequestMessage request = new(HttpMethod.Put, new Uri("/api/admin/youtube/settings", UriKind.Relative))
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),

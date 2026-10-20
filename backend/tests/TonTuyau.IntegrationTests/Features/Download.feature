@@ -52,6 +52,28 @@ Feature: Downloading a video from YouTube
     Then the command exits with code 0
     And the media folder has the file of the video "omega-05" with 4096 bytes
 
+  Scenario: The format is the YouTube page's, and saving the other settings keeps it
+    Given YouTube has the video "omega-06": the title "En 720p", 3 views
+    When I send the YouTube settings '{"comments": "off", "downloadFormat": "  bestvideo[height<=720]+bestaudio/best  "}' with my session
+    Then the response status is 200
+    And "downloadFormat" is "bestvideo[height<=720]+bestaudio/best"
+    When I send the YouTube settings '{"comments": "top", "commentsMax": 100}' with my session
+    Then "downloadFormat" is "bestvideo[height<=720]+bestaudio/best"
+    When I run "tontuyau youtube download omega-06___"
+    Then the command exits with code 0
+    And yt-dlp was asked for the format "bestvideo[height<=720]+bestaudio/best" for the video "omega-06"
+
+  Scenario Outline: A format that isn't one line of yt-dlp's syntax is refused
+    When I send the YouTube settings '{"comments": "off", "downloadFormat": <format>}' with my session
+    Then the response status is 400
+
+    Examples:
+      | format                     |
+      | ""                         |
+      | "   "                      |
+      | "bestvideo\nbestaudio"     |
+      | "<201 characters>"         |
+
   Scenario: A video of the library isn't downloaded again
     When I run "tontuyau youtube download alpha-01___"
     Then the command exits with code 4

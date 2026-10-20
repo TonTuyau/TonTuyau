@@ -701,6 +701,18 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("comments_max");
 
+                    b.Property<bool>("DefaultShorts")
+                        .HasColumnType("boolean")
+                        .HasColumnName("default_shorts");
+
+                    b.Property<bool>("DefaultStreams")
+                        .HasColumnType("boolean")
+                        .HasColumnName("default_streams");
+
+                    b.Property<bool>("DefaultVideos")
+                        .HasColumnType("boolean")
+                        .HasColumnName("default_videos");
+
                     b.Property<string>("DownloadFormat")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

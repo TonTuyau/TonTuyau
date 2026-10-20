@@ -96,7 +96,8 @@ public sealed class TaskService(
     /// (its id, optional, B5); null for the other tasks.
     /// </param>
     /// <param name="tabs">
-    /// "Add a channel" (B4): the tabs to subscribe to, <c>videos,shorts,streams</c> or some of them; null: the three.
+    /// "Add a channel" (B4): the tabs to subscribe to, <c>videos,shorts,streams</c> or some of them; null: the YouTube
+    /// settings' default ones (B6).
     /// </param>
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
@@ -275,10 +276,11 @@ public sealed class TaskService(
         return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <returns>Null when none is named: the YouTube settings' default ones (B6).</returns>
     /// <exception cref="ValidationException">Not tabs: <c>videos</c>, <c>shorts</c>, <c>streams</c>, by commas.</exception>
-    private static ChannelTabs TabsOf(string? tabs) =>
+    private static ChannelTabs? TabsOf(string? tabs) =>
         tabs is null
-            ? ChannelTabs.All
+            ? null
             : ChannelTabs.Parse(tabs)
             ?? throw RequestRules.Invalid("tabs", "must be videos, shorts or streams, or some of them, by commas.");
 

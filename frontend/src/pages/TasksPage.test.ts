@@ -340,6 +340,30 @@ describe('TasksPage', () => {
       expect(request?.searchParams.get('tabs')).toBe('videos,streams')
     })
 
+    it('ticks the YouTube page’s default tabs for a channel to add', async () => {
+      fakeApi({
+        '/api/admin/tasks': tasks(),
+        '/api/admin/runs': page([run()]),
+        '/api/admin/youtube/settings': {
+          comments: 'off',
+          commentsMax: 500,
+          pauseSeconds: 10,
+          holdMinutes: 60,
+          syncEveryHours: 6,
+          downloadFormat: 'bestvideo+bestaudio',
+          defaultTabs: { videos: true, shorts: false, streams: false },
+          changedBy: null,
+          changedAt: null,
+        },
+      })
+      render(TasksPage)
+
+      const card = await screen.findByRole('article', { name: 'Add a channel' })
+      await vi.waitFor(() => expect(within(card).getByRole('checkbox', { name: 'Shorts' })).not.toBeChecked())
+      expect(within(card).getByRole('checkbox', { name: 'Videos' })).toBeChecked()
+      expect(within(card).getByRole('checkbox', { name: 'Streams' })).not.toBeChecked()
+    })
+
     it('refuses a channel to add without a tab, or that isn’t one, without asking', async () => {
       const user = userEvent.setup()
       const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([run()]) })

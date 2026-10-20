@@ -20,7 +20,7 @@
   import TaskCard from '../components/TaskCard.svelte'
   import YouTubeTaskCard from '../components/YouTubeTaskCard.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { ChannelTabs, Run, RunTask, Tasks, YouTubeOverview } from '../lib/api/types'
+  import type { ChannelTabs, Run, RunTask, Tasks, YouTubeOverview, YouTubeSettings } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -38,6 +38,8 @@
   const history = new Pager<Run>()
   // Only for the warning: no cookie, YouTube may refuse.
   const youTube = new Remote<YouTubeOverview>()
+  // Only for "Add a channel"'s default tabs (2.0).
+  const youTubeSettings = new Remote<YouTubeSettings>()
 
   const filter = $derived(tasksOrder.find((task) => task === router.query.get('task')) ?? null)
   const busy = $derived(tasks.data?.lock != null || (tasks.data?.queue.length ?? 0) > 0)
@@ -48,6 +50,7 @@
 
   $effect(() => tasks.run((signal) => api.tasks(signal)))
   $effect(() => youTube.run((signal) => api.youTube(signal)))
+  $effect(() => youTubeSettings.run((signal) => api.youTubeSettings(signal)))
   $effect(() => {
     const task = filter
     return history.start((before, signal) => api.runs({ task: task ?? undefined, before: before ?? undefined }, signal))
@@ -182,7 +185,7 @@
         {/each}
         {#each youTubeTasks as task (task)}
           {#if task === 'addChannel'}
-            <AddChannelCard {waits} {onstart} />
+            <AddChannelCard {waits} defaultTabs={youTubeSettings.data?.defaultTabs ?? null} {onstart} />
           {:else}
             <YouTubeTaskCard {task} {waits} {onstart} />
           {/if}

@@ -874,6 +874,7 @@ public sealed partial class YouTubeRefreshService(
         }
 
         await RecordChannelAsync(channel, lookup, context, counted: true).ConfigureAwait(false);
+        // Named when it was asked for (the settings' default then); a run from before B6 without any: the three.
         ChannelTabs tabs = context.Run.Tabs ?? ChannelTabs.All;
         ChannelSubscription? had = await subscriptions.GetAsync(found.Id, ct).ConfigureAwait(false);
         ChannelSubscription subscription = new(

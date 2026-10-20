@@ -25,6 +25,7 @@ public sealed partial class SyncRunner(
     YouTubeRefreshService refresh,
     ISyncStateStore state,
     ITaskRepository runs,
+    IYouTubeSettingsRepository settings,
     TimeProvider clock,
     ILogger<SyncRunner> logger) : IDisposable
 {
@@ -96,17 +97,20 @@ public sealed partial class SyncRunner(
     /// tabs.
     /// </summary>
     /// <param name="target">The channel's id or <c>@handle</c>.</param>
+    /// <param name="tabs">Its tabs; null: the YouTube settings' default ones (B6, the three unless set).</param>
     /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
     /// <exception cref="SyncRefusedException">Not a channel's id or handle, or one TonTuyau is subscribed to.</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public async Task<StartedRun> StartAddChannelAsync(
         string target,
-        ChannelTabs tabs,
+        ChannelTabs? tabs,
         SyncTrigger trigger,
         string? startedBy = null)
     {
         await refresh.CheckAsync(SyncMode.AddChannel, target, CancellationToken.None).ConfigureAwait(false);
-        return await QueueAsync(SyncMode.AddChannel, target, trigger, startedBy, tabs).ConfigureAwait(false);
+        ChannelTabs named = tabs
+            ?? (await settings.GetAsync(CancellationToken.None).ConfigureAwait(false)).NewChannelTabs;
+        return await QueueAsync(SyncMode.AddChannel, target, trigger, startedBy, named).ConfigureAwait(false);
     }
 
     /// <summary>

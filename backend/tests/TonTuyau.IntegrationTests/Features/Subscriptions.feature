@@ -96,6 +96,30 @@ Feature: Subscribing to channels
     And the latest run ends succeeded within 30 seconds
     And TonTuyau is subscribed to the channel "beta": "videos,shorts,streams", from tonTuyau
 
+  Scenario: Without tabs named, a channel added gets the YouTube page's default ones
+    When I request "/api/admin/youtube/settings" with my session
+    Then "defaultTabs.videos" is "true"
+    And "defaultTabs.shorts" is "true"
+    And "defaultTabs.streams" is "true"
+    When I send the YouTube settings '{"comments": "off", "defaultTabs": {"videos": true, "shorts": false, "streams": false}}' with my session
+    Then the response status is 200
+    And "defaultTabs.shorts" is "false"
+    Given YouTube has the channel "beta": the name "Beta", 20 subscribers
+    When I add the channel "beta" with my session
+    Then the response status is 202
+    And "tabs.shorts" is "false"
+    And the latest run ends succeeded within 30 seconds
+    And TonTuyau is subscribed to the channel "beta": "videos", from tonTuyau
+
+  Scenario Outline: Default tabs without a tab, or not saying each, are refused
+    When I send the YouTube settings '{"comments": "off", "defaultTabs": <tabs>}' with my session
+    Then the response status is 400
+
+    Examples:
+      | tabs                                                |
+      | {"videos": false, "shorts": false, "streams": false} |
+      | {"videos": true}                                    |
+
   Scenario: A channel TonTuyau is subscribed to already is refused: its page changes its tabs
     When I add the channel "alpha" with my session
     Then the response status is 409

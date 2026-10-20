@@ -254,6 +254,14 @@ export const fr: Dictionary = {
     "Quand YouTube demande une vérification anti-robot ou répond « trop de requêtes », l'actualisation s'arrête où elle en est et laisse passer les autres tâches ; elle reprend toute seule après ce délai, ou avec Reprendre maintenant.",
   'youTube.easy.minutes': 'min',
   'youTube.easy.hold.invalid': 'Un nombre entier de minutes, 1 ou plus.',
+  'youTube.downloads': 'Téléchargement',
+  'youTube.downloads.intro': "Comment TonTuyau télécharge une vidéo, et ce qu'une chaîne ajoutée télécharge.",
+  'youTube.downloads.format': 'Format',
+  'youTube.downloads.formatHint':
+    'Dans la syntaxe de yt-dlp : bestvideo+bestaudio (le meilleur de chacun, par défaut), bestvideo[height<=1080]+bestaudio, ou avec un repli après une barre : …/best. Un format qui ne choisit rien fait échouer le téléchargement, en disant pourquoi.',
+  'youTube.downloads.format.invalid': 'Le format de yt-dlp, sur une ligne : 1 à 200 caractères.',
+  'youTube.downloads.tabs': "Onglets d'une chaîne ajoutée",
+  'youTube.downloads.saved': 'Les téléchargements demandent {format} ; une chaîne ajoutée reçoit : {tabs}.',
   'youTube.sync': 'La synchronisation YouTube',
   'youTube.sync.every': 'La lancer toute seule toutes les',
   'youTube.sync.everyHint':

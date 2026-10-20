@@ -13,6 +13,10 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="SyncEveryHours">
 /// How often the incremental YouTube sync runs by itself (contract v2.4), in hours (6 by default); 0: by hand only.
 /// </param>
+/// <param name="DownloadFormat">
+/// What a download asks yt-dlp for (contract v2.5), in its syntax (<c>bestvideo+bestaudio</c> by default).
+/// </param>
+/// <param name="DefaultTabs">The tabs a channel added gets when none is named (contract v2.5): the three by default.</param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
 public sealed record YouTubeSettingsResponse(
     YouTubeCommentsChoice Comments,
@@ -20,6 +24,8 @@ public sealed record YouTubeSettingsResponse(
     int PauseSeconds,
     int HoldMinutes,
     int SyncEveryHours,
+    string DownloadFormat,
+    ChannelTabsResponse DefaultTabs,
     string? ChangedBy,
     DateTime? ChangedAt)
 {
@@ -32,6 +38,8 @@ public sealed record YouTubeSettingsResponse(
             settings.PauseSeconds,
             settings.HoldMinutes,
             settings.SyncEveryHours,
+            settings.DownloadFormat,
+            (ChannelTabsResponse)settings.NewChannelTabs,
             settings.ChangedBy,
             settings.ChangedAt?.UtcDateTime);
     }

@@ -49,7 +49,7 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     public Task<IActionResult> AddChannelAsync([FromQuery] string target, [FromQuery] string? tabs) =>
         StartAsync(() => runner.StartAddChannelAsync(
             target,
-            (tabs is null ? null : ChannelTabs.Parse(tabs)) ?? ChannelTabs.All,
+            tabs is null ? null : ChannelTabs.Parse(tabs),
             SyncTrigger.Cli));
 
     /// <summary>The YouTube syncs (2.0, B5): the incremental one, or the full one.</summary>

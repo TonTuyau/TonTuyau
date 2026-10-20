@@ -3185,6 +3185,11 @@ export interface components {
       tags: string[]
       active: boolean
     }
+    ChannelTabsRequest: {
+      videos: null | boolean
+      shorts: null | boolean
+      streams: null | boolean
+    }
     ChannelTabsResponse: {
       videos: boolean
       shorts: boolean
@@ -3656,6 +3661,8 @@ export interface components {
       holdMinutes: null | number
       /** Format: int32 */
       syncEveryHours: null | number
+      downloadFormat?: null | string
+      defaultTabs?: null | components['schemas']['ChannelTabsRequest']
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
@@ -3667,6 +3674,8 @@ export interface components {
       holdMinutes: number
       /** Format: int32 */
       syncEveryHours: number
+      downloadFormat: string
+      defaultTabs: components['schemas']['ChannelTabsResponse']
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string
