@@ -77,6 +77,22 @@ internal sealed class TaskRepository(IServiceScopeFactory scopes) : ITaskReposit
         return [.. found.Select(RunJson.Read)];
     }
 
+    public async Task<IReadOnlyList<SyncRun>> GetPendingRunsAsync(SyncMode mode, CancellationToken cancellationToken)
+    {
+        // A handful at most: what waits, the one going on, the ones on hold.
+        List<string> found = await WithContextAsync(db => db.Runs
+            .Where(r => r.Mode == mode
+                && (r.Outcome == SyncOutcome.Queued
+                    || r.Outcome == SyncOutcome.Running
+                    || r.Outcome == SyncOutcome.OnHold))
+            .OrderBy(r => r.StartedAt)
+            .ThenBy(r => r.Id)
+            .Select(r => r.Run)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return [.. found.Select(RunJson.Read)];
+    }
+
     /// <returns>The latest TubeArchivist import that succeeded, or null when none did.</returns>
     public async Task<SyncRun?> GetLatestSuccessfulSyncAsync(CancellationToken cancellationToken)
     {

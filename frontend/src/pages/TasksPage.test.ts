@@ -103,6 +103,20 @@ describe('TasksPage', () => {
     expect(screen.getByRole('link', { name: canceled.id })).toHaveAttribute('href', `/admin/runs/${canceled.id}`)
   })
 
+  it('names the browser extension’s key as who started its run', async () => {
+    const fromExtension = run({
+      id: 'run-20261021T090000Z-dddddd',
+      task: 'downloadVideo',
+      trigger: 'extension',
+      startedBy: 'Firefox, laptop (API key)',
+    })
+    fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([fromExtension]) })
+    render(TasksPage)
+
+    await screen.findByRole('table', { name: 'Run history' })
+    expect(rows()[0]?.[2]).toBe('Firefox, laptop (API key)')
+  })
+
   it('shows one task’s runs from the URL, and the chips link to each task', async () => {
     goTo('/admin/tasks?task=indexRebuild')
     const api = fakeApi({ '/api/admin/tasks': tasks(), '/api/admin/runs': page([canceled]) })
