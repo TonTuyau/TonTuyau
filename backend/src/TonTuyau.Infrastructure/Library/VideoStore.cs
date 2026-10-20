@@ -91,6 +91,34 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
             .ToListAsync(cancellationToken))
             .ConfigureAwait(false);
 
+    public async Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentNullException.ThrowIfNull(file);
+        return await WithContextAsync(async db =>
+        {
+            VideoRow? row = await db.Videos
+                .FirstOrDefaultAsync(v => v.Id == id, cancellationToken)
+                .ConfigureAwait(false);
+            if (row is null)
+            {
+                return false;
+            }
+
+            row.MediaPath = file.MediaPath;
+            row.MediaPathCorrected = false;
+            row.MediaSize = file.Size;
+            row.Downloaded = file.Downloaded;
+            row.Tracks = LibraryRows.ToRows(file.Tracks);
+            row.MediaMissing = false;
+            await db
+                .SaveChangesAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        })
+            .ConfigureAwait(false);
+    }
+
     public async Task SetMediaMissingAsync(
         IReadOnlyCollection<string> ids,
         bool missing,

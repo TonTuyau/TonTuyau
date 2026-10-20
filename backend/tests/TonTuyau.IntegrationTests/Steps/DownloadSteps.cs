@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.Store;
 using TonTuyau.Infrastructure.Accounts;
 using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.Storage;
@@ -14,7 +15,7 @@ namespace TonTuyau.IntegrationTests.Steps;
 /// media folder, and what it was asked for.
 /// </summary>
 [Binding]
-public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube)
+public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube, AuthSteps auth)
 {
     private string MediaRoot => state.Backend.Services.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot;
 
@@ -43,6 +44,28 @@ public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube)
         Assert.Equal(
             format,
             await File.ReadAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".format")));
+
+    [Given("the file of the video {string} was found missing")]
+    public Task FoundMissing(string name) =>
+        state.Backend.Services
+            .GetRequiredService<IVideoRepository>()
+            .SetMediaMissingAsync([FakeTubeArchivist.VideoId(name)], true, CancellationToken.None);
+
+    [When("I download {string} with my session")]
+    public Task Download(string target) =>
+        auth.PostWithSession($"/api/admin/tasks/downloadVideo/runs?target={Uri.EscapeDataString(target)}");
+
+    [Then("the video {string} has the file TonTuyau downloaded, and is still TubeArchivist's")]
+    public async Task DownloadedFile(string name)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+        VideoRow row = await db.Videos.SingleAsync(v => v.Id == FakeTubeArchivist.VideoId(name));
+        Assert.Equal($"{row.ChannelId}/{row.Id}.mkv", row.MediaPath);
+        Assert.Equal(4096, row.MediaSize);
+        Assert.False(row.MediaMissing);
+        Assert.Equal(LibraryOrigin.TubeArchivist, row.Origin);
+    }
 
     [Then("the video {string} and its channel {string} are TonTuyau's own")]
     public async Task TonTuyausOwn(string video, string channel)

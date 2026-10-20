@@ -108,6 +108,15 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         }
     }
 
+    [Then("the latest run's notes mention {string}")]
+    public async Task LatestNotesMention(string text)
+    {
+        SyncRun latest = (await Store.GetRecentRunsAsync(1, CancellationToken.None))[0];
+        Assert.True(
+            latest.Notes.Any(n => n.Contains(text, StringComparison.Ordinal)),
+            string.Join(" | ", latest.Notes));
+    }
+
     /// <summary>Waits for the latest run to be in this state (a run on hold isn't running, but isn't over either).</summary>
     [Then("the latest run is {word} within {int} seconds")]
     public async Task LatestIs(string outcome, int seconds)

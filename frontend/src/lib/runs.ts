@@ -27,6 +27,9 @@ export const taskCommands: Record<RunTask, string> = {
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
 export const refreshTasks: RunTask[] = ['refreshVideo', 'refreshChannel', 'refreshChannelVideos']
 
+/** The YouTube cards of the Tasks page: a download ("Add a video", 2.0), then the refreshes. */
+export const youTubeTasks: RunTask[] = ['downloadVideo', ...refreshTasks]
+
 /** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
 export function isRefresh(run: Run): boolean {
   return run.task === 'refreshVideo' || run.task === 'refreshChannel' || run.task === 'refreshChannelVideos'
