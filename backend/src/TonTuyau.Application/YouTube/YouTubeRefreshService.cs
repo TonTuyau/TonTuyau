@@ -541,6 +541,12 @@ public sealed partial class YouTubeRefreshService(
     /// <exception cref="SyncRefusedException">Why it can't run.</exception>
     public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
+        // A sync of every subscription has nothing to check: none is nothing to do.
+        if (mode == SyncMode.YouTubeSync || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
+        {
+            return;
+        }
+
         if (mode == SyncMode.DownloadVideo)
         {
             if (!LibraryIds.IsVideoId(target))
@@ -574,10 +580,6 @@ public sealed partial class YouTubeRefreshService(
                 throw new SyncRefusedException(
                     $"The video \"{video.Title}\" is gone from YouTube: it isn't refreshed any more.");
             }
-        }
-        else if (mode == SyncMode.YouTubeSync || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
-        {
-            // Nothing to check: every subscription, and none is nothing to do.
         }
         else if (mode == SyncMode.RetryDownloads)
         {

@@ -42,13 +42,21 @@ TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: t
 
 TonTuyau keeps the videos in **one folder** on the VM: TubeArchivist's `youtube` folder, with one folder per channel (`<channel id>/<video id>.<ext>`). Set its path in `.env` as `TONTUYAU_MEDIA_PATH` (e.g. `/mnt/youtube`). Where the folder comes from is up to you (a local folder, a share mounted there).
 
-Since 2.0, TonTuyau **writes its own downloads** there, in the same layout (`<channel id>/<video id>.mkv`), going through a hidden `.tontuyau-downloads` folder first, so a half-downloaded file never shows. The backend runs as uid 1654: give it write access to the folder, for example
+Since 2.0, TonTuyau **writes its own downloads** there, in the same layout (`<channel id>/<video id>.mkv`), going through a hidden `.tontuyau-downloads` folder first, so a half-downloaded file never shows. What it writes is group-writable (folders 775, files 664): anyone in the folder's group can move or delete it; the folders it didn't make keep their own modes.
+
+The backend runs as `TONTUYAU_UID`:`TONTUYAU_GID` from `.env` (1654:1654, the image's user, by default): make it fit the folder, rather than the folder fit it. Most of the time the group is enough: the folder's group (`stat -c '%u %g' /mnt/youtube` gives its owner and group), with group write on the folder:
 
 ```bash
-sudo setfacl -R -m u:1654:rwX -m d:u:1654:rwX /mnt/youtube   # or: sudo chown -R 1654:1654 /mnt/youtube
+TONTUYAU_GID=1001   # in .env: the videos folder's group; its downloads then belong to it too
 ```
 
-On an NFS share, the export must allow writing for that user (or map it with `all_squash`/`anonuid`). TubeArchivist's files are never changed; a download that can't write fails with "The media folder can't be written to".
+Or its owner's uid too, for a share that only lets its owner write (an NFS export without id mapping, for instance). A uid other than 1654 then needs the art and tools volumes to belong to it, once (`tontuyau_` is the project's prefix, as `docker volume ls` shows):
+
+```bash
+docker run --rm -v tontuyau_tontuyau-art:/a -v tontuyau_tontuyau-tools:/t busybox chown -R "$TONTUYAU_UID:$TONTUYAU_GID" /a /t
+```
+
+Or leave both at 1654 and let that user write instead, for example `sudo setfacl -R -m u:1654:rwX -m d:u:1654:rwX /mnt/youtube`. On an NFS share, the export must allow writing for that user (or map it with `all_squash`/`anonuid`). TubeArchivist's files are never changed; a download that can't write fails with "The media folder can't be written to".
 
 Check it lists channel folders (`UC…`):
 
@@ -135,7 +143,7 @@ The stack keeps PostgreSQL's and Elasticsearch's data, the images and the yt-dlp
 
 ```bash
 sudo chown -R 1000:0 <es-folder> && sudo chmod -R g+rwX <es-folder>   # Elasticsearch runs as uid 1000, group 0
-sudo chown -R 1654:1654 <art-folder> <tools-folder>                   # the backend runs as uid 1654
+sudo chown -R 1654:1654 <art-folder> <tools-folder>                   # the backend's TONTUYAU_UID:TONTUYAU_GID
 ```
 
 Rather than editing `docker-compose.yml`, you can name the folders in a `docker-compose.override.yml` next to it: Compose reads it by itself, each line replaces the volume mounted at the same place in the container, and taking a newer compose file doesn't undo it.
@@ -270,7 +278,8 @@ Read by the compose file only:
 |---|---|
 | `TONTUYAU_VERSION` | `latest`: the images' tag (`1.0.0`, `1.0` or `latest`; or a pre-release to try, such as `1.3.0-alpha.1`) |
 | `TONTUYAU_HTTP_PORT` | `80`: the port of the web app on the VM, the only one the stack publishes |
-| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), written to by TonTuyau's downloads (uid 1654) |
+| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), written to by TonTuyau's downloads |
+| `TONTUYAU_UID`, `TONTUYAU_GID` | `1654`, `1654`: who the backend runs as (2.0), to fit the videos folder: its group, or its owner too ("The videos folder") |
 
 ## Logging in
 

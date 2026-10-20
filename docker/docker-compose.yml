@@ -58,6 +58,8 @@ services:
     image: ghcr.io/tontuyau/tontuyau-backend:${TONTUYAU_VERSION:-latest}
     container_name: tontuyau-backend
     restart: unless-stopped
+    # Who it runs as (2.0): the videos folder's owner or group, so its downloads fit the share (README).
+    user: "${TONTUYAU_UID:-1654}:${TONTUYAU_GID:-1654}"
     depends_on:
       tontuyau-reservoir: { condition: service_healthy }
       tontuyau-db: { condition: service_healthy }
@@ -86,9 +88,9 @@ services:
       # The container's clock for log timestamps; the dashboard's charts use TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:
-      # Your videos: TonTuyau reads them, and writes its downloads next to them (2.0). The backend runs as uid 1654:
-      # the folder must let it write (README, "The videos folder"). A missing folder stops `up` with an error instead
-      # of mounting an empty one.
+      # Your videos: TonTuyau reads them, and writes its downloads next to them (2.0), group-writable. The backend runs
+      # as TONTUYAU_UID:TONTUYAU_GID (1654 by default): the folder must let it write (README, "The videos folder"). A
+      # missing folder stops `up` with an error instead of mounting an empty one.
       - type: bind
         source: ${TONTUYAU_MEDIA_PATH:?set TONTUYAU_MEDIA_PATH in .env (the videos folder on the VM)}
         target: /youtube
