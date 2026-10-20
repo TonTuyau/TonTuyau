@@ -3347,6 +3347,8 @@ export interface components {
       /** Format: int32 */
       checkFailed: number
       /** Format: int32 */
+      downloadFailed: number
+      /** Format: int32 */
       commentsRead: number
       /** Format: int32 */
       subscribed: number
@@ -3435,6 +3437,8 @@ export interface components {
       | 'refreshChannelVideos'
       | 'downloadVideo'
       | 'addChannel'
+      | 'youTubeSync'
+      | 'youTubeFullSync'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */
@@ -3443,6 +3447,8 @@ export interface components {
       task: components['schemas']['SyncMode']
       lastRun: null | components['schemas']['RunResponse']
       unavailable: null | string
+      /** Format: date-time */
+      next: null | string
     }
     TasksResponse: {
       lock: null | components['schemas']['RunLock']
@@ -3569,6 +3575,8 @@ export interface components {
       pauseSeconds: null | number
       /** Format: int32 */
       holdMinutes: null | number
+      /** Format: int32 */
+      syncEveryHours: null | number
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
@@ -3578,6 +3586,8 @@ export interface components {
       pauseSeconds: number
       /** Format: int32 */
       holdMinutes: number
+      /** Format: int32 */
+      syncEveryHours: number
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string

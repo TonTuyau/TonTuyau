@@ -24,4 +24,7 @@ public sealed class ChannelSubscriptionRow
 
     /// <summary>Stored as its name (<c>TubeArchivist</c>), as <see cref="ChannelRow.Origin"/>.</summary>
     public LibraryOrigin Origin { get; set; }
+
+    /// <summary>When a YouTube sync last listed its tabs (B5); null: never.</summary>
+    public DateTimeOffset? SyncedAt { get; set; }
 }

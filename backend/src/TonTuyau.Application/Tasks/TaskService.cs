@@ -20,6 +20,7 @@ public sealed class TaskService(
     SyncRunner runner,
     SyncService sync,
     YouTubeRefreshService refresh,
+    YouTubeSyncSchedule schedule,
     IValidator<RunListRequest> runListValidator,
     IValidator<RunLogRequest> runLogValidator,
     TimeProvider clock)
@@ -45,12 +46,21 @@ public sealed class TaskService(
             SyncMode.Import,
             await LatestAsync(SyncMode.Import, runningHere, cancellationToken).ConfigureAwait(false),
             sync.CanImport ? null : SyncService.NoTubeArchivist);
+        TaskView youTubeSync = new(
+            SyncMode.YouTubeSync,
+            await LatestAsync(SyncMode.YouTubeSync, runningHere, cancellationToken).ConfigureAwait(false),
+            null,
+            await schedule.NextAsync(cancellationToken).ConfigureAwait(false));
+        TaskView youTubeFullSync = new(
+            SyncMode.YouTubeFullSync,
+            await LatestAsync(SyncMode.YouTubeFullSync, runningHere, cancellationToken).ConfigureAwait(false),
+            null);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
-            [import],
+            [import, youTubeSync, youTubeFullSync],
             [.. onHold.Select(r => new RunView(r, Cancellable: true))],
             [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))]);
     }
@@ -105,7 +115,8 @@ public sealed class TaskService(
         {
             throw RequestRules.Invalid(
                 "task",
-                "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo or addChannel.");
+                "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo, addChannel, "
+                    + "youTubeSync or youTubeFullSync.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo
@@ -137,7 +148,11 @@ public sealed class TaskService(
         StartedRun started;
         try
         {
-            started = mode == SyncMode.AddChannel
+            started = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+                ? await runner
+                    .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account)
+                    .ConfigureAwait(false)
+                : mode == SyncMode.AddChannel
                 ? await runner
                     .StartAddChannelAsync(
                         LibraryIds.ChannelTargetOf(target)

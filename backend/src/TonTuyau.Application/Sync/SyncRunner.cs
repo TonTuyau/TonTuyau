@@ -109,6 +109,15 @@ public sealed partial class SyncRunner(
         return await QueueAsync(SyncMode.AddChannel, target, trigger, startedBy, tabs).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asks for a YouTube sync (2.0, B5): every subscribed channel listed on YouTube, what's new downloaded.
+    /// </summary>
+    /// <param name="full">The full sync: every video of their tabs, and the files missing; else the incremental one.</param>
+    /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public Task<StartedRun> StartYouTubeSyncAsync(bool full, SyncTrigger trigger, string? startedBy = null) =>
+        QueueAsync(full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync, null, trigger, startedBy);
+
     /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
     /// <param name="by">The account asking; null: by itself, after the cool-down.</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>

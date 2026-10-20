@@ -44,6 +44,10 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           youtube add-channel <id|@handle|link> [videos,shorts,streams]
                                       subscribe to a channel (added to the library when it's new), to the tabs
                                       named (the three when none is)
+          youtube sync                list each subscribed channel's tabs down to the first video TonTuyau has,
+                                      and download what's new (a channel never synced: everything)
+          youtube full-sync           list each subscribed channel's tabs whole, and download what TonTuyau
+                                      doesn't have, files missing included
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -83,6 +87,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ["youtube", "download", string id] => LibraryIds.VideoIdOf(id) is { } video
                     ? Report(await FollowAsync($"cli/youtube/download/{video}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a video id (11 characters) or a YouTube link to one.", Refused),
+                ["youtube", "sync"] => Report(await FollowAsync("cli/youtube/sync", cancellationToken)),
+                ["youtube", "full-sync"] => Report(await FollowAsync("cli/youtube/sync?full=true", cancellationToken)),
                 ["youtube", "add-channel", string channel, .. string[] tabs] when tabs.Length <= 1 =>
                     await AddChannelAsync(channel, tabs is [string named] ? named : null, cancellationToken),
                 ["youtube", "channel" or "channel-videos", string id] => LibraryIds.IsChannelId(id)
@@ -260,6 +266,11 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ? """
                       index     written from the library into a new generation
                     """
+                : run.Mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+                ? $"""
+                      listed    {c.ChannelsRead} channels ({c.CheckFailed} tabs not listed)
+                      download  {c.Created} new, {c.Updated} files back, {c.DownloadFailed} not downloaded
+                    """
                 : $"""
                       read      {c.VideosRead} videos / {c.ChannelsRead} channels
                       store     new {c.Created}, already there {c.Unchanged}
@@ -304,6 +315,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         SyncMode.RefreshChannelVideos => "youtube channel-videos",
         SyncMode.DownloadVideo => "youtube download",
         SyncMode.AddChannel => "youtube add-channel",
+        SyncMode.YouTubeSync => "youtube sync",
+        SyncMode.YouTubeFullSync => "youtube full-sync",
         _ => mode.ToString().ToLowerInvariant(),
     };
 }

@@ -9,6 +9,14 @@ public sealed record ChannelTabs(bool Videos, bool Shorts, bool Streams)
     /// <summary>At least one: a subscription to none would download nothing.</summary>
     public bool Any => Videos || Shorts || Streams;
 
+    /// <summary>The tabs ticked, in the page's order: videos, shorts, streams.</summary>
+    public IReadOnlyList<ChannelTab> Ticked =>
+    [
+        .. new[] { (Videos, ChannelTab.Videos), (Shorts, ChannelTab.Shorts), (Streams, ChannelTab.Streams) }
+            .Where(t => t.Item1)
+            .Select(t => t.Item2),
+    ];
+
     /// <summary>The tabs named, <c>videos,shorts,streams</c> or some of them, in any order.</summary>
     /// <returns>Null when a name isn't one of them, or none is given.</returns>
     public static ChannelTabs? Parse(string names)

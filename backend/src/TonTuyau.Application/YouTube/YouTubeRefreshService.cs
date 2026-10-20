@@ -104,7 +104,7 @@ public sealed partial class YouTubeRefreshService(
 
         Task<SyncRun> run = StartAsync(
             queued.Mode,
-            queued.Target!,
+            queued.Target,
             queued.Trigger,
             queued.StartedBy,
             queued,
@@ -113,10 +113,11 @@ public sealed partial class YouTubeRefreshService(
         return await run.ConfigureAwait(false);
     }
 
+    /// <param name="target">Its video or channel; null for a YouTube sync (B5).</param>
     /// <param name="queued">The queued run to go on with; null: a new run.</param>
     private async Task<SyncRun> StartAsync(
         SyncMode mode,
-        string target,
+        string? target,
         SyncTrigger trigger,
         string? startedBy,
         SyncRun? queued,
@@ -124,12 +125,16 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken cancellationToken)
     {
         // What it reads, in order: the channel first, then its videos, latest downloaded first; not the gone ones.
-        List<string> work = [target];
+        // A YouTube sync (B5): every subscribed channel, the earliest subscribed first; each one's videos to download
+        // come right after it, once it's listed.
+        List<string> work = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+            ? [.. (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Select(s => s.ChannelId)]
+            : [target!];
         List<VideoSummary> skipped = [];
         if (mode == SyncMode.RefreshChannelVideos)
         {
             IReadOnlyList<VideoSummary> ofChannel = await videos
-                .FindByChannelsAsync([target], cancellationToken)
+                .FindByChannelsAsync([target!], cancellationToken)
                 .ConfigureAwait(false);
             IReadOnlyDictionary<string, VideoFacts> known = await facts
                 .GetVideosAsync([.. ofChannel.Select(v => v.Id)], cancellationToken)
@@ -209,7 +214,7 @@ public sealed partial class YouTubeRefreshService(
                 ResumeAt = null,
                 Remaining = [],
             };
-            return await RunLockedAsync(run, held.Remaining, [], by ?? Itself, lease, progress, cancellationToken)
+            return await RunLockedAsync(run, [.. held.Remaining], [], by ?? Itself, lease, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
@@ -320,7 +325,7 @@ public sealed partial class YouTubeRefreshService(
     /// <param name="resumedBy">Who resumed it; null for a new run.</param>
     private async Task<SyncRun> RunLockedAsync(
         SyncRun run,
-        IReadOnlyList<string> work,
+        List<string> work,
         List<VideoSummary> skipped,
         string? resumedBy,
         ISyncLease lease,
@@ -417,7 +422,7 @@ public sealed partial class YouTubeRefreshService(
     /// <returns>False when YouTube refused and the run is now on hold (what's left kept with it).</returns>
     private async Task<bool> WorkAsync(
         SyncMode mode,
-        IReadOnlyList<string> work,
+        List<string> work,
         YouTubeSettings read,
         YouTubeCommentsRequest? comments,
         RunContext context,
@@ -444,6 +449,11 @@ public sealed partial class YouTubeRefreshService(
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
                     refused = await AddChannelAsync(id, context).ConfigureAwait(false);
+                }
+                else if (mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync)
+                {
+                    refused = await SyncItemAsync(mode == SyncMode.YouTubeFullSync, work, index, read, context)
+                        .ConfigureAwait(false);
                 }
                 else if (LibraryIds.IsChannelId(id))
                 {
@@ -560,6 +570,10 @@ public sealed partial class YouTubeRefreshService(
                 throw new SyncRefusedException(
                     $"The video \"{video.Title}\" is gone from YouTube: it isn't refreshed any more.");
             }
+        }
+        else if (mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync)
+        {
+            // Nothing to check: no target, and no subscription is nothing to do.
         }
         else if (mode == SyncMode.AddChannel)
         {

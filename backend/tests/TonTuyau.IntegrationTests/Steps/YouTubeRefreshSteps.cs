@@ -17,6 +17,20 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [Given("YouTube has the video {string}: the title {string}, {int} views")]
     public Task VideoFound(string name, string title, int views) => WriteAsync(name, VideoAnswer(name, title, views));
 
+    /// <summary>Several at once (2.0, the YouTube syncs' downloads): "alpha-05, alpha-04", each titled by its name.</summary>
+    [Given("YouTube has the videos {string}")]
+    public async Task VideosFound(string names)
+    {
+        foreach (string name in names.Split(',', StringSplitOptions.TrimEntries))
+        {
+            await WriteAsync(name, VideoAnswer(name, $"Video {name}", 10));
+        }
+    }
+
+    [When("YouTube no longer refuses the video {string}")]
+    public void NoLongerRefuses(string name) =>
+        File.Delete(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".err"));
+
     /// <summary>yt-dlp says it's unlisted (<c>availability</c>): only whoever has its link sees it.</summary>
     [Given("YouTube has the unlisted video {string}: the title {string}, {int} views")]
     public Task VideoUnlisted(string name, string title, int views)

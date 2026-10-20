@@ -266,6 +266,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("text")
                         .HasColumnName("subscribed_by");
 
+                    b.Property<DateTimeOffset?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("synced_at");
+
                     b.Property<bool>("Videos")
                         .HasColumnType("boolean")
                         .HasColumnName("videos");
@@ -672,6 +676,12 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<int>("PauseSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("pause_seconds");
+
+                    b.Property<int>("SyncEveryHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(6)
+                        .HasColumnName("sync_every_hours");
 
                     b.HasKey("Id");
 

@@ -10,9 +10,14 @@ namespace TonTuyau.Application.Library;
 /// added from the command line.
 /// </param>
 /// <param name="Origin">Where the subscription comes from: TubeArchivist's, or made in TonTuyau.</param>
+/// <param name="SyncedAt">
+/// When a YouTube sync (B5) last listed its tabs; null: never, so the next sync takes everything it has. TubeArchivist's
+/// count as synced when the import takes them: TubeArchivist downloaded what it wanted of them.
+/// </param>
 public sealed record ChannelSubscription(
     string ChannelId,
     ChannelTabs Tabs,
     DateTimeOffset Since,
     string? By,
-    LibraryOrigin Origin);
+    LibraryOrigin Origin,
+    DateTimeOffset? SyncedAt = null);

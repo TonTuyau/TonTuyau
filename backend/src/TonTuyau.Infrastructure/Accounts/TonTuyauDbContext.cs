@@ -164,6 +164,12 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .Property(s => s.DownloadFormat)
                 .HasColumnName("download_format")
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultDownloadFormat);
+            // The default for the rows there before 2.0; 0 is a value (by hand only), not "unset": EF sends it.
+            settings
+                .Property(s => s.SyncEveryHours)
+                .HasColumnName("sync_every_hours")
+                .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultSyncEveryHours)
+                .HasSentinel(-1);
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {
@@ -291,6 +297,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         subscription.Property(s => s.Streams).HasColumnName("streams");
         subscription.Property(s => s.SubscribedAt).HasColumnName("subscribed_at");
         subscription.Property(s => s.SubscribedBy).HasColumnName("subscribed_by");
+        subscription.Property(s => s.SyncedAt).HasColumnName("synced_at");
         subscription
             .Property(s => s.Origin)
             .HasColumnName("origin")

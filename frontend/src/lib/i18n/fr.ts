@@ -254,6 +254,14 @@ export const fr: Dictionary = {
     "Quand YouTube demande une vérification anti-robot ou répond « trop de requêtes », l'actualisation s'arrête où elle en est et laisse passer les autres tâches ; elle reprend toute seule après ce délai, ou avec Reprendre maintenant.",
   'youTube.easy.minutes': 'min',
   'youTube.easy.hold.invalid': 'Un nombre entier de minutes, 1 ou plus.',
+  'youTube.sync': 'La synchronisation YouTube',
+  'youTube.sync.every': 'La lancer toute seule toutes les',
+  'youTube.sync.everyHint':
+    "Elle liste chaque chaîne abonnée jusqu'à la première vidéo que TonTuyau a, et télécharge ce qui est plus récent. 0 : à la demande seulement.",
+  'youTube.sync.hours': 'h',
+  'youTube.sync.every.invalid': "Un nombre entier d'heures, de 0 à 168.",
+  'youTube.sync.saved': 'La synchronisation YouTube toutes les {hours} h.',
+  'youTube.sync.savedByHand': 'La synchronisation YouTube à la demande seulement.',
   'youTube.easy.saved': "Une pause d'environ {pause} s entre les vidéos ; en attente {hold} min après un refus.",
   'youTube.comments.saved.off': "Désactivés : aucun commentaire n'est lu.",
   'youTube.comments.savedTop': 'Les {max} meilleurs sont lus.',
@@ -343,6 +351,8 @@ export const fr: Dictionary = {
   'task.refreshChannelVideos': 'Actualiser une chaîne et ses vidéos',
   'task.downloadVideo': 'Télécharger une vidéo',
   'task.addChannel': 'Ajouter une chaîne',
+  'task.youTubeSync': 'Synchronisation YouTube',
+  'task.youTubeFullSync': 'Synchronisation YouTube complète',
   'task.import.what':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
@@ -350,6 +360,10 @@ export const fr: Dictionary = {
     'Lit une vidéo sur YouTube : si elle y est toujours, et son titre, sa description et ses vues.',
   'task.refreshChannel.what': 'Lit une chaîne sur YouTube : si elle y est toujours, et son nom et sa description.',
   'task.refreshChannelVideos.what': 'Lit une chaîne sur YouTube, puis chacune de ses vidéos de la bibliothèque.',
+  'task.youTubeSync.what':
+    "Liste les onglets cochés de chaque chaîne abonnée, du plus récent jusqu'à la première vidéo que TonTuyau a, et télécharge ce qui est plus récent. Une chaîne jamais synchronisée est listée en entier.",
+  'task.youTubeFullSync.what':
+    "Liste en entier les onglets cochés de chaque chaîne abonnée, et télécharge ce que TonTuyau n'a pas, fichiers manquants compris. Peut prendre des heures.",
   'task.addChannel.what':
     "Lit une chaîne sur YouTube, l'ajoute à la bibliothèque si elle est nouvelle, et s'y abonne : les synchronisations YouTube téléchargeront les vidéos des onglets cochés. Rien n'est encore téléchargé.",
   'task.downloadVideo.what':
@@ -357,6 +371,9 @@ export const fr: Dictionary = {
   'task.when': 'Quand',
   'task.lastRun': 'Dernière',
   'task.atStartup': 'Au démarrage du backend, et à la demande',
+  'task.nextAt': 'Prochaine fois toute seule à {at}, et à la demande',
+  'task.dueNow': "À lancer : elle démarre dès que rien d'autre ne tourne",
+  'task.byHand': 'À la demande seulement',
   'task.never': 'Jamais',
   'task.runningFor': 'depuis {duration}',
   'task.runNow': 'Lancer',
@@ -366,6 +383,9 @@ export const fr: Dictionary = {
   'task.confirmImport':
     "Un import lit tout TubeArchivist : jusqu'à une heure pour une grande bibliothèque, pendant laquelle aucune autre tâche ne peut tourner.",
   'task.startImport': "Lancer l'import",
+  'task.confirmFullSync':
+    'Une synchronisation complète liste en entier chaque chaîne abonnée et télécharge tout ce qui manque : des heures parfois, pendant lesquelles les autres tâches attendent.',
+  'task.startFullSync': 'Lancer la synchronisation complète',
   'task.back': 'Retour',
   'task.confirmCancel': "Annuler cette exécution ? Elle s'arrête après son étape en cours ; ce qu'elle a fait reste.",
   'task.cancelRun': "Annuler l'exécution",
@@ -426,6 +446,8 @@ export const fr: Dictionary = {
   'run.by.startup': 'Démarrage',
   'run.result.import': '{created} nouvelles · {unchanged} déjà là',
   'run.result.addChannel': 'Abonné : {tabs}',
+  'run.result.youTubeSync':
+    '{channels} chaînes listées : {created} nouvelles, {back} fichiers revenus, {failed} non téléchargées',
   'run.result.rebuild': 'Index réécrits',
   'run.result.refresh':
     '{found} trouvées ({unlisted} non répertoriées) · {gone} disparues · {private} privées · {failed} à réessayer',

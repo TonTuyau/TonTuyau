@@ -3643,6 +3643,7 @@
           "goneFromYouTube",
           "privateOnYouTube",
           "checkFailed",
+          "downloadFailed",
           "commentsRead",
           "subscribed"
         ],
@@ -3713,6 +3714,10 @@
             "format": "int32"
           },
           "checkFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadFailed": {
             "type": "integer",
             "format": "int32"
           },
@@ -3973,7 +3978,9 @@
           "refreshChannel",
           "refreshChannelVideos",
           "downloadVideo",
-          "addChannel"
+          "addChannel",
+          "youTubeSync",
+          "youTubeFullSync"
         ],
         "type": "string"
       },
@@ -3986,7 +3993,7 @@
         "type": "string"
       },
       "TaskResponse": {
-        "required": ["task", "lastRun", "unavailable"],
+        "required": ["task", "lastRun", "unavailable", "next"],
         "type": "object",
         "properties": {
           "task": {
@@ -4004,6 +4011,10 @@
           },
           "unavailable": {
             "type": ["null", "string"]
+          },
+          "next": {
+            "type": ["null", "string"],
+            "format": "date-time"
           }
         }
       },
@@ -4392,7 +4403,7 @@
         }
       },
       "YouTubeSettingsRequest": {
-        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes"],
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "syncEveryHours"],
         "type": "object",
         "properties": {
           "comments": {
@@ -4409,11 +4420,23 @@
           "holdMinutes": {
             "type": ["null", "integer"],
             "format": "int32"
+          },
+          "syncEveryHours": {
+            "type": ["null", "integer"],
+            "format": "int32"
           }
         }
       },
       "YouTubeSettingsResponse": {
-        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "changedBy", "changedAt"],
+        "required": [
+          "comments",
+          "commentsMax",
+          "pauseSeconds",
+          "holdMinutes",
+          "syncEveryHours",
+          "changedBy",
+          "changedAt"
+        ],
         "type": "object",
         "properties": {
           "comments": {
@@ -4428,6 +4451,10 @@
             "format": "int32"
           },
           "holdMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "syncEveryHours": {
             "type": "integer",
             "format": "int32"
           },

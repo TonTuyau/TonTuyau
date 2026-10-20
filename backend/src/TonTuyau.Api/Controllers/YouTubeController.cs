@@ -115,6 +115,7 @@ public sealed class YouTubeController(
                 request.CommentsMax,
                 request.PauseSeconds,
                 request.HoldMinutes,
+                request.SyncEveryHours,
                 Account(),
                 cancellationToken)
             .ConfigureAwait(false);

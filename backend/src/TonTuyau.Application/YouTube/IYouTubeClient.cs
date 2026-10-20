@@ -1,3 +1,5 @@
+using TonTuyau.Application.Library;
+
 namespace TonTuyau.Application.YouTube;
 
 /// <summary>
@@ -31,6 +33,19 @@ public interface IYouTubeClient
         string videoId,
         string format,
         string folder,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists a tab of a channel's page (2.0, B5: the YouTube syncs), newest first, as YouTube lists it, without reading
+    /// each video. Stops as soon as <paramref name="stopAt"/> says so of an entry (the incremental sync: the first one the
+    /// library has), that entry included.
+    /// </summary>
+    /// <param name="channelId">A YouTube channel id (<c>UC…</c>), already checked.</param>
+    /// <returns>The entries read: none when the channel has no such tab; a refusal, gone… otherwise.</returns>
+    Task<YouTubeLookup<IReadOnlyList<YouTubeListed>>> ListTabAsync(
+        string channelId,
+        ChannelTab tab,
+        Func<YouTubeListed, bool> stopAt,
         CancellationToken cancellationToken);
 
     Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken);

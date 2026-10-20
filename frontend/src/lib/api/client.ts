@@ -365,8 +365,9 @@ export const api = {
     commentsMax: number,
     pauseSeconds: number,
     holdMinutes: number,
+    syncEveryHours: number,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes })
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */
