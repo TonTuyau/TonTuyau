@@ -47,6 +47,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 
     public DbSet<ChannelSubscriptionRow> ChannelSubscriptions => Set<ChannelSubscriptionRow>();
 
+    public DbSet<DownloadFailureRow> DownloadFailures => Set<DownloadFailureRow>();
+
     public DbSet<RunRow> Runs => Set<RunRow>();
 
     public DbSet<SyncLockRow> SyncLock => Set<SyncLockRow>();
@@ -202,6 +204,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         modelBuilder.Entity<ChannelRow>(MapChannels);
         modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
         modelBuilder.Entity<ChannelSubscriptionRow>(MapChannelSubscriptions);
+        modelBuilder.Entity<DownloadFailureRow>(MapDownloadFailures);
         MapRuns(modelBuilder);
     }
 
@@ -306,6 +309,26 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             .HasOne<ChannelRow>()
             .WithOne()
             .HasForeignKey<ChannelSubscriptionRow>(s => s.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    /// <summary>The videos the YouTube syncs couldn't download (2.0, B5), deleted with their channel.</summary>
+    private static void MapDownloadFailures(EntityTypeBuilder<DownloadFailureRow> failure)
+    {
+        failure.ToTable("download_failures");
+        failure.HasKey(f => f.VideoId);
+        failure.Property(f => f.VideoId).HasColumnName("video_id");
+        failure.Property(f => f.ChannelId).HasColumnName("channel_id");
+        failure.Property(f => f.Title).HasColumnName("title");
+        failure.Property(f => f.Reason).HasColumnName("reason");
+        failure.Property(f => f.Tries).HasColumnName("tries");
+        failure.Property(f => f.FirstFailedAt).HasColumnName("first_failed_at");
+        failure.Property(f => f.LastFailedAt).HasColumnName("last_failed_at");
+        failure.HasIndex(f => f.ChannelId);
+        failure
+            .HasOne<ChannelRow>()
+            .WithMany()
+            .HasForeignKey(f => f.ChannelId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 

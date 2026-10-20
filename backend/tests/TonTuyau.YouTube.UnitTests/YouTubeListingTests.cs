@@ -2,7 +2,7 @@ using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.YouTube.UnitTests;
 
-/// <summary>A tab's listing (2.0, B5): a line of <c>--print "%(.{id,live_status})j"</c> per entry.</summary>
+/// <summary>A tab's listing (2.0, B5): a line of <c>--print "%(.{id,live_status,title})j"</c> per entry.</summary>
 public sealed class YouTubeListingTests
 {
     [Theory]
@@ -22,4 +22,10 @@ public sealed class YouTubeListingTests
     [InlineData("""{"id": null}""")]
     [InlineData("""{"id": "dQw4w9WgXcQ", """)]
     public void Anything_else_is_no_entry(string line) => Assert.Null(YouTubeClient.ListedOf(line));
+
+    [Fact]
+    public void An_entry_keeps_its_title_when_the_tab_gives_one() =>
+        Assert.Equal(
+            "Le poulet rôti",
+            YouTubeClient.ListedOf("""{"id": "dQw4w9WgXcQ", "live_status": null, "title": "Le poulet rôti"}""")?.Title);
 }

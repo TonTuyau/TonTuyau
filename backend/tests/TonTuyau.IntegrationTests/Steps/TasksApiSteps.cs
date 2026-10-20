@@ -133,6 +133,17 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         }
     }
 
+    /// <summary>Both in the same note.</summary>
+    [Then("the latest run's notes mention {string} and {string}")]
+    public async Task LatestNotesMentionBoth(string first, string second)
+    {
+        SyncRun latest = (await Store.GetRecentRunsAsync(1, CancellationToken.None))[0];
+        Assert.True(
+            latest.Notes.Any(n =>
+                n.Contains(first, StringComparison.Ordinal) && n.Contains(second, StringComparison.Ordinal)),
+            string.Join(" | ", latest.Notes));
+    }
+
     [Then("the latest run's notes mention {string}")]
     public async Task LatestNotesMention(string text)
     {

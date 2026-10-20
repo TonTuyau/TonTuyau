@@ -183,6 +183,66 @@
         }
       }
     },
+    "/api/admin/channels/{id}/failed-downloads": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DownloadFailureResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/channels/{id}/videos": {
       "get": {
         "tags": ["AdminChannels"],
@@ -3311,6 +3371,40 @@
           }
         }
       },
+      "DownloadFailureResponse": {
+        "required": ["videoId", "title", "reason", "tries", "skipped", "firstFailedAt", "lastFailedAt", "youTubeUrl"],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "title": {
+            "type": ["null", "string"]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "tries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "boolean"
+          },
+          "firstFailedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastFailedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "youTubeUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
       "ExtensionCookieResponse": {
         "required": ["cookie"],
         "type": "object",
@@ -3980,7 +4074,8 @@
           "downloadVideo",
           "addChannel",
           "youTubeSync",
-          "youTubeFullSync"
+          "youTubeFullSync",
+          "retryDownloads"
         ],
         "type": "string"
       },

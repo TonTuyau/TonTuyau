@@ -47,6 +47,12 @@ public enum SyncMode
     /// (<see cref="SyncRun.Target"/>: "Download everything" on its page).
     /// </summary>
     YouTubeFullSync,
+
+    /// <summary>
+    /// Tries the failed downloads of one channel again (2.0, B5: "Try them all again" on its page,
+    /// <see cref="SyncRun.Target"/>), skipped ones included, a pause between two.
+    /// </summary>
+    RetryDownloads,
 }
 
 public enum SyncTrigger

@@ -48,6 +48,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                                       and download what's new (a channel never synced: everything)
           youtube full-sync [<id>]    list each subscribed channel's tabs whole (or this one's alone), and
                                       download what TonTuyau doesn't have, files missing included
+          youtube retry <id>          try a channel's failed downloads again
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -91,6 +92,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ["youtube", "full-sync"] => Report(await FollowAsync("cli/youtube/sync?full=true", cancellationToken)),
                 ["youtube", "full-sync", string id] => LibraryIds.IsChannelId(id)
                     ? Report(await FollowAsync($"cli/youtube/sync?full=true&channel={id}", cancellationToken))
+                    : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
+                ["youtube", "retry", string id] => LibraryIds.IsChannelId(id)
+                    ? Report(await FollowAsync($"cli/youtube/retry/{id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
                 ["youtube", "add-channel", string channel, .. string[] tabs] when tabs.Length <= 1 =>
                     await AddChannelAsync(channel, tabs is [string named] ? named : null, cancellationToken),
@@ -269,7 +273,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ? """
                       index     written from the library into a new generation
                     """
-                : run.Mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+                : run.Mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync or SyncMode.RetryDownloads
                 ? $"""
                       listed    {c.ChannelsRead} channels ({c.CheckFailed} tabs not listed)
                       download  {c.Created} new, {c.Updated} files back, {c.DownloadFailed} not downloaded
@@ -320,6 +324,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         SyncMode.AddChannel => "youtube add-channel",
         SyncMode.YouTubeSync => "youtube sync",
         SyncMode.YouTubeFullSync => "youtube full-sync",
+        SyncMode.RetryDownloads => "youtube retry",
         _ => mode.ToString().ToLowerInvariant(),
     };
 }

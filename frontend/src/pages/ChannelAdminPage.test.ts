@@ -239,6 +239,47 @@ describe('ChannelAdminPage', () => {
     expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')[0]?.searchParams.get('target')).toBe(id)
   })
 
+  it('lists the failed downloads with why, and tries one or all of them again', async () => {
+    const user = userEvent.setup()
+    const asked = run({ id: 'run-20261020T200000Z-ffffff', task: 'downloadVideo', state: 'queued' })
+    const api = routes({
+      [`${base}/failed-downloads`]: [
+        {
+          videoId: 'fail0000001',
+          title: 'Le soufflé',
+          reason: 'Requested format is not available. Use --list-formats for a list of available formats',
+          tries: 3,
+          skipped: true,
+          firstFailedAt: '2026-10-19T08:00:00Z',
+          lastFailedAt: '2026-10-20T08:00:00Z',
+          youTubeUrl: 'https://www.youtube.com/watch?v=fail0000001',
+        },
+      ],
+      '/api/admin/tasks/downloadVideo/runs': asked,
+      '/api/admin/tasks/retryDownloads/runs': { ...asked, task: 'retryDownloads' },
+    })
+    render(ChannelAdminPage, { id })
+
+    const failed = await screen.findByRole('region', { name: 'Failed downloads · 1' })
+    const row = within(failed).getAllByRole('row')[1] as HTMLElement
+    expect(row).toHaveTextContent('Le soufflé')
+    expect(row).toHaveTextContent('Requested format is not available')
+    expect(row).toHaveTextContent('3 failures')
+    expect(row).toHaveTextContent('Left by the sync')
+    expect(within(row).getByRole('link', { name: 'Le soufflé' })).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/watch?v=fail0000001',
+    )
+
+    await user.click(within(row).getByRole('button', { name: /^Try again/ }))
+    expect(await within(failed).findByRole('status')).toHaveTextContent('Asked: it runs when its turn comes.')
+    expect(api.requests('/api/admin/tasks/downloadVideo/runs')[0]?.searchParams.get('target')).toBe('fail0000001')
+
+    await user.click(within(failed).getByRole('button', { name: 'Try them all again' }))
+    await vi.waitFor(() => expect(api.requests('/api/admin/tasks/retryDownloads/runs')).toHaveLength(1))
+    expect(api.requests('/api/admin/tasks/retryDownloads/runs')[0]?.searchParams.get('target')).toBe(id)
+  })
+
   it('says why a refresh was refused', async () => {
     const user = userEvent.setup()
     routes({

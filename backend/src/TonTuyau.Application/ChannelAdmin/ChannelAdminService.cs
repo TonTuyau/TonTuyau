@@ -16,6 +16,7 @@ public sealed class ChannelAdminService(
     IChannelRepository channels,
     IVideoRepository videos,
     ISubscriptionStore subscriptions,
+    IDownloadFailureStore downloadFailures,
     CardBuilder cards,
     TimeProvider clock)
 {
@@ -95,6 +96,26 @@ public sealed class ChannelAdminService(
             LibraryOrigin.TonTuyau);
         return await subscriptions
             .SetAsync(wanted, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The videos of the channel the YouTube syncs couldn't download (2.0, B5), the latest failed first: why, how many
+    /// times, and whether the incremental sync leaves them now.
+    /// </summary>
+    /// <exception cref="NotFoundException">No channel with this id.</exception>
+    public async Task<IReadOnlyList<DownloadFailure>> ListFailedDownloadsAsync(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        RequestRules.RequireChannelId(id);
+        if (await channels.GetAsync(id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            throw NotFound(id);
+        }
+
+        return await downloadFailures
+            .ListAsync(id, cancellationToken)
             .ConfigureAwait(false);
     }
 

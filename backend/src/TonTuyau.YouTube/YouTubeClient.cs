@@ -208,7 +208,7 @@ internal sealed partial class YouTubeClient(
                 "--flat-playlist",
                 "--lazy-playlist",
                 "--print",
-                "%(.{id,live_status})j",
+                "%(.{id,live_status,title})j",
                 $"https://www.youtube.com/channel/{channelId}/{page}",
             ],
             ListTimeout,
@@ -248,7 +248,10 @@ internal sealed partial class YouTubeClient(
         {
             ListedDto? dto = JsonSerializer.Deserialize<ListedDto>(line, Json);
             return LibraryIds.IsVideoId(dto?.Id)
-                ? new YouTubeListed(dto!.Id!, dto.LiveStatus is "is_upcoming" or "is_live")
+                ? new YouTubeListed(
+                    dto!.Id!,
+                    dto.LiveStatus is "is_upcoming" or "is_live",
+                    string.IsNullOrWhiteSpace(dto.Title) ? null : dto.Title)
                 : null;
         }
         catch (JsonException)

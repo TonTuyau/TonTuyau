@@ -39,7 +39,60 @@ Feature: The YouTube syncs
     And TonTuyau doesn't have the video "alpha-05"
     And TonTuyau doesn't have the video "alpha-06"
     And the latest run's "counts.downloadFailed" is "1" within 5 seconds
-    And the latest run's notes mention "alpha-05___ not downloaded"
+    And the latest run's notes mention "(alpha-05___) not downloaded"
+
+  Scenario: A failed download is recorded with why; failed 3 times, the incremental sync leaves it, the full one doesn't
+    Given YouTube says of the video "alpha-05": "ERROR: [youtube] alpha-05___: Requested format is not available. Use --list-formats for a list of available formats"
+    And YouTube lists "alpha-05, alpha-02" on the videos tab of the channel "alpha"
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the latest run's notes mention "Video alpha-05" and "(alpha-05___) not downloaded: Requested format is not available"
+    When I request the failed downloads of the channel "alpha" with my session
+    Then the response status is 200
+    And "" has 1 item
+    And "[0].videoId" is "alpha-05___"
+    And "[0].title" is "Video alpha-05"
+    And "[0].tries" is "1"
+    And "[0].skipped" is "false"
+    And "[0].reason" mentions "Requested format is not available"
+    And "[0].youTubeUrl" is "https://www.youtube.com/watch?v=alpha-05___"
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the latest run's notes mention "Failed 3 times: the syncs leave it now."
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the latest run's "counts.downloadFailed" is "0" within 5 seconds
+    When I start the full YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    When I request the failed downloads of the channel "alpha" with my session
+    Then "[0].tries" is "4"
+    And "[0].skipped" is "true"
+
+  Scenario: Failed downloads are tried again, one or all of them, and leave the list once downloaded
+    Given YouTube says of the video "alpha-05": "ERROR: [youtube] alpha-05___: Requested format is not available"
+    And YouTube says of the video "alpha-04": "ERROR: [youtube] alpha-04___: Requested format is not available"
+    And YouTube lists "alpha-05, alpha-04, alpha-02" on the videos tab of the channel "alpha"
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    Given YouTube has the videos "alpha-05, alpha-04"
+    When YouTube no longer refuses the video "alpha-05"
+    And I download "alpha-05___" with my session
+    Then the latest run ends succeeded within 60 seconds
+    When I request the failed downloads of the channel "alpha" with my session
+    Then "" has 1 item
+    And "[0].videoId" is "alpha-04___"
+    When YouTube no longer refuses the video "alpha-04"
+    And I try the failed downloads of the channel "alpha" again with my session
+    Then the response status is 202
+    And "task" is "retryDownloads"
+    And the latest run ends succeeded within 60 seconds
+    And the media folder has the file of the video "alpha-04" with 4096 bytes
+    When I request the failed downloads of the channel "alpha" with my session
+    Then "" has 0 items
+    When I try the failed downloads of the channel "alpha" again with my session
+    Then the response status is 409
 
   Scenario: A channel never synced is listed whole, then only down to what the library has
     Given YouTube has the channel "omega": the name "Omega", 500 subscribers

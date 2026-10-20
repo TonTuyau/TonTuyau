@@ -117,14 +117,15 @@ public sealed class TaskService(
             throw RequestRules.Invalid(
                 "task",
                 "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo, addChannel, "
-                    + "youTubeSync or youTubeFullSync.");
+                    + "youTubeSync, youTubeFullSync or retryDownloads.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo
             or SyncMode.RefreshChannel
             or SyncMode.RefreshChannelVideos
             or SyncMode.DownloadVideo
-            or SyncMode.AddChannel;
+            or SyncMode.AddChannel
+            or SyncMode.RetryDownloads;
         if (refresh && target is null)
         {
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");

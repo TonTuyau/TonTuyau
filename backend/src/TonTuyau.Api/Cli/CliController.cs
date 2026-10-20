@@ -57,6 +57,11 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     public Task<IActionResult> SyncAsync([FromQuery] bool full, [FromQuery] string? channel) =>
         StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli, channelId: channel));
 
+    /// <summary>A channel's failed downloads tried again (2.0, B5).</summary>
+    [HttpPost("youtube/retry/{id}")]
+    public Task<IActionResult> RetryAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RetryDownloads, id, SyncTrigger.Cli));
+
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]
     public async Task<SyncRun> GetRunAsync(string id, CancellationToken cancellationToken) =>

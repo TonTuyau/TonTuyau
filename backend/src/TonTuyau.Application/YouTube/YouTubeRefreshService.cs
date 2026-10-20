@@ -45,6 +45,7 @@ public sealed partial class YouTubeRefreshService(
     IVideoRepository videos,
     IChannelRepository channels,
     ISubscriptionStore subscriptions,
+    IDownloadFailureStore downloadFailures,
     ISyncStateStore state,
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
@@ -129,6 +130,9 @@ public sealed partial class YouTubeRefreshService(
         // one); each one's videos to download come right after it, once it's listed.
         List<string> work = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync && target is null
             ? [.. (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Select(s => s.ChannelId)]
+            : mode == SyncMode.RetryDownloads
+            ? [.. (await downloadFailures.ListAsync(target!, cancellationToken).ConfigureAwait(false))
+                .Select(f => f.VideoId)]
             : [target!];
         List<VideoSummary> skipped = [];
         if (mode == SyncMode.RefreshChannelVideos)
@@ -443,14 +447,14 @@ public sealed partial class YouTubeRefreshService(
                 if (mode == SyncMode.DownloadVideo)
                 {
                     context.BeginPhase(SyncPhase.YouTubeDownload, 1);
-                    refused = await DownloadVideoAsync(id, read, context).ConfigureAwait(false);
+                    refused = await DownloadOneAsync(id, read, context).ConfigureAwait(false);
                 }
                 else if (mode == SyncMode.AddChannel)
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
                     refused = await AddChannelAsync(id, context).ConfigureAwait(false);
                 }
-                else if (mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync)
+                else if (mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync or SyncMode.RetryDownloads)
                 {
                     refused = await SyncItemAsync(mode == SyncMode.YouTubeFullSync, work, index, read, context)
                         .ConfigureAwait(false);
@@ -574,6 +578,14 @@ public sealed partial class YouTubeRefreshService(
         else if (mode == SyncMode.YouTubeSync || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
         {
             // Nothing to check: every subscription, and none is nothing to do.
+        }
+        else if (mode == SyncMode.RetryDownloads)
+        {
+            if (!LibraryIds.IsChannelId(target)
+                || (await downloadFailures.ListAsync(target, cancellationToken).ConfigureAwait(false)).Count == 0)
+            {
+                throw new SyncRefusedException($"No failed download of the channel {target} to try again.");
+            }
         }
         else if (mode == SyncMode.YouTubeFullSync)
         {
@@ -930,7 +942,7 @@ public sealed partial class YouTubeRefreshService(
 
             if (lookup.Item is not { } download)
             {
-                throw new YouTubeDownloadException($"Not downloaded: {lookup.Reason ?? "yt-dlp didn't say why"}.");
+                throw YouTubeDownloadException.NotDownloaded(lookup.Reason ?? "yt-dlp didn't say why");
             }
 
             context.Count(c => c with { VideosRead = c.VideosRead + 1, FoundOnYouTube = c.FoundOnYouTube + 1 });
@@ -1005,6 +1017,8 @@ public sealed partial class YouTubeRefreshService(
                 }
             }
 
+            // It failed before (B5): it's downloaded now.
+            await downloadFailures.RemoveAsync(videoId, ct).ConfigureAwait(false);
             return null;
         }
         finally

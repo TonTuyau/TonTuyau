@@ -347,6 +347,7 @@ export const en = {
   'task.addChannel': 'Add a channel',
   'task.youTubeSync': 'YouTube sync',
   'task.youTubeFullSync': 'Full YouTube sync',
+  'task.retryDownloads': 'Try failed downloads again',
   'task.import.what':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
@@ -358,6 +359,7 @@ export const en = {
     'Lists the ticked tabs of each subscribed channel, newest first, down to the first video TonTuyau has, and downloads what is newer. A channel never synced is listed whole.',
   'task.youTubeFullSync.what':
     'Lists the ticked tabs of each subscribed channel whole, and downloads what TonTuyau does not have, the files missing included. Can take hours.',
+  'task.retryDownloads.what': "Downloads a channel's failed videos again, one after the other.",
   'task.addChannel.what':
     'Reads a channel on YouTube, adds it to the library when it is new, and subscribes to it: the YouTube syncs will download the videos of the tabs ticked. Nothing is downloaded yet.',
   'task.downloadVideo.what':
@@ -436,6 +438,7 @@ export const en = {
   'run.by.startup': 'Startup',
   'run.result.import': '{created} new · {unchanged} already there',
   'run.result.addChannel': 'Subscribed: {tabs}',
+  'run.result.retry': '{created} downloaded, {failed} failed again',
   'run.result.youTubeSync': '{channels} channels listed: {created} new, {back} files back, {failed} not downloaded',
   'run.result.rebuild': 'Indices written again',
   'run.result.refresh': '{found} found ({unlisted} unlisted) · {gone} gone · {private} private · {failed} to retry',
@@ -518,6 +521,18 @@ export const en = {
   'channelAdmin.refreshHint':
     '"Refresh the channel" reads its name, description, pictures and subscribers. "…and its videos" then reads each of its videos in TonTuyau, one after the other.',
   'channelAdmin.videosOnYouTube': 'Its videos on YouTube',
+  'failed.title': { one: 'Failed downloads · {count}', other: 'Failed downloads · {count}' },
+  'failed.hint':
+    "Videos the YouTube syncs listed and couldn't download, with why. After 3 failures the regular sync leaves one; Try again, Download everything and the full sync still try it.",
+  'failed.tryAll': 'Try them all again',
+  'failed.tryAgain': 'Try again',
+  'failed.asked': 'Asked: it runs when its turn comes.',
+  'failed.video': 'Video',
+  'failed.reason': 'Why',
+  'failed.tries': 'Tries',
+  'failed.triesCount': { one: '{count} failure', other: '{count} failures' },
+  'failed.last': 'last {ago}',
+  'failed.skipped': 'Left by the sync',
   'subscription.title': 'Subscription',
   'subscription.none': 'Not subscribed: the YouTube syncs leave this channel as it is.',
   'subscription.since': 'Subscribed {when} by {by}.',

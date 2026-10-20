@@ -10,7 +10,7 @@ namespace TonTuyau.IntegrationTests.Steps;
 [Binding]
 public sealed class YouTubeSyncSteps(YouTubeSteps youTube, AuthSteps auth)
 {
-    /// <param name="names">Newest first, by commas: "alpha-05, alpha-04 (upcoming), alpha-02".</param>
+    /// <param name="names">Newest first, by commas: "alpha-05, alpha-04 (upcoming), alpha-02"; each titled "Video …".</param>
     /// <param name="tab">videos | shorts | streams.</param>
     [Given("YouTube lists {string} on the {word} tab of the channel {string}")]
     public Task Lists(string names, string tab, string channel)
@@ -25,6 +25,7 @@ public sealed class YouTubeSyncSteps(YouTubeSteps youTube, AuthSteps auth)
                 {
                     ["id"] = FakeTubeArchivist.VideoId(name),
                     ["live_status"] = upcoming ? "is_upcoming" : "not_live",
+                    ["title"] = $"Video {name}",
                 });
             });
         return File.WriteAllLinesAsync(Path.Combine(youTube.Answers, $"{Of(channel)}.{tab}.jsonl"), lines);
@@ -43,6 +44,14 @@ public sealed class YouTubeSyncSteps(YouTubeSteps youTube, AuthSteps auth)
     [When("I download everything of the channel {string} with my session")]
     public Task Everything(string channel) =>
         auth.PostWithSession($"/api/admin/tasks/youTubeFullSync/runs?target={Of(channel)}");
+
+    [When("I request the failed downloads of the channel {string} with my session")]
+    public Task FailedDownloads(string channel) =>
+        auth.RequestWithSession($"/api/admin/channels/{Of(channel)}/failed-downloads");
+
+    [When("I try the failed downloads of the channel {string} again with my session")]
+    public Task Retry(string channel) =>
+        auth.PostWithSession($"/api/admin/tasks/retryDownloads/runs?target={Of(channel)}");
 
     private static string Of(string channel) => FakeTubeArchivist.ChannelId(channel);
 }

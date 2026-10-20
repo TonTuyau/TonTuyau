@@ -353,6 +353,7 @@ export const fr: Dictionary = {
   'task.addChannel': 'Ajouter une chaîne',
   'task.youTubeSync': 'Synchronisation YouTube',
   'task.youTubeFullSync': 'Synchronisation YouTube complète',
+  'task.retryDownloads': 'Réessayer les téléchargements échoués',
   'task.import.what':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
@@ -364,6 +365,7 @@ export const fr: Dictionary = {
     "Liste les onglets cochés de chaque chaîne abonnée, du plus récent jusqu'à la première vidéo que TonTuyau a, et télécharge ce qui est plus récent. Une chaîne jamais synchronisée est listée en entier.",
   'task.youTubeFullSync.what':
     "Liste en entier les onglets cochés de chaque chaîne abonnée, et télécharge ce que TonTuyau n'a pas, fichiers manquants compris. Peut prendre des heures.",
+  'task.retryDownloads.what': "Retélécharge les vidéos échouées d'une chaîne, l'une après l'autre.",
   'task.addChannel.what':
     "Lit une chaîne sur YouTube, l'ajoute à la bibliothèque si elle est nouvelle, et s'y abonne : les synchronisations YouTube téléchargeront les vidéos des onglets cochés. Rien n'est encore téléchargé.",
   'task.downloadVideo.what':
@@ -446,6 +448,7 @@ export const fr: Dictionary = {
   'run.by.startup': 'Démarrage',
   'run.result.import': '{created} nouvelles · {unchanged} déjà là',
   'run.result.addChannel': 'Abonné : {tabs}',
+  'run.result.retry': '{created} téléchargées, {failed} échouées encore',
   'run.result.youTubeSync':
     '{channels} chaînes listées : {created} nouvelles, {back} fichiers revenus, {failed} non téléchargées',
   'run.result.rebuild': 'Index réécrits',
@@ -529,6 +532,18 @@ export const fr: Dictionary = {
   'channelAdmin.refreshAll': 'Actualiser la chaîne et ses vidéos',
   'channelAdmin.refreshHint':
     "« Actualiser la chaîne » lit son nom, sa description, ses images et ses abonnés. « …et ses vidéos » lit ensuite chacune de ses vidéos de TonTuyau, l'une après l'autre.",
+  'failed.title': { one: 'Téléchargements échoués · {count}', other: 'Téléchargements échoués · {count}' },
+  'failed.hint':
+    "Les vidéos que les synchronisations YouTube ont listées sans pouvoir les télécharger, avec la raison. Après 3 échecs, la synchronisation régulière en laisse une ; Réessayer, Tout télécharger et la synchronisation complète l'essaient encore.",
+  'failed.tryAll': 'Tout réessayer',
+  'failed.tryAgain': 'Réessayer',
+  'failed.asked': 'Demandé : ça tourne à son tour.',
+  'failed.video': 'Vidéo',
+  'failed.reason': 'Raison',
+  'failed.tries': 'Essais',
+  'failed.triesCount': { one: '{count} échec', other: '{count} échecs' },
+  'failed.last': 'dernier {ago}',
+  'failed.skipped': 'Laissée par la synchronisation',
   'subscription.title': 'Abonnement',
   'subscription.none': 'Pas abonné : les synchronisations YouTube laissent cette chaîne telle quelle.',
   'subscription.since': 'Abonné {when} par {by}.',

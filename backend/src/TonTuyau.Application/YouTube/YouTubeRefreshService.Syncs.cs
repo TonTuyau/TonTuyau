@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
@@ -14,6 +15,13 @@ namespace TonTuyau.Application.YouTube;
 /// </summary>
 public sealed partial class YouTubeRefreshService
 {
+    /// <summary>
+    /// Each video a sync listed to download: its channel and title, for its failure if it fails. Taken back at its
+    /// download (a run resumed after a restart has none: its failure keeps the channel and title it had).
+    /// </summary>
+    private readonly ConcurrentDictionary<string, (string ChannelId, string? Title)> _listed =
+        new(StringComparer.Ordinal);
+
     /// <summary>One item of a sync's work: a channel to list (its videos then come after it), or a video to download.</summary>
     /// <param name="full">The full sync: every video of the tabs, and the files missing of those the library has.</param>
     /// <returns>What YouTube said when it refused; null otherwise.</returns>
@@ -47,15 +55,49 @@ public sealed partial class YouTubeRefreshService
         context.BeginPhase(SyncPhase.YouTubeDownload, 1);
         try
         {
-            return await DownloadVideoAsync(id, read, context).ConfigureAwait(false);
+            return await DownloadOneAsync(id, read, context).ConfigureAwait(false);
         }
         catch (YouTubeDownloadException ex)
         {
-            // Gone, private, members only…: the others are downloaded all the same.
+            // Gone, private, members only, no such format…: the others are downloaded all the same.
             context.Count(c => c with { DownloadFailed = c.DownloadFailed + 1 });
-            context.Note($"{id} not downloaded: {ex.Message}");
             LogNotDownloaded(id, ex.Message);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Downloads a video (<see cref="DownloadVideoAsync"/>); a failure is recorded (B5) when its channel is known: the
+    /// one that listed it, or the failure before.
+    /// </summary>
+    /// <exception cref="YouTubeDownloadException">Not downloaded: recorded, and noted.</exception>
+    private async Task<string?> DownloadOneAsync(string videoId, YouTubeSettings read, RunContext context)
+    {
+        _listed.TryRemove(videoId, out (string ChannelId, string? Title) listed);
+        try
+        {
+            return await DownloadVideoAsync(videoId, read, context).ConfigureAwait(false);
+        }
+        catch (YouTubeDownloadException ex)
+        {
+            CancellationToken ct = context.CancellationToken;
+            DownloadFailure? before = await downloadFailures.GetAsync(videoId, ct).ConfigureAwait(false);
+            if ((listed.ChannelId ?? before?.ChannelId) is not { } channelId)
+            {
+                // "Download a video" of one that never failed: the run fails, saying why.
+                throw;
+            }
+
+            string reason = ex.Reason.Length > 0 ? ex.Reason : ex.Message;
+            DownloadFailure failure = await downloadFailures
+                .RecordAsync(videoId, channelId, listed.Title, reason, clock.GetUtcNow(), ct)
+                .ConfigureAwait(false);
+            string name = failure.Title is null ? videoId : $"\"{failure.Title}\" ({videoId})";
+            string why = reason.TrimEnd('.');
+            context.Note(failure.Tries == DownloadFailure.SkippedAfter
+                ? $"{name} not downloaded: {why}. Failed {failure.Tries} times: the syncs leave it now."
+                : $"{name} not downloaded: {why}. Failed {failure.Tries} time(s).");
+            throw;
         }
     }
 
@@ -82,6 +124,11 @@ public sealed partial class YouTubeRefreshService
         HashSet<string> known = (await videos.FindByChannelsAsync([channelId], ct).ConfigureAwait(false))
             .Select(v => v.Id)
             .ToHashSet(StringComparer.Ordinal);
+        // A video failed too often is left by the incremental sync (question 20); the full one tries it.
+        IReadOnlyList<DownloadFailure> failures = await downloadFailures
+            .ListAsync(channelId, ct)
+            .ConfigureAwait(false);
+        Dictionary<string, DownloadFailure> failed = failures.ToDictionary(f => f.VideoId, StringComparer.Ordinal);
         HashSet<string> missingFiles = full
             ? (await videos.FindMissingFilesAsync([channelId], ct).ConfigureAwait(false))
                 .ToHashSet(StringComparer.Ordinal)
@@ -112,9 +159,11 @@ public sealed partial class YouTubeRefreshService
             foreach (YouTubeListed entry in listed)
             {
                 bool toDownload = !known.Contains(entry.Id) || missingFiles.Contains(entry.Id);
-                if (!entry.NotYet && toDownload && taken.Add(entry.Id))
+                bool leftAlone = !full && failed.GetValueOrDefault(entry.Id)?.Skipped == true;
+                if (!entry.NotYet && toDownload && !leftAlone && taken.Add(entry.Id))
                 {
                     wanted.Add(entry.Id);
+                    _listed[entry.Id] = (channelId, entry.Title);
                 }
             }
         }

@@ -183,6 +183,70 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/channels/{id}/failed-downloads': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['DownloadFailureResponse'][]
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/channels/{id}/videos': {
     parameters: {
       query?: never
@@ -3203,6 +3267,20 @@ export interface components {
       playTime: components['schemas']['PlayTime']
       channels: components['schemas']['ChannelTotals'][]
     }
+    DownloadFailureResponse: {
+      videoId: string
+      title: null | string
+      reason: string
+      /** Format: int32 */
+      tries: number
+      skipped: boolean
+      /** Format: date-time */
+      firstFailedAt: string
+      /** Format: date-time */
+      lastFailedAt: string
+      /** Format: uri */
+      youTubeUrl: string
+    }
     ExtensionCookieResponse: {
       cookie: null | components['schemas']['YouTubeCookieResponse']
     }
@@ -3439,6 +3517,7 @@ export interface components {
       | 'addChannel'
       | 'youTubeSync'
       | 'youTubeFullSync'
+      | 'retryDownloads'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */
