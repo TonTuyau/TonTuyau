@@ -46,6 +46,12 @@ Feature: Downloading a video from YouTube
     And "title" is "La neuvième"
     And "channel.name" is "alpha"
 
+  Scenario: On the command line, a video pasted as a link is downloaded
+    Given YouTube has the video "omega-05": the title "En ligne de commande", 3 views
+    When I run "tontuyau youtube download https://youtu.be/omega-05___?si=x"
+    Then the command exits with code 0
+    And the media folder has the file of the video "omega-05" with 4096 bytes
+
   Scenario: A video of the library isn't downloaded again
     When I run "tontuyau youtube download alpha-01___"
     Then the command exits with code 4

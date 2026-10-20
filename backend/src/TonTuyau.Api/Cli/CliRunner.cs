@@ -40,7 +40,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           youtube video <id>          read a video of the library on YouTube (its state, its metadata)
           youtube channel <id>        read a channel of the library on YouTube
           youtube channel-videos <id> read a channel, then each of its videos in the library, on YouTube
-          youtube download <id>       download a video into the media folder and add it to the library
+          youtube download <id|link>  download a video into the media folder and add it to the library
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -77,9 +77,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ["youtube", "video", string id] => LibraryIds.IsVideoId(id)
                     ? Report(await FollowAsync($"cli/youtube/video/{id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a video id (11 characters).", Refused),
-                ["youtube", "download", string id] => LibraryIds.IsVideoId(id)
-                    ? Report(await FollowAsync($"cli/youtube/download/{id}", cancellationToken))
-                    : Write($"Refused: '{id}' isn't a video id (11 characters).", Refused),
+                ["youtube", "download", string id] => LibraryIds.VideoIdOf(id) is { } video
+                    ? Report(await FollowAsync($"cli/youtube/download/{video}", cancellationToken))
+                    : Write($"Refused: '{id}' isn't a video id (11 characters) or a YouTube link to one.", Refused),
                 ["youtube", "channel" or "channel-videos", string id] => LibraryIds.IsChannelId(id)
                     ? Report(await FollowAsync($"cli/youtube/{args[1]}/{id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
