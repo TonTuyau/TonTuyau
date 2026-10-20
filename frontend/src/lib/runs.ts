@@ -23,6 +23,9 @@ export const taskCommands: Record<RunTask, string> = {
   refreshChannelVideos: 'tontuyau youtube channel-videos <id>',
   downloadVideo: 'tontuyau youtube download <id|link>',
   addChannel: 'tontuyau youtube add-channel <id|@handle> [videos,shorts,streams]',
+  youTubeSync: 'tontuyau youtube sync',
+  youTubeFullSync: 'tontuyau youtube full-sync [<id>]',
+  retryDownloads: 'tontuyau youtube retry <id>',
 }
 
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
@@ -38,7 +41,12 @@ export function isRefresh(run: Run): boolean {
 
 /** A run that asks YouTube (1.5: a refresh; 2.0: a download): it can be put on hold. */
 export function asksYouTube(run: Run): boolean {
-  return isRefresh(run) || run.task === 'downloadVideo' || run.task === 'addChannel'
+  return isRefresh(run) || run.task === 'downloadVideo' || run.task === 'addChannel' || isYouTubeSync(run)
+}
+
+/** A YouTube sync (2.0): the incremental one or the full one. */
+export function isYouTubeSync(run: Run): boolean {
+  return run.task === 'youTubeSync' || run.task === 'youTubeFullSync' || run.task === 'retryDownloads'
 }
 
 /** A channel's tabs (2.0), in order: videos, shorts, streams. */
@@ -76,6 +84,17 @@ export function runResult(run: Run): string {
   }
   if (run.task === 'indexRebuild') {
     return t('run.result.rebuild')
+  }
+  if (run.task === 'retryDownloads') {
+    return t('run.result.retry', { created: n(counts.created), failed: n(counts.downloadFailed) })
+  }
+  if (isYouTubeSync(run)) {
+    return t('run.result.youTubeSync', {
+      channels: n(counts.channelsRead),
+      created: n(counts.created),
+      back: n(counts.updated),
+      failed: n(counts.downloadFailed),
+    })
   }
   if (run.task === 'addChannel' && run.tabs) {
     return t('run.result.addChannel', { tabs: tabsText(run.tabs) })

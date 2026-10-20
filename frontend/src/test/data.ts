@@ -225,6 +225,7 @@ export function run(overrides: Partial<Run> = {}): Run {
       checkFailed: 0,
       commentsRead: 0,
       subscribed: 0,
+      downloadFailed: 0,
     },
     target: null,
     tabs: null,
@@ -242,7 +243,11 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
   return {
     lock: null,
     runningHere: null,
-    tasks: [{ task: 'import', lastRun: run(), unavailable: null }],
+    tasks: [
+      { task: 'import', lastRun: run(), unavailable: null, next: null },
+      { task: 'youTubeSync', lastRun: null, unavailable: null, next: '2026-10-12T18:00:00Z' },
+      { task: 'youTubeFullSync', lastRun: null, unavailable: null, next: null },
+    ],
     onHold: [],
     queue: [],
     ...overrides,

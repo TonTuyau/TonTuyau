@@ -10,6 +10,7 @@
   import Button from '../components/Button.svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import FailedDownloads from '../components/FailedDownloads.svelte'
   import Icon from '../components/Icon.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -63,12 +64,15 @@
   })
   // A run ending: what it changed.
   let wasBusy = false
+  // Each run ending: its failed downloads read again too.
+  let runsEnded = $state(0)
   $effect(() => {
     const busy = lock !== null
     if (wasBusy && !busy) {
       untrack(() => {
         void channel.refresh()
         void videos.refreshFirst((video) => video.video.id)
+        runsEnded++
       })
     }
     wasBusy = busy
@@ -218,6 +222,8 @@
 
       <SubscriptionCard channelId={card.id} subscription={data.subscription} onchange={() => channel.refresh()} />
     </div>
+
+    <FailedDownloads channelId={card.id} refreshes={runsEnded} />
 
     <section class="videos" aria-labelledby="videos-title">
       <h2 id="videos-title" class="visually-hidden">{t('channelAdmin.videos')}</h2>

@@ -183,6 +183,66 @@
         }
       }
     },
+    "/api/admin/channels/{id}/failed-downloads": {
+      "get": {
+        "tags": ["AdminChannels"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DownloadFailureResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/channels/{id}/videos": {
       "get": {
         "tags": ["AdminChannels"],
@@ -2111,7 +2171,7 @@
           {
             "name": "target",
             "in": "query",
-            "description": "Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link.",
+            "description": "Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.",
             "schema": {
               "type": "string"
             }
@@ -3311,6 +3371,40 @@
           }
         }
       },
+      "DownloadFailureResponse": {
+        "required": ["videoId", "title", "reason", "tries", "skipped", "firstFailedAt", "lastFailedAt", "youTubeUrl"],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string"
+          },
+          "title": {
+            "type": ["null", "string"]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "tries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "boolean"
+          },
+          "firstFailedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastFailedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "youTubeUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
       "ExtensionCookieResponse": {
         "required": ["cookie"],
         "type": "object",
@@ -3643,6 +3737,7 @@
           "goneFromYouTube",
           "privateOnYouTube",
           "checkFailed",
+          "downloadFailed",
           "commentsRead",
           "subscribed"
         ],
@@ -3713,6 +3808,10 @@
             "format": "int32"
           },
           "checkFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadFailed": {
             "type": "integer",
             "format": "int32"
           },
@@ -3973,7 +4072,10 @@
           "refreshChannel",
           "refreshChannelVideos",
           "downloadVideo",
-          "addChannel"
+          "addChannel",
+          "youTubeSync",
+          "youTubeFullSync",
+          "retryDownloads"
         ],
         "type": "string"
       },
@@ -3986,7 +4088,7 @@
         "type": "string"
       },
       "TaskResponse": {
-        "required": ["task", "lastRun", "unavailable"],
+        "required": ["task", "lastRun", "unavailable", "next"],
         "type": "object",
         "properties": {
           "task": {
@@ -4004,6 +4106,10 @@
           },
           "unavailable": {
             "type": ["null", "string"]
+          },
+          "next": {
+            "type": ["null", "string"],
+            "format": "date-time"
           }
         }
       },
@@ -4392,7 +4498,7 @@
         }
       },
       "YouTubeSettingsRequest": {
-        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes"],
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "syncEveryHours"],
         "type": "object",
         "properties": {
           "comments": {
@@ -4409,11 +4515,23 @@
           "holdMinutes": {
             "type": ["null", "integer"],
             "format": "int32"
+          },
+          "syncEveryHours": {
+            "type": ["null", "integer"],
+            "format": "int32"
           }
         }
       },
       "YouTubeSettingsResponse": {
-        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "changedBy", "changedAt"],
+        "required": [
+          "comments",
+          "commentsMax",
+          "pauseSeconds",
+          "holdMinutes",
+          "syncEveryHours",
+          "changedBy",
+          "changedAt"
+        ],
         "type": "object",
         "properties": {
           "comments": {
@@ -4428,6 +4546,10 @@
             "format": "int32"
           },
           "holdMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "syncEveryHours": {
             "type": "integer",
             "format": "int32"
           },

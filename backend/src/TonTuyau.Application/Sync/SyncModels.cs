@@ -33,11 +33,31 @@ public enum SyncMode
     /// subscribed with <see cref="SyncRun.Tabs"/>. Nothing is downloaded: B5's syncs do.
     /// </summary>
     AddChannel,
+
+    /// <summary>
+    /// The incremental YouTube sync (2.0, B5): each subscribed channel's ticked tabs, newest first, down to the first
+    /// video the library has; what's new is downloaded. A channel never synced is listed whole. Every few hours by
+    /// itself (<see cref="YouTube.YouTubeSettings.SyncEveryHours"/>), or by hand.
+    /// </summary>
+    YouTubeSync,
+
+    /// <summary>
+    /// The full YouTube sync (2.0, B5): each subscribed channel's ticked tabs, whole; what the library doesn't have is
+    /// downloaded, and so are the files missing of the videos it has. By hand only; of one channel alone too
+    /// (<see cref="SyncRun.Target"/>: "Download everything" on its page).
+    /// </summary>
+    YouTubeFullSync,
+
+    /// <summary>
+    /// Tries the failed downloads of one channel again (2.0, B5: "Try them all again" on its page,
+    /// <see cref="SyncRun.Target"/>), skipped ones included, a pause between two.
+    /// </summary>
+    RetryDownloads,
 }
 
 public enum SyncTrigger
 {
-    /// <summary>By itself: a refresh resuming once its hold is over (1.5).</summary>
+    /// <summary>By itself: a refresh resuming once its hold is over (1.5), the incremental YouTube sync (2.0).</summary>
     Scheduler,
     Cli,
 
@@ -127,6 +147,11 @@ public sealed record SyncCounts
 
     /// <summary>A refresh: videos YouTube says their owner made private (1.5).</summary>
     public int PrivateOnYouTube { get; init; }
+
+    /// <summary>
+    /// A YouTube sync (2.0): the videos it listed and didn't download (gone, private, members only…), noted each.
+    /// </summary>
+    public int DownloadFailed { get; init; }
 
     /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
     public int CheckFailed { get; init; }

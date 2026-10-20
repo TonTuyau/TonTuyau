@@ -17,6 +17,9 @@ namespace TonTuyau.Application.YouTube;
 /// What a download asks yt-dlp for (2.0), in its own syntax: the best video and the best audio by default (B6 sets it on
 /// the page).
 /// </param>
+/// <param name="SyncEveryHours">
+/// How often the incremental YouTube sync runs by itself (2.0, B5), in hours: 6 by default; 0: only by hand.
+/// </param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
@@ -24,9 +27,15 @@ public sealed record YouTubeSettings(
     int HoldMinutes,
     string? ChangedBy,
     DateTimeOffset? ChangedAt,
-    string DownloadFormat = YouTubeSettings.DefaultDownloadFormat)
+    string DownloadFormat = YouTubeSettings.DefaultDownloadFormat,
+    int SyncEveryHours = YouTubeSettings.DefaultSyncEveryHours)
 {
     public const string DefaultDownloadFormat = "bestvideo+bestaudio";
+
+    public const int DefaultSyncEveryHours = 6;
+
+    /// <summary>A week: a longer wait is better done by hand.</summary>
+    public const int MaxSyncEveryHours = 168;
 
     public const int DefaultCommentsMax = 500;
     public const int DefaultPauseSeconds = 10;

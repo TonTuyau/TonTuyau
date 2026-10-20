@@ -41,6 +41,9 @@ internal sealed partial class YouTubeClient(
     /// <summary>The longest a download may take (2.0): hours of video, on a slow connection.</summary>
     public static readonly TimeSpan DownloadTimeout = TimeSpan.FromHours(12);
 
+    /// <summary>The longest a tab's listing may take (2.0, B5): a whole tab of thousands, a page of 30 at a time.</summary>
+    public static readonly TimeSpan ListTimeout = TimeSpan.FromMinutes(30);
+
     /// <summary>
     /// Every run: no user config file, no cache (the image's home isn't writable), plain text, nothing downloaded.
     /// </summary>
@@ -179,6 +182,82 @@ internal sealed partial class YouTubeClient(
             TypeOf(info),
             TracksOf(info));
         return new YouTubeLookup<YouTubeDownload>(YouTubeAnswer.Found, download, null);
+    }
+
+    /// <remarks>
+    /// yt-dlp lists lazily (<c>--lazy-playlist</c>), a line per entry as YouTube pages them: once
+    /// <paramref name="stopAt"/> says so, yt-dlp is stopped, so the pages after it are never asked for.
+    /// </remarks>
+    public async Task<YouTubeLookup<IReadOnlyList<YouTubeListed>>> ListTabAsync(
+        string channelId,
+        ChannelTab tab,
+        Func<YouTubeListed, bool> stopAt,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        ArgumentNullException.ThrowIfNull(stopAt);
+        string page = tab.ToString().ToLowerInvariant();
+        List<YouTubeListed> listed = [];
+        bool stopped = false;
+        YtdlpRun run = await RunDirectAsync(
+            [
+                "--ignore-config",
+                "--no-cache-dir",
+                "--color",
+                "never",
+                "--flat-playlist",
+                "--lazy-playlist",
+                "--print",
+                "%(.{id,live_status,title})j",
+                $"https://www.youtube.com/channel/{channelId}/{page}",
+            ],
+            ListTimeout,
+            cancellationToken,
+            line =>
+            {
+                if (stopped || ListedOf(line) is not { } entry)
+                {
+                    return stopped;
+                }
+
+                listed.Add(entry);
+                stopped = stopAt(entry);
+                return stopped;
+            })
+            .ConfigureAwait(false);
+        if (run.Failure is { } failure)
+        {
+            // A channel without this tab (no shorts, never streamed): nothing to list.
+            return failure.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
+                ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null)
+                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(failure.Answer, null, failure.Reason);
+        }
+
+        return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+    }
+
+    /// <summary>A listing's line: an entry with a video id; null otherwise (a warning, a playlist's own line).</summary>
+    internal static YouTubeListed? ListedOf(string line)
+    {
+        if (!line.StartsWith('{'))
+        {
+            return null;
+        }
+
+        try
+        {
+            ListedDto? dto = JsonSerializer.Deserialize<ListedDto>(line, Json);
+            return LibraryIds.IsVideoId(dto?.Id)
+                ? new YouTubeListed(
+                    dto!.Id!,
+                    dto.LiveStatus is "is_upcoming" or "is_live",
+                    string.IsNullOrWhiteSpace(dto.Title) ? null : dto.Title)
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken)
@@ -473,22 +552,27 @@ internal sealed partial class YouTubeClient(
     /// One run of yt-dlp started directly (a download: its arguments one by one, no shell), signed in with the cookie
     /// when there's one, as <see cref="RunAsync"/>. Its error lines classified the same way.
     /// </summary>
+    /// <param name="output">
+    /// Given each line yt-dlp writes (a listing, B5); true: enough, yt-dlp is stopped and the run counts as done. Null:
+    /// its output isn't read.
+    /// </param>
     private async Task<YtdlpRun> RunDirectAsync(
         IReadOnlyList<string> arguments,
         TimeSpan limit,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<string, bool>? output = null)
     {
         string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
         if (cookie is null)
         {
-            return await RunProcessAsync(arguments, limit, cancellationToken).ConfigureAwait(false);
+            return await RunProcessAsync(arguments, limit, output, cancellationToken).ConfigureAwait(false);
         }
 
         string file = Path.Combine(Path.GetTempPath(), $"tontuyau-cookies-{Guid.NewGuid():N}.txt");
         try
         {
             await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
-            return await RunProcessAsync(["--cookies", file, .. arguments], limit, cancellationToken)
+            return await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -500,6 +584,7 @@ internal sealed partial class YouTubeClient(
     private async Task<YtdlpRun> RunProcessAsync(
         IReadOnlyList<string> arguments,
         TimeSpan limit,
+        Func<string, bool>? output,
         CancellationToken cancellationToken)
     {
         ProcessStartInfo start = new(ytdlp.Path)
@@ -527,8 +612,16 @@ internal sealed partial class YouTubeClient(
                 LogDownloadLine(text);
             }
         };
-        // Its output (what it's doing) isn't read: drained, so that yt-dlp never waits on a full pipe.
-        process.OutputDataReceived += (_, _) => { };
+        // Enough read (a listing): yt-dlp is stopped. Without a reader, its output is drained, so that yt-dlp never waits
+        // on a full pipe.
+        using CancellationTokenSource enough = new();
+        process.OutputDataReceived += (_, line) =>
+        {
+            if (output is not null && line.Data is { } text && !enough.IsCancellationRequested && output(text))
+            {
+                enough.Cancel();
+            }
+        };
         try
         {
             process.Start();
@@ -541,13 +634,24 @@ internal sealed partial class YouTubeClient(
 
         process.BeginErrorReadLine();
         process.BeginOutputReadLine();
-        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            enough.Token);
         timeout.CancelAfter(limit);
         try
         {
             await process
                 .WaitForExitAsync(timeout.Token)
                 .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+            when (enough.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            process.Kill(entireProcessTree: true);
+            await process
+                .WaitForExitAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            return new YtdlpRun("", null);
         }
         catch (OperationCanceledException)
         {

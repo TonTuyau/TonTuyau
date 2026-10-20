@@ -104,6 +104,9 @@ public static class ApiValues
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
         ["downloadVideo"] = SyncMode.DownloadVideo,
         ["addChannel"] = SyncMode.AddChannel,
+        ["youTubeSync"] = SyncMode.YouTubeSync,
+        ["youTubeFullSync"] = SyncMode.YouTubeFullSync,
+        ["retryDownloads"] = SyncMode.RetryDownloads,
     };
 
     /// <summary>How a video's comments are listed (1.5, the watch page).</summary>

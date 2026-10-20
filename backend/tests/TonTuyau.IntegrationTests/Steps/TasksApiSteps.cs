@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using TonTuyau.Application.Browse;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
@@ -108,6 +109,41 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         }
     }
 
+    /// <summary>Waits until the history has that many runs of the task (one a background service asks for).</summary>
+    [Then("the history has {int} run(s) of {string} within {int} seconds")]
+    public async Task HistoryHasWithin(int count, string task, int seconds)
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (await RunsOfAsync(task) != count)
+        {
+            Assert.True(DateTime.UtcNow < deadline, $"Not {count} runs of {task} after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Checks that the history keeps that many runs of the task for a while (none asked for meanwhile).</summary>
+    [Then("the history has {int} run(s) of {string} for {int} seconds")]
+    public async Task HistoryKeeps(int count, string task, int seconds)
+    {
+        DateTime end = DateTime.UtcNow.AddSeconds(seconds);
+        while (DateTime.UtcNow < end)
+        {
+            Assert.Equal(count, await RunsOfAsync(task));
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Both in the same note.</summary>
+    [Then("the latest run's notes mention {string} and {string}")]
+    public async Task LatestNotesMentionBoth(string first, string second)
+    {
+        SyncRun latest = (await Store.GetRecentRunsAsync(1, CancellationToken.None))[0];
+        Assert.True(
+            latest.Notes.Any(n =>
+                n.Contains(first, StringComparison.Ordinal) && n.Contains(second, StringComparison.Ordinal)),
+            string.Join(" | ", latest.Notes));
+    }
+
     [Then("the latest run's notes mention {string}")]
     public async Task LatestNotesMention(string text)
     {
@@ -207,4 +243,10 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         parameters.Add($"{name}={Uri.EscapeDataString(value)}");
         return $"{path}?{string.Join('&', parameters)}";
     }
+
+    private async Task<long> RunsOfAsync(string task) =>
+        (await Services
+            .GetRequiredService<ITaskRepository>()
+            .GetRunsAsync(ApiValues.Tasks[task], null, 1, CancellationToken.None))
+            .Total;
 }

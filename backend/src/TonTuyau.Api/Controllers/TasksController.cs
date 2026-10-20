@@ -42,7 +42,7 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
         [Description("import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel.")]
         string task,
         [FromQuery]
-        [Description("Refreshes, downloadVideo, addChannel only: the video's or channel's YouTube id, or a link.")]
+        [Description("Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.")]
         string? target,
         [FromQuery, Description("addChannel only: videos,shorts,streams or some of them (default: the three).")]
         string? tabs,

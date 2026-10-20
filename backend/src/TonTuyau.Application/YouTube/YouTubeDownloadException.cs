@@ -19,4 +19,11 @@ public sealed class YouTubeDownloadException : Exception
         : base(message, innerException)
     {
     }
+
+    /// <summary>Why, as yt-dlp said it ("Requested format is not available"), without "Not downloaded".</summary>
+    public string Reason { get; private init; } = "";
+
+    /// <summary>"Not downloaded: …", its <see cref="Reason"/> the reason alone.</summary>
+    public static YouTubeDownloadException NotDownloaded(string reason) =>
+        new($"Not downloaded: {reason}.") { Reason = reason };
 }

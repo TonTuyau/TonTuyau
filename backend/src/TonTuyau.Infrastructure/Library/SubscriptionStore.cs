@@ -84,6 +84,27 @@ internal sealed class SubscriptionStore(IServiceScopeFactory scopes) : ISubscrip
             .ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<ChannelSubscription>> ListAsync(CancellationToken cancellationToken)
+    {
+        List<ChannelSubscriptionRow> rows = await WithContextAsync(db => db.ChannelSubscriptions
+            .AsNoTracking()
+            .OrderBy(s => s.SubscribedAt)
+            .ThenBy(s => s.ChannelId)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return [.. rows.Select(ToSubscription)];
+    }
+
+    public async Task MarkSyncedAsync(string channelId, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        DateTimeOffset utc = at.ToUniversalTime();
+        await WithContextAsync(db => db.ChannelSubscriptions
+            .Where(s => s.ChannelId == channelId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.SyncedAt, utc), cancellationToken))
+            .ConfigureAwait(false);
+    }
+
     public async Task<bool> RemoveAsync(string channelId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(channelId);
@@ -104,6 +125,7 @@ internal sealed class SubscriptionStore(IServiceScopeFactory scopes) : ISubscrip
         SubscribedAt = subscription.Since.ToUniversalTime(),
         SubscribedBy = subscription.By,
         Origin = subscription.Origin,
+        SyncedAt = subscription.SyncedAt?.ToUniversalTime(),
     };
 
     private static ChannelSubscription ToSubscription(ChannelSubscriptionRow row) =>
@@ -112,7 +134,8 @@ internal sealed class SubscriptionStore(IServiceScopeFactory scopes) : ISubscrip
             new ChannelTabs(row.Videos, row.Shorts, row.Streams),
             row.SubscribedAt,
             row.SubscribedBy,
-            row.Origin);
+            row.Origin,
+            row.SyncedAt);
 
     private async Task<T> WithContextAsync<T>(Func<TonTuyauDbContext, Task<T>> work)
     {

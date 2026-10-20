@@ -24,6 +24,12 @@ public interface ISubscriptionStore
     /// <returns>The subscription as it is now.</returns>
     Task<ChannelSubscription> SetAsync(ChannelSubscription subscription, CancellationToken cancellationToken);
 
+    /// <summary>Every subscription (B5: what the YouTube syncs list), the earliest subscribed first.</summary>
+    Task<IReadOnlyList<ChannelSubscription>> ListAsync(CancellationToken cancellationToken);
+
+    /// <summary>A YouTube sync listed its tabs (B5). Ignored when TonTuyau isn't subscribed to it (any more).</summary>
+    Task MarkSyncedAsync(string channelId, DateTimeOffset at, CancellationToken cancellationToken);
+
     /// <summary>Unsubscribes: the channel and its videos stay.</summary>
     /// <returns>False when TonTuyau wasn't subscribed to it.</returns>
     Task<bool> RemoveAsync(string channelId, CancellationToken cancellationToken);

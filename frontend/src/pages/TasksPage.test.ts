@@ -53,7 +53,7 @@ describe('TasksPage', () => {
   it('says why the import can’t start without TubeArchivist', async () => {
     const reason = "TubeArchivist isn't set up (TA_URL, TA_TOKEN): there is nothing to import."
     fakeApi({
-      '/api/admin/tasks': tasks({ tasks: [{ task: 'import', lastRun: null, unavailable: reason }] }),
+      '/api/admin/tasks': tasks({ tasks: [{ task: 'import', lastRun: null, unavailable: reason, next: null }] }),
       '/api/admin/runs': page([]),
     })
     render(TasksPage)
@@ -156,6 +156,34 @@ describe('TasksPage', () => {
     await vi.waitFor(() => expect(rows()[0]?.[0]).toBe('Succeeded'))
     expect(screen.getByText(running.id).closest('tr')).toBe(row)
     expect(screen.getByText(failed.id).closest('tr')).toBe(other)
+    vi.useRealTimers()
+  })
+
+  it('shows the YouTube syncs: when the incremental one runs next, and the full one asks first', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-10-12T14:00:00Z') })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const started = run({ id: 'run-20261012T140000Z-cccccc', state: 'running', finishedAt: null })
+    const api = fakeApi({
+      '/api/admin/tasks': tasks(),
+      '/api/admin/runs': page([run()]),
+      '/api/admin/tasks/youTubeSync/runs': { ...started, task: 'youTubeSync' },
+      '/api/admin/tasks/youTubeFullSync/runs': { ...started, task: 'youTubeFullSync' },
+    })
+    render(TasksPage)
+
+    const sync = await screen.findByRole('article', { name: 'YouTube sync' })
+    expect(within(sync).getByText('tontuyau youtube sync')).toBeInTheDocument()
+    expect(sync).toHaveTextContent(/Next by itself at .*, and on demand/)
+    const full = screen.getByRole('article', { name: 'Full YouTube sync' })
+    expect(full).toHaveTextContent('On demand only')
+
+    await user.click(within(full).getByRole('button', { name: 'Run now' }))
+    expect(within(full).getByText(/A full sync lists every subscribed channel whole/)).toBeInTheDocument()
+    expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')).toEqual([])
+    await user.click(within(full).getByRole('button', { name: 'Back' }))
+
+    await user.click(within(sync).getByRole('button', { name: 'Run now' }))
+    await vi.waitFor(() => expect(api.requests('/api/admin/tasks/youTubeSync/runs')).toHaveLength(1))
     vi.useRealTimers()
   })
 

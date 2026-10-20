@@ -12,6 +12,7 @@ import type {
   ChannelVideoListParams,
   Comments,
   CreatedApiKey,
+  DownloadFailure,
   Dashboard,
   Home,
   ImportHistory,
@@ -346,6 +347,11 @@ export const api = {
     return remove(`/api/admin/channels/${segment(id)}/subscription`)
   },
 
+  /** Its videos the YouTube syncs couldn't download (2.0): why, how many times; the latest failed first. */
+  failedDownloads(id: string, signal?: AbortSignal): Promise<DownloadFailure[]> {
+    return get(`/api/admin/channels/${segment(id)}/failed-downloads`, {}, signal)
+  },
+
   /** Its videos with their state on YouTube, latest first; by state or words, page by page. */
   adminChannelVideos(
     id: string,
@@ -365,8 +371,9 @@ export const api = {
     commentsMax: number,
     pauseSeconds: number,
     holdMinutes: number,
+    syncEveryHours: number,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes })
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

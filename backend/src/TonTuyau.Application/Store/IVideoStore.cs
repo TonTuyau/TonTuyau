@@ -40,6 +40,11 @@ public interface IVideoStore
     /// <returns>False when there's no video with this id.</returns>
     Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken);
 
+    /// <returns>The videos of these channels whose file is missing (B5: the full sync downloads them).</returns>
+    Task<IReadOnlyList<string>> FindMissingFilesAsync(
+        IReadOnlyCollection<string> channelIds,
+        CancellationToken cancellationToken);
+
     /// <summary>Sets or clears the "file missing on the share" flag. Unknown ids are ignored.</summary>
     Task SetMediaMissingAsync(IReadOnlyCollection<string> ids, bool missing, CancellationToken cancellationToken);
 

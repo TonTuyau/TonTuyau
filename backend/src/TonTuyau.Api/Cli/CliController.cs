@@ -52,6 +52,16 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
             (tabs is null ? null : ChannelTabs.Parse(tabs)) ?? ChannelTabs.All,
             SyncTrigger.Cli));
 
+    /// <summary>The YouTube syncs (2.0, B5): the incremental one, or the full one.</summary>
+    [HttpPost("youtube/sync")]
+    public Task<IActionResult> SyncAsync([FromQuery] bool full, [FromQuery] string? channel) =>
+        StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli, channelId: channel));
+
+    /// <summary>A channel's failed downloads tried again (2.0, B5).</summary>
+    [HttpPost("youtube/retry/{id}")]
+    public Task<IActionResult> RetryAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RetryDownloads, id, SyncTrigger.Cli));
+
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]
     public async Task<SyncRun> GetRunAsync(string id, CancellationToken cancellationToken) =>

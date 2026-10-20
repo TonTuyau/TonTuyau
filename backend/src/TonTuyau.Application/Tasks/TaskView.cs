@@ -6,4 +6,7 @@ namespace TonTuyau.Application.Tasks;
 /// <param name="Unavailable">
 /// Why it can't start (2.0: the import without TubeArchivist's settings); null when it can.
 /// </param>
-public sealed record TaskView(SyncMode Task, RunView? LastRun, string? Unavailable);
+/// <param name="Next">
+/// When it runs by itself next (2.0, the incremental YouTube sync: in the past when it's due now); null: by hand only.
+/// </param>
+public sealed record TaskView(SyncMode Task, RunView? LastRun, string? Unavailable, DateTimeOffset? Next = null);

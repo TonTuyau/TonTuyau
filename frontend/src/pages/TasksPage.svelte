@@ -162,7 +162,7 @@
     <section class="group" aria-labelledby="ta-title">
       <h2 id="ta-title">TubeArchivist</h2>
       <div class="tasks">
-        {#each data.tasks as info (info.task)}
+        {#each data.tasks.filter((info) => info.task === 'import') as info (info.task)}
           <TaskCard {info} {now} {waits} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
         {/each}
       </div>
@@ -177,6 +177,9 @@
         <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
       {/each}
       <div class="tasks">
+        {#each data.tasks.filter((info) => info.task !== 'import') as info (info.task)}
+          <TaskCard {info} {now} {waits} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+        {/each}
         {#each youTubeTasks as task (task)}
           {#if task === 'addChannel'}
             <AddChannelCard {waits} {onstart} />

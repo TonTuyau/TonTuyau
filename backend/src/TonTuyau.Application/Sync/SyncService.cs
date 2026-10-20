@@ -484,7 +484,13 @@ public sealed partial class SyncService(
         DateTimeOffset now = clock.GetUtcNow();
         ChannelSubscription[] subscribed = page.Items
             .Where(c => c.Subscribed && created.Contains(c.Channel.Id))
-            .Select(c => new ChannelSubscription(c.Channel.Id, ChannelTabs.All, now, null, LibraryOrigin.TubeArchivist))
+            .Select(c => new ChannelSubscription(
+                c.Channel.Id,
+                ChannelTabs.All,
+                now,
+                null,
+                LibraryOrigin.TubeArchivist,
+                SyncedAt: now))
             .ToArray();
         int taken = await subscriptions.AddMissingAsync(subscribed, ct).ConfigureAwait(false);
         context.Count(c => c with { Subscribed = c.Subscribed + taken });

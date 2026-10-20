@@ -78,6 +78,22 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
         return found;
     }
 
+    public async Task<IReadOnlyList<string>> FindMissingFilesAsync(
+        IReadOnlyCollection<string> channelIds,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(channelIds);
+        string[] channels = [.. channelIds];
+        List<string> found = await WithContextAsync(db => db.Videos
+            .AsNoTracking()
+            .IgnoreAutoIncludes()
+            .Where(v => channels.Contains(v.ChannelId) && v.MediaMissing)
+            .Select(v => v.Id)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return found;
+    }
+
     public async Task<IReadOnlyList<string>> GetIdsAfterAsync(
         string? after,
         int count,

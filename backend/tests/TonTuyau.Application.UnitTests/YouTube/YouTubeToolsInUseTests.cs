@@ -1,3 +1,4 @@
+using TonTuyau.Application.Library;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.UnitTests.YouTube;
@@ -99,6 +100,13 @@ public sealed class YouTubeToolsInUseTests
             throw new NotSupportedException();
 
         public Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<YouTubeLookup<IReadOnlyList<YouTubeListed>>> ListTabAsync(
+            string channelId,
+            ChannelTab tab,
+            Func<YouTubeListed, bool> stopAt,
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 }

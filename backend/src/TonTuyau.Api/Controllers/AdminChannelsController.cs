@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
 using TonTuyau.Application.ChannelAdmin;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
 
 namespace TonTuyau.Api.Controllers;
@@ -67,6 +68,24 @@ public sealed class AdminChannelsController(ChannelAdminService channels) : Cont
             .UnsubscribeAsync(id, cancellationToken)
             .ConfigureAwait(false);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Its videos the YouTube syncs couldn't download (contract v2.4), the latest failed first: why, how many times.
+    /// Try again: the task <c>downloadVideo</c> of one, <c>retryDownloads</c> of them all. 404 when it's unknown.
+    /// </summary>
+    [HttpGet("{id}/failed-downloads")]
+    [ProducesResponseType<IReadOnlyList<DownloadFailureResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<IReadOnlyList<DownloadFailureResponse>> GetFailedDownloadsAsync(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<DownloadFailure> failures = await channels
+            .ListFailedDownloadsAsync(id, cancellationToken)
+            .ConfigureAwait(false);
+        return [.. failures.Select(f => (DownloadFailureResponse)f)];
     }
 
     /// <summary>Its videos with their state on YouTube, latest published first. 404 when the channel is unknown.</summary>

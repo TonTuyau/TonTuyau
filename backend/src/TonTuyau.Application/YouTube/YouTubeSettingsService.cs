@@ -13,6 +13,9 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
     /// <param name="commentsMax">For <c>top</c>: how many (1 or more); absent: the one kept.</param>
     /// <param name="pauseSeconds">Between two videos of a refresh (0 or more); absent: the one kept.</param>
     /// <param name="holdMinutes">How long a refused refresh waits (1 or more); absent: the one kept.</param>
+    /// <param name="syncEveryHours">
+    /// How often the incremental YouTube sync runs by itself (2.0, 0 to 168; 0: by hand only); absent: the one kept.
+    /// </param>
     /// <param name="by">The admin changing them.</param>
     /// <exception cref="ValidationException">A setting is missing or out of bounds.</exception>
     public async Task<YouTubeSettings> SaveAsync(
@@ -20,6 +23,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         int? commentsMax,
         int? pauseSeconds,
         int? holdMinutes,
+        int? syncEveryHours,
         string by,
         CancellationToken cancellationToken)
     {
@@ -45,15 +49,24 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
             errors.Add("holdMinutes", "must be 1 or more.");
         }
 
+        if (syncEveryHours is < 0 or > YouTubeSettings.MaxSyncEveryHours)
+        {
+            errors.Add("syncEveryHours", $"must be 0 (by hand only) to {YouTubeSettings.MaxSyncEveryHours}.");
+        }
+
         errors.ThrowIfAny(RequestRules.Subject);
         YouTubeSettings current = await settings.GetAsync(cancellationToken).ConfigureAwait(false);
-        YouTubeSettings changed = new(
-            ApiValues.CommentChoices[comments!],
-            commentsMax ?? current.CommentsMax,
-            pauseSeconds ?? current.PauseSeconds,
-            holdMinutes ?? current.HoldMinutes,
-            by,
-            clock.GetUtcNow());
+        // What isn't set here (the download format) stays as it is.
+        YouTubeSettings changed = current with
+        {
+            Comments = ApiValues.CommentChoices[comments!],
+            CommentsMax = commentsMax ?? current.CommentsMax,
+            PauseSeconds = pauseSeconds ?? current.PauseSeconds,
+            HoldMinutes = holdMinutes ?? current.HoldMinutes,
+            SyncEveryHours = syncEveryHours ?? current.SyncEveryHours,
+            ChangedBy = by,
+            ChangedAt = clock.GetUtcNow(),
+        };
         await settings.SaveAsync(changed, cancellationToken).ConfigureAwait(false);
         return changed;
     }

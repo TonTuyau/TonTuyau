@@ -25,6 +25,9 @@ public sealed class YouTubeSettingsRow
     /// <summary>What a download asks yt-dlp for (2.0), in its syntax.</summary>
     public string DownloadFormat { get; set; } = YouTubeSettings.DefaultDownloadFormat;
 
+    /// <summary>How often the incremental YouTube sync runs by itself (2.0), in hours; 0: by hand only.</summary>
+    public int SyncEveryHours { get; set; } = YouTubeSettings.DefaultSyncEveryHours;
+
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -35,6 +38,7 @@ public sealed class YouTubeSettingsRow
             row.HoldMinutes,
             row.ChangedBy,
             row.ChangedAt,
-            row.DownloadFormat);
+            row.DownloadFormat,
+            row.SyncEveryHours);
     }
 }

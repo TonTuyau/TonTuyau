@@ -1,11 +1,11 @@
 <script lang="ts">
-  // A task of the Tasks page (1.4; 2.0: the TubeArchivist import): what it does, its command, when it runs, how it
-  // last ran, and its buttons. `now` (a clock ticking every second) keeps a running run's duration going up, without
-  // asking the API. Run now asks first (an import can take an hour); without TubeArchivist's settings it can't start,
-  // and says why. One run at a time: while one goes on (or waits), it's added to the run queue (2.0); this task's run,
+  // A task of the Tasks page (1.4; 2.0: the TubeArchivist import and the YouTube syncs): what it does, its command,
+  // when it runs (the incremental sync: when next, by itself), how it last ran, and its buttons. `now` (a clock ticking
+  // every second) keeps a running run's duration going up, without asking the API. Run now asks first for the long
+  // ones (an import, a full sync: up to hours); without TubeArchivist's settings the import can't start, and says why. One run at a time: while one goes on (or waits), it's added to the run queue (2.0); this task's run,
   // going on in this backend, can be canceled (asked first too). The page does the requests (onstart, oncancel).
   import type { RunTask, TaskInfo, Tasks } from '../lib/api/types'
-  import { formatAge, formatRunTime } from '../lib/format'
+  import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
   import { runSeconds, taskCommands } from '../lib/runs'
@@ -47,9 +47,34 @@
     }
   }
 
+  /** What Run now asks first, for the long tasks; null: it starts at once. */
+  const confirm = $derived(
+    info.task === 'import'
+      ? { text: t('task.confirmImport'), start: t('task.startImport') }
+      : info.task === 'youTubeFullSync'
+        ? { text: t('task.confirmFullSync'), start: t('task.startFullSync') }
+        : null,
+  )
+
   function start() {
-    asking = 'start'
+    if (confirm) {
+      asking = 'start'
+    } else {
+      void act(() => onstart(info.task))
+    }
   }
+
+  /** When it runs: at startup (the import), next by itself (the incremental sync), or by hand only. */
+  const when = $derived(
+    info.unavailable ??
+      (info.task === 'import'
+        ? t('task.atStartup')
+        : info.next
+          ? new Date(info.next).getTime() <= now
+            ? t('task.dueNow')
+            : t('task.nextAt', { at: formatDateTime(info.next, i18n.lang) })
+          : t('task.byHand')),
+  )
 
   const last = $derived(info.lastRun)
   const titleId = $props.id()
@@ -65,7 +90,7 @@
     <div>
       <dt>{t('task.when')}</dt>
       <dd>
-        <small>{info.unavailable ?? t('task.atStartup')}</small>
+        <small>{when}</small>
       </dd>
     </div>
     <div>
@@ -108,12 +133,12 @@
       {/if}
     {:else if mine}
       <small>{t('task.elsewhere')}</small>
-    {:else if asking === 'start'}
+    {:else if asking === 'start' && confirm}
       <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
-        <p>{t('task.confirmImport')}</p>
+        <p>{confirm.text}</p>
         <div>
           <Button variant="filled" disabled={pending} onclick={() => void act(() => onstart(info.task))}>
-            {waits ? t('task.addToQueue') : t('task.startImport')}
+            {waits ? t('task.addToQueue') : confirm.start}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
         </div>

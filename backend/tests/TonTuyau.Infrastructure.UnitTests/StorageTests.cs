@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using TonTuyau.Application.Sync;
 using TonTuyau.Infrastructure.Storage;
 
@@ -142,6 +143,41 @@ public sealed class StorageTests : IDisposable
         Assert.Throws<ArgumentException>(() => new FileArtStore(_root).Find(path));
     }
 
+
+    [Fact]
+    [UnsupportedOSPlatform("windows")]
+    public void A_download_placed_is_group_writable_and_so_is_a_channel_folder_it_makes()
+    {
+        MediaLibrary media = new(_root);
+        string folder = media.NewDownloadFolder("abcdefghijk");
+        string file = Path.Combine(folder, "abcdefghijk.mkv");
+        File.WriteAllBytes(file, [1, 2, 3]);
+
+        media.Place(file, "UCaaaaaaaaaaaaaaaaaaaaaa/abcdefghijk.mkv");
+
+        Assert.Equal(
+            MediaLibrary.FileMode,
+            File.GetUnixFileMode(Path.Combine(_root, "UCaaaaaaaaaaaaaaaaaaaaaa", "abcdefghijk.mkv")));
+        Assert.Equal(MediaLibrary.FolderMode, File.GetUnixFileMode(Path.Combine(_root, "UCaaaaaaaaaaaaaaaaaaaaaa")));
+        Assert.Equal(MediaLibrary.FolderMode, File.GetUnixFileMode(Path.Combine(_root, MediaLibrary.DownloadsFolder)));
+    }
+
+    [Fact]
+    [UnsupportedOSPlatform("windows")]
+    public void A_channel_folder_already_there_keeps_its_mode()
+    {
+        string channel = Path.Combine(_root, "UCaaaaaaaaaaaaaaaaaaaaaa");
+        Directory.CreateDirectory(channel);
+        UnixFileMode before = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+        File.SetUnixFileMode(channel, before);
+        MediaLibrary media = new(_root);
+        string file = Path.Combine(media.NewDownloadFolder("abcdefghijk"), "abcdefghijk.mkv");
+        File.WriteAllBytes(file, [1]);
+
+        media.Place(file, "UCaaaaaaaaaaaaaaaaaaaaaa/abcdefghijk.mkv");
+
+        Assert.Equal(before, File.GetUnixFileMode(channel));
+    }
 
     public void Dispose()
     {

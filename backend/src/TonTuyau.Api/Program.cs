@@ -4,6 +4,7 @@ using TonTuyau.Api.Cli;
 using TonTuyau.Api.Errors;
 using TonTuyau.Api.Hosting;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure;
 
 // `tontuyau import` / `tontuyau index …`: one command, then exit (see CliRunner for the list).
@@ -26,6 +27,9 @@ builder.Services.AddSingleton<SyncRunner>();
 builder.Services.AddHostedService<ImportAtStartup>();
 // The run queue's look every few seconds (2.0).
 builder.Services.AddHostedService<RunQueueWatcher>();
+// The incremental YouTube sync, every few hours (2.0).
+builder.Services.AddSingleton<YouTubeSyncSchedule>();
+builder.Services.AddHostedService<YouTubeSyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddHostedService<YtdlpUpdater>();
 builder.Services.AddHostedService<RefreshResumer>();

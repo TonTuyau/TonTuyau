@@ -6,11 +6,11 @@ namespace TonTuyau.Api.Contracts;
 /// <summary>A run of the history (contract v1.7, TonTuyau 1.4).</summary>
 /// <param name="Task">
 /// import | indexRebuild (contract v2.0) | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo |
-/// addChannel (v2.3).
+/// addChannel (v2.3) | youTubeSync | youTubeFullSync | retryDownloads (v2.4).
 /// </param>
 /// <param name="Trigger">
-/// What started it: scheduler (a refresh resuming by itself) | cli | startup (the import, or the rebuild after an
-/// upgrade) | admin.
+/// What started it: scheduler (a refresh resuming by itself; v2.4: the incremental YouTube sync) | cli | startup (the
+/// import, or the rebuild after an upgrade) | admin.
 /// </param>
 /// <param name="StartedBy">For <c>admin</c>: the account that started it; null otherwise.</param>
 /// <param name="State">

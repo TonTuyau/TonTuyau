@@ -252,6 +252,14 @@ export const en = {
     'When YouTube asks for a bot check or says "too many requests", the refresh stops where it is and lets the other tasks run; it resumes by itself after this, or with Resume now.',
   'youTube.easy.minutes': 'min',
   'youTube.easy.hold.invalid': 'A whole number of minutes, 1 or more.',
+  'youTube.sync': 'The YouTube sync',
+  'youTube.sync.every': 'Run it by itself every',
+  'youTube.sync.everyHint':
+    "It lists each subscribed channel down to the first video TonTuyau has, and downloads what's newer. 0: on demand only.",
+  'youTube.sync.hours': 'h',
+  'youTube.sync.every.invalid': 'A whole number of hours, from 0 to 168.',
+  'youTube.sync.saved': 'The YouTube sync every {hours} h.',
+  'youTube.sync.savedByHand': 'The YouTube sync on demand only.',
   'youTube.easy.saved': 'A pause of about {pause} s between videos; on hold {hold} min after a refusal.',
   'youTube.comments.saved.off': 'Off: no comments are read.',
   'youTube.comments.savedTop': 'The top {max} are read.',
@@ -337,6 +345,9 @@ export const en = {
   'task.refreshChannelVideos': 'Refresh a channel and its videos',
   'task.downloadVideo': 'Download a video',
   'task.addChannel': 'Add a channel',
+  'task.youTubeSync': 'YouTube sync',
+  'task.youTubeFullSync': 'Full YouTube sync',
+  'task.retryDownloads': 'Try failed downloads again',
   'task.import.what':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
@@ -344,6 +355,11 @@ export const en = {
     'Reads a video on YouTube: whether it is still there, and its title, description and views.',
   'task.refreshChannel.what': 'Reads a channel on YouTube: whether it is still there, and its name and description.',
   'task.refreshChannelVideos.what': 'Reads a channel on YouTube, then each of its videos in the library.',
+  'task.youTubeSync.what':
+    'Lists the ticked tabs of each subscribed channel, newest first, down to the first video TonTuyau has, and downloads what is newer. A channel never synced is listed whole.',
+  'task.youTubeFullSync.what':
+    'Lists the ticked tabs of each subscribed channel whole, and downloads what TonTuyau does not have, the files missing included. Can take hours.',
+  'task.retryDownloads.what': "Downloads a channel's failed videos again, one after the other.",
   'task.addChannel.what':
     'Reads a channel on YouTube, adds it to the library when it is new, and subscribes to it: the YouTube syncs will download the videos of the tabs ticked. Nothing is downloaded yet.',
   'task.downloadVideo.what':
@@ -351,6 +367,9 @@ export const en = {
   'task.when': 'When',
   'task.lastRun': 'Last run',
   'task.atStartup': 'When the backend starts, and on demand',
+  'task.nextAt': 'Next by itself at {at}, and on demand',
+  'task.dueNow': 'Due now: it starts as soon as nothing else runs',
+  'task.byHand': 'On demand only',
   'task.never': 'Never',
   'task.runningFor': 'for {duration}',
   'task.runNow': 'Run now',
@@ -360,6 +379,9 @@ export const en = {
   'task.confirmImport':
     'An import reads all of TubeArchivist: up to an hour for a large library, during which no other task can run.',
   'task.startImport': 'Start the import',
+  'task.confirmFullSync':
+    'A full sync lists every subscribed channel whole and downloads all that is missing: up to hours, during which the other tasks wait.',
+  'task.startFullSync': 'Start the full sync',
   'task.back': 'Back',
   'task.confirmCancel': 'Cancel this run? It stops after its current step; what it did stays.',
   'task.cancelRun': 'Cancel the run',
@@ -416,6 +438,8 @@ export const en = {
   'run.by.startup': 'Startup',
   'run.result.import': '{created} new · {unchanged} already there',
   'run.result.addChannel': 'Subscribed: {tabs}',
+  'run.result.retry': '{created} downloaded, {failed} failed again',
+  'run.result.youTubeSync': '{channels} channels listed: {created} new, {back} files back, {failed} not downloaded',
   'run.result.rebuild': 'Indices written again',
   'run.result.refresh': '{found} found ({unlisted} unlisted) · {gone} gone · {private} private · {failed} to retry',
   'run.result.canceled': 'Stopped',
@@ -497,6 +521,18 @@ export const en = {
   'channelAdmin.refreshHint':
     '"Refresh the channel" reads its name, description, pictures and subscribers. "…and its videos" then reads each of its videos in TonTuyau, one after the other.',
   'channelAdmin.videosOnYouTube': 'Its videos on YouTube',
+  'failed.title': { one: 'Failed downloads · {count}', other: 'Failed downloads · {count}' },
+  'failed.hint':
+    "Videos the YouTube syncs listed and couldn't download, with why. After 3 failures the regular sync leaves one; Try again, Download everything and the full sync still try it.",
+  'failed.tryAll': 'Try them all again',
+  'failed.tryAgain': 'Try again',
+  'failed.asked': 'Asked: it runs when its turn comes.',
+  'failed.video': 'Video',
+  'failed.reason': 'Why',
+  'failed.tries': 'Tries',
+  'failed.triesCount': { one: '{count} failure', other: '{count} failures' },
+  'failed.last': 'last {ago}',
+  'failed.skipped': 'Left by the sync',
   'subscription.title': 'Subscription',
   'subscription.none': 'Not subscribed: the YouTube syncs leave this channel as it is.',
   'subscription.since': 'Subscribed {when} by {by}.',
@@ -507,6 +543,9 @@ export const en = {
   'subscription.subscribe': 'Subscribe',
   'subscription.save': 'Save the tabs',
   'subscription.unsubscribe': 'Unsubscribe',
+  'subscription.everything': 'Download everything',
+  'subscription.everythingConfirm':
+    'Lists this channel’s ticked tabs whole and downloads all TonTuyau doesn’t have, the files missing included: up to hours for a big channel, during which the other tasks wait.',
   'subscription.saved': 'Saved.',
   'subscription.refused': 'Not saved: {reason}',
   'channelAdmin.statesHint':

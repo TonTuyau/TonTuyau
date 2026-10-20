@@ -42,13 +42,21 @@ TonTuyau runs as four containers: `tontuyau-reservoir` (its own Elasticsearch: t
 
 TonTuyau keeps the videos in **one folder** on the VM: TubeArchivist's `youtube` folder, with one folder per channel (`<channel id>/<video id>.<ext>`). Set its path in `.env` as `TONTUYAU_MEDIA_PATH` (e.g. `/mnt/youtube`). Where the folder comes from is up to you (a local folder, a share mounted there).
 
-Since 2.0, TonTuyau **writes its own downloads** there, in the same layout (`<channel id>/<video id>.mkv`), going through a hidden `.tontuyau-downloads` folder first, so a half-downloaded file never shows. The backend runs as uid 1654: give it write access to the folder, for example
+Since 2.0, TonTuyau **writes its own downloads** there, in the same layout (`<channel id>/<video id>.mkv`), going through a hidden `.tontuyau-downloads` folder first, so a half-downloaded file never shows. What it writes is group-writable (folders 775, files 664): anyone in the folder's group can move or delete it; the folders it didn't make keep their own modes.
+
+The backend runs as `TONTUYAU_UID`:`TONTUYAU_GID` from `.env` (1654:1654, the image's user, by default): make it fit the folder, rather than the folder fit it. Most of the time the group is enough: the folder's group (`stat -c '%u %g' /mnt/youtube` gives its owner and group), with group write on the folder:
 
 ```bash
-sudo setfacl -R -m u:1654:rwX -m d:u:1654:rwX /mnt/youtube   # or: sudo chown -R 1654:1654 /mnt/youtube
+TONTUYAU_GID=1001   # in .env: the videos folder's group; its downloads then belong to it too
 ```
 
-On an NFS share, the export must allow writing for that user (or map it with `all_squash`/`anonuid`). TubeArchivist's files are never changed; a download that can't write fails with "The media folder can't be written to".
+Or its owner's uid too, for a share that only lets its owner write (an NFS export without id mapping, for instance). A uid other than 1654 then needs the art and tools volumes to belong to it, once (`tontuyau_` is the project's prefix, as `docker volume ls` shows):
+
+```bash
+docker run --rm -v tontuyau_tontuyau-art:/a -v tontuyau_tontuyau-tools:/t busybox chown -R "$TONTUYAU_UID:$TONTUYAU_GID" /a /t
+```
+
+Or leave both at 1654 and let that user write instead, for example `sudo setfacl -R -m u:1654:rwX -m d:u:1654:rwX /mnt/youtube`. On an NFS share, the export must allow writing for that user (or map it with `all_squash`/`anonuid`). TubeArchivist's files are never changed; a download that can't write fails with "The media folder can't be written to".
 
 Check it lists channel folders (`UC…`):
 
@@ -135,7 +143,7 @@ The stack keeps PostgreSQL's and Elasticsearch's data, the images and the yt-dlp
 
 ```bash
 sudo chown -R 1000:0 <es-folder> && sudo chmod -R g+rwX <es-folder>   # Elasticsearch runs as uid 1000, group 0
-sudo chown -R 1654:1654 <art-folder> <tools-folder>                   # the backend runs as uid 1654
+sudo chown -R 1654:1654 <art-folder> <tools-folder>                   # the backend's TONTUYAU_UID:TONTUYAU_GID
 ```
 
 Rather than editing `docker-compose.yml`, you can name the folders in a `docker-compose.override.yml` next to it: Compose reads it by itself, each line replaces the volume mounted at the same place in the container, and taking a newer compose file doesn't undo it.
@@ -270,7 +278,8 @@ Read by the compose file only:
 |---|---|
 | `TONTUYAU_VERSION` | `latest`: the images' tag (`1.0.0`, `1.0` or `latest`; or a pre-release to try, such as `1.3.0-alpha.1`) |
 | `TONTUYAU_HTTP_PORT` | `80`: the port of the web app on the VM, the only one the stack publishes |
-| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), written to by TonTuyau's downloads (uid 1654) |
+| `TONTUYAU_MEDIA_PATH` | required: the folder of videos on the VM (`<channel id>/<video id>.<ext>`), written to by TonTuyau's downloads |
+| `TONTUYAU_UID`, `TONTUYAU_GID` | `1654`, `1654`: who the backend runs as (2.0), to fit the videos folder: its group, or its owner too ("The videos folder") |
 
 ## Logging in
 
@@ -318,7 +327,7 @@ docker exec tontuyau-backend tontuyau index rebuild
 docker exec tontuyau-backend tontuyau --version
 ```
 
-The commands that start a run show its progress while it runs, then the report. Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 4 refused (an import without TubeArchivist's settings), 5 a refresh put on hold (YouTube refused; 1.5); 3 (another run is going on) isn't used since 2.0. Only one run goes on at a time across the backend and the CLI: since 2.0 a command started while another runs waits its turn in the queue (first come, first served; the Tasks page lists it, with Cancel), prints that it's queued, then follows the run once it starts. While a run is on hold, the queue waits for it. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `status` reads the store itself. `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the import (one at a time with it). `youtube download <id>` (2.0; the id or a YouTube link; the Tasks page's "Download a video" too) downloads a video the library doesn't have into the videos folder (`<channel id>/<id>.mkv`), with the YouTube page's format (`bestvideo+bestaudio` by default), and adds it, with its channel when it's new; a video of the library is refused (exit code 4), unless its file is missing: then its file is downloaded and the flag cleared; YouTube refusing puts it on hold (exit code 5). `youtube add-channel <id|@handle|link> [videos,shorts,streams]` (2.0; the Tasks page's "Add a channel" too) reads a channel on YouTube, adds it to the library when it's new, and subscribes to it, to the tabs named (the three when none is): the YouTube syncs download its videos (nothing is downloaded yet); a channel TonTuyau is subscribed to is refused (exit code 4), its admin page changes its tabs or unsubscribes. The import takes TubeArchivist's subscriptions with the channels it adds, the three tabs ticked; a channel TonTuyau had keeps its own.
+The commands that start a run show its progress while it runs, then the report. Exit codes: 0 done, 1 the run failed or was canceled, 2 usage or configuration error, 4 refused (an import without TubeArchivist's settings), 5 a refresh put on hold (YouTube refused; 1.5); 3 (another run is going on) isn't used since 2.0. Only one run goes on at a time across the backend and the CLI: since 2.0 a command started while another runs waits its turn in the queue (first come, first served; the Tasks page lists it, with Cancel), prints that it's queued, then follows the run once it starts. While a run is on hold, the queue waits for it. Since 1.4 the command line asks the backend to run the command (through a Unix socket in the container, `TONTUYAU_CLI_SOCKET`, `/tmp/tontuyau.sock` by default: only a process inside it can use it), so the backend must be running; the run is in the backend's log and on the Tasks page, and the command prints the run's log as it comes. Ctrl-C cancels the run in the backend: it's recorded as canceled, what it did until then stays, and the report follows; a second Ctrl-C leaves without waiting. `status` reads the store itself. `youtube …` (1.5) reads a video, a channel, or a channel and each of its videos of the library on YouTube: a run like the import (one at a time with it). `youtube download <id>` (2.0; the id or a YouTube link; the Tasks page's "Download a video" too) downloads a video the library doesn't have into the videos folder (`<channel id>/<id>.mkv`), with the YouTube page's format (`bestvideo+bestaudio` by default), and adds it, with its channel when it's new; a video of the library is refused (exit code 4), unless its file is missing: then its file is downloaded and the flag cleared; YouTube refusing puts it on hold (exit code 5). `youtube add-channel <id|@handle|link> [videos,shorts,streams]` (2.0; the Tasks page's "Add a channel" too) reads a channel on YouTube, adds it to the library when it's new, and subscribes to it, to the tabs named (the three when none is): the YouTube syncs download its videos (nothing is downloaded yet); a channel TonTuyau is subscribed to is refused (exit code 4), its admin page changes its tabs or unsubscribes. The import takes TubeArchivist's subscriptions with the channels it adds, the three tabs ticked; a channel TonTuyau had keeps its own. `youtube sync` (2.0, also every 6 hours by itself, a setting of the YouTube page, 0 for on demand only) lists each subscribed channel's ticked tabs, newest first, down to the first video the library has, and downloads what's newer (a channel never synced, like one just added: all of it); `youtube full-sync [<channel id>]` (on demand only) lists them whole and downloads what the library doesn't have, the files missing included; with a channel's id, that channel alone (its admin page's "Download everything"). A video a sync couldn't download is kept with why (a channel's admin page lists them: "Failed downloads", with Try again and Try them all again; `youtube retry <channel id>`); after 3 failures the regular sync leaves it, the full sync still tries it. Streams still to come aren't downloaded; a video that can't be is noted and the others go on; YouTube refusing puts the sync on hold (exit code 5), resumed from where it was.
 
 ## Before going public
 

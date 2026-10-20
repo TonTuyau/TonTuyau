@@ -24,6 +24,8 @@
   import { pageTitle } from '../lib/title.svelte'
 
   const FOLLOW_EVERY = 3_000
+  // A week: the backend refuses more (a longer wait is better done by hand).
+  const MAX_SYNC_EVERY_HOURS = 168
 
   const overview = new Remote<YouTubeOverview>()
   const ytdlp = new Remote<YtdlpState>()
@@ -81,8 +83,10 @@
   let commentsInvalid = $state<string | null>(null)
   let pauseSeconds = $state<number | null>(10)
   let holdMinutes = $state<number | null>(60)
+  let syncEveryHours = $state<number | null>(6)
   let pauseInvalid = $state(false)
   let holdInvalid = $state(false)
+  let syncInvalid = $state(false)
 
   // The form starts on what's saved, and comes back to it after each save (or refusal).
   function showSaved(saved: YouTubeSettings) {
@@ -90,6 +94,7 @@
     commentsMax = saved.commentsMax
     pauseSeconds = saved.pauseSeconds
     holdMinutes = saved.holdMinutes
+    syncEveryHours = saved.syncEveryHours
   }
 
   let settingsShown = false
@@ -106,7 +111,16 @@
     commentsInvalid = comments === 'top' && !wholeFrom(max, 1) ? t('youTube.comments.max.invalid') : null
     pauseInvalid = !wholeFrom(pauseSeconds, 0)
     holdInvalid = !wholeFrom(holdMinutes, 1)
-    if (commentsInvalid !== null || pauseInvalid || holdInvalid || pauseSeconds === null || holdMinutes === null) {
+    syncInvalid = !wholeFrom(syncEveryHours, 0) || (syncEveryHours ?? 0) > MAX_SYNC_EVERY_HOURS
+    if (
+      commentsInvalid !== null ||
+      pauseInvalid ||
+      holdInvalid ||
+      syncInvalid ||
+      pauseSeconds === null ||
+      holdMinutes === null ||
+      syncEveryHours === null
+    ) {
       return
     }
     pending = true
@@ -118,6 +132,7 @@
         commentsMax ?? settings.data?.commentsMax ?? 500,
         pauseSeconds,
         holdMinutes,
+        syncEveryHours,
       )
     } catch (error) {
       refused = t('youTube.refused', { reason: reasonOf(error) })
@@ -505,6 +520,30 @@
             {/if}
           </label>
         </fieldset>
+        <fieldset>
+          <legend>{t('youTube.sync')}</legend>
+          <label class="easy">
+            <span>
+              <b>{t('youTube.sync.every')}</b>
+              <small>{t('youTube.sync.everyHint')}</small>
+            </span>
+            <span class="number">
+              <input
+                type="number"
+                min="0"
+                max={MAX_SYNC_EVERY_HOURS}
+                step="1"
+                inputmode="numeric"
+                aria-invalid={syncInvalid}
+                bind:value={syncEveryHours}
+              />
+              <small>{t('youTube.sync.hours')}</small>
+            </span>
+            {#if syncInvalid}
+              <small class="invalid" role="alert">{t('youTube.sync.every.invalid')}</small>
+            {/if}
+          </label>
+        </fieldset>
         <div class="actions">
           <Button type="submit" variant="filled" disabled={pending}>{t('youTube.comments.save')}</Button>
         </div>
@@ -512,6 +551,9 @@
       <p class="hint">
         {savedComments(current)}
         {t('youTube.easy.saved', { pause: current.pauseSeconds, hold: current.holdMinutes })}
+        {current.syncEveryHours > 0
+          ? t('youTube.sync.saved', { hours: current.syncEveryHours })
+          : t('youTube.sync.savedByHand')}
         {#if current.changedBy && current.changedAt}
           · {t('youTube.comments.changedBy', {
             by: current.changedBy,
