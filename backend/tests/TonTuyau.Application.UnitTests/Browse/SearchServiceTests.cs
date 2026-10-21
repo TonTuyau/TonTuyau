@@ -237,9 +237,7 @@ public sealed class SearchServiceTests
         public Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<IReadOnlyList<string>> FindMissingFilesAsync(
-            IReadOnlyCollection<string> channelIds,
-            CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<VideoFileState>> ListFilesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 

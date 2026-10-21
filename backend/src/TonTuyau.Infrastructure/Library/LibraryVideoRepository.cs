@@ -70,10 +70,8 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
         return true;
     }
 
-    public Task<IReadOnlyList<string>> FindMissingFilesAsync(
-        IReadOnlyCollection<string> channelIds,
-        CancellationToken cancellationToken) =>
-        store.FindMissingFilesAsync(channelIds, cancellationToken);
+    public Task<IReadOnlyList<VideoFileState>> ListFilesAsync(CancellationToken cancellationToken) =>
+        store.ListFilesAsync(cancellationToken);
 
     public async Task SetMediaMissingAsync(
         IReadOnlyCollection<string> ids,

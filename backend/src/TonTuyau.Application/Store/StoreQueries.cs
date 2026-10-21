@@ -153,6 +153,10 @@ public sealed record ChannelListItem(
 /// </summary>
 public sealed record StoredVideo(Video Video, bool MediaMissing, ArtVersions? ThumbnailArt = null);
 
+/// <summary>A video of the library as the YouTube syncs see it (alpha.5): its file, not the rest.</summary>
+/// <param name="Downloaded">When its file came (TubeArchivist's download, or TonTuyau's).</param>
+public sealed record VideoFileState(string Id, DateTimeOffset Downloaded, bool MediaMissing);
+
 /// <summary>A stored channel with its pictures' recorded versions (null when not recorded yet).</summary>
 public sealed record StoredChannel(Channel Channel, ArtVersions? ThumbArt, ArtVersions? BannerArt);
 
