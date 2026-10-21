@@ -12,6 +12,7 @@
   import AddChannelCard from '../components/AddChannelCard.svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import HoldBar from '../components/HoldBar.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import RunQueue from '../components/RunQueue.svelte'
@@ -139,7 +140,6 @@
 <div class="page">
   <header>
     <h1>{t('admin.tasks')}</h1>
-    <p class="intro">{t('tasks.intro')}</p>
     {#if tasks.data?.lock}
       {@const lock = tasks.data.lock}
       <p class="busy" role="status">
@@ -171,8 +171,10 @@
       </div>
     </section>
     <section class="group" aria-labelledby="yt-title">
-      <h2 id="yt-title">YouTube</h2>
-      <p class="intro">{t('tasks.youTube.intro')}</p>
+      <div class="head">
+        <h2 id="yt-title">YouTube</h2>
+        <HelpButton zone="YouTube"><p>{t('tasks.youTube.intro')}</p></HelpButton>
+      </div>
       {#if youTube.data && youTube.data.cookie === null}
         <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
       {/if}
@@ -264,7 +266,13 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .intro,
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
   .busy {
     margin-top: var(--space-1);
     color: var(--color-text-secondary);

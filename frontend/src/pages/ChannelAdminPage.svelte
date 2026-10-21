@@ -11,6 +11,7 @@
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import FailedDownloads from '../components/FailedDownloads.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import Icon from '../components/Icon.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -181,7 +182,10 @@
 
     <div class="two">
       <section class="card" aria-labelledby="channel-title">
-        <h2 id="channel-title">{t('channelAdmin.onYouTube')}</h2>
+        <div class="head">
+          <h2 id="channel-title">{t('channelAdmin.onYouTube')}</h2>
+          <HelpButton zone={t('channelAdmin.onYouTube')}><p>{t('channelAdmin.refreshHint')}</p></HelpButton>
+        </div>
         <dl>
           <div>
             <dt>{t('channelAdmin.state')}</dt>
@@ -213,14 +217,16 @@
             {t('channelAdmin.refreshAll')}
           </Button>
         </div>
-        <p class="hint">{t('channelAdmin.refreshHint')}</p>
         {#if waits}
           <p class="hint">{t('task.waitsItsTurn')}</p>
         {/if}
       </section>
 
       <section class="card" aria-labelledby="states-title">
-        <h2 id="states-title">{t('channelAdmin.videosOnYouTube')}</h2>
+        <div class="head">
+          <h2 id="states-title">{t('channelAdmin.videosOnYouTube')}</h2>
+          <HelpButton zone={t('channelAdmin.videosOnYouTube')}><p>{t('channelAdmin.statesHint')}</p></HelpButton>
+        </div>
         <dl class="states">
           {#each states as s (s)}
             <div>
@@ -229,7 +235,6 @@
             </div>
           {/each}
         </dl>
-        <p class="hint">{t('channelAdmin.statesHint')}</p>
       </section>
 
       <SubscriptionCard channelId={card.id} subscription={data.subscription} onchange={() => channel.refresh()} />
@@ -414,6 +419,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
     gap: var(--space-4);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .card {

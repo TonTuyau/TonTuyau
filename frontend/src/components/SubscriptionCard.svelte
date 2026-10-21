@@ -11,6 +11,7 @@
   import { href } from '../lib/router/routes'
   import { channelTabs } from '../lib/runs'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
 
   let {
     channelId,
@@ -74,7 +75,10 @@
 </script>
 
 <section class="card" aria-labelledby="{uid}-title">
-  <h2 id="{uid}-title">{t('subscription.title')}</h2>
+  <div class="head">
+    <h2 id="{uid}-title">{t('subscription.title')}</h2>
+    <HelpButton zone={t('subscription.title')}><p>{t('subscription.hint')}</p></HelpButton>
+  </div>
   <p class="state">{subscription ? since(subscription) : t('subscription.none')}</p>
   <fieldset disabled={pending}>
     <legend>{t('tabs.legend')}</legend>
@@ -122,7 +126,6 @@
   {#if message}
     <p class={message.kind} role={message.kind === 'refused' ? 'alert' : 'status'}>{message.text}</p>
   {/if}
-  <p class="hint">{t('subscription.hint')}</p>
 </section>
 
 <style>
@@ -174,7 +177,13 @@
     gap: var(--space-2);
   }
 
-  .hint,
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
   .saved {
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);

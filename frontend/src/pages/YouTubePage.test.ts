@@ -320,7 +320,12 @@ describe('YouTubePage', () => {
     const card = await screen.findByRole('region', { name: 'YouTube cookie' })
     expect(within(card).getByText('None')).toBeInTheDocument()
     expect(within(card).getByText(/Send one from TonTuyau's browser extension/)).toBeInTheDocument()
-    expect(within(card).queryByRole('button')).not.toBeInTheDocument()
+    // Nothing to check nor remove: its help only.
+    expect(
+      within(card)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['Help: YouTube cookie'])
   })
 
   it('says why YouTube refused the cookie', async () => {

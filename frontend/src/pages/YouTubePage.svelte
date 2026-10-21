@@ -8,6 +8,7 @@
   import Button from '../components/Button.svelte'
   import DownloadSettings from '../components/DownloadSettings.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
   import type {
@@ -237,7 +238,6 @@
 <div class="page">
   <header>
     <h1>{t('admin.youTube')}</h1>
-    <p class="intro">{t('youTube.intro')}</p>
   </header>
 
   {#if refused}
@@ -252,7 +252,10 @@
     {@const data = overview.data}
     <div class="two">
       <section class="card" aria-labelledby="{uid}-cookie">
-        <h2 id="{uid}-cookie">{t('youTube.cookie')}</h2>
+        <div class="head">
+          <h2 id="{uid}-cookie">{t('youTube.cookie')}</h2>
+          <HelpButton zone={t('youTube.cookie')}><p>{t('youTube.cookie.hint')}</p></HelpButton>
+        </div>
         {#if data.cookie}
           {@const cookie = data.cookie}
           <dl>
@@ -306,7 +309,6 @@
           </dl>
           <p class="hint">{t('youTube.cookie.noneHint')}</p>
         {/if}
-        <p class="hint">{t('youTube.cookie.hint')}</p>
       </section>
 
       <section class="card" aria-labelledby="{uid}-tools">
@@ -341,9 +343,20 @@
   {/if}
 
   <section class="card" aria-labelledby="{uid}-ytdlp">
-    <div>
+    <div class="head">
       <h2 id="{uid}-ytdlp">yt-dlp</h2>
-      <p class="hint">{t('ytdlp.intro')}</p>
+      <HelpButton zone="yt-dlp">
+        <p>{t('ytdlp.intro')}</p>
+        <dl>
+          <dt>{t('ytdlp.latest')}</dt>
+          <dd>{t('ytdlp.latestHint')}</dd>
+          <dt>{t('ytdlp.official')}</dt>
+          <dd>{t('ytdlp.officialHint')}</dd>
+          <dt>{t('ytdlp.nightly')}</dt>
+          <dd>{t('ytdlp.nightlyHint')}</dd>
+        </dl>
+        <p>{t('ytdlp.hint')}</p>
+      </HelpButton>
     </div>
     {#if ytdlp.status === 'loading'}
       <Skeleton layout="page" />
@@ -390,10 +403,7 @@
           <label class="choice">
             <input type="radio" name="{uid}-kind" value="latest" bind:group={kind} />
             <b>{t('ytdlp.latest')}</b>
-            <small>
-              {t('ytdlp.latestHint')}
-              {#if latest}{t('ytdlp.latestNow', { version: latest })}{/if}
-            </small>
+            {#if latest}<small>{t('ytdlp.latestNow', { version: latest })}</small>{/if}
           </label>
           {#if versions.data}
             {@const offered = versions.data}
@@ -401,7 +411,6 @@
             <label class="choice">
               <input type="radio" name="{uid}-kind" value="official" bind:group={kind} />
               <b>{t('ytdlp.official')}</b>
-              <small>{t('ytdlp.officialHint')}</small>
               <select bind:value={official} disabled={kind !== 'official'} aria-label={t('ytdlp.official')}>
                 {#each offered.official as release (release.version)}
                   <option value={release.version}>{optionLabel(release.version, release.publishedAt, image)}</option>
@@ -411,7 +420,6 @@
             <label class="choice">
               <input type="radio" name="{uid}-kind" value="nightly" bind:group={kind} />
               <b>{t('ytdlp.nightly')}</b>
-              <small>{t('ytdlp.nightlyHint')}</small>
               <select bind:value={nightly} disabled={kind !== 'nightly'} aria-label={t('ytdlp.nightly')}>
                 {#each offered.nightly as release (release.version)}
                   <option value={release.version}>{optionLabel(release.version, release.publishedAt, null)}</option>
@@ -428,14 +436,27 @@
           <Button type="submit" variant="filled" disabled={pending}>{t('ytdlp.use')}</Button>
         </div>
       </form>
-      <p class="hint">{t('ytdlp.hint')}</p>
     {/if}
   </section>
 
   <section class="card" aria-labelledby="{uid}-reading">
-    <div>
+    <div class="head">
       <h2 id="{uid}-reading">{t('youTube.reading')}</h2>
-      <p class="hint">{t('youTube.reading.intro')}</p>
+      <HelpButton zone={t('youTube.reading')}>
+        <p>{t('youTube.reading.intro')}</p>
+        <dl>
+          <dt>{t('youTube.comments')}, {t('youTube.comments.off')}</dt>
+          <dd>{t('youTube.comments.offHint')}</dd>
+          <dt>{t('youTube.comments')}, {t('youTube.comments.all')}</dt>
+          <dd>{t('youTube.comments.allHint')}</dd>
+          <dt>{t('youTube.easy.pause')}</dt>
+          <dd>{t('youTube.easy.pauseHint')}</dd>
+          <dt>{t('youTube.easy.hold')}</dt>
+          <dd>{t('youTube.easy.holdHint')}</dd>
+          <dt>{t('youTube.sync.every')}</dt>
+          <dd>{t('youTube.sync.everyHint')}</dd>
+        </dl>
+      </HelpButton>
     </div>
     {#if settings.status === 'loading'}
       <Skeleton layout="page" />
@@ -449,7 +470,6 @@
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="off" bind:group={comments} />
             <b>{t('youTube.comments.off')}</b>
-            <small>{t('youTube.comments.offHint')}</small>
           </label>
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="top" bind:group={comments} />
@@ -475,7 +495,7 @@
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="all" bind:group={comments} />
             <b>{t('youTube.comments.all')}</b>
-            <small>{t('youTube.comments.allHint')}</small>
+            <small>{t('youTube.comments.allShort')}</small>
           </label>
         </fieldset>
         <fieldset>
@@ -483,7 +503,6 @@
           <label class="easy">
             <span>
               <b>{t('youTube.easy.pause')}</b>
-              <small>{t('youTube.easy.pauseHint')}</small>
             </span>
             <span class="number">
               <input
@@ -503,7 +522,6 @@
           <label class="easy">
             <span>
               <b>{t('youTube.easy.hold')}</b>
-              <small>{t('youTube.easy.holdHint')}</small>
             </span>
             <span class="number">
               <input
@@ -526,7 +544,6 @@
           <label class="easy">
             <span>
               <b>{t('youTube.sync.every')}</b>
-              <small>{t('youTube.sync.everyHint')}</small>
             </span>
             <span class="number">
               <input
@@ -590,9 +607,11 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .intro {
-    margin-top: var(--space-1);
-    color: var(--color-text-secondary);
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .two {

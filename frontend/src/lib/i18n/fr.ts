@@ -207,8 +207,6 @@ export const fr: Dictionary = {
   'admin.back': 'Retour à TonTuyau',
   'admin.tasks': 'Tâches',
   'admin.youTube': 'YouTube',
-  'youTube.intro':
-    "Comment TonTuyau lit YouTube : le cookie avec lequel il se connecte, le yt-dlp avec lequel il lit, et ce qu'il lit.",
   'youTube.cookie': 'Cookie YouTube',
   'youTube.cookie.state': 'État',
   'youTube.cookie.state.works': 'Fonctionne',
@@ -240,6 +238,7 @@ export const fr: Dictionary = {
   'youTube.comments.perVideo': 'par vidéo',
   'youTube.comments.max.invalid': 'Un nombre entier, 1 ou plus.',
   'youTube.comments.all': 'Tous',
+  'youTube.comments.allShort': 'Lent : une chaîne peut prendre des heures.',
   'youTube.comments.allHint':
     'Chaque commentaire et chaque réponse. Lent : YouTube en donne environ 20 par requête, donc une vidéo de 50 000 commentaires prend une demi-heure ou plus, et une chaîne avec ses vidéos peut prendre des heures. Autant de requêtes peuvent pousser YouTube à demander une vérification anti-robot.',
   'youTube.comments.save': 'Enregistrer',
@@ -347,7 +346,6 @@ export const fr: Dictionary = {
   'apiKeys.actionRefused': 'Ça n’a pas marché : {reason}',
   'apiKeys.hint':
     'Une clé n’est affichée qu’une fois, à sa création : TonTuyau n’en garde que l’empreinte. Une clé désactivée est refusée jusqu’à ce que vous la réactiviez. Clé perdue ? Supprimez-la et créez-en une autre.',
-  'tasks.intro': 'Les tâches de TonTuyau : quand elles tournent, et ce que chaque exécution a fait.',
   'tasks.busy': '{task} en cours, lancée par {by} {ago}.',
   'tasks.youTube.intro':
     'Lu ou téléchargé directement sur YouTube avec yt-dlp, connecté avec le cookie envoyé par votre extension de navigateur. Une actualisation lit seulement ce que YouTube en dit ; un téléchargement ajoute la vidéo, son fichier dans le dossier des vidéos.',
@@ -363,23 +361,29 @@ export const fr: Dictionary = {
   'task.youTubeFullSync': 'Synchronisation YouTube complète',
   'task.retryDownloads': 'Réessayer les téléchargements échoués',
   'task.refreshAll': 'Tout actualiser',
-  'task.import.what':
+  'task.import.what': 'Ajoute les nouveautés de la bibliothèque de TubeArchivist.',
+  'task.import.help':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
   'task.refreshVideo.what':
     'Lit une vidéo sur YouTube : si elle y est toujours, et son titre, sa description et ses vues.',
   'task.refreshChannel.what': 'Lit une chaîne sur YouTube : si elle y est toujours, et son nom et sa description.',
   'task.refreshChannelVideos.what': 'Lit une chaîne sur YouTube, puis chacune de ses vidéos de la bibliothèque.',
-  'task.youTubeSync.what':
+  'task.youTubeSync.what': 'Télécharge les nouvelles vidéos des chaînes abonnées.',
+  'task.youTubeSync.help':
     "Liste les onglets cochés de chaque chaîne abonnée, du plus récent jusqu'à la première vidéo que TonTuyau a, et télécharge ce qui est plus récent. Une chaîne jamais synchronisée est listée en entier.",
-  'task.youTubeFullSync.what':
+  'task.youTubeFullSync.what': "Télécharge toutes les vidéos des chaînes abonnées que TonTuyau n'a pas.",
+  'task.youTubeFullSync.help':
     "Liste en entier les onglets cochés de chaque chaîne abonnée, et télécharge ce que TonTuyau n'a pas, fichiers manquants compris. Peut prendre des heures.",
-  'task.refreshAll.what':
+  'task.refreshAll.what': 'Relit chaque chaîne et ses vidéos sur YouTube.',
+  'task.refreshAll.help':
     "Lit chaque chaîne puis ses vidéos sur YouTube, les moins récemment lues d'abord, au rythme des actualisations : ce que TonTuyau a lu récemment est sauté, ce qui a disparu n'est jamais relu.",
   'task.retryDownloads.what': "Retélécharge les vidéos échouées d'une chaîne, l'une après l'autre.",
-  'task.addChannel.what':
+  'task.addChannel.what': "Ajoute une chaîne et s'y abonne.",
+  'task.addChannel.help':
     "Lit une chaîne sur YouTube, l'ajoute à la bibliothèque si elle est nouvelle, et s'y abonne : les synchronisations YouTube téléchargeront les vidéos des onglets cochés. Rien n'est encore téléchargé.",
-  'task.downloadVideo.what':
+  'task.downloadVideo.what': 'Télécharge une vidéo de YouTube dans la bibliothèque.',
+  'task.downloadVideo.help':
     "Télécharge une vidéo de YouTube dans le dossier des vidéos, puis l'ajoute à la bibliothèque, avec sa chaîne si elle est nouvelle. Une vidéo de la bibliothèque n'est téléchargée que si son fichier manque.",
   'task.when': 'Quand',
   'task.lastRun': 'Dernière',
@@ -619,6 +623,7 @@ export const fr: Dictionary = {
   'dashboard.total': 'Total',
   'dashboard.noChannel': 'Aucune chaîne',
 
+  'help.label': 'Aide : {zone}',
   'login.title': 'Se connecter',
   'login.username': "Nom d'utilisateur",
   'login.password': 'Mot de passe',

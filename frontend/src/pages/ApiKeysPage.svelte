@@ -6,6 +6,7 @@
   import Button from '../components/Button.svelte'
   import CopyButton from '../components/CopyButton.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
   import type { ApiKey, ApiKeyKind, CreatedApiKey } from '../lib/api/types'
@@ -88,7 +89,6 @@
 <div class="page">
   <header>
     <h1>{t('admin.apiKeys')}</h1>
-    <p class="intro">{t('apiKeys.intro')}</p>
   </header>
 
   <form class="new" onsubmit={oncreate} novalidate aria-labelledby="{nameId}-title">
@@ -133,7 +133,13 @@
   {/if}
 
   <section class="keys" aria-labelledby="keys-title">
-    <h2 id="keys-title">{t('apiKeys.title')}</h2>
+    <div class="head">
+      <h2 id="keys-title">{t('apiKeys.title')}</h2>
+      <HelpButton zone={t('apiKeys.title')}>
+        <p>{t('apiKeys.intro')}</p>
+        <p>{t('apiKeys.hint')}</p>
+      </HelpButton>
+    </div>
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
@@ -219,7 +225,6 @@
         </table>
       </div>
     {/if}
-    <p class="hint">{t('apiKeys.hint')}</p>
   </section>
 </div>
 
@@ -243,9 +248,11 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .intro {
-    margin-top: var(--space-1);
-    color: var(--color-text-secondary);
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .new,
@@ -293,7 +300,6 @@
   }
 
   small,
-  .hint,
   .empty {
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);

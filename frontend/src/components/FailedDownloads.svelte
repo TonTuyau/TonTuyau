@@ -11,6 +11,7 @@
   import { Remote } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
 
   let { channelId, refreshes }: { channelId: string; refreshes: number } = $props()
 
@@ -46,11 +47,13 @@
   <section class="failed" aria-labelledby="{uid}-title">
     <div class="head">
       <h2 id="{uid}-title">{tp('failed.title', list.length)}</h2>
-      <Button disabled={pending} onclick={() => void tryAgain(() => api.startTask('retryDownloads', channelId))}>
-        {t('failed.tryAll')}
-      </Button>
+      <div class="tools">
+        <Button disabled={pending} onclick={() => void tryAgain(() => api.startTask('retryDownloads', channelId))}>
+          {t('failed.tryAll')}
+        </Button>
+        <HelpButton zone={tp('failed.title', list.length)}><p>{t('failed.hint')}</p></HelpButton>
+      </div>
     </div>
-    <p class="hint">{t('failed.hint')}</p>
     {#if asked}
       <p class="asked" role="status">
         {t('failed.asked')} <a href={href.adminRun(asked.id)}>{t('task.follow')}</a>
@@ -120,7 +123,12 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .hint,
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
   code,
   small {
     color: var(--color-text-secondary);

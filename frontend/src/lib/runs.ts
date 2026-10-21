@@ -2,6 +2,7 @@
 import type { ChannelTabs, Run, RunTask } from './api/types'
 import { formatDateTime, formatNumber } from './format'
 import { i18n, t } from './i18n/i18n.svelte'
+import type { TextKey } from './i18n/types'
 
 /** How long it ran, or has been running (in seconds), at `now`. */
 export function runSeconds(run: Run, now: number): number {
@@ -34,6 +35,16 @@ export const taskCommands: Record<RunTask, string> = {
   youTubeFullSync: 'tontuyau youtube full-sync [<id>]',
   retryDownloads: 'tontuyau youtube retry <id>',
   refreshAll: 'tontuyau youtube refresh-all [days]',
+}
+
+/** The tasks whose card says more than its one line, behind its "?" (alpha.4). */
+export const taskHelp: Partial<Record<RunTask, TextKey>> = {
+  import: 'task.import.help',
+  youTubeSync: 'task.youTubeSync.help',
+  youTubeFullSync: 'task.youTubeFullSync.help',
+  refreshAll: 'task.refreshAll.help',
+  addChannel: 'task.addChannel.help',
+  downloadVideo: 'task.downloadVideo.help',
 }
 
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
