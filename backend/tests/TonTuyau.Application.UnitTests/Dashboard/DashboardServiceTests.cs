@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Time.Testing;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
+using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.UnitTests.Configuration;
+using TonTuyau.Application.Validation;
 
 namespace TonTuyau.Application.UnitTests.Dashboard;
 
@@ -28,6 +30,7 @@ public sealed class DashboardServiceTests
         LibraryTotalsView totals = (await Service().GetAsync(Ct)).Totals;
 
         Assert.Equal(new LibraryTotalsView(3, 120, 40, 0, 7), totals);
+        Assert.Empty(_store.CountedChannels);
     }
 
     [Fact]
@@ -65,24 +68,100 @@ public sealed class DashboardServiceTests
     [Fact]
     public async Task Every_channel_is_listed_biggest_first_even_without_videos()
     {
-        _store.Channels = [Channel("a", "Alpha"), Channel("b", "Beta"), Channel("c", "Gamma")];
-        _store.Stats = new LibraryStats(
-            [],
-            0,
-            new Dictionary<string, ChannelStats>
-            {
-                ["a"] = new(new TypeCounts(3, 1, 0), 1, 0, 0, 2, 0),
-                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 0, 0, 5),
-            });
+        GivenThreeChannels();
 
-        IReadOnlyList<ChannelTotalsView> channels = (await Service().GetAsync(Ct)).Channels;
+        ResultPage<ChannelTotalsView> page = await Service().ListChannelsAsync(Request(), Ct);
 
         Assert.Equal(
             [("c", 12L, 4L, 0L, 5L), ("a", 4L, 1L, 2L, 0L), ("b", 0L, 0L, 0L, 0L)],
-            channels.Select(c => (c.Id, c.Total, c.Gone, c.RetryLater, c.NotChecked)));
-        Assert.Equal(new TypeCounts(10, 0, 2), channels[0].Counts);
-        Assert.Equal(TypeCounts.None, channels[2].Counts);
+            page.Items.Select(c => (c.Id, c.Total, c.Gone, c.RetryLater, c.NotChecked)));
+        Assert.Equal(new TypeCounts(10, 0, 2), page.Items[0].Counts);
+        Assert.Equal(TypeCounts.None, page.Items[2].Counts);
+        Assert.Equal(3, page.Total);
+        Assert.Null(page.NextCursor);
         Assert.Equal(["a", "b", "c"], _store.CountedChannels);
+    }
+
+    [Theory]
+    [InlineData("name", null, "a, b, c")]
+    [InlineData("name", "desc", "c, b, a")]
+    [InlineData("gone", "asc", "b, a, c")]
+    [InlineData("retryLater", null, "a, b, c")]
+    [InlineData("total", "asc", "b, a, c")]
+    public async Task The_channels_are_sorted_by_a_column_then_by_name(string sort, string? order, string ids)
+    {
+        GivenThreeChannels();
+
+        ResultPage<ChannelTotalsView> page = await Service().ListChannelsAsync(
+            Request() with { Sort = sort, Order = order },
+            Ct);
+
+        Assert.Equal(ids, string.Join(", ", page.Items.Select(c => c.Id)));
+    }
+
+    [Theory]
+    [InlineData("ETUDES", "x")]
+    [InlineData("hautes études", "x")]
+    [InlineData("(ihes)", "x")]
+    [InlineData("é", "y, x")]
+    [InlineData("nothing", "")]
+    public async Task The_channels_are_found_by_words_of_their_name_accents_and_case_ignored(string q, string ids)
+    {
+        _store.Channels = [Channel("x", "Institut des Hautes Études Scientifiques (IHES)"), Channel("y", "Émile")];
+
+        ResultPage<ChannelTotalsView> page = await Service().ListChannelsAsync(Request() with { Q = q }, Ct);
+
+        Assert.Equal(ids, string.Join(", ", page.Items.Select(c => c.Id)));
+        Assert.Equal(page.Items.Count, page.Total);
+    }
+
+    [Fact]
+    public async Task The_channels_with_videos_gone_can_be_listed_alone()
+    {
+        GivenThreeChannels();
+
+        ResultPage<ChannelTotalsView> page = await Service().ListChannelsAsync(Request() with { Gone = true }, Ct);
+
+        Assert.Equal(["c", "a"], page.Items.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task The_cursor_gives_the_next_page_until_the_last()
+    {
+        GivenThreeChannels();
+        DashboardService service = Service();
+
+        ResultPage<ChannelTotalsView> first = await service.ListChannelsAsync(Request() with { Size = 2 }, Ct);
+        ResultPage<ChannelTotalsView> second = await service.ListChannelsAsync(
+            Request() with { Size = 2, Cursor = first.NextCursor },
+            Ct);
+
+        Assert.Equal(["c", "a"], first.Items.Select(c => c.Id));
+        Assert.Equal(["b"], second.Items.Select(c => c.Id));
+        Assert.Equal((3L, 3L), (first.Total, second.Total));
+        Assert.Null(second.NextCursor);
+    }
+
+    [Fact]
+    public async Task A_cursor_of_another_sort_is_refused()
+    {
+        GivenThreeChannels();
+        DashboardService service = Service();
+        ResultPage<ChannelTotalsView> first = await service.ListChannelsAsync(Request() with { Size = 1 }, Ct);
+
+        ValidationException error = await Assert.ThrowsAsync<ValidationException>(
+            () => service.ListChannelsAsync(Request() with { Sort = "name", Cursor = first.NextCursor }, Ct));
+
+        Assert.Equal([CursorCodec.Field], error.Errors.Select(e => e.Field));
+    }
+
+    [Fact]
+    public async Task An_unknown_sort_or_order_is_refused()
+    {
+        ValidationException error = await Assert.ThrowsAsync<ValidationException>(
+            () => Service().ListChannelsAsync(Request() with { Sort = "size", Order = "up", Size = 0 }, Ct));
+
+        Assert.Equal(["sort", "order", "size"], error.Errors.Select(e => e.Field));
     }
 
     [Fact]
@@ -100,6 +179,21 @@ public sealed class DashboardServiceTests
     }
 
     private static ChannelListItem Channel(string id, string name) => new(id, name, 1000, null);
+
+    private static DashboardChannelsRequest Request() => new(null, null, null, null, null, null);
+
+    private void GivenThreeChannels()
+    {
+        _store.Channels = [Channel("a", "Alpha"), Channel("b", "Beta"), Channel("c", "Gamma")];
+        _store.Stats = new LibraryStats(
+            [],
+            0,
+            new Dictionary<string, ChannelStats>
+            {
+                ["a"] = new(new TypeCounts(3, 1, 0), 1, 0, 0, 2, 0),
+                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 0, 0, 5),
+            });
+    }
 
     private static TypeStats Type(VideoType type, long count, double hours) =>
         new(type, count, TimeSpan.FromHours(hours));

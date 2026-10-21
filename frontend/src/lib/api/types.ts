@@ -163,6 +163,10 @@ export type ChannelVideoListParams = Paged<QueryOf<'/api/channels/{id}/videos'>>
 
 export type ChannelListParams = Paged<QueryOf<'/api/channels'>>
 
+/** `/api/admin/dashboard/channels` (alpha.3): q, sort, order, gone, cursor, size. */
+export type DashboardChannelParams = Paged<QueryOf<'/api/admin/dashboard/channels'>>
+export type DashboardChannelSort = NonNullable<DashboardChannelParams['sort']>
+
 export type SearchFilters = Pick<QueryOf<'/api/search'>, 'type' | 'channel' | 'published' | 'duration' | 'sort'>
 
 /** The search's parameters but `kind`, which each client method sets. Front convenience: `q` is required. */
