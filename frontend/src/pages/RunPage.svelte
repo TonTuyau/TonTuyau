@@ -426,6 +426,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    max-height: var(--notes-max-height);
+    overflow-y: auto;
     margin: 0;
     padding: 0;
     list-style: none;
