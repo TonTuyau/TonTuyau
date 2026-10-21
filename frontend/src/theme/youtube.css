@@ -165,7 +165,8 @@
   --player-min-height: 240px;
   --menu-width: 280px;
   --login-width: 448px;
-  --admin-page-max-width: 1180px;
+  /* Wide enough for a Full HD screen at 100 % with the guide open (alpha.3: was 1180px). */
+  --admin-page-max-width: 1600px;
   --admin-search-max-width: 360px;
   --chart-tip-width: 200px;
   --badge-height: 20px;
