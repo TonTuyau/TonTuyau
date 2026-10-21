@@ -1,10 +1,11 @@
 # TonTuyau CI (QA13-1, QA13-2). Runs only on pull requests to main and on version tags, to
 # save GitHub Actions minutes: pushing a branch runs nothing, opening or updating its pull request does. Each run does
-# the same checks as scripts/check.sh, then builds both images. Images are pushed to GHCR only from a version tag,
+# the same checks as scripts/check.sh (the backend and the front as two jobs side by side), then builds both images. Images are pushed to GHCR only from a version tag,
 # when everything passed (the tag must match the version in the code):
 #   vX.Y.Z                         → `X.Y.Z`, `X.Y` and `latest`
 #   vX.Y.Z-alpha.N / -beta.N / -rc.N → only `X.Y.Z-alpha.N`: never `latest`, `X` or `X.Y`
-# A pull request builds the images and never pushes them.
+# A pull request builds the images and never pushes them. One that changes nothing but frontend/ (C1) skips the
+# backend's checks; anything else changed, or a tag, checks both.
 name: CI
 
 on:
@@ -32,16 +33,49 @@ env:
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 
 jobs:
-  check:
-    name: Checks (scripts/check.sh)
+  # What a pull request changes (C1): only frontend/ (documentation doesn't count, nothing checks it), and the backend
+  # isn't checked; anything else, and it is. A tag checks everything, after its version is checked against the code.
+  changes:
+    name: What changed
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.scope.outputs.backend }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # A pull request's merge commit and its first parent, the base branch: what the pull request changes.
+          fetch-depth: 2
 
       - name: Version tag matches the code
         if: startsWith(github.ref, 'refs/tags/v')
         run: ./scripts/check-version.sh "$GITHUB_REF_NAME"
+
+      - name: Backend concerned?
+        id: scope
+        run: |
+          backend=true
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            backend=false
+            while IFS= read -r file; do
+              case "$file" in
+                frontend/* | docs/* | *.md) ;;
+                *) backend=true ;;
+              esac
+            done < <(git diff --name-only HEAD^1 HEAD)
+          fi
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "Backend checked: $backend"
+
+  # Format, build, unit + Reqnroll tests (Testcontainers starts Elasticsearch and PostgreSQL on the runner's Docker).
+  backend:
+    name: Backend (scripts/check.sh --backend)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
 
       # The SDK backend/global.json pins (10.0.401, latest feature band allowed).
       - uses: actions/setup-dotnet@v5
@@ -55,6 +89,18 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      - name: scripts/check.sh --backend
+        run: ./scripts/check.sh --backend
+
+  # Lint, typecheck, tests (including the front server's), build, and the built page against the CSP.
+  frontend:
+    name: Frontend (scripts/check.sh --frontend)
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
       # pnpm at the version frontend/package.json pins ("packageManager").
       - uses: pnpm/action-setup@v4
         with:
@@ -66,14 +112,18 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      # Format, build, backend unit + Reqnroll tests (Testcontainers starts Elasticsearch on the runner's Docker),
-      # front lint, typecheck, tests (including the front server's) and build.
-      - name: scripts/check.sh
-        run: ./scripts/check.sh
+      - name: scripts/check.sh --frontend
+        run: ./scripts/check.sh --frontend
 
   images:
     name: Image ${{ matrix.image }}
-    needs: check
+    needs: [changes, backend, frontend]
+    # The backend's checks skipped (a front-only pull request) don't stop the images; failed or canceled, they do.
+    if: >-
+      !cancelled()
+      && needs.changes.result == 'success'
+      && needs.frontend.result == 'success'
+      && (needs.backend.result == 'success' || needs.backend.result == 'skipped')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

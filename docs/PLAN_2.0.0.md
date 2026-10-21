@@ -83,3 +83,7 @@ from TubeArchivist: nothing is carried over from 1.5 (no data migration, no fill
 27. ~~**B8:** what does "refresh everything" read?~~ Every channel, then its videos (2026-10-21), as "Refresh a channel and its videos"; gone videos skipped.
 28. ~~**B8:** a run of days stopped: how does the next one go on?~~ It skips what TonTuyau read in the last N days (2026-10-21): 7 by default, chosen when starting, 0 reads everything; what's to retry or never checked is always read.
 29. ~~**B8:** in which order?~~ The least recently read first (2026-10-21): channels by their least recently read item (never read first), each one's videos the same way.
+30. ~~**C1:** where do the controls sit?~~ Over the video (2026-10-21), YouTube's way: a bar over its bottom, hidden after 3 s without moving while it plays.
+31. ~~**C1:** which controls besides play, the bar with its chapters, the volume, the time, small/large and full screen?~~ The speed (0.25× to 2×) and loop in a ⚙ menu, and the chapter playing by the time, whose click lists the chapters (2026-10-21); no picture-in-picture.
+32. ~~**C1:** which keyboard shortcuts?~~ A small set (2026-10-21): Space, ←/→ 5 s, ↑/↓ the volume (with the focus in the player), M mute, F full screen.
+33. ~~**C1:** touching the video on a phone?~~ A tap plays or pauses and shows the controls for a moment; no double tap (2026-10-21). The video starts by itself on the watch page (the user's ask), when the browser allows it; the shorts keep their own player.
