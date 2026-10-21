@@ -550,6 +550,7 @@ export const fr: Dictionary = {
   'channelAdmin.refreshAll': 'Actualiser la chaîne et ses vidéos',
   'channelAdmin.refreshHint':
     "« Actualiser la chaîne » lit son nom, sa description, ses images et ses abonnés. « …et ses vidéos » lit ensuite chacune de ses vidéos de TonTuyau, l'une après l'autre.",
+  'channelAdmin.queued': 'Mise dans la file : « {task} » attend son tour.',
   'failed.title': { one: 'Téléchargements échoués · {count}', other: 'Téléchargements échoués · {count}' },
   'failed.hint':
     "Les vidéos que les synchronisations YouTube ont listées sans pouvoir les télécharger, avec la raison. Après 3 échecs, la synchronisation régulière en laisse une ; Réessayer, Tout télécharger et la synchronisation complète l'essaient encore.",
