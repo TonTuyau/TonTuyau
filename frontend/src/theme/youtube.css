@@ -168,6 +168,9 @@
   /* Wide enough for a Full HD screen at 100 % with the guide open (alpha.3: was 1180px). */
   --admin-page-max-width: 1600px;
   --admin-search-max-width: 360px;
+  /* A zone's help (alpha.4): its round "?" and the bubble it opens. */
+  --help-size: 22px;
+  --help-width: 360px;
   --chart-tip-width: 200px;
   --badge-height: 20px;
   /* The labels' column of a task card (1.4): When, Last run. */

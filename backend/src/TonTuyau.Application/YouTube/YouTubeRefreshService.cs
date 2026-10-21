@@ -430,10 +430,17 @@ public sealed partial class YouTubeRefreshService(
             {
                 string reason = lockLost
                     ? "The run lock was lost (another process holds it): stopped."
-                    : ex.Message;
+                    : RunErrors.ReasonOf(ex);
                 context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
                 LogFailed(run.Id, reason);
             }
+        }
+        catch (Exception ex)
+        {
+            // Not a failure a run expects (a bug): still recorded as over, not left running, then thrown on.
+            LogUnexpected(ex, run.Id);
+            context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = RunErrors.ReasonOf(ex) });
+            throw;
         }
         finally
         {
@@ -1350,6 +1357,9 @@ public sealed partial class YouTubeRefreshService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Refresh {RunId} failed: {Reason}")]
     private partial void LogFailed(string runId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Refresh {RunId} stopped by an unexpected error.")]
+    private partial void LogUnexpected(Exception exception, string runId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Refresh {RunId} finished: {Outcome}.")]
     private partial void LogFinished(string runId, SyncOutcome outcome);

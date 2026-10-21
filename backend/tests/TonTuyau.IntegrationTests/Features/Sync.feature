@@ -91,6 +91,13 @@ Feature: Importing TubeArchivist's library
     Then the run succeeded
     And TonTuyau has 28 videos
 
+  Scenario: A database error ends the import failed, not still running (alpha.4)
+    Given PostgreSQL refuses the videos written after TubeArchivist answers "/api/video/"
+    When an import runs
+    Then the run failed because "refused by the test"
+    And the stored run is failed too
+    And the run lock is free
+
   Scenario: A TubeArchivist hiccup is retried within the run
     Given TubeArchivist fails with 502 on "page=2" 1 times
     When an import runs

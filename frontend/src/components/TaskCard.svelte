@@ -8,8 +8,9 @@
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
-  import { runSeconds, taskCommands } from '../lib/runs'
+  import { runSeconds, taskCommands, taskHelp } from '../lib/runs'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
   import RunStatePill from './RunStatePill.svelte'
 
   let {
@@ -89,11 +90,17 @@
 
   const last = $derived(info.lastRun)
   const titleId = $props.id()
+  const help = $derived(taskHelp[info.task])
 </script>
 
 <article class="card" aria-labelledby={titleId}>
   <header>
-    <h2 id={titleId}>{t(`task.${info.task}`)}</h2>
+    <div class="title">
+      <h2 id={titleId}>{t(`task.${info.task}`)}</h2>
+      {#if help}
+        <HelpButton zone={t(`task.${info.task}`)}><p>{t(help)}</p></HelpButton>
+      {/if}
+    </div>
     <code>{taskCommands[info.task]}</code>
   </header>
   <p class="what">{t(`task.${info.task}.what`)}</p>
@@ -210,6 +217,13 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   header {

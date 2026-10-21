@@ -95,16 +95,20 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         {
             IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(1, CancellationToken.None);
             // Queued ones (2.0) end later: the latest run is the last to start once the queue is empty.
-            bool queued = (await state.Backend.Services
+            int queued = (await state.Backend.Services
                 .GetRequiredService<ITaskRepository>()
-                .GetQueuedRunsAsync(CancellationToken.None)).Count > 0;
-            if (runs[0].Outcome is not (SyncOutcome.Running or SyncOutcome.Queued) && !queued)
+                .GetQueuedRunsAsync(CancellationToken.None)).Count;
+            if (runs[0].Outcome is not (SyncOutcome.Running or SyncOutcome.Queued) && queued == 0)
             {
                 Assert.Equal(expected, runs[0].Outcome);
                 return;
             }
 
-            Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} still runs after {seconds} s.");
+            // What it is then, to tell a run left "running" by an error from one still going on.
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                $"{runs[0].Id} is still {runs[0].Outcome} after {seconds} s (finished at {runs[0].FinishedAt}, "
+                    + $"{queued} queued; error: {runs[0].Error}).");
             await Task.Delay(250);
         }
     }

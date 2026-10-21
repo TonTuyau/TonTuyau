@@ -7,6 +7,7 @@
   import { channelTabs, taskCommands } from '../lib/runs'
   import { channelTargetOf } from '../lib/youtubeTargets'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
 
   let {
     waits,
@@ -53,7 +54,10 @@
 
 <article class="card" aria-labelledby="{uid}-title">
   <header>
-    <h2 id="{uid}-title">{t('task.addChannel')}</h2>
+    <div class="title">
+      <h2 id="{uid}-title">{t('task.addChannel')}</h2>
+      <HelpButton zone={t('task.addChannel')}><p>{t('task.addChannel.help')}</p></HelpButton>
+    </div>
     <code>{taskCommands.addChannel}</code>
   </header>
   <p class="what">{t('task.addChannel.what')}</p>
@@ -103,6 +107,13 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   header {

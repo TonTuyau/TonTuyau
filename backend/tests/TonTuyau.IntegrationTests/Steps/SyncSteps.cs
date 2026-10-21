@@ -1,9 +1,11 @@
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Infrastructure.Accounts;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -335,6 +337,27 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [Then("the run succeeded")]
     public void Succeeded() => Assert.True(_run?.Outcome == SyncOutcome.Succeeded, Describe());
 
+    /// <summary>
+    /// From then on PostgreSQL refuses any video written (a trigger raising an error): a database failure in the
+    /// middle of a run, at a known point.
+    /// </summary>
+    [Given("PostgreSQL refuses the videos written after TubeArchivist answers {string}")]
+    public void RefuseVideosAfter(string request) =>
+        Fake.BeforeAnswer[request] = () =>
+        {
+            using IServiceScope scope = Services.CreateScope();
+            scope.ServiceProvider
+                .GetRequiredService<TonTuyauDbContext>()
+                .Database
+                .ExecuteSqlRaw(
+                    """
+                    CREATE FUNCTION refuse_videos() RETURNS trigger LANGUAGE plpgsql AS
+                      $$ BEGIN RAISE EXCEPTION 'refused by the test'; END $$;
+                    CREATE TRIGGER refuse_videos BEFORE INSERT OR UPDATE ON videos
+                      FOR EACH ROW EXECUTE FUNCTION refuse_videos();
+                    """);
+        };
+
     [Then("the run failed")]
     public void Failed() => Assert.True(_run?.Outcome == SyncOutcome.Failed, Describe());
 
@@ -346,13 +369,15 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Assert.NotNull(_run.FinishedAt);
     }
 
-    [Then("the stored run is canceled too")]
-    public async Task StoredCanceled()
+    [Then("the stored run is {word} too")]
+    public async Task StoredOutcome(string outcome)
     {
         SyncRun? stored = await Services
             .GetRequiredService<ISyncStateStore>()
             .GetRunAsync(_run!.Id, CancellationToken.None);
-        Assert.Equal(SyncOutcome.Canceled, stored?.Outcome);
+        Assert.NotNull(stored);
+        Assert.Equal(Enum.Parse<SyncOutcome>(outcome, ignoreCase: true), stored.Outcome);
+        Assert.NotNull(stored.FinishedAt);
     }
 
     [Then("the run lock is free")]
@@ -695,7 +720,8 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         while (true)
         {
             SyncRun? run = (await RecentRuns()).FirstOrDefault(r => r.Trigger == SyncTrigger.Startup && r.Mode == mode);
-            if (run is { Outcome: not SyncOutcome.Running })
+            // Over: not running, nor waiting in the queue still (2.0: a run starts queued; alpha.4, it was read as over).
+            if (run is not null && run.Outcome is not (SyncOutcome.Queued or SyncOutcome.Running))
             {
                 _run = run;
                 return run;
@@ -704,7 +730,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
             if (DateTime.UtcNow > deadline)
             {
                 string seen = string.Join(", ", (await RecentRuns()).Select(r => $"{r.Trigger} {r.Mode} {r.Outcome}"));
-                Assert.Fail($"The backend didn't finish a startup rebuild within 90 s. Runs: {seen}.");
+                Assert.Fail($"The backend didn't finish a startup {mode} within 90 s. Runs: {seen}.");
             }
 
             await Task.Delay(250);

@@ -8,6 +8,7 @@
   import { t } from '../lib/i18n/i18n.svelte'
   import { channelTabs, tabsText } from '../lib/runs'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
 
   let { current, onsaved }: { current: YouTubeSettings; onsaved: () => Promise<void> } = $props()
 
@@ -45,14 +46,19 @@
 </script>
 
 <section class="card" aria-labelledby="{uid}-title">
-  <div>
+  <div class="head">
     <h2 id="{uid}-title">{t('youTube.downloads')}</h2>
-    <p class="hint">{t('youTube.downloads.intro')}</p>
+    <HelpButton zone={t('youTube.downloads')}>
+      <p>{t('youTube.downloads.intro')}</p>
+      <dl>
+        <dt>{t('youTube.downloads.format')}</dt>
+        <dd>{t('youTube.downloads.formatHint')}</dd>
+      </dl>
+    </HelpButton>
   </div>
   <form onsubmit={save} novalidate>
     <label class="format">
       <b>{t('youTube.downloads.format')}</b>
-      <small>{t('youTube.downloads.formatHint')}</small>
       <input
         bind:value={format}
         autocomplete="off"
@@ -93,6 +99,13 @@
 </section>
 
 <style>
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
   .card {
     display: flex;
     flex-direction: column;

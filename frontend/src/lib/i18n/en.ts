@@ -205,8 +205,6 @@ export const en = {
   'admin.back': 'Back to TonTuyau',
   'admin.tasks': 'Tasks',
   'admin.youTube': 'YouTube',
-  'youTube.intro':
-    'How TonTuyau reads YouTube: the cookie it signs in with, the yt-dlp it reads with, and what it reads.',
   'youTube.cookie': 'YouTube cookie',
   'youTube.cookie.state': 'State',
   'youTube.cookie.state.works': 'Works',
@@ -238,6 +236,7 @@ export const en = {
   'youTube.comments.perVideo': 'per video',
   'youTube.comments.max.invalid': 'A whole number, 1 or more.',
   'youTube.comments.all': 'All',
+  'youTube.comments.allShort': 'Slow: a channel can take hours.',
   'youTube.comments.allHint':
     'Every comment and every answer. Slow: YouTube gives about 20 per request, so a video with 50,000 comments takes half an hour or more, and a channel with its videos can take hours. So many requests may make YouTube ask for a bot check.',
   'youTube.comments.save': 'Save',
@@ -341,7 +340,6 @@ export const en = {
   'apiKeys.actionRefused': "That didn't work: {reason}",
   'apiKeys.hint':
     'A key is shown once, when it’s created: TonTuyau keeps only its hash. A disabled key is refused until you enable it again. Lost a key? Delete it and create another.',
-  'tasks.intro': "TonTuyau's jobs: when they run, and what each run did.",
   'tasks.busy': '{task} is going on, started by {by} {ago}.',
   'tasks.youTube.intro':
     'Read or downloaded straight from YouTube with yt-dlp, signed in with the cookie your browser extension sent. A refresh only reads what YouTube says; a download adds the video, its file in the videos folder.',
@@ -357,23 +355,29 @@ export const en = {
   'task.youTubeFullSync': 'Full YouTube sync',
   'task.retryDownloads': 'Try failed downloads again',
   'task.refreshAll': 'Refresh everything',
-  'task.import.what':
+  'task.import.what': "Adds what's new in TubeArchivist's library.",
+  'task.import.help':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
   'task.refreshVideo.what':
     'Reads a video on YouTube: whether it is still there, and its title, description and views.',
   'task.refreshChannel.what': 'Reads a channel on YouTube: whether it is still there, and its name and description.',
   'task.refreshChannelVideos.what': 'Reads a channel on YouTube, then each of its videos in the library.',
-  'task.youTubeSync.what':
+  'task.youTubeSync.what': 'Downloads the new videos of the subscribed channels.',
+  'task.youTubeSync.help':
     'Lists the ticked tabs of each subscribed channel, newest first, down to the first video TonTuyau has, and downloads what is newer. A channel never synced is listed whole.',
-  'task.youTubeFullSync.what':
+  'task.youTubeFullSync.what': "Downloads every video of the subscribed channels that TonTuyau doesn't have.",
+  'task.youTubeFullSync.help':
     'Lists the ticked tabs of each subscribed channel whole, and downloads what TonTuyau does not have, the files missing included. Can take hours.',
-  'task.refreshAll.what':
+  'task.refreshAll.what': 'Reads every channel and its videos on YouTube again.',
+  'task.refreshAll.help':
     'Reads each channel then its videos on YouTube, the least recently read first, at the pace of the refreshes: what TonTuyau read lately is skipped, what is gone never read again.',
   'task.retryDownloads.what': "Downloads a channel's failed videos again, one after the other.",
-  'task.addChannel.what':
+  'task.addChannel.what': 'Adds a channel and subscribes to it.',
+  'task.addChannel.help':
     'Reads a channel on YouTube, adds it to the library when it is new, and subscribes to it: the YouTube syncs will download the videos of the tabs ticked. Nothing is downloaded yet.',
-  'task.downloadVideo.what':
+  'task.downloadVideo.what': 'Downloads a video from YouTube into the library.',
+  'task.downloadVideo.help':
     "Downloads a video from YouTube into the videos folder, then adds it to the library, with its channel when it's new. A video of the library is downloaded only when its file is missing.",
   'task.when': 'When',
   'task.lastRun': 'Last run',
@@ -607,6 +611,7 @@ export const en = {
   'dashboard.total': 'Total',
   'dashboard.noChannel': 'No channel',
 
+  'help.label': 'Help: {zone}',
   'login.title': 'Log in',
   'login.username': 'Username',
   'login.password': 'Password',

@@ -73,6 +73,22 @@ describe('ChannelAdminPage', () => {
     expect(screen.getByText('134 videos')).toBeInTheDocument()
   })
 
+  it('keeps the explanations behind each zone\'s "?"', async () => {
+    const user = userEvent.setup()
+    routes()
+    render(ChannelAdminPage, { id })
+
+    const help = await screen.findByRole('button', { name: 'Help: Its videos on YouTube' })
+    const text = screen.getByText(/"Retry later": the last check had no answer to trust/)
+    expect(text).not.toBeVisible()
+    await user.click(help)
+    expect(text).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Help: The channel on YouTube' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
   it('shows one state from the URL, and the chips link to each state', async () => {
     goTo(`/admin/channels/${id}?state=gone`)
     const api = routes()
