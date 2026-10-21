@@ -8,10 +8,11 @@ namespace TonTuyau.Application.YouTube;
 
 /// <summary>
 /// The YouTube syncs (2.0, B5): a run over the subscribed channels. Each channel's ticked tabs are listed, newest first
-/// (the incremental sync stops at the first video the library has; the full sync, or a channel never synced, reads
-/// them whole), then what's to download is, one video at a time, a pause between two, right after its channel. A
-/// refusal puts the run on hold from where it was, as a refresh; a video that can't be downloaded is noted and
-/// skipped.
+/// (the incremental sync stops at the first video the library had at the channel's last sync; the full sync, or a
+/// channel never synced, reads them whole), then what's to download is, one video at a time, a pause between two,
+/// right after its channel. What the library has is the whole library's, whatever the channel (alpha.5: a channel's
+/// tab can list another channel's videos, a collaboration; they were downloaded again at every sync). A refusal puts
+/// the run on hold from where it was, as a refresh; a video that can't be downloaded is noted and skipped.
 /// </summary>
 public sealed partial class YouTubeRefreshService
 {
@@ -21,6 +22,14 @@ public sealed partial class YouTubeRefreshService
     /// </summary>
     private readonly ConcurrentDictionary<string, (string ChannelId, string? Title)> _listed =
         new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The library's videos as the sync going on knows them (alpha.5), read once per run (<see cref="_libraryRun"/>)
+    /// and kept up to date by its downloads, so a channel listed later sees what an earlier one downloaded.
+    /// </summary>
+    private Dictionary<string, VideoFileState> _library = new(StringComparer.Ordinal);
+
+    private string? _libraryRun;
 
     /// <summary>One item of a sync's work: a channel to list (its videos then come after it), or a video to download.</summary>
     /// <param name="full">The full sync: every video of the tabs, and the files missing of those the library has.</param>
@@ -74,9 +83,25 @@ public sealed partial class YouTubeRefreshService
     private async Task<string?> DownloadOneAsync(string videoId, YouTubeSettings read, RunContext context)
     {
         _listed.TryRemove(videoId, out (string ChannelId, string? Title) listed);
+        // Already there with its file (alpha.5): another channel's sync downloaded it since it was listed, or a failure
+        // tried again was downloaded meanwhile. Not again: the download would replace the file with the same.
+        StoredVideo? stored = await videos.GetStoredAsync(videoId, context.CancellationToken).ConfigureAwait(false);
+        if (stored is not null && !stored.MediaMissing)
+        {
+            await downloadFailures.RemoveAsync(videoId, context.CancellationToken).ConfigureAwait(false);
+            context.Note($"\"{stored.Video.Title}\" ({videoId}) is in the library already: not downloaded again.");
+            return null;
+        }
+
         try
         {
-            return await DownloadVideoAsync(videoId, read, context).ConfigureAwait(false);
+            string? refused = await DownloadVideoAsync(videoId, read, context).ConfigureAwait(false);
+            if (refused is null && _libraryRun == context.Run.Id)
+            {
+                _library[videoId] = new VideoFileState(videoId, clock.GetUtcNow(), MediaMissing: false);
+            }
+
+            return refused;
         }
         catch (YouTubeDownloadException ex)
         {
@@ -123,25 +148,23 @@ public sealed partial class YouTubeRefreshService
 
         string name = (await channels.GetAsync(channelId, ct).ConfigureAwait(false))?.Name ?? channelId;
         bool whole = full || subscription.SyncedAt is null;
-        HashSet<string> known = (await videos.FindByChannelsAsync([channelId], ct).ConfigureAwait(false))
-            .Select(v => v.Id)
-            .ToHashSet(StringComparer.Ordinal);
+        // When it was listed last: what the library had then is where an incremental listing stops (below it, it
+        // listed before). A video another channel downloaded since (a collaboration) doesn't stop it: what this one
+        // published before it would be missed.
+        DateTimeOffset? syncedBefore = subscription.SyncedAt;
+        IReadOnlyDictionary<string, VideoFileState> library = await LibraryAsync(context).ConfigureAwait(false);
         // A video failed too often is left by the incremental sync (question 20); the full one tries it.
         IReadOnlyList<DownloadFailure> failures = await downloadFailures
             .ListAsync(channelId, ct)
             .ConfigureAwait(false);
         Dictionary<string, DownloadFailure> failed = failures.ToDictionary(f => f.VideoId, StringComparer.Ordinal);
-        HashSet<string> missingFiles = full
-            ? (await videos.FindMissingFilesAsync([channelId], ct).ConfigureAwait(false))
-                .ToHashSet(StringComparer.Ordinal)
-            : [];
         List<string> wanted = [];
         HashSet<string> taken = new(StringComparer.Ordinal);
         bool everyTab = true;
         foreach (ChannelTab tab in subscription.Tabs.Ticked)
         {
             YouTubeLookup<IReadOnlyList<YouTubeListed>> lookup = await youTube
-                .ListTabAsync(channelId, tab, entry => !whole && known.Contains(entry.Id), ct)
+                .ListTabAsync(channelId, tab, entry => !whole && HadBefore(library, entry.Id, syncedBefore), ct)
                 .ConfigureAwait(false);
             if (lookup.Answer == YouTubeAnswer.Refused)
             {
@@ -160,7 +183,8 @@ public sealed partial class YouTubeRefreshService
             // A video twice (a stream listed on the videos tab too): once.
             foreach (YouTubeListed entry in lookup.Item)
             {
-                bool toDownload = !known.Contains(entry.Id) || missingFiles.Contains(entry.Id);
+                // Not in the library, whatever its channel; the full sync: its file missing too.
+                bool toDownload = !library.TryGetValue(entry.Id, out VideoFileState? has) || (full && has.MediaMissing);
                 bool leftAlone = !full && failed.GetValueOrDefault(entry.Id)?.Skipped == true;
                 if (!entry.NotYet && toDownload && !leftAlone && taken.Add(entry.Id))
                 {
@@ -188,6 +212,30 @@ public sealed partial class YouTubeRefreshService
     }
 
     private static string Tab(ChannelTab tab) => tab.ToString().ToLowerInvariant();
+
+    /// <summary>The library's videos for the sync going on: read at its first channel, then what it downloads.</summary>
+    private async Task<IReadOnlyDictionary<string, VideoFileState>> LibraryAsync(RunContext context)
+    {
+        if (_libraryRun != context.Run.Id)
+        {
+            IReadOnlyList<VideoFileState> files = await videos
+                .ListFilesAsync(context.CancellationToken)
+                .ConfigureAwait(false);
+            _library = files.ToDictionary(f => f.Id, StringComparer.Ordinal);
+            _libraryRun = context.Run.Id;
+        }
+
+        return _library;
+    }
+
+    /// <summary>Whether the library had this video when the channel was listed last.</summary>
+    private static bool HadBefore(
+        IReadOnlyDictionary<string, VideoFileState> library,
+        string videoId,
+        DateTimeOffset? syncedBefore) =>
+        syncedBefore is not null
+            && library.TryGetValue(videoId, out VideoFileState? had)
+            && had.Downloaded < syncedBefore.Value;
 
     [LoggerMessage(
         Level = LogLevel.Information,

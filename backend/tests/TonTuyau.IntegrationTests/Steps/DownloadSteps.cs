@@ -45,6 +45,20 @@ public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube, Aut
             format,
             await File.ReadAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".format")));
 
+    /// <summary>The fake yt-dlp keeps the format of each video it downloads: forgotten, to see the next downloads.</summary>
+    [When("yt-dlp's downloads are forgotten")]
+    public void ForgetDownloads()
+    {
+        foreach (string asked in Directory.EnumerateFiles(youTube.Answers, "*.format"))
+        {
+            File.Delete(asked);
+        }
+    }
+
+    [Then("yt-dlp didn't download the video {string}")]
+    public void NotDownloaded(string name) =>
+        Assert.False(File.Exists(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".format")));
+
     [Given("the file of the video {string} was found missing")]
     public Task FoundMissing(string name) =>
         state.Backend.Services
