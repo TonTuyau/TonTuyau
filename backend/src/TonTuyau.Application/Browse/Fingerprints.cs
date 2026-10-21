@@ -33,6 +33,9 @@ internal static class Fingerprints
             query.Text?.Prefix,
             query.Sort.ToString());
 
+    /// <summary>A list sorted and filtered in memory (the dashboard's channels): its parameters, as given.</summary>
+    public static string Of(string scope, params string?[] parts) => Join([scope, .. parts]);
+
     // Length-prefixed, so ("a|b", "c") and ("a", "b|c") never give the same text; "-" = not given.
     private static string Join(params string?[] parts) =>
         CursorCodec.Fingerprint(string.Concat(parts.Select(p => p is null ? "-|" : $"{p.Length}:{p}|")));

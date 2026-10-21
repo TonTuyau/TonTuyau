@@ -364,6 +364,82 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/dashboard/channels': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: {
+          /** @description Words of the channel's name, accents and case ignored, 1–100 characters. */
+          q?: string
+          /** @description name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default). */
+          sort?:
+            | 'name'
+            | 'videos'
+            | 'shorts'
+            | 'streams'
+            | 'gone'
+            | 'private'
+            | 'unlisted'
+            | 'retryLater'
+            | 'notChecked'
+            | 'total'
+          /** @description asc | desc; default: asc for name, desc for a count. */
+          order?: 'asc' | 'desc'
+          /** @description true: only the channels with videos gone from YouTube. */
+          gone?: boolean
+          /** @description The previous page's nextCursor. */
+          cursor?: string
+          /** @description 1–100 (default 24). */
+          size?: number
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['PageOfChannelTotals']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/dashboard/imports': {
     parameters: {
       query?: never
@@ -3516,7 +3592,6 @@ export interface components {
       lastSync: null | string
       totals: components['schemas']['LibraryTotals']
       playTime: components['schemas']['PlayTime']
-      channels: components['schemas']['ChannelTotals'][]
     }
     DownloadFailureResponse: {
       videoId: string
@@ -3610,6 +3685,12 @@ export interface components {
     }
     PageOfChannelCard: {
       items: components['schemas']['ChannelCard'][]
+      nextCursor: null | string
+      /** Format: int64 */
+      total: number
+    }
+    PageOfChannelTotals: {
+      items: components['schemas']['ChannelTotals'][]
       nextCursor: null | string
       /** Format: int64 */
       total: number

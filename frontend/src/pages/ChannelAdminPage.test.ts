@@ -104,7 +104,7 @@ describe('ChannelAdminPage', () => {
     )
   })
 
-  it('refreshes a video, the channel, or the channel and its videos: one task at a time', async () => {
+  it('refreshes a video, the channel, or the channel and its videos: while one goes on, the next waits its turn', async () => {
     const user = userEvent.setup()
     let busy = false
     const api = routes({
@@ -119,6 +119,8 @@ describe('ChannelAdminPage', () => {
         busy = true
         return run({ task: 'refreshVideo', state: 'running', finishedAt: null, target: never.video.id })
       },
+      '/api/admin/tasks/refreshChannel/runs': () =>
+        run({ task: 'refreshChannel', state: 'queued', finishedAt: null, target: id }),
     })
     render(ChannelAdminPage, { id })
 
@@ -130,8 +132,14 @@ describe('ChannelAdminPage', () => {
       'href',
       '/admin/runs/run-20261016T090000Z-aaaaaa',
     )
-    expect(screen.getByRole('button', { name: 'Refresh the channel' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Refresh Crème brûlée' })).toBeDisabled()
+    expect(screen.queryByText(/Added to the queue/)).not.toBeInTheDocument()
+    expect(screen.getByText('A run is going on: this one waits its turn.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Refresh Crème brûlée' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Refresh the channel' }))
+
+    expect(api.requests('/api/admin/tasks/refreshChannel/runs')[0]?.searchParams.get('target')).toBe(id)
+    expect(await screen.findByText('Added to the queue: "Refresh a channel" waits its turn.')).toBeInTheDocument()
   })
 
   it("shows each state as its coloured badge; a gone video can't be refreshed", async () => {

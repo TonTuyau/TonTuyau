@@ -132,31 +132,35 @@ export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         { type: 'stream', count: 574, seconds: 1_044_000, share: 0.29, averageSeconds: 7200 },
       ],
     },
-    channels: [
-      channelTotals({
-        id: 'UCbig',
-        name: 'Vinyl Archive',
-        counts: { videos: 1203, shorts: 0, streams: 156 },
-        gone: 24,
-        total: 1359,
-      }),
-      channelTotals({
-        id: 'UCmid',
-        name: 'Écoles du Goût',
-        counts: { videos: 412, shorts: 96, streams: 12 },
-        gone: 0,
-        total: 520,
-      }),
-      channelTotals({
-        id: 'UCsmall',
-        name: 'Atelier Bois',
-        counts: { videos: 254, shorts: 61, streams: 3 },
-        gone: 7,
-        total: 318,
-      }),
-    ],
     ...overrides,
   }
+}
+
+/** The dashboard's channels, biggest first (alpha.3: their own call). */
+export function dashboardChannels(): ChannelTotals[] {
+  return [
+    channelTotals({
+      id: 'UCbig',
+      name: 'Vinyl Archive',
+      counts: { videos: 1203, shorts: 0, streams: 156 },
+      gone: 24,
+      total: 1359,
+    }),
+    channelTotals({
+      id: 'UCmid',
+      name: 'Écoles du Goût',
+      counts: { videos: 412, shorts: 96, streams: 12 },
+      gone: 0,
+      total: 520,
+    }),
+    channelTotals({
+      id: 'UCsmall',
+      name: 'Atelier Bois',
+      counts: { videos: 254, shorts: 61, streams: 3 },
+      gone: 7,
+      total: 318,
+    }),
+  ]
 }
 
 /**

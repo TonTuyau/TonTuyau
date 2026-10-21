@@ -1,8 +1,9 @@
 <script lang="ts">
-  // The admin dashboard: the library's totals, its play time by type and every channel, all as GET
-  // /api/admin/dashboard gives them (the shares and averages too), and the import history of the chosen period (its
-  // own call: changing the period reloads the chart only; the choice is remembered), drawn on a linear or log scale
-  // (remembered too, no call). A 401 means the session ended meanwhile: the shell then goes to the login page.
+  // The admin dashboard: the library's totals and its play time by type, as GET /api/admin/dashboard gives them (the
+  // shares and averages too), the import history of the chosen period (its own call: changing the period reloads the
+  // chart only; the choice is remembered), drawn on a linear or log scale (remembered too, no call), and the channels
+  // (their own calls too, a page at a time: ChannelTable). A 401 means the session ended meanwhile: the shell then goes
+  // to the login page.
   import ChannelTable from '../components/ChannelTable.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import ImportChart, { type ImportScale } from '../components/ImportChart.svelte'
@@ -158,7 +159,7 @@
       </section>
     </div>
 
-    <ChannelTable channels={data.channels} />
+    <ChannelTable count={data.totals.channels} />
   {/if}
 </div>
 

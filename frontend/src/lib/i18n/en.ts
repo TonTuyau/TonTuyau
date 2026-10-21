@@ -538,6 +538,7 @@ export const en = {
   'channelAdmin.refreshAll': 'Refresh the channel and its videos',
   'channelAdmin.refreshHint':
     '"Refresh the channel" reads its name, description, pictures and subscribers. "…and its videos" then reads each of its videos in TonTuyau, one after the other.',
+  'channelAdmin.queued': 'Added to the queue: "{task}" waits its turn.',
   'channelAdmin.videosOnYouTube': 'Its videos on YouTube',
   'failed.title': { one: 'Failed downloads · {count}', other: 'Failed downloads · {count}' },
   'failed.hint':
@@ -609,6 +610,8 @@ export const en = {
   'login.title': 'Log in',
   'login.username': 'Username',
   'login.password': 'Password',
+  'login.showPassword': 'Show the password',
+  'login.hidePassword': 'Hide the password',
   'login.remember': 'Stay logged in',
   'login.submit': 'Log in',
   'login.back': 'Back to TonTuyau',

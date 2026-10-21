@@ -157,6 +157,26 @@ public static class ApiValues
         ["all"] = ImportPeriod.All,
     };
 
+    public static readonly Table<DashboardChannelSort> DashboardChannelSorts = new()
+    {
+        ["name"] = DashboardChannelSort.Name,
+        ["videos"] = DashboardChannelSort.Videos,
+        ["shorts"] = DashboardChannelSort.Shorts,
+        ["streams"] = DashboardChannelSort.Streams,
+        ["gone"] = DashboardChannelSort.Gone,
+        ["private"] = DashboardChannelSort.Private,
+        ["unlisted"] = DashboardChannelSort.Unlisted,
+        ["retryLater"] = DashboardChannelSort.RetryLater,
+        ["notChecked"] = DashboardChannelSort.NotChecked,
+        ["total"] = DashboardChannelSort.Total,
+    };
+
+    public static readonly Table<SortDirection> SortDirections = new()
+    {
+        ["asc"] = SortDirection.Ascending,
+        ["desc"] = SortDirection.Descending,
+    };
+
     public static readonly Table<DurationRange> Durations = new()
     {
         ["short"] = DurationRange.Short,

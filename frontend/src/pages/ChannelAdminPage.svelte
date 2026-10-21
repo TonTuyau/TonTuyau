@@ -2,9 +2,9 @@
   // A channel's admin page (1.5, from the dashboard's Manage): the channel as TonTuyau knows it on YouTube, how many of
   // its videos are in each state, its subscription (2.0: subscribe, its tabs, unsubscribe), the refreshes (the channel,
   // the channel and its videos, one video), and its videos,
-  // latest first, by state (?state=, the chips) or words. One task at a time: while one goes on (any), the buttons
-  // wait and a line says which; the page asks again every 3 s then, and shows what changed once it's over. A refusal
-  // says why; a 401 ends the session.
+  // latest first, by state (?state=, the chips) or words. While a run goes on (any), a line says which and a refresh
+  // asked for waits its turn in the queue (alpha.3: the buttons stay enabled); the page asks again every 3 s then, and
+  // shows what changed once it's over. A refusal says why; a 401 ends the session.
   import { untrack } from 'svelte'
   import Avatar from '../components/Avatar.svelte'
   import Button from '../components/Button.svelte'
@@ -58,6 +58,10 @@
   })
 
   const lock = $derived(tasks.data?.lock ?? null)
+  /** A refresh asked for now waits its turn: a run goes on, one is on hold, or others wait already. */
+  const waits = $derived(
+    tasks.data != null && (tasks.data.lock != null || tasks.data.onHold.length > 0 || tasks.data.queue.length > 0),
+  )
   $effect(() => {
     const timer = setInterval(() => void tasks.refresh(), lock ? BUSY_EVERY : IDLE_EVERY)
     return () => clearInterval(timer)
@@ -85,13 +89,19 @@
   })
 
   let refused = $state<string | null>(null)
+  let queued = $state<string | null>(null)
   let pending = $state(false)
 
   async function refresh(task: RunTask, target: string) {
     refused = null
+    queued = null
     pending = true
+    const waiting = waits
     try {
       await api.startTask(task, target)
+      if (waiting) {
+        queued = t('channelAdmin.queued', { task: t(`task.${task}`) })
+      }
     } catch (error) {
       refused = t('task.refused', {
         reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
@@ -162,6 +172,9 @@
         {/if}
       </p>
     {/if}
+    {#if queued}
+      <p class="queued">{queued}</p>
+    {/if}
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
@@ -193,18 +206,17 @@
           </div>
         </dl>
         <div class="actions">
-          <Button
-            variant="filled"
-            disabled={pending || lock !== null}
-            onclick={() => void refresh('refreshChannel', card.id)}
-          >
+          <Button variant="filled" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>
             {t('channelAdmin.refreshChannel')}
           </Button>
-          <Button disabled={pending || lock !== null} onclick={() => void refresh('refreshChannelVideos', card.id)}>
+          <Button disabled={pending} onclick={() => void refresh('refreshChannelVideos', card.id)}>
             {t('channelAdmin.refreshAll')}
           </Button>
         </div>
         <p class="hint">{t('channelAdmin.refreshHint')}</p>
+        {#if waits}
+          <p class="hint">{t('task.waitsItsTurn')}</p>
+        {/if}
       </section>
 
       <section class="card" aria-labelledby="states-title">
@@ -293,7 +305,7 @@
                     <!-- A gone video isn't read again (1.5): its refresh would be refused. -->
                     <span class="row-actions">
                       <Button
-                        disabled={pending || lock !== null || item.youTube.state === 'gone'}
+                        disabled={pending || item.youTube.state === 'gone'}
                         onclick={() => void refresh('refreshVideo', video.id)}
                       >
                         {t('task.refresh')} <span class="visually-hidden">{video.title}</span>
@@ -385,6 +397,10 @@
 
   .busy a {
     margin-left: var(--space-2);
+  }
+
+  .queued {
+    color: var(--color-text-secondary);
   }
 
   .refused {

@@ -77,11 +77,12 @@ public sealed class DashboardSteps(ScenarioState state)
     public void PlayTimeIs(DataTable table) =>
         AssertRows(table, Json["playTime"]!["types"]!, (item, column) => Scalar(item[column]));
 
+    /// <summary>The items of a page of the dashboard's channels (alpha.3: their own call).</summary>
     [Then("the dashboard's channels are:")]
     public void ChannelsAre(DataTable table) =>
         AssertRows(
             table,
-            Json["channels"]!,
+            Json["items"]!,
             (item, column) => column switch
             {
                 "videos" or "shorts" or "streams" => Scalar(item["counts"]![column]),

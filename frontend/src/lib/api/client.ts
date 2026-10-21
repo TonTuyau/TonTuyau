@@ -9,9 +9,11 @@ import type {
   ChannelDetail,
   ChannelListParams,
   ChannelTabs,
+  ChannelTotals,
   ChannelVideoListParams,
   Comments,
   CreatedApiKey,
+  DashboardChannelParams,
   DownloadFailure,
   Dashboard,
   Home,
@@ -69,7 +71,7 @@ export class ApiError extends Error {
   }
 }
 
-type QueryValue = string | number | null | undefined
+type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
 
 /** Builds `path?k=v…`, leaving out empty values so the backend applies its own defaults. */
@@ -218,6 +220,11 @@ export const api = {
   /** The admin dashboard (1.2): 401 when nobody is logged in. */
   dashboard(signal?: AbortSignal): Promise<Dashboard> {
     return get('/api/admin/dashboard', {}, signal)
+  },
+
+  /** The dashboard's channels with their counts (alpha.3): by name, with videos gone, sorted, page by page. */
+  dashboardChannels(params: DashboardChannelParams, signal?: AbortSignal): Promise<Page<ChannelTotals>> {
+    return get('/api/admin/dashboard/channels', params, signal)
   },
 
   /** The dashboard's import history of a period (1.2): 401 when nobody is logged in. */

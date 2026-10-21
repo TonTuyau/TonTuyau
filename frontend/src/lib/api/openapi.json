@@ -364,6 +364,111 @@
         }
       }
     },
+    "/api/admin/dashboard/channels": {
+      "get": {
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words of the channel's name, accents and case ignored, 1–100 characters.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default).",
+            "schema": {
+              "enum": [
+                "name",
+                "videos",
+                "shorts",
+                "streams",
+                "gone",
+                "private",
+                "unlisted",
+                "retryLater",
+                "notChecked",
+                "total"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "asc | desc; default: asc for name, desc for a count.",
+            "schema": {
+              "enum": ["asc", "desc"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "gone",
+            "in": "query",
+            "description": "true: only the channels with videos gone from YouTube.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The previous page's nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "1–100 (default 24).",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfChannelTotals"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/dashboard/imports": {
       "get": {
         "tags": ["Admin"],
@@ -3622,7 +3727,7 @@
         }
       },
       "DashboardResponse": {
-        "required": ["lastSync", "totals", "playTime", "channels"],
+        "required": ["lastSync", "totals", "playTime"],
         "type": "object",
         "properties": {
           "lastSync": {
@@ -3634,12 +3739,6 @@
           },
           "playTime": {
             "$ref": "#/components/schemas/PlayTime"
-          },
-          "channels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ChannelTotals"
-            }
           }
         }
       },
@@ -3900,6 +3999,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ChannelCard"
+            }
+          },
+          "nextCursor": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PageOfChannelTotals": {
+        "required": ["items", "nextCursor", "total"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelTotals"
             }
           },
           "nextCursor": {
