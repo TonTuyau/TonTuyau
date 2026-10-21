@@ -175,6 +175,7 @@
       src={video.mediaUrl}
       poster={video.thumbnailUrl ?? undefined}
       controls={variant === 'shorts'}
+      disablepictureinpicture={variant === 'watch'}
       autoplay
       loop={variant === 'shorts'}
       preload="metadata"
@@ -184,7 +185,8 @@
       ontimeupdate={(event) => ontime?.(event.currentTarget.currentTime)}
     ></video>
     {#if uncertain && variant === 'shorts'}{@render notice()}{/if}
-    <!-- The watch page's own controls (2.0, C1); the shorts keep the browser's. -->
+    <!-- The watch page's own controls (2.0, C1); the shorts keep the browser's. No picture-in-picture (the user's
+         choice): Firefox's own "Pop out this video" button, over the video, is off too. -->
     {#if variant === 'watch' && element && box}
       <PlayerControls
         media={element}

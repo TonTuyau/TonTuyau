@@ -9,6 +9,7 @@
   import type { Chapter } from '../lib/api/types'
   import { formatDuration } from '../lib/format'
   import { t } from '../lib/i18n/i18n.svelte'
+  import { barSegments, filledPart, type Segment } from '../lib/playerBar'
   import type { PlayerSize } from '../lib/playerSize.svelte'
   import { readPreference, writePreference } from '../lib/storage'
   import Icon from './Icon.svelte'
@@ -60,17 +61,7 @@
 
   const shown = $derived(paused || active || focused || dragging || menu !== null)
   const total = $derived(length > 0 ? length : duration)
-  const segments = $derived(
-    chapters.length > 0
-      ? chapters
-          .map((chapter) => ({
-            start: Math.max(0, chapter.startSeconds),
-            end: Math.min(total, chapter.endSeconds),
-            title: chapter.title,
-          }))
-          .filter((segment) => segment.end > segment.start)
-      : [{ start: 0, end: total, title: '' }],
-  )
+  const segments = $derived(barSegments(chapters, total))
   const playing = $derived(chapterAt(time))
   const tip = $derived(hover === null ? null : { at: hover, chapter: chapterAt(hover) })
 
@@ -79,6 +70,8 @@
     const m = media
     const sync = () => {
       paused = m.paused
+      // Already playing when the controls came (it started by itself): no big play button.
+      started ||= !m.paused
       time = m.currentTime
       length = Number.isFinite(m.duration) ? m.duration : 0
       volume = m.volume
@@ -132,6 +125,18 @@
     return () => document.removeEventListener('fullscreenchange', onchange)
   })
 
+  // An open menu closes at a click outside the player (inside, the video's own click does).
+  $effect(() => {
+    if (menu === null) return
+    const onpointerdown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !box.contains(event.target)) {
+        menu = null
+      }
+    }
+    document.addEventListener('pointerdown', onpointerdown)
+    return () => document.removeEventListener('pointerdown', onpointerdown)
+  })
+
   let idle: ReturnType<typeof setTimeout> | undefined
   function wake() {
     active = true
@@ -155,11 +160,10 @@
   }
 
   /** How much of a segment is before `seconds`, in % of the segment. */
-  function filled(seconds: number, segment: { start: number; end: number }): string {
-    const part =
-      (Math.min(Math.max(seconds, segment.start), segment.end) - segment.start) / (segment.end - segment.start)
-    return `${part * 100}%`
-  }
+  const filled = (seconds: number, segment: Segment) => `${filledPart(seconds, segment) * 100}%`
+
+  /** A segment's width: its share of the video; the whole bar when the length isn't known. */
+  const span = (segment: Segment) => (total > 0 ? percent(segment.end - segment.start) : '100%')
 
   const percent = (seconds: number) => `${total > 0 ? (seconds / total) * 100 : 0}%`
 
@@ -175,7 +179,8 @@
   }
 
   function seekTo(seconds: number) {
-    media.currentTime = Math.min(Math.max(seconds, 0), total)
+    // Within the video; its length not known yet, only not before its start.
+    media.currentTime = total > 0 ? Math.min(Math.max(seconds, 0), total) : Math.max(seconds, 0)
     time = media.currentTime
   }
 
@@ -265,8 +270,14 @@
     }
   }
 
+  /** A field takes the keys typed in it; a slider (the volume) or a box ticked doesn't type. */
   function typing(target: EventTarget | null): boolean {
-    return target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null
+    return (
+      target instanceof HTMLElement &&
+      target.closest(
+        'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), textarea, select, [contenteditable="true"]',
+      ) !== null
+    )
   }
 
   function onwindowkeydown(event: KeyboardEvent) {
@@ -283,11 +294,13 @@
         break
       case 'ArrowLeft':
       case 'ArrowRight':
+        // The volume slider moves with them.
+        if (target?.matches('input[type="range"]')) return
         seekTo(media.currentTime + (event.key === 'ArrowLeft' ? -STEP_SECONDS : STEP_SECONDS))
         break
       case 'ArrowUp':
       case 'ArrowDown':
-        if (!inPlayer) return
+        if (!inPlayer || target?.matches('input[type="range"]')) return
         setVolume((media.muted ? 0 : media.volume) + (event.key === 'ArrowUp' ? VOLUME_STEP : -VOLUME_STEP))
         break
       case 'm':
@@ -322,7 +335,7 @@
   role="group"
   aria-label={t('watch.player')}
   onpointermove={wake}
-  onfocusin={() => (focused = true)}
+  onfocusin={(event) => (focused = event.target instanceof HTMLElement && event.target.matches(':focus-visible'))}
   onfocusout={() => (focused = false)}
 >
   <!-- The video itself: a click or a tap plays or pauses. The keyboard has Space, and the play button. -->
@@ -398,7 +411,7 @@
           class:last={index === segments.length - 1}
           class:under={hover !== null && segment.start <= hover && hover < segment.end}
           style:left={percent(segment.start)}
-          style:width={percent(segment.end - segment.start)}
+          style:width={span(segment)}
         >
           <div class="buffered" style:width={filled(buffered, segment)}></div>
           {#if hover !== null}<div class="hovered" style:width={filled(hover, segment)}></div>{/if}
@@ -749,9 +762,11 @@
 
   /* ---------------------------------------------------------------- the menus */
 
-  /* Over the video, above the bar and its buttons: as tall as the player leaves room for. */
+  /* Over the video, above the bar and its buttons: as tall as the player leaves room for, and over the shade of the
+     bottom (which would take the clicks of its last rows). */
   .panel {
     position: absolute;
+    z-index: 1;
     right: var(--space-3);
     bottom: var(--player-panel-bottom);
     display: flex;
