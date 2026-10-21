@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton(sp => new YtdlpLocator(sp.GetRequiredService<TonTuyauOptions>().YouTube.YtdlpPath));
         services.AddSingleton<YtdlpUpdateSignal>();
+        services.AddSingleton<YtdlpTempFolders>();
         services.AddSingleton<IYouTubeClient, YouTubeClient>();
         services.AddSingleton<YouTubeToolsInUse>();
         // GitHub asks every request for a User-Agent.

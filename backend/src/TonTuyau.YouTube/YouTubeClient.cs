@@ -21,6 +21,7 @@ internal sealed partial class YouTubeClient(
     TonTuyauOptions options,
     YtdlpLocator ytdlp,
     IYouTubeCookieSource cookies,
+    YtdlpTempFolders temp,
     ILogger<YouTubeClient> logger) : IYouTubeClient
 {
     /// <summary>The longest one question may take; past it, the check failed (yt-dlp is stopped).</summary>
@@ -584,10 +585,32 @@ internal sealed partial class YouTubeClient(
         }
     }
 
+    /// <summary>
+    /// One run in a temp folder of its own (alpha.6: <see cref="YtdlpTempFolders"/>), removed once it's over, stopped
+    /// or not: what yt-dlp unpacked there doesn't stay behind.
+    /// </summary>
     private async Task<YtdlpRun> RunProcessAsync(
         IReadOnlyList<string> arguments,
         TimeSpan limit,
         Func<string, bool>? output,
+        CancellationToken cancellationToken)
+    {
+        string folder = temp.NewFolder();
+        try
+        {
+            return await RunProcessInAsync(arguments, limit, output, folder, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            temp.Remove(folder);
+        }
+    }
+
+    private async Task<YtdlpRun> RunProcessInAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        Func<string, bool>? output,
+        string folder,
         CancellationToken cancellationToken)
     {
         ProcessStartInfo start = new(ytdlp.Path)
@@ -596,6 +619,7 @@ internal sealed partial class YouTubeClient(
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        start.Environment["TMPDIR"] = folder;
         foreach (string argument in arguments)
         {
             start.ArgumentList.Add(argument);

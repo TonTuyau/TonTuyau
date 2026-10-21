@@ -14,10 +14,11 @@ public sealed class YouTubeClientTests
 {
     private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
 
-    private static YouTubeClient Client(
+    internal static YouTubeClient Client(
         string ytdlp = "fake-yt-dlp.sh",
         string deno = "fake-deno.sh",
-        string? cookie = null)
+        string? cookie = null,
+        YtdlpTempFolders? temp = null)
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -31,6 +32,7 @@ public sealed class YouTubeClientTests
             options,
             new YtdlpLocator(options.YouTube.YtdlpPath),
             new FixedCookieSource(cookie),
+            temp ?? new YtdlpTempFolders(NullLogger<YtdlpTempFolders>.Instance),
             NullLogger<YouTubeClient>.Instance);
     }
 
