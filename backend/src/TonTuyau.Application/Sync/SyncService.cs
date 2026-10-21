@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Data.Common;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
@@ -230,6 +231,13 @@ public sealed partial class SyncService(
             catch (Exception ex) when (IsRunFailure(ex))
             {
                 Stopped(context, ex, lease, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Not a failure a run expects (a bug): still recorded as over, not left running, then thrown on.
+                LogUnexpected(ex, context.Run.Id);
+                context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = RunErrors.ReasonOf(ex) });
+                throw;
             }
             finally
             {
@@ -517,17 +525,25 @@ public sealed partial class SyncService(
             return;
         }
 
-        string reason = lockLost ? "The run lock was lost (another process holds it): stopped." : ex.Message;
+        string reason = lockLost
+            ? "The run lock was lost (another process holds it): stopped."
+            : RunErrors.ReasonOf(ex);
         context.Update(r => r with { Outcome = SyncOutcome.Failed, Error = reason });
         LogFailed(context.Run.Id, reason);
     }
 
+    /// <summary>
+    /// What ends a run, recorded failed (or canceled). PostgreSQL's errors too (alpha.4): a write cut short by a
+    /// cancel can come as one, which left the run "running" for good.
+    /// </summary>
     private static bool IsRunFailure(Exception ex) =>
         ex is TubeArchivistException
             or SearchStoreException
             or OperationCanceledException
             or IOException
-            or ValidationException;
+            or DbException
+            or ValidationException
+        || ex.InnerException is DbException;
 
     // ---------------------------------------------------------------- art
 
@@ -752,4 +768,7 @@ public sealed partial class SyncService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Run {RunId} finished: {Outcome}.")]
     private partial void LogFinished(string runId, SyncOutcome outcome);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Run {RunId} stopped by an unexpected error.")]
+    private partial void LogUnexpected(Exception exception, string runId);
 }
