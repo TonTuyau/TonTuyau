@@ -232,6 +232,15 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         await File.WriteAllBytesAsync(file, Content(0, length));
     }
 
+    /// <summary>A real video file (C3, Fixtures/Streaming): 10 s, a keyframe every 2 s.</summary>
+    [Given("the file of the video {string} is the test video {string}")]
+    public void FileIsTestVideo(string key, string name)
+    {
+        string file = Path.Combine(MediaRoot, _videos[key].MediaPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Streaming", name), file, overwrite: true);
+    }
+
     [Given("the import flagged the file of the video {string} as missing")]
     public async Task FlaggedMissing(string key)
     {

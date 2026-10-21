@@ -7,6 +7,7 @@ using TonTuyau.Application.Comments;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.Streaming;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 using TonTuyau.Application.YouTube;
@@ -15,6 +16,7 @@ using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.Runs;
 using TonTuyau.Infrastructure.Storage;
+using TonTuyau.Infrastructure.Streaming;
 using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure;
@@ -61,6 +63,10 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IChannelStore>(sp => sp.GetRequiredService<ChannelStore>());
         services.AddSingleton<ISubscriptionStore, SubscriptionStore>();
         services.AddSingleton<IDownloadFailureStore, DownloadFailureStore>();
+        // Videos played in parts (2.0, C3): their keyframe index, and the ffmpeg runs copying the parts.
+        services.AddSingleton<IKeyframeReader, FileKeyframeReader>();
+        services.AddSingleton<IKeyframeStore, KeyframeStore>();
+        services.AddSingleton<IStreamSessions, FfmpegStreamSessions>();
         services.AddSingleton<IVideoRepository, LibraryVideoRepository>();
         services.AddSingleton<IChannelRepository, LibraryChannelRepository>();
         services.AddHealthChecks().AddCheck<SearchStoreHealthCheck>("elasticsearch", tags: [ReadyTag]);

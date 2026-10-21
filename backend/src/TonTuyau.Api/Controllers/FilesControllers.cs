@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Files;
 using TonTuyau.Application.Media;
+using TonTuyau.Application.Streaming;
 
 namespace TonTuyau.Api.Controllers;
 
@@ -36,6 +37,66 @@ public sealed class MediaController(MediaService media) : ControllerBase
             AcceptRanges = true,
             ContentDisposition = file.DownloadName.ContentDisposition,
         };
+    }
+}
+
+/// <summary>
+/// A video played in parts (2.0, C3, question 9): an HLS playlist, the init segment and the parts, each copied out of
+/// the file by ffmpeg when it's asked for. <c>session</c> is the viewing's (made by the player): one ffmpeg run each,
+/// stopped when it's closed or after a minute without anything asked. 409 when the file can't be played in parts:
+/// the player plays it whole (<c>/media/{id}</c>).
+/// </summary>
+[ApiController]
+[Route("media/{id}/hls/{session}")]
+[ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+public sealed class StreamController(StreamingService streaming) : ControllerBase
+{
+    /// <summary>The viewer's own (a session of theirs): not kept by a cache shared by several viewers.</summary>
+    public const string CacheControl = "private, no-cache";
+
+    /// <summary>The playlist: the parts, keyframe to keyframe, about 6 s each.</summary>
+    [HttpGet("index.m3u8")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PlaylistAsync(string id, string session, CancellationToken cancellationToken)
+    {
+        string playlist = await streaming.GetPlaylistAsync(id, session, cancellationToken).ConfigureAwait(false);
+        Response.Headers.CacheControl = CacheControl;
+        return Content(playlist, "application/vnd.apple.mpegurl");
+    }
+
+    /// <summary>The init segment: the MP4 header every part needs before it.</summary>
+    [HttpGet(StreamingService.InitName)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> InitAsync(string id, string session, CancellationToken cancellationToken)
+    {
+        byte[] init = await streaming.GetInitAsync(id, session, cancellationToken).ConfigureAwait(false);
+        Response.Headers.CacheControl = CacheControl;
+        return File(init, "video/mp4");
+    }
+
+    /// <summary>A part, from its index in the playlist.</summary>
+    [HttpGet("{index:int}" + StreamingService.PartExtension)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PartAsync(
+        string id,
+        string session,
+        int index,
+        CancellationToken cancellationToken)
+    {
+        byte[] part = await streaming.GetPartAsync(id, session, index, cancellationToken).ConfigureAwait(false);
+        Response.Headers.CacheControl = CacheControl;
+        return File(part, "video/iso.segment");
+    }
+
+    /// <summary>The viewer left: its ffmpeg stops now.</summary>
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public IActionResult Close(string session)
+    {
+        streaming.Close(session);
+        return NoContent();
     }
 }
 

@@ -89,6 +89,10 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      # The tests of a video played in parts (C3) run the real ffmpeg (the images carry their own).
+      - name: ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
+
       - name: scripts/check.sh --backend
         run: ./scripts/check.sh --backend
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.Streaming;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Validation;
 
@@ -47,6 +48,7 @@ public sealed partial class YouTubeRefreshService(
     ISubscriptionStore subscriptions,
     IDownloadFailureStore downloadFailures,
     ISyncStateStore state,
+    StreamingService streaming,
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
 {
@@ -1083,6 +1085,8 @@ public sealed partial class YouTubeRefreshService(
 
             // It failed before (B5): it's downloaded now.
             await downloadFailures.RemoveAsync(videoId, ct).ConfigureAwait(false);
+            // Its keyframes read now (C3): its first play has them.
+            await streaming.PrepareAsync(videoId, ct).ConfigureAwait(false);
             return null;
         }
         finally

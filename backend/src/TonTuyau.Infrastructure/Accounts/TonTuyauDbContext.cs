@@ -5,6 +5,7 @@ using TonTuyau.Infrastructure.ApiKeys;
 using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.RunLogs;
 using TonTuyau.Infrastructure.Runs;
+using TonTuyau.Infrastructure.Streaming;
 using TonTuyau.Infrastructure.YouTube;
 
 namespace TonTuyau.Infrastructure.Accounts;
@@ -54,6 +55,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
     public DbSet<SyncLockRow> SyncLock => Set<SyncLockRow>();
 
     public DbSet<PendingArtRow> PendingArt => Set<PendingArtRow>();
+
+    public DbSet<VideoKeyframesRow> VideoKeyframes => Set<VideoKeyframesRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -209,6 +212,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
         modelBuilder.Entity<ChannelStateRow>(MapChannelStates);
         modelBuilder.Entity<ChannelSubscriptionRow>(MapChannelSubscriptions);
         modelBuilder.Entity<DownloadFailureRow>(MapDownloadFailures);
+        modelBuilder.Entity<VideoKeyframesRow>(MapVideoKeyframes);
         MapRuns(modelBuilder);
     }
 
@@ -333,6 +337,21 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             .HasOne<ChannelRow>()
             .WithMany()
             .HasForeignKey(f => f.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    /// <summary>The videos' keyframe times (2.0, C3), deleted with their video.</summary>
+    private static void MapVideoKeyframes(EntityTypeBuilder<VideoKeyframesRow> keyframes)
+    {
+        keyframes.ToTable("video_keyframes");
+        keyframes.HasKey(k => k.VideoId);
+        keyframes.Property(k => k.VideoId).HasColumnName("video_id");
+        keyframes.Property(k => k.FileSize).HasColumnName("file_size");
+        keyframes.Property(k => k.TimesMs).HasColumnName("times_ms");
+        keyframes
+            .HasOne<VideoRow>()
+            .WithOne()
+            .HasForeignKey<VideoKeyframesRow>(k => k.VideoId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 

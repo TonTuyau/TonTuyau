@@ -44,5 +44,8 @@
   "packageManager": "pnpm@12.8.1",
   "engines": {
     "node": ">=24"
+  },
+  "dependencies": {
+    "hls.js": "1.7.3"
   }
 }
