@@ -5,6 +5,7 @@ using TonTuyau.Application.Library;
 using TonTuyau.Application.RunLogs;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.Cli;
 
@@ -49,6 +50,8 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
           youtube full-sync [<id>]    list each subscribed channel's tabs whole (or this one's alone), and
                                       download what TonTuyau doesn't have, files missing included
           youtube retry <id>          try a channel's failed downloads again
+          youtube refresh-all [days]  read every channel then its videos on YouTube, the least recently read first,
+                                      skipping what was read in the last days (7; 0: nothing skipped)
           health                      whether the backend running here answers (the container's health check)
           --version                   TonTuyau's version
         """;
@@ -93,6 +96,9 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
                 ["youtube", "full-sync", string id] => LibraryIds.IsChannelId(id)
                     ? Report(await FollowAsync($"cli/youtube/sync?full=true&channel={id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
+                ["youtube", "refresh-all", .. string[] rest] when rest.Length <= 1 => await RefreshAllAsync(
+                    rest is [string days] ? days : null,
+                    cancellationToken),
                 ["youtube", "retry", string id] => LibraryIds.IsChannelId(id)
                     ? Report(await FollowAsync($"cli/youtube/retry/{id}", cancellationToken))
                     : Write($"Refused: '{id}' isn't a channel id (UC and 22 characters).", Refused),
@@ -176,6 +182,20 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
     }
 
     /// <summary>An import's report, saying first when it rebuilt the indices before (QA10 M5-10).</summary>
+    private async Task<int> RefreshAllAsync(string? days, CancellationToken cancellationToken)
+    {
+        int skipDays = YouTubeRefreshService.DefaultSkipReadDays;
+        if (days is not null
+            && (!int.TryParse(days, CultureInfo.InvariantCulture, out skipDays) || skipDays is < 0 or > 365))
+        {
+            return Write($"Refused: '{days}' isn't a number of days, 0 to 365.", Refused);
+        }
+
+        return Report(await FollowAsync(
+            $"cli/youtube/refresh-all?days={skipDays.ToString(CultureInfo.InvariantCulture)}",
+            cancellationToken));
+    }
+
     private async Task<int> AddChannelAsync(string channel, string? tabs, CancellationToken cancellationToken)
     {
         if (LibraryIds.ChannelTargetOf(channel) is not { } target)
@@ -261,6 +281,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         output.WriteLine($"{indent}{run.Id}  {mode} by {trigger}  {outcome}  {span}");
         WriteLines(
             run.Mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos
+                or SyncMode.RefreshAll
                 ? $"""
                       target    {run.Target}
                       read      {c.VideosRead} videos / {c.ChannelsRead} channels
@@ -325,6 +346,7 @@ internal sealed class CliRunner(IServiceProvider services, TextWriter output, Ba
         SyncMode.YouTubeSync => "youtube sync",
         SyncMode.YouTubeFullSync => "youtube full-sync",
         SyncMode.RetryDownloads => "youtube retry",
+        SyncMode.RefreshAll => "youtube refresh-all",
         _ => mode.ToString().ToLowerInvariant(),
     };
 }

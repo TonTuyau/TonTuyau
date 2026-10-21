@@ -362,6 +362,7 @@ export const fr: Dictionary = {
   'task.youTubeSync': 'Synchronisation YouTube',
   'task.youTubeFullSync': 'Synchronisation YouTube complète',
   'task.retryDownloads': 'Réessayer les téléchargements échoués',
+  'task.refreshAll': 'Tout actualiser',
   'task.import.what':
     "Lit toute la bibliothèque de TubeArchivist et ajoute ce que TonTuyau n'a pas. Ce qu'il a reste tel quel, et rien n'est supprimé : une fois importé, TubeArchivist peut être arrêté.",
   'task.indexRebuild.what': 'Réécrit la bibliothèque dans de nouveaux index de recherche, puis passe dessus.',
@@ -373,6 +374,8 @@ export const fr: Dictionary = {
     "Liste les onglets cochés de chaque chaîne abonnée, du plus récent jusqu'à la première vidéo que TonTuyau a, et télécharge ce qui est plus récent. Une chaîne jamais synchronisée est listée en entier.",
   'task.youTubeFullSync.what':
     "Liste en entier les onglets cochés de chaque chaîne abonnée, et télécharge ce que TonTuyau n'a pas, fichiers manquants compris. Peut prendre des heures.",
+  'task.refreshAll.what':
+    "Lit chaque chaîne puis ses vidéos sur YouTube, les moins récemment lues d'abord, au rythme des actualisations : ce que TonTuyau a lu récemment est sauté, ce qui a disparu n'est jamais relu.",
   'task.retryDownloads.what': "Retélécharge les vidéos échouées d'une chaîne, l'une après l'autre.",
   'task.addChannel.what':
     "Lit une chaîne sur YouTube, l'ajoute à la bibliothèque si elle est nouvelle, et s'y abonne : les synchronisations YouTube téléchargeront les vidéos des onglets cochés. Rien n'est encore téléchargé.",
@@ -396,6 +399,12 @@ export const fr: Dictionary = {
   'task.confirmFullSync':
     'Une synchronisation complète liste en entier chaque chaîne abonnée et télécharge tout ce qui manque : des heures parfois, pendant lesquelles les autres tâches attendent.',
   'task.startFullSync': 'Lancer la synchronisation complète',
+  'task.confirmRefreshAll':
+    'Tout lire va au rythme des actualisations (une pause entre deux lectures) : des jours pour une grande vidéothèque, pendant lesquels les autres tâches attendent leur tour. Arrêtée, une nouvelle reprend ce qui reste.',
+  'task.startRefreshAll': 'Tout actualiser',
+  'task.refreshAllDays': 'Sauter ce qui a été lu dans les derniers',
+  'task.days': 'jours',
+  'task.daysInvalid': 'Un nombre entier de jours, de 0 (tout lire) à 365.',
   'task.back': 'Retour',
   'task.confirmCancel': "Annuler cette exécution ? Elle s'arrête après son étape en cours ; ce qu'elle a fait reste.",
   'task.cancelRun': "Annuler l'exécution",

@@ -143,6 +143,15 @@ public sealed partial class SyncRunner(
         return await QueueAsync(mode, channelId, trigger, startedBy).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asks for "Refresh everything" (2.0, B8): every channel and video read on YouTube, the least recently read first.
+    /// </summary>
+    /// <param name="skipReadDays">What was read in the last this many days is skipped; 0: nothing is.</param>
+    /// <param name="startedBy">The account starting it from the Tasks page; null otherwise.</param>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public Task<StartedRun> StartRefreshAllAsync(int skipReadDays, SyncTrigger trigger, string? startedBy = null) =>
+        QueueAsync(SyncMode.RefreshAll, null, trigger, startedBy, skipReadDays: skipReadDays);
+
     /// <summary>Resumes a refresh on hold (1.5): the same run, from where YouTube refused it.</summary>
     /// <param name="by">The account asking; null: by itself, after the cool-down.</param>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
@@ -234,7 +243,8 @@ public sealed partial class SyncRunner(
         string? target,
         SyncTrigger trigger,
         string? startedBy,
-        ChannelTabs? tabs = null)
+        ChannelTabs? tabs = null,
+        int? skipReadDays = null)
     {
         TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset now = clock.GetUtcNow();
@@ -248,6 +258,7 @@ public sealed partial class SyncRunner(
             StartedBy = startedBy,
             Target = target,
             Tabs = tabs,
+            SkipReadDays = skipReadDays,
             Outcome = SyncOutcome.Queued,
         };
         lock (_gate)

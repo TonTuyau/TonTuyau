@@ -57,4 +57,26 @@ internal sealed class YouTubeFactsSource(IServiceScopeFactory scopes) : IYouTube
             return rows.ToDictionary(r => r.Id, LibraryRows.FactsOf, StringComparer.Ordinal);
         }
     }
+
+    public async Task<IReadOnlyList<LibraryCheck>> GetAllChecksAsync(CancellationToken cancellationToken)
+    {
+        AsyncServiceScope scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            List<LibraryCheck> channels = await db.Channels
+                .AsNoTracking()
+                .IgnoreAutoIncludes()
+                .Select(c => new LibraryCheck(c.Id, null, c.YouTube.State, c.YouTube.CheckedAt))
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            List<LibraryCheck> videos = await db.Videos
+                .AsNoTracking()
+                .IgnoreAutoIncludes()
+                .Select(v => new LibraryCheck(v.Id, v.ChannelId, v.YouTube.State, v.YouTube.CheckedAt))
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return [.. channels, .. videos];
+        }
+    }
 }

@@ -14,4 +14,10 @@ public interface IYouTubeFactsSource
     Task<IReadOnlyDictionary<string, ChannelFacts>> GetChannelsAsync(
         IReadOnlyCollection<string> ids,
         CancellationToken cancellationToken);
+
+    /// <returns>
+    /// Every channel, then every video, of the library, with its state on YouTube and when it was checked (2.0, B8):
+    /// a small row each, the whole library read once.
+    /// </returns>
+    Task<IReadOnlyList<LibraryCheck>> GetAllChecksAsync(CancellationToken cancellationToken);
 }

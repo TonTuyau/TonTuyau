@@ -2406,7 +2406,7 @@
           {
             "name": "task",
             "in": "path",
-            "description": "import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel.",
+            "description": "import, refreshVideo, refreshChannel(Videos), downloadVideo, addChannel, the syncs, refreshAll…",
             "required": true,
             "schema": {
               "type": "string"
@@ -2426,6 +2426,15 @@
             "description": "addChannel only: videos,shorts,streams or some of them (default: the three).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "refreshAll only: skip what was read in the last this many days, 0 to 365 (7).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -4354,7 +4363,8 @@
           "addChannel",
           "youTubeSync",
           "youTubeFullSync",
-          "retryDownloads"
+          "retryDownloads",
+          "refreshAll"
         ],
         "type": "string"
       },

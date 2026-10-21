@@ -29,6 +29,9 @@ public enum SyncPhase
 
     /// <summary>A download (2.0): yt-dlp downloading the video, then the library recording it.</summary>
     YouTubeDownload,
+
+    /// <summary>"Refresh everything" (2.0, B8): each channel and video, one by one.</summary>
+    YouTubeLibrary,
 }
 
 /// <summary>

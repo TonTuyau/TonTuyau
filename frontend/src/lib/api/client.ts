@@ -242,16 +242,20 @@ export const api = {
 
   /**
    * Asks for a task (2.0: queued, started at once when nothing else goes on): the run. A refresh (1.5) takes its
-   * `target`, a video's or channel's id; "Add a channel" (2.0) its id or @handle, and the tabs to subscribe to. 409
+   * `target`, a video's or channel's id; "Add a channel" (2.0) its id or @handle, and the tabs to subscribe to;
+   * "Refresh everything" (2.0) the days within which what was read is skipped. 409
    * when the target isn't one of the library (a refresh), or is already (a download, a channel subscribed to).
    */
-  startTask(task: RunTask, target?: string, tabs?: ChannelTabs): Promise<Run> {
+  startTask(task: RunTask, target?: string, tabs?: ChannelTabs, days?: number): Promise<Run> {
     const query = new URLSearchParams()
     if (target !== undefined) {
       query.set('target', target)
     }
     if (tabs !== undefined) {
       query.set('tabs', tabNames(tabs))
+    }
+    if (days !== undefined) {
+      query.set('days', String(days))
     }
     const search = query.size > 0 ? `?${query.toString()}` : ''
     return postFor(`/api/admin/tasks/${segment(task)}/runs${search}`)

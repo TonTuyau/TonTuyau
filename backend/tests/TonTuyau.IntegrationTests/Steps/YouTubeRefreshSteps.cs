@@ -189,6 +189,12 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     public Task RefreshVideo(string name) =>
         auth.PostWithSession($"/api/admin/tasks/refreshVideo/runs?target={FakeTubeArchivist.VideoId(name)}");
 
+    [When("I refresh everything with my session")]
+    public Task RefreshAll() => auth.PostWithSession("/api/admin/tasks/refreshAll/runs");
+
+    [When("I refresh everything, skipping what was read in the last {int} days, with my session")]
+    public Task RefreshAllWithin(int days) => auth.PostWithSession($"/api/admin/tasks/refreshAll/runs?days={days}");
+
     [When("I refresh the channel {string} with my session")]
     public Task RefreshChannel(string name) =>
         auth.PostWithSession($"/api/admin/tasks/refreshChannel/runs?target={FakeTubeArchivist.ChannelId(name)}");
