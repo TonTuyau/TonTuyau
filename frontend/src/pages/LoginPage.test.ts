@@ -48,6 +48,24 @@ describe('LoginPage', () => {
     expect(document.title).toBe('Log in - TonTuyau')
   })
 
+  it('shows the password as typed with the eye, and hides it again', async () => {
+    backend(loggedIn)
+    const user = userEvent.setup()
+    render(LoginPage)
+
+    const field = screen.getByLabelText('Password')
+    await user.type(field, 's3cret')
+    const eye = screen.getByRole('button', { name: 'Show the password', pressed: false })
+    await user.click(eye)
+
+    expect(field).toHaveAttribute('type', 'text')
+    expect(field).toHaveValue('s3cret')
+    expect(eye).toHaveAttribute('aria-pressed', 'true')
+    expect(eye).toHaveAttribute('title', 'Hide the password')
+    await user.click(eye)
+    expect(field).toHaveAttribute('type', 'password')
+  })
+
   it('speaks French too', () => {
     i18n.setLang('fr')
     backend(loggedIn)

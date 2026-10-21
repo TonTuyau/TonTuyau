@@ -622,6 +622,8 @@ export const fr: Dictionary = {
   'login.title': 'Se connecter',
   'login.username': "Nom d'utilisateur",
   'login.password': 'Mot de passe',
+  'login.showPassword': 'Afficher le mot de passe',
+  'login.hidePassword': 'Masquer le mot de passe',
   'login.remember': 'Rester connecté',
   'login.submit': 'Se connecter',
   'login.back': 'Retour à TonTuyau',

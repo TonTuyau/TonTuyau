@@ -610,6 +610,8 @@ export const en = {
   'login.title': 'Log in',
   'login.username': 'Username',
   'login.password': 'Password',
+  'login.showPassword': 'Show the password',
+  'login.hidePassword': 'Hide the password',
   'login.remember': 'Stay logged in',
   'login.submit': 'Log in',
   'login.back': 'Back to TonTuyau',
