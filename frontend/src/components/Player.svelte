@@ -16,6 +16,7 @@
   import { ratioFromElement, ratioFromTracks, ratioCss, type Ratio } from '../lib/videoRatio'
   import Button from './Button.svelte'
   import Icon from './Icon.svelte'
+  import PlayerControls from './PlayerControls.svelte'
 
   // `shorts`: the /shorts/ player fills the frame its page gives it, starts by itself and loops (like YouTube).
   let {
@@ -78,6 +79,7 @@
   const fitted = $derived(variant === 'watch' && mode === 'play')
 
   let element: HTMLVideoElement | undefined = $state()
+  let box: HTMLElement | undefined = $state()
 
   // A <video> taken out of the page keeps downloading, and keeps its connection, until the garbage collector frees
   // it. Scrolling through shorts in Firefox, the old ones piled up (9 open downloads for 1 video on screen) and took
@@ -160,6 +162,7 @@
 {/snippet}
 
 <div
+  bind:this={box}
   class="player {variant === 'shorts' ? 'shorts' : mode === 'play' ? 'fit' : 'landscape'}"
   style:--video-ratio={fitted ? ratioCss(shape).ratio : undefined}
   style:--video-ratio-value={fitted ? ratioCss(shape).value : undefined}
@@ -171,8 +174,8 @@
       bind:this={element}
       src={video.mediaUrl}
       poster={video.thumbnailUrl ?? undefined}
-      controls
-      autoplay={variant === 'shorts'}
+      controls={variant === 'shorts'}
+      autoplay
       loop={variant === 'shorts'}
       preload="metadata"
       aria-label={t('watch.player')}
@@ -181,17 +184,16 @@
       ontimeupdate={(event) => ontime?.(event.currentTarget.currentTime)}
     ></video>
     {#if uncertain && variant === 'shorts'}{@render notice()}{/if}
-    {#if onsizechange && variant === 'watch'}
-      <button
-        type="button"
-        class="size"
-        aria-label={size === 'small' ? t('player.large') : t('player.small')}
-        title={size === 'small' ? t('player.large') : t('player.small')}
-        aria-pressed={size === 'large'}
-        onclick={() => onsizechange(size === 'small' ? 'large' : 'small')}
-      >
-        <Icon name={size === 'small' ? 'playerLarge' : 'playerSmall'} />
-      </button>
+    <!-- The watch page's own controls (2.0, C1); the shorts keep the browser's. -->
+    {#if variant === 'watch' && element && box}
+      <PlayerControls
+        media={element}
+        {box}
+        chapters={video.chapters}
+        duration={video.durationSeconds}
+        {size}
+        {onsizechange}
+      />
     {/if}
   {:else}
     <div class="message" role="status">
@@ -242,39 +244,17 @@
     height: 100%;
   }
 
-  .size {
-    position: absolute;
-    top: var(--space-2);
-    right: var(--space-2);
-    display: grid;
-    place-items: center;
-    width: var(--icon-button-size);
-    height: var(--icon-button-size);
-    border: none;
-    border-radius: var(--radius-round);
-    background: var(--color-overlay);
-    color: var(--color-on-overlay);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
+  /* Full screen (the controls' button, F): the whole screen, the video in the middle of it. */
+  .player:fullscreen {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    border-radius: 0;
   }
 
-  .player:hover .size,
-  .size:focus-visible {
-    opacity: 1;
-  }
-
-  /* Touch screens have no hover: always shown. */
-  @media (hover: none) {
-    .size {
-      opacity: 1;
-    }
-  }
-
-  /* Below the watch page's one-column breakpoint the two sizes look the same: no button. */
-  @media (max-width: 1312px) {
-    .size {
-      display: none;
-    }
+  .player:fullscreen video {
+    object-fit: contain;
   }
 
   .notice {

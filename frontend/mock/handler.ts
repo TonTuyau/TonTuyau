@@ -231,7 +231,9 @@ class Library {
       ...rest,
       ...card,
       channel: { ...card.channel, subscribers: this.channelOf(video).subscribers },
-      chapters: video.id === this.db.videos[0]?.id ? demoChapters(video.durationSeconds) : [],
+      // The demo video plays the 3-minute sample (plugin.ts): its length and chapters fit it.
+      ...(video.id === this.db.videos[0]?.id ? { durationSeconds: DEMO_SECONDS } : {}),
+      chapters: video.id === this.db.videos[0]?.id ? demoChapters(DEMO_SECONDS) : [],
     }
   }
 
@@ -478,6 +480,9 @@ function stateOf(video: VideoFixture): VideoCard['youTubeState'] {
   const sum = [...video.id].reduce((total, char) => total + char.charCodeAt(0), 0)
   return sum % 23 === 0 ? 'private' : sum % 19 === 0 ? 'unlisted' : 'onYouTube'
 }
+
+/** The length of the demo video's sample (media/sample-chapters.mp4). */
+const DEMO_SECONDS = 180
 
 function demoChapters(duration: number): VideoDetail['chapters'] {
   const parts: [number, number, string][] = [

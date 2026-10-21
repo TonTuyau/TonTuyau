@@ -41,13 +41,16 @@ const samples = {
   portrait: fileURLToPath(new URL('./media/sample-portrait.mp4', import.meta.url)),
   fourByThree: fileURLToPath(new URL('./media/sample-4x3.mp4', import.meta.url)),
   wide: fileURLToPath(new URL('./media/sample-wide.mp4', import.meta.url)),
+  // 3 minutes with a running clock, for the demo video and its chapters (2.0, C1: the player's bar).
+  chapters: fileURLToPath(new URL('./media/sample-chapters.mp4', import.meta.url)),
 }
 
 /**
  * The test pattern with the video's shape (its video track, as the API gives it), so the player's box can be seen
  * fitting it. No video track: the 4:3 pattern, so the shape read from the loaded file differs from the 16:9 start.
  */
-export function sampleFor(video: VideoFixture): keyof typeof samples {
+export function sampleFor(video: VideoFixture, demo = false): keyof typeof samples {
+  if (demo) return 'chapters'
   const track = video.tracks.find((candidate) => candidate.kind === 'video')
   if (!track?.width || !track.height) return video.type === 'short' ? 'portrait' : 'fourByThree'
   const ratio = track.width / track.height
@@ -100,7 +103,7 @@ function serveMedia(state: State, req: IncomingMessage, res: ServerResponse, pat
     send(res, problemResponse(notFound(`No media file for ${id}.`)))
     return
   }
-  const file = samples[sampleFor(video)]
+  const file = samples[sampleFor(video, video.id === state.db.videos[0]?.id)]
   const size = statSync(file).size
   const range = parseRange(req.headers.range, size)
   res.setHeader('accept-ranges', 'bytes')
