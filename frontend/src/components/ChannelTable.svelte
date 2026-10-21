@@ -234,7 +234,6 @@
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     text-align: left;
-    white-space: nowrap;
   }
 
   th button {
@@ -269,14 +268,18 @@
     background: var(--color-surface);
   }
 
+  /* A long name wraps (alpha.3) rather than widening the table past its "Go to channel" button. */
   .channel {
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    white-space: normal;
   }
 
   .name {
+    min-width: 10rem;
     font-weight: var(--font-weight-medium);
+    overflow-wrap: anywhere;
   }
 
   .zero {
