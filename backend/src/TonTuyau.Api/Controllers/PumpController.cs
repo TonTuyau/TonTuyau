@@ -9,7 +9,8 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Api.Controllers;
 
 /// <summary>
-/// What TonTuyau's browser extension calls (1.5), with a <c>browserExtension</c> API key (or an admin's session).
+/// What TonTuyau's browser extension, LaPompe, calls (1.5), with a <c>browserExtension</c> API key (or an admin's
+/// session). Its addresses stay under <c>/api/extension</c>: the extension's versions out there call them.
 /// </summary>
 [ApiController]
 [Authorize(Policy = AuthServices.BrowserExtensionPolicy)]
@@ -17,7 +18,7 @@ namespace TonTuyau.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, Problems.ContentType)]
-public sealed class ExtensionController(YouTubeCookieService cookies, ExtensionService adding) : ControllerBase
+public sealed class PumpController(YouTubeCookieService cookies, PumpService adding) : ControllerBase
 {
     /// <summary>The largest cookie file taken (with room for the JSON around it).</summary>
     public const int MaxCookieRequestBytes = NetscapeCookies.MaxLength + 4096;

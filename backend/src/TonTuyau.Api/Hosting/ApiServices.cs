@@ -34,7 +34,7 @@ internal static class ApiServices
         services.AddSingleton<VideoService>();
         services.AddSingleton<ChannelService>();
         services.AddSingleton<ChannelAdminService>();
-        services.AddSingleton<ExtensionService>();
+        services.AddSingleton<PumpService>();
         services.AddSingleton<CommentService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();

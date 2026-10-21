@@ -13,7 +13,7 @@ namespace TonTuyau.Application.Extension;
 /// the key. A channel gets the YouTube page's default tabs. Asking for one that's already waiting gives its run, not a
 /// second one.
 /// </summary>
-public sealed class ExtensionService(
+public sealed class PumpService(
     SyncRunner runner,
     IVideoStore videos,
     ISubscriptionStore subscriptions,
