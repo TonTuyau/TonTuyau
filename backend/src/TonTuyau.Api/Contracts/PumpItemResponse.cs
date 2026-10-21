@@ -1,4 +1,4 @@
-using TonTuyau.Application.Extension;
+using TonTuyau.Application.Pump;
 
 namespace TonTuyau.Api.Contracts;
 
@@ -8,11 +8,11 @@ namespace TonTuyau.Api.Contracts;
 /// waiting (its run waits, goes on or is on hold) | inTonTuyau (a video with its file, a channel subscribed to).
 /// </param>
 /// <param name="RunId">While waiting: the run adding it (the Tasks page shows it); null otherwise.</param>
-public sealed record ExtensionItemResponse(ExtensionItemState State, string? RunId)
+public sealed record PumpItemResponse(PumpItemState State, string? RunId)
 {
-    public static explicit operator ExtensionItemResponse(ExtensionItem item)
+    public static explicit operator PumpItemResponse(PumpItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return new ExtensionItemResponse(item.State, item.RunId);
+        return new PumpItemResponse(item.State, item.RunId);
     }
 }

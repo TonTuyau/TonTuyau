@@ -1,7 +1,7 @@
-namespace TonTuyau.Application.Extension;
+namespace TonTuyau.Application.Pump;
 
 /// <summary>Where a YouTube video or channel stands in TonTuyau (2.0, B7), as the browser extension's button shows it.</summary>
-public enum ExtensionItemState
+public enum PumpItemState
 {
     /// <summary>Not in TonTuyau (a channel: not subscribed to): it can be added.</summary>
     Absent,

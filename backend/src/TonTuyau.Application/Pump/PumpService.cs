@@ -5,7 +5,7 @@ using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 using TonTuyau.Application.Validation;
 
-namespace TonTuyau.Application.Extension;
+namespace TonTuyau.Application.Pump;
 
 /// <summary>
 /// The browser extension's "Add to TonTuyau" (2.0, B7): where a YouTube video or channel stands, and adding it, the
@@ -20,44 +20,44 @@ public sealed class PumpService(
     ITaskRepository runs)
 {
     /// <exception cref="ValidationException">Not a video id.</exception>
-    public async Task<ExtensionItem> GetVideoAsync(string id, CancellationToken cancellationToken)
+    public async Task<PumpItem> GetVideoAsync(string id, CancellationToken cancellationToken)
     {
         RequireVideoId(id);
         StoredVideo? stored = await videos.GetStoredAsync(id, cancellationToken).ConfigureAwait(false);
         if (stored is not null && !stored.MediaMissing)
         {
-            return new ExtensionItem(ExtensionItemState.InTonTuyau);
+            return new PumpItem(PumpItemState.InTonTuyau);
         }
 
         SyncRun? pending = await PendingAsync(SyncMode.DownloadVideo, id, cancellationToken).ConfigureAwait(false);
-        return pending is not null ? new ExtensionItem(ExtensionItemState.Waiting, pending.Id)
-            : stored is not null ? new ExtensionItem(ExtensionItemState.FileMissing)
-            : new ExtensionItem(ExtensionItemState.Absent);
+        return pending is not null ? new PumpItem(PumpItemState.Waiting, pending.Id)
+            : stored is not null ? new PumpItem(PumpItemState.FileMissing)
+            : new PumpItem(PumpItemState.Absent);
     }
 
     /// <exception cref="ValidationException">Not a channel id.</exception>
-    public async Task<ExtensionItem> GetChannelAsync(string id, CancellationToken cancellationToken)
+    public async Task<PumpItem> GetChannelAsync(string id, CancellationToken cancellationToken)
     {
         RequireChannelId(id);
         if (await subscriptions.GetAsync(id, cancellationToken).ConfigureAwait(false) is not null)
         {
-            return new ExtensionItem(ExtensionItemState.InTonTuyau);
+            return new PumpItem(PumpItemState.InTonTuyau);
         }
 
         SyncRun? pending = await PendingAsync(SyncMode.AddChannel, id, cancellationToken).ConfigureAwait(false);
         return pending is not null
-            ? new ExtensionItem(ExtensionItemState.Waiting, pending.Id)
-            : new ExtensionItem(ExtensionItemState.Absent);
+            ? new PumpItem(PumpItemState.Waiting, pending.Id)
+            : new PumpItem(PumpItemState.Absent);
     }
 
     /// <summary>Downloads the video (through the queue); one already waiting: its run.</summary>
     /// <param name="key">The key's name, the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a video id.</exception>
     /// <exception cref="ConflictException">In TonTuyau already, with its file.</exception>
-    public async Task<ExtensionItem> AddVideoAsync(string id, string key, CancellationToken cancellationToken)
+    public async Task<PumpItem> AddVideoAsync(string id, string key, CancellationToken cancellationToken)
     {
-        ExtensionItem now = await GetVideoAsync(id, cancellationToken).ConfigureAwait(false);
-        if (now.State == ExtensionItemState.Waiting)
+        PumpItem now = await GetVideoAsync(id, cancellationToken).ConfigureAwait(false);
+        if (now.State == PumpItemState.Waiting)
         {
             return now;
         }
@@ -65,17 +65,17 @@ public sealed class PumpService(
         StartedRun started = await StartAsync(
             () => runner.StartRefreshAsync(SyncMode.DownloadVideo, id, SyncTrigger.Extension, key))
             .ConfigureAwait(false);
-        return new ExtensionItem(ExtensionItemState.Waiting, started.Id);
+        return new PumpItem(PumpItemState.Waiting, started.Id);
     }
 
     /// <summary>Subscribes to the channel with the default tabs, added when it's new (through the queue).</summary>
     /// <param name="key">The key's name, the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a channel id.</exception>
     /// <exception cref="ConflictException">TonTuyau is subscribed to it already.</exception>
-    public async Task<ExtensionItem> AddChannelAsync(string id, string key, CancellationToken cancellationToken)
+    public async Task<PumpItem> AddChannelAsync(string id, string key, CancellationToken cancellationToken)
     {
-        ExtensionItem now = await GetChannelAsync(id, cancellationToken).ConfigureAwait(false);
-        if (now.State == ExtensionItemState.Waiting)
+        PumpItem now = await GetChannelAsync(id, cancellationToken).ConfigureAwait(false);
+        if (now.State == PumpItemState.Waiting)
         {
             return now;
         }
@@ -83,7 +83,7 @@ public sealed class PumpService(
         StartedRun started = await StartAsync(
             () => runner.StartAddChannelAsync(id, tabs: null, SyncTrigger.Extension, key))
             .ConfigureAwait(false);
-        return new ExtensionItem(ExtensionItemState.Waiting, started.Id);
+        return new PumpItem(PumpItemState.Waiting, started.Id);
     }
 
     private static async Task<StartedRun> StartAsync(Func<Task<StartedRun>> start)

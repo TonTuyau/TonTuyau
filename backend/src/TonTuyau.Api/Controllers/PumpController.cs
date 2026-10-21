@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
 using TonTuyau.Api.Hosting;
-using TonTuyau.Application.Extension;
+using TonTuyau.Application.Pump;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Api.Controllers;
@@ -64,10 +64,10 @@ public sealed class PumpController(YouTubeCookieService cookies, PumpService add
 
     /// <summary>Where a video stands in TonTuyau (contract v2.6). 400 when it isn't a video id.</summary>
     [HttpGet("videos/{id}")]
-    [ProducesResponseType<ExtensionItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PumpItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
-    public async Task<ExtensionItemResponse> GetVideoAsync(string id, CancellationToken cancellationToken) =>
-        (ExtensionItemResponse)await adding
+    public async Task<PumpItemResponse> GetVideoAsync(string id, CancellationToken cancellationToken) =>
+        (PumpItemResponse)await adding
             .GetVideoAsync(id, cancellationToken)
             .ConfigureAwait(false);
 
@@ -76,12 +76,12 @@ public sealed class PumpController(YouTubeCookieService cookies, PumpService add
     /// page; one already waiting gives its run. 409 when TonTuyau has it, with its file; 400 when it isn't a video id.
     /// </summary>
     [HttpPost("videos/{id}")]
-    [ProducesResponseType<ExtensionItemResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<PumpItemResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> AddVideoAsync(string id, CancellationToken cancellationToken)
     {
-        ExtensionItemResponse item = (ExtensionItemResponse)await adding
+        PumpItemResponse item = (PumpItemResponse)await adding
             .AddVideoAsync(id, Name(), cancellationToken)
             .ConfigureAwait(false);
         return Accepted(item);
@@ -89,10 +89,10 @@ public sealed class PumpController(YouTubeCookieService cookies, PumpService add
 
     /// <summary>Where a channel stands in TonTuyau (contract v2.6). 400 when it isn't a channel id.</summary>
     [HttpGet("channels/{id}")]
-    [ProducesResponseType<ExtensionItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PumpItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
-    public async Task<ExtensionItemResponse> GetChannelAsync(string id, CancellationToken cancellationToken) =>
-        (ExtensionItemResponse)await adding
+    public async Task<PumpItemResponse> GetChannelAsync(string id, CancellationToken cancellationToken) =>
+        (PumpItemResponse)await adding
             .GetChannelAsync(id, cancellationToken)
             .ConfigureAwait(false);
 
@@ -102,12 +102,12 @@ public sealed class PumpController(YouTubeCookieService cookies, PumpService add
     /// subscribed to it; 400 when it isn't a channel id.
     /// </summary>
     [HttpPost("channels/{id}")]
-    [ProducesResponseType<ExtensionItemResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<PumpItemResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> AddChannelAsync(string id, CancellationToken cancellationToken)
     {
-        ExtensionItemResponse item = (ExtensionItemResponse)await adding
+        PumpItemResponse item = (PumpItemResponse)await adding
             .AddChannelAsync(id, Name(), cancellationToken)
             .ConfigureAwait(false);
         return Accepted(item);

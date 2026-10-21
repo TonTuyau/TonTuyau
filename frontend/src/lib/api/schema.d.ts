@@ -2098,7 +2098,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['ExtensionItemResponse']
+            'application/json': components['schemas']['PumpItemResponse']
           }
         }
         /** @description Bad Request */
@@ -2148,7 +2148,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['ExtensionItemResponse']
+            'application/json': components['schemas']['PumpItemResponse']
           }
         }
         /** @description Bad Request */
@@ -2219,7 +2219,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['ExtensionItemResponse']
+            'application/json': components['schemas']['PumpItemResponse']
           }
         }
         /** @description Bad Request */
@@ -2269,7 +2269,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['ExtensionItemResponse']
+            'application/json': components['schemas']['PumpItemResponse']
           }
         }
         /** @description Bad Request */
@@ -3533,12 +3533,6 @@ export interface components {
     ExtensionCookieResponse: {
       cookie: null | components['schemas']['YouTubeCookieResponse']
     }
-    ExtensionItemResponse: {
-      state: components['schemas']['ExtensionItemState']
-      runId: null | string
-    }
-    /** @enum {string} */
-    ExtensionItemState: 'absent' | 'fileMissing' | 'waiting' | 'inTonTuyau'
     HomeResponse: {
       sections: components['schemas']['HomeSection'][]
     }
@@ -3644,6 +3638,12 @@ export interface components {
       instance?: string
       traceId?: string
     }
+    PumpItemResponse: {
+      state: components['schemas']['PumpItemState']
+      runId: null | string
+    }
+    /** @enum {string} */
+    PumpItemState: 'absent' | 'fileMissing' | 'waiting' | 'inTonTuyau'
     RunCounts: {
       /** Format: int32 */
       videosRead: number

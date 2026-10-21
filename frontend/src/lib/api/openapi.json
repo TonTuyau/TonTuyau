@@ -1995,7 +1995,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtensionItemResponse"
+                  "$ref": "#/components/schemas/PumpItemResponse"
                 }
               }
             }
@@ -2050,7 +2050,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtensionItemResponse"
+                  "$ref": "#/components/schemas/PumpItemResponse"
                 }
               }
             }
@@ -2117,7 +2117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtensionItemResponse"
+                  "$ref": "#/components/schemas/PumpItemResponse"
                 }
               }
             }
@@ -2172,7 +2172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtensionItemResponse"
+                  "$ref": "#/components/schemas/PumpItemResponse"
                 }
               }
             }
@@ -3684,22 +3684,6 @@
           }
         }
       },
-      "ExtensionItemResponse": {
-        "required": ["state", "runId"],
-        "type": "object",
-        "properties": {
-          "state": {
-            "$ref": "#/components/schemas/ExtensionItemState"
-          },
-          "runId": {
-            "type": ["null", "string"]
-          }
-        }
-      },
-      "ExtensionItemState": {
-        "enum": ["absent", "fileMissing", "waiting", "inTonTuyau"],
-        "type": "string"
-      },
       "HomeResponse": {
         "required": ["sections"],
         "type": "object",
@@ -3996,6 +3980,22 @@
             "type": "string"
           }
         }
+      },
+      "PumpItemResponse": {
+        "required": ["state", "runId"],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/PumpItemState"
+          },
+          "runId": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "PumpItemState": {
+        "enum": ["absent", "fileMissing", "waiting", "inTonTuyau"],
+        "type": "string"
       },
       "RunCounts": {
         "required": [
