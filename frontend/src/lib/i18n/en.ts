@@ -356,6 +356,7 @@ export const en = {
   'task.youTubeSync': 'YouTube sync',
   'task.youTubeFullSync': 'Full YouTube sync',
   'task.retryDownloads': 'Try failed downloads again',
+  'task.refreshAll': 'Refresh everything',
   'task.import.what':
     "Reads the whole TubeArchivist library and adds what TonTuyau doesn't have. What it has stays as it is, and nothing is deleted: once imported, TubeArchivist can be shut down.",
   'task.indexRebuild.what': 'Writes the library again into new search indices, then switches to them.',
@@ -367,6 +368,8 @@ export const en = {
     'Lists the ticked tabs of each subscribed channel, newest first, down to the first video TonTuyau has, and downloads what is newer. A channel never synced is listed whole.',
   'task.youTubeFullSync.what':
     'Lists the ticked tabs of each subscribed channel whole, and downloads what TonTuyau does not have, the files missing included. Can take hours.',
+  'task.refreshAll.what':
+    'Reads each channel then its videos on YouTube, the least recently read first, at the pace of the refreshes: what TonTuyau read lately is skipped, what is gone never read again.',
   'task.retryDownloads.what': "Downloads a channel's failed videos again, one after the other.",
   'task.addChannel.what':
     'Reads a channel on YouTube, adds it to the library when it is new, and subscribes to it: the YouTube syncs will download the videos of the tabs ticked. Nothing is downloaded yet.',
@@ -390,6 +393,12 @@ export const en = {
   'task.confirmFullSync':
     'A full sync lists every subscribed channel whole and downloads all that is missing: up to hours, during which the other tasks wait.',
   'task.startFullSync': 'Start the full sync',
+  'task.confirmRefreshAll':
+    'Reading everything goes at the pace of the refreshes (a pause between two reads): days for a big library, during which the other tasks wait their turn. Stopped, a new one goes on with what is left.',
+  'task.startRefreshAll': 'Refresh everything',
+  'task.refreshAllDays': 'Skip what was read in the last',
+  'task.days': 'days',
+  'task.daysInvalid': 'A whole number of days, from 0 (read everything) to 365.',
   'task.back': 'Back',
   'task.confirmCancel': 'Cancel this run? It stops after its current step; what it did stays.',
   'task.cancelRun': 'Cancel the run',

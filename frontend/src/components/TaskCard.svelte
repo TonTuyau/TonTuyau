@@ -26,7 +26,7 @@
     waits: boolean
     lock: Tasks['lock']
     runningHere: string | null
-    onstart: (task: RunTask) => Promise<void>
+    onstart: (task: RunTask, target?: string, tabs?: undefined, days?: number) => Promise<void>
     oncancel: (runId: string) => Promise<void>
   } = $props()
 
@@ -53,14 +53,25 @@
       ? { text: t('task.confirmImport'), start: t('task.startImport') }
       : info.task === 'youTubeFullSync'
         ? { text: t('task.confirmFullSync'), start: t('task.startFullSync') }
-        : null,
+        : info.task === 'refreshAll'
+          ? { text: t('task.confirmRefreshAll'), start: t('task.startRefreshAll') }
+          : null,
   )
+
+  // "Refresh everything" (2.0): what was read in the last this many days is skipped (0: nothing is).
+  const MAX_DAYS = 365
+  let days = $state<number | null>(7)
+  const daysInvalid = $derived(
+    info.task === 'refreshAll' && (days === null || !Number.isInteger(days) || days < 0 || days > MAX_DAYS),
+  )
+  const go = () =>
+    info.task === 'refreshAll' ? onstart(info.task, undefined, undefined, days ?? undefined) : onstart(info.task)
 
   function start() {
     if (confirm) {
       asking = 'start'
     } else {
-      void act(() => onstart(info.task))
+      void act(go)
     }
   }
 
@@ -136,8 +147,18 @@
     {:else if asking === 'start' && confirm}
       <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
         <p>{confirm.text}</p>
+        {#if info.task === 'refreshAll'}
+          <label class="days">
+            {t('task.refreshAllDays')}
+            <input type="number" min="0" max={MAX_DAYS} step="1" bind:value={days} aria-invalid={daysInvalid} />
+            {t('task.days')}
+          </label>
+          {#if daysInvalid}
+            <small class="invalid" role="alert">{t('task.daysInvalid')}</small>
+          {/if}
+        {/if}
         <div>
-          <Button variant="filled" disabled={pending} onclick={() => void act(() => onstart(info.task))}>
+          <Button variant="filled" disabled={pending || daysInvalid} onclick={() => void act(go)}>
             {waits ? t('task.addToQueue') : confirm.start}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
@@ -155,6 +176,32 @@
 </article>
 
 <style>
+  .days {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .days input {
+    width: 5em;
+    height: var(--button-height);
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    font: inherit;
+  }
+
+  .days input[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+
+  .invalid {
+    color: var(--color-error);
+  }
+
   .card {
     display: flex;
     flex-direction: column;

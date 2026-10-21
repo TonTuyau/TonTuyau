@@ -26,6 +26,9 @@ public sealed class TaskService(
     TimeProvider clock)
 {
     public const int DefaultRunsPerPage = 20;
+
+    /// <summary>"Refresh everything" skips what was read in the last days: a year at most.</summary>
+    public const int MaxSkipReadDays = 365;
     public const int MaxRunsPerPage = 100;
     public const int DefaultLogLinesPerPage = 500;
     public const int MaxLogLinesPerPage = 2000;
@@ -55,12 +58,16 @@ public sealed class TaskService(
             SyncMode.YouTubeFullSync,
             await LatestAsync(SyncMode.YouTubeFullSync, runningHere, cancellationToken).ConfigureAwait(false),
             null);
+        TaskView refreshAll = new(
+            SyncMode.RefreshAll,
+            await LatestAsync(SyncMode.RefreshAll, runningHere, cancellationToken).ConfigureAwait(false),
+            null);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
-            [import, youTubeSync, youTubeFullSync],
+            [import, youTubeSync, youTubeFullSync, refreshAll],
             [.. onHold.Select(r => new RunView(r, Cancellable: true))],
             [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))]);
     }
@@ -105,12 +112,14 @@ public sealed class TaskService(
     /// TubeArchivist isn't set up (the import), the target isn't one of the library (a refresh), or is already, with its
     /// file (a download).
     /// </exception>
+    /// <param name="days">"Refresh everything" (B8): what was read in the last this many days is skipped, 0 to 365; null: 7.</param>
     public async Task<RunView> StartAsync(
         string task,
         string? target,
         string? tabs,
         string account,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? days = null)
     {
         // An index rebuild starts from the command line only.
         if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild)
@@ -118,7 +127,7 @@ public sealed class TaskService(
             throw RequestRules.Invalid(
                 "task",
                 "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo, addChannel, "
-                    + "youTubeSync, youTubeFullSync or retryDownloads.");
+                    + "youTubeSync, youTubeFullSync, retryDownloads or refreshAll.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo
@@ -150,6 +159,11 @@ public sealed class TaskService(
             throw RequestRules.Invalid("tabs", "is only for addChannel.");
         }
 
+        if (days is not null && (mode != SyncMode.RefreshAll || days is < 0 or > MaxSkipReadDays))
+        {
+            throw RequestRules.Invalid("days", $"is only for refreshAll: 0 to {MaxSkipReadDays}.");
+        }
+
         if (mode == SyncMode.DownloadVideo)
         {
             target = LibraryIds.VideoIdOf(target)
@@ -159,7 +173,11 @@ public sealed class TaskService(
         StartedRun started;
         try
         {
-            started = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+            started = mode == SyncMode.RefreshAll
+                ? await runner
+                    .StartRefreshAllAsync(days ?? YouTubeRefreshService.DefaultSkipReadDays, SyncTrigger.Admin, account)
+                    .ConfigureAwait(false)
+                : mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
                 ? await runner
                     .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account, target)
                     .ConfigureAwait(false)

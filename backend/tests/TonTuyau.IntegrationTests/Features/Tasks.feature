@@ -27,7 +27,7 @@ Feature: The Tasks page's API
     And the answer has exactly the fields "lock, runningHere, tasks, onHold, queue"
     And "lock" is null
     And "runningHere" is null
-    And "tasks" has 3 items
+    And "tasks" has 4 items
     And "tasks[0].task" is "import"
     And "tasks[0].lastRun" is null
     And "tasks[0].unavailable" is null
@@ -35,6 +35,8 @@ Feature: The Tasks page's API
     And "tasks[1].task" is "youTubeSync"
     And "tasks[2].task" is "youTubeFullSync"
     And "tasks[2].next" is null
+    And "tasks[3].task" is "refreshAll"
+    And "tasks[3].next" is null
     And "queue" has 0 items
 
   Scenario: Without TubeArchivist's settings, the import says why it can't start

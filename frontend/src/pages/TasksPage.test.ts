@@ -201,6 +201,41 @@ describe('TasksPage', () => {
     vi.useRealTimers()
   })
 
+  it('refreshes everything once asked, skipping what was read in the days chosen', async () => {
+    const user = userEvent.setup()
+    const started = run({ id: 'run-20261021T100000Z-aaaaaa', task: 'refreshAll', state: 'running', finishedAt: null })
+    const withRefreshAll = tasks()
+    withRefreshAll.tasks = [
+      ...withRefreshAll.tasks,
+      { task: 'refreshAll', lastRun: null, unavailable: null, next: null },
+    ]
+    const api = fakeApi({
+      '/api/admin/tasks': withRefreshAll,
+      '/api/admin/runs': page([run()]),
+      '/api/admin/tasks/refreshAll/runs': started,
+    })
+    render(TasksPage)
+
+    const card = await screen.findByRole('article', { name: 'Refresh everything' })
+    expect(within(card).getByText('tontuyau youtube refresh-all [days]')).toBeInTheDocument()
+    await user.click(within(card).getByRole('button', { name: 'Run now' }))
+    const confirm = within(card).getByRole('group', { name: 'Refresh everything' })
+    expect(confirm).toHaveTextContent(/days for a big library/)
+    const days = within(confirm).getByRole('spinbutton', { name: /Skip what was read in the last/ })
+    expect(days).toHaveValue(7)
+
+    await user.clear(days)
+    await user.type(days, '400')
+    expect(within(confirm).getByRole('alert')).toHaveTextContent('A whole number of days, from 0')
+    expect(within(confirm).getByRole('button', { name: 'Refresh everything' })).toBeDisabled()
+
+    await user.clear(days)
+    await user.type(days, '30')
+    await user.click(within(confirm).getByRole('button', { name: 'Refresh everything' }))
+    await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+    expect(api.requests('/api/admin/tasks/refreshAll/runs')[0]?.searchParams.get('days')).toBe('30')
+  })
+
   it('lists the runs waiting their turn, each with who asked and Cancel; the cards add to the queue', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-10-12T14:00:20Z') })
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })

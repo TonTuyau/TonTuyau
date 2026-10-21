@@ -33,6 +33,7 @@ export const taskCommands: Record<RunTask, string> = {
   youTubeSync: 'tontuyau youtube sync',
   youTubeFullSync: 'tontuyau youtube full-sync [<id>]',
   retryDownloads: 'tontuyau youtube retry <id>',
+  refreshAll: 'tontuyau youtube refresh-all [days]',
 }
 
 /** The refreshes on YouTube (1.5), as the Tasks page shows them. */
@@ -43,7 +44,12 @@ export const youTubeTasks: RunTask[] = ['downloadVideo', 'addChannel', ...refres
 
 /** A refresh on YouTube (1.5): a video, a channel, or a channel and its videos. */
 export function isRefresh(run: Run): boolean {
-  return run.task === 'refreshVideo' || run.task === 'refreshChannel' || run.task === 'refreshChannelVideos'
+  return (
+    run.task === 'refreshVideo' ||
+    run.task === 'refreshChannel' ||
+    run.task === 'refreshChannelVideos' ||
+    run.task === 'refreshAll'
+  )
 }
 
 /** A run that asks YouTube (1.5: a refresh; 2.0: a download): it can be put on hold. */

@@ -39,17 +39,19 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel.")]
+        [Description("import, refreshVideo, refreshChannel(Videos), downloadVideo, addChannel, the syncs, refreshAll…")]
         string task,
         [FromQuery]
         [Description("Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.")]
         string? target,
         [FromQuery, Description("addChannel only: videos,shorts,streams or some of them (default: the three).")]
         string? tabs,
+        [FromQuery, Description("refreshAll only: skip what was read in the last this many days, 0 to 365 (7).")]
+        int? days,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, target, tabs, Account(), cancellationToken)
+            .StartAsync(task, target, tabs, Account(), cancellationToken, days)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }

@@ -57,6 +57,11 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     public Task<IActionResult> SyncAsync([FromQuery] bool full, [FromQuery] string? channel) =>
         StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli, channelId: channel));
 
+    /// <summary>"Refresh everything" (2.0, B8): what was read in the last <paramref name="days"/> days skipped.</summary>
+    [HttpPost("youtube/refresh-all")]
+    public Task<IActionResult> RefreshAllAsync([FromQuery] int days) =>
+        StartAsync(() => runner.StartRefreshAllAsync(days, SyncTrigger.Cli));
+
     /// <summary>A channel's failed downloads tried again (2.0, B5).</summary>
     [HttpPost("youtube/retry/{id}")]
     public Task<IActionResult> RetryAsync(string id) =>

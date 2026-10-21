@@ -2491,10 +2491,12 @@ export interface paths {
           target?: string
           /** @description addChannel only: videos,shorts,streams or some of them (default: the three). */
           tabs?: string
+          /** @description refreshAll only: skip what was read in the last this many days, 0 to 365 (7). */
+          days?: number
         }
         header?: never
         path: {
-          /** @description import | refreshVideo | refreshChannel | refreshChannelVideos | downloadVideo | addChannel. */
+          /** @description import, refreshVideo, refreshChannel(Videos), downloadVideo, addChannel, the syncs, refreshAll… */
           task: string
         }
         cookie?: never
@@ -3773,6 +3775,7 @@ export interface components {
       | 'youTubeSync'
       | 'youTubeFullSync'
       | 'retryDownloads'
+      | 'refreshAll'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */

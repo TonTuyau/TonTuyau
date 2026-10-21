@@ -53,6 +53,12 @@ public enum SyncMode
     /// <see cref="SyncRun.Target"/>), skipped ones included, a pause between two.
     /// </summary>
     RetryDownloads,
+
+    /// <summary>
+    /// Refreshes everything from YouTube (2.0, B8): each channel then its videos, the least recently read first, what
+    /// was read in the last <see cref="SyncRun.SkipReadDays"/> days skipped; at the refreshes' pace, held on a refusal.
+    /// </summary>
+    RefreshAll,
 }
 
 public enum SyncTrigger
@@ -200,6 +206,12 @@ public sealed record SyncRun
     /// "Add a channel" adds (its id, or its <c>@handle</c> until the run reads its id on YouTube).
     /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>
+    /// "Refresh everything" (2.0, B8): what TonTuyau read on YouTube in the last this many days is skipped (0: nothing
+    /// is); null for the other runs.
+    /// </summary>
+    public int? SkipReadDays { get; init; }
 
     /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
     public ChannelTabs? Tabs { get; init; }

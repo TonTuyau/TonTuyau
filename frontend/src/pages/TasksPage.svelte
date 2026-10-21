@@ -92,10 +92,10 @@
   /** Why the last start or cancel was refused; cleared by the next one. */
   let refused = $state<string | null>(null)
 
-  async function onstart(task: RunTask, target?: string, tabs?: ChannelTabs) {
+  async function onstart(task: RunTask, target?: string, tabs?: ChannelTabs, days?: number) {
     refused = null
     try {
-      const started = await api.startTask(task, target, tabs)
+      const started = await api.startTask(task, target, tabs, days)
       router.navigate(href.adminRun(started.id))
     } catch (error) {
       refused = t('task.refused', { reason: reasonOf(error) })

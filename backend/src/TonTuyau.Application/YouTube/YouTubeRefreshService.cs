@@ -50,6 +50,9 @@ public sealed partial class YouTubeRefreshService(
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
 {
+    /// <summary>"Refresh everything" skips what was read in the last this many days, unless told otherwise (B8).</summary>
+    public const int DefaultSkipReadDays = 7;
+
     /// <param name="mode">A refresh: <see cref="SyncMode.RefreshVideo"/>, <see cref="SyncMode.RefreshChannel"/> or
     /// <see cref="SyncMode.RefreshChannelVideos"/>; or a download, <see cref="SyncMode.DownloadVideo"/>.</param>
     /// <param name="target">
@@ -128,8 +131,17 @@ public sealed partial class YouTubeRefreshService(
         // What it reads, in order: the channel first, then its videos, latest downloaded first; not the gone ones.
         // A YouTube sync (B5): every subscribed channel, the earliest subscribed first (a full sync of one channel: that
         // one); each one's videos to download come right after it, once it's listed.
+        // Refresh everything (B8): the library's channels and videos, the least recently read first.
+        (IReadOnlyList<string> Work, int Skipped) everything = mode == SyncMode.RefreshAll
+            ? RefreshAllPlan.Order(
+                await facts.GetAllChecksAsync(cancellationToken).ConfigureAwait(false),
+                clock.GetUtcNow(),
+                queued?.SkipReadDays ?? DefaultSkipReadDays)
+            : ([], 0);
         List<string> work = mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync && target is null
             ? [.. (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Select(s => s.ChannelId)]
+            : mode == SyncMode.RefreshAll
+            ? [.. everything.Work]
             : mode == SyncMode.RetryDownloads
             ? [.. (await downloadFailures.ListAsync(target!, cancellationToken).ConfigureAwait(false))
                 .Select(f => f.VideoId)]
@@ -183,6 +195,20 @@ public sealed partial class YouTubeRefreshService(
                 }
 
                 run = current with { Outcome = SyncOutcome.Running, StartedAt = clock.GetUtcNow() };
+            }
+
+            if (mode == SyncMode.RefreshAll)
+            {
+                int days = run.SkipReadDays ?? DefaultSkipReadDays;
+                run = run with
+                {
+                    Notes =
+                    [
+                        .. run.Notes,
+                        $"{work.Count} channels and videos to read, the least recently read first; {everything.Skipped} "
+                            + $"skipped: gone, or read in the last {days} days.",
+                    ],
+                };
             }
 
             return await RunLockedAsync(run, work, skipped, resumedBy: null, lease, progress, cancellationToken)
@@ -459,6 +485,23 @@ public sealed partial class YouTubeRefreshService(
                     refused = await SyncItemAsync(mode == SyncMode.YouTubeFullSync, work, index, read, context)
                         .ConfigureAwait(false);
                 }
+                else if (mode == SyncMode.RefreshAll)
+                {
+                    // One line over the whole library; a pause before each read but the first.
+                    if (index == 0)
+                    {
+                        context.BeginPhase(SyncPhase.YouTubeLibrary, work.Count);
+                    }
+                    else
+                    {
+                        await PauseAsync(read.PauseSeconds, ct).ConfigureAwait(false);
+                    }
+
+                    refused = LibraryIds.IsChannelId(id)
+                        ? await RefreshChannelAsync(id, context, counted: true).ConfigureAwait(false)
+                        : await RefreshVideoAsync(id, comments, context).ConfigureAwait(false);
+                    context.Progressed(index + 1);
+                }
                 else if (LibraryIds.IsChannelId(id))
                 {
                     context.BeginPhase(SyncPhase.YouTubeChannel);
@@ -541,8 +584,9 @@ public sealed partial class YouTubeRefreshService(
     /// <exception cref="SyncRefusedException">Why it can't run.</exception>
     public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
-        // A sync of every subscription has nothing to check: none is nothing to do.
-        if (mode == SyncMode.YouTubeSync || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
+        // A sync of every subscription, a refresh of everything: nothing to check (none is nothing to do).
+        if (mode is SyncMode.YouTubeSync or SyncMode.RefreshAll
+            || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
         {
             return;
         }
