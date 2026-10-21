@@ -9,9 +9,16 @@ export function runSeconds(run: Run, now: number): number {
   return Math.max(0, (end - new Date(run.startedAt).getTime()) / 1000)
 }
 
-/** Who started it: itself (a refresh resuming), the command line, the startup, or the account (the Tasks page). */
+/**
+ * Who started it: itself (a refresh resuming), the command line, the startup, the account (the Tasks page), or the
+ * browser extension's key (2.0).
+ */
 export function startedBy(run: Run): string {
-  return run.trigger === 'admin' ? (run.startedBy ?? 'admin') : t(`run.by.${run.trigger}`)
+  // An account, or the browser extension's key (2.0: "Firefox, laptop (API key)").
+  if (run.trigger === 'admin' || run.trigger === 'extension') {
+    return run.startedBy ?? (run.trigger === 'admin' ? 'admin' : t('run.by.extension'))
+  }
+  return t(`run.by.${run.trigger}`)
 }
 
 /** The command line that does the same as each task. */

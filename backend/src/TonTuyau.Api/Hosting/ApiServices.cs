@@ -10,6 +10,7 @@ using TonTuyau.Application.ChannelAdmin;
 using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Media;
+using TonTuyau.Application.Pump;
 using TonTuyau.Application.Tasks;
 using TonTuyau.Application.Validation;
 
@@ -33,6 +34,7 @@ internal static class ApiServices
         services.AddSingleton<VideoService>();
         services.AddSingleton<ChannelService>();
         services.AddSingleton<ChannelAdminService>();
+        services.AddSingleton<PumpService>();
         services.AddSingleton<CommentService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();

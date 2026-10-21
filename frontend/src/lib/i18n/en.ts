@@ -444,6 +444,7 @@ export const en = {
   'run.by.scheduler': 'By itself',
   'run.by.cli': 'Command line',
   'run.by.startup': 'Startup',
+  'run.by.extension': 'Browser extension',
   'run.result.import': '{created} new · {unchanged} already there',
   'run.result.addChannel': 'Subscribed: {tabs}',
   'run.result.retry': '{created} downloaded, {failed} failed again',

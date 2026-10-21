@@ -69,6 +69,11 @@ public enum SyncTrigger
 
     /// <summary>From the admin's Tasks page (1.4), by the account <see cref="SyncRun.StartedBy"/>.</summary>
     Admin,
+
+    /// <summary>
+    /// From the browser extension (2.0, B7: "Add to TonTuyau" on a YouTube page), by the key <see cref="SyncRun.StartedBy"/>.
+    /// </summary>
+    Extension,
 }
 
 public enum SyncOutcome

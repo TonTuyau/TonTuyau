@@ -454,6 +454,7 @@ export const fr: Dictionary = {
   'run.by.scheduler': "D'elle-même",
   'run.by.cli': 'Ligne de commande',
   'run.by.startup': 'Démarrage',
+  'run.by.extension': 'Extension de navigateur',
   'run.result.import': '{created} nouvelles · {unchanged} déjà là',
   'run.result.addChannel': 'Abonné : {tabs}',
   'run.result.retry': '{created} téléchargées, {failed} échouées encore',

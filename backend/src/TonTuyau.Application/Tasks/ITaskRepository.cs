@@ -27,4 +27,7 @@ public interface ITaskRepository
     /// <returns>The runs waiting their turn (2.0), in the order they start: the first asked for first.</returns>
     Task<IReadOnlyList<SyncRun>> GetQueuedRunsAsync(CancellationToken cancellationToken);
 
+    /// <returns>The runs of that kind not over yet (2.0, B7): queued, going on or on hold; the first asked for first.</returns>
+    Task<IReadOnlyList<SyncRun>> GetPendingRunsAsync(SyncMode mode, CancellationToken cancellationToken);
+
 }
