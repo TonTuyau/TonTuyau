@@ -10,7 +10,7 @@
     <!-- TonTuyau's version (QA13-4): X.Y.Z, or a pre-release X.Y.Z-alpha.N / -beta.N / -rc.N (a release branch tried
          on the VM). frontend/package.json carries the same one (scripts/check-version.sh). No "+<commit>" suffix: the
          images carry the commit in their labels. -->
-    <Version>2.0.0-alpha.4</Version>
+    <Version>2.0.0-alpha.5</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
