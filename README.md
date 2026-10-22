@@ -40,8 +40,8 @@ same watch page, the same search, on your computer and your phone.
   imports its whole library (read-only), then you can shut it down.
 - 🔌 **One click from YouTube.** With [LaPompe](#-lapompe-the-browser-extension), an "Add to TonTuyau" button sits
   next to Subscribe on YouTube itself.
-- 🔒 **Yours.** No sign-up, no tracking, no cloud. Browsing needs no login; one admin account runs the library, from
-  a dashboard, a Tasks page and a command line.
+- 🔒 **Yours.** No sign-up, no tracking, no cloud ([privacy](PRIVACY.md)). Browsing needs no login; one admin account
+  runs the library, from a dashboard, a Tasks page and a command line.
 
 ## A look around
 
@@ -104,7 +104,7 @@ your TonTuyau's address and that key, and **Test the connection**.
 - [Command line](#command-line)
 - [Updating and upgrading](#updating-and-upgrading)
 - [Backups](#backups)
-- [Security](#security)
+- [Security](#security) and [privacy](PRIVACY.md)
 - [REST API](#rest-api)
 - [Development](#development)
 - [License](#license)
@@ -394,6 +394,8 @@ full policy is in [`frontend/server/server.ts`](frontend/server/server.ts)), wit
 `Referrer-Policy: same-origin` and `X-Frame-Options: SAMEORIGIN`; the build fails if the page gets anything the policy
 would block. Only the web app's port is published; the command line reaches the backend through a Unix socket inside
 its container only. The images run as a non-root user, with no shell.
+
+What TonTuyau stores, where it connects, and what it never does: [PRIVACY.md](PRIVACY.md).
 
 Found a vulnerability? Please report it privately, through the repository's **Security → Report a vulnerability**,
 rather than in an issue.
