@@ -22,7 +22,7 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau front" \
-      org.opencontainers.image.description="TonTuyau's web app and its server (a read-only, YouTube-like UI over a TubeArchivist library)" \
+      org.opencontainers.image.description="TonTuyau's web app and its server (a self-hosted, YouTube-like video library)" \
       org.opencontainers.image.source="https://github.com/TonTuyau/TonTuyau" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.version="${VERSION}" \

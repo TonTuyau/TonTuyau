@@ -4,6 +4,8 @@
 # when everything passed (the tag must match the version in the code):
 #   vX.Y.Z                         → `X.Y.Z`, `X.Y` and `latest`
 #   vX.Y.Z-alpha.N / -beta.N / -rc.N → only `X.Y.Z-alpha.N`: never `latest`, `X` or `X.Y`
+# then the tag's GitHub Release is made, its notes docs/releases/X.Y.Z.md (a pre-release, without its own notes:
+# GitHub's list of what was merged since the tag before).
 # A pull request builds the images and never pushes them. One that changes nothing but frontend/ (C1) skips the
 # backend's checks; anything else changed, or a tag, checks both.
 name: CI
@@ -168,7 +170,7 @@ jobs:
           # TonTuyau and point at github.com/TonTuyau/TonTuyau whatever the repository is called when CI runs.
           labels: |
             org.opencontainers.image.title=TonTuyau ${{ matrix.image }}
-            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a read-only, YouTube-like UI over a TubeArchivist library
+            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a self-hosted, YouTube-like video library
             org.opencontainers.image.source=https://github.com/TonTuyau/TonTuyau
             org.opencontainers.image.url=https://github.com/TonTuyau/TonTuyau
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
@@ -212,3 +214,28 @@ jobs:
             REVISION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # A version tag's GitHub Release (2.0.0), once both images are published: titled "TonTuyau X.Y.Z", its notes
+  # docs/releases/X.Y.Z.md, or GitHub's list of what was merged since the tag before when there are none (the alphas).
+  # A pre-release is marked as one, so it never becomes the latest release.
+  release:
+    name: GitHub Release
+    needs: images
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: The release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(./scripts/check-version.sh "$GITHUB_REF_NAME")"
+          notes=(--generate-notes)
+          if [ -f "docs/releases/$version.md" ]; then notes=(--notes-file "docs/releases/$version.md"); fi
+          kind=()
+          if [ "$(./scripts/check-version.sh --prerelease)" = true ]; then kind=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" --title "TonTuyau $version" --verify-tag "${notes[@]}" "${kind[@]}"

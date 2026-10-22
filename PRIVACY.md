@@ -1,6 +1,6 @@
 # TonTuyau's privacy notes
 
-_Last updated: 2026-10-22 (2.0.0-alpha.8)._
+_Last updated: 2026-10-22 (2.0.0)._
 
 TonTuyau is software you install on your own server. It has no server of its own: whoever runs a TonTuyau decides
 what goes in it and who can reach it. This page says what TonTuyau itself stores, where it connects, and what it never
