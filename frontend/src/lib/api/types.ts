@@ -69,7 +69,7 @@ export type Dashboard = Schemas['DashboardResponse']
 
 /**
  * `GET /api/admin/dashboard/imports` (1.2): the new videos of a period, a bar per run, day, week or month of the
- * sync's time zone (`timeZone`), oldest first, empty ones too; `notRecorded` is the part of the runs of 1.1.
+ * dashboard's time zone (`timeZone`, TONTUYAU_TZ), oldest first, empty ones too; `notRecorded` is the part of the runs of 1.1.
  */
 export type ImportHistory = Schemas['ImportHistoryResponse']
 
@@ -82,8 +82,8 @@ export type TypePlayTime = Schemas['TypePlayTime']
 export type ChannelTotals = Schemas['ChannelTotals']
 
 /**
- * `GET /api/admin/tasks` (1.4): the incremental sync, the full sync and applying deletions (in that order), and the
- * run going on (`lock`, in any process; `runningHere`, the one this backend can cancel).
+ * `GET /api/admin/tasks` (1.4): the TubeArchivist import (2.0: how it last ran, or why it can't start), the refreshes
+ * on hold, and the run going on (`lock`, in any process; `runningHere`, the one this backend can cancel).
  */
 export type Tasks = Schemas['TasksResponse']
 
@@ -123,6 +123,9 @@ export type YouTubeCookieState = YouTubeCookie['state']
 export type YtdlpState = Schemas['YtdlpStateResponse']
 export type YouTubeSettings = Schemas['YouTubeSettingsResponse']
 export type AdminChannel = Schemas['AdminChannelResponse']
+export type Subscription = Schemas['SubscriptionResponse']
+export type ChannelTabs = Schemas['ChannelTabsResponse']
+export type DownloadFailure = Schemas['DownloadFailureResponse']
 export type Chapter = Schemas['Chapter']
 export type Comments = Schemas['CommentsResponse']
 export type CommentThread = Schemas['CommentThreadResponse']
@@ -159,6 +162,10 @@ export type VideoListParams = Paged<QueryOf<'/api/videos'>>
 export type ChannelVideoListParams = Paged<QueryOf<'/api/channels/{id}/videos'>> & { type: VideoType }
 
 export type ChannelListParams = Paged<QueryOf<'/api/channels'>>
+
+/** `/api/admin/dashboard/channels` (alpha.3): q, sort, order, gone, cursor, size. */
+export type DashboardChannelParams = Paged<QueryOf<'/api/admin/dashboard/channels'>>
+export type DashboardChannelSort = NonNullable<DashboardChannelParams['sort']>
 
 export type SearchFilters = Pick<QueryOf<'/api/search'>, 'type' | 'channel' | 'published' | 'duration' | 'sort'>
 

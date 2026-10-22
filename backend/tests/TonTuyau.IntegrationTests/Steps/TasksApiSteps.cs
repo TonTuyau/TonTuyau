@@ -1,7 +1,9 @@
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using TonTuyau.Application.Browse;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.Tasks;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -13,16 +15,6 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     private IServiceProvider Services => state.Backend.Services;
 
     private ISyncStateStore Store => Services.GetRequiredService<ISyncStateStore>();
-
-    /// <summary>The scheduler on with the default crons; the backend restarts with it (and the scenario's clock).</summary>
-    [Given("the scheduler is on with the default schedule")]
-    public void SchedulerOnDefaults()
-    {
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncSchedulerEnabled), "true");
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncIncrementalCron), null);
-        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.SyncFullCron), null);
-        state.StopBackend();
-    }
 
     /// <summary>A run of TonTuyau 1.3 or older, finished long ago: it has no log.</summary>
     [Given("a run from before 1.4, {string}")]
@@ -37,8 +29,8 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         SyncRun run = new()
         {
             Id = id,
-            Mode = SyncMode.Incremental,
-            Trigger = SyncTrigger.Scheduler,
+            Mode = SyncMode.Import,
+            Trigger = SyncTrigger.Cli,
             StartedAt = started,
             FinishedAt = started.AddMinutes(1),
             Outcome = SyncOutcome.Succeeded,
@@ -59,6 +51,15 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     [When("I cancel the latest run with my session")]
     public async Task CancelLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/cancel");
+
+    /// <summary>The first run on hold of the Tasks page (1.5), canceled: it won't resume.</summary>
+    [When("I cancel the run on hold with my session")]
+    public async Task CancelHeld()
+    {
+        await auth.RequestWithSession("/api/admin/tasks");
+        string id = ApiSteps.Scalar(api.At("onHold[0].id"));
+        await auth.PostWithSession($"/api/admin/runs/{id}/cancel");
+    }
 
     [When("I put the latest run on hold with my session")]
     public async Task HoldLatest() =>
@@ -85,13 +86,6 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
     public async Task IsLatestRunId(string path) =>
         Assert.Equal(await LatestRunIdAsync(), ApiSteps.Scalar(api.At(path)));
 
-    [Then("{string} is the latest full run's id")]
-    public async Task IsLatestFullRunId(string path)
-    {
-        SyncRun? latest = await Store.GetLatestFullRunAsync(CancellationToken.None);
-        Assert.Equal(latest?.Id, ApiSteps.Scalar(api.At(path)));
-    }
-
     [Then("the latest run ends {word} within {int} seconds")]
     public async Task LatestEnds(string outcome, int seconds)
     {
@@ -100,15 +94,67 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         while (true)
         {
             IReadOnlyList<SyncRun> runs = await Store.GetRecentRunsAsync(1, CancellationToken.None);
-            if (runs[0].Outcome != SyncOutcome.Running)
+            // Queued ones (2.0) end later: the latest run is the last to start once the queue is empty.
+            int queued = (await state.Backend.Services
+                .GetRequiredService<ITaskRepository>()
+                .GetQueuedRunsAsync(CancellationToken.None)).Count;
+            if (runs[0].Outcome is not (SyncOutcome.Running or SyncOutcome.Queued) && queued == 0)
             {
                 Assert.Equal(expected, runs[0].Outcome);
                 return;
             }
 
-            Assert.True(DateTime.UtcNow < deadline, $"{runs[0].Id} still runs after {seconds} s.");
+            // What it is then, to tell a run left "running" by an error from one still going on.
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                $"{runs[0].Id} is still {runs[0].Outcome} after {seconds} s (finished at {runs[0].FinishedAt}, "
+                    + $"{queued} queued; error: {runs[0].Error}).");
             await Task.Delay(250);
         }
+    }
+
+    /// <summary>Waits until the history has that many runs of the task (one a background service asks for).</summary>
+    [Then("the history has {int} run(s) of {string} within {int} seconds")]
+    public async Task HistoryHasWithin(int count, string task, int seconds)
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (await RunsOfAsync(task) != count)
+        {
+            Assert.True(DateTime.UtcNow < deadline, $"Not {count} runs of {task} after {seconds} s.");
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Checks that the history keeps that many runs of the task for a while (none asked for meanwhile).</summary>
+    [Then("the history has {int} run(s) of {string} for {int} seconds")]
+    public async Task HistoryKeeps(int count, string task, int seconds)
+    {
+        DateTime end = DateTime.UtcNow.AddSeconds(seconds);
+        while (DateTime.UtcNow < end)
+        {
+            Assert.Equal(count, await RunsOfAsync(task));
+            await Task.Delay(250);
+        }
+    }
+
+    /// <summary>Both in the same note.</summary>
+    [Then("the latest run's notes mention {string} and {string}")]
+    public async Task LatestNotesMentionBoth(string first, string second)
+    {
+        SyncRun latest = (await Store.GetRecentRunsAsync(1, CancellationToken.None))[0];
+        Assert.True(
+            latest.Notes.Any(n =>
+                n.Contains(first, StringComparison.Ordinal) && n.Contains(second, StringComparison.Ordinal)),
+            string.Join(" | ", latest.Notes));
+    }
+
+    [Then("the latest run's notes mention {string}")]
+    public async Task LatestNotesMention(string text)
+    {
+        SyncRun latest = (await Store.GetRecentRunsAsync(1, CancellationToken.None))[0];
+        Assert.True(
+            latest.Notes.Any(n => n.Contains(text, StringComparison.Ordinal)),
+            string.Join(" | ", latest.Notes));
     }
 
     /// <summary>Waits for the latest run to be in this state (a run on hold isn't running, but isn't over either).</summary>
@@ -201,4 +247,10 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         parameters.Add($"{name}={Uri.EscapeDataString(value)}");
         return $"{path}?{string.Join('&', parameters)}";
     }
+
+    private async Task<long> RunsOfAsync(string task) =>
+        (await Services
+            .GetRequiredService<ITaskRepository>()
+            .GetRunsAsync(ApiValues.Tasks[task], null, 1, CancellationToken.None))
+            .Total;
 }

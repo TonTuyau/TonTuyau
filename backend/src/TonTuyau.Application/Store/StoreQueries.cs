@@ -124,7 +124,7 @@ public sealed record ChannelQuery(string? NamePrefix, SearchText? Text, ChannelL
 
 /// <summary>What a list needs to know about a video (no description, no tracks).</summary>
 /// <param name="Active">False only when TonTuyau confirmed the video is gone from YouTube (1.5).</param>
-/// <param name="ThumbnailArt">The thumbnail's versions as the sync recorded them; null when not recorded (yet).</param>
+/// <param name="ThumbnailArt">The thumbnail's versions as recorded; null when not recorded (yet).</param>
 /// <param name="YouTube">TonTuyau's state of it on YouTube, when and why (1.5, the admin pages).</param>
 public sealed record VideoListItem(
     string Id,
@@ -148,8 +148,14 @@ public sealed record ChannelListItem(
     string? ThumbPath,
     ArtVersions? ThumbArt = null);
 
-/// <summary>A stored video with the sync's "file missing on the share" flag and its thumbnail's recorded versions.</summary>
+/// <summary>
+/// A stored video with the import's "file missing on the share" flag and its thumbnail's recorded versions.
+/// </summary>
 public sealed record StoredVideo(Video Video, bool MediaMissing, ArtVersions? ThumbnailArt = null);
+
+/// <summary>A video of the library as the YouTube syncs see it (alpha.5): its file, not the rest.</summary>
+/// <param name="Downloaded">When its file came (TubeArchivist's download, or TonTuyau's).</param>
+public sealed record VideoFileState(string Id, DateTimeOffset Downloaded, bool MediaMissing);
 
 /// <summary>A stored channel with its pictures' recorded versions (null when not recorded yet).</summary>
 public sealed record StoredChannel(Channel Channel, ArtVersions? ThumbArt, ArtVersions? BannerArt);

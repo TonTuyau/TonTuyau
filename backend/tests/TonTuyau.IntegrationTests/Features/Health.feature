@@ -23,8 +23,8 @@ Feature: Service health
       | TONTUYAU_ES_URL      |
       | TONTUYAU_ES_PASSWORD |
 
-  Scenario: The backend refuses to start with an invalid schedule
+  Scenario: The backend refuses to start with an unknown time zone
     Given the backend is configured with valid settings
-    But the setting "TONTUYAU_SYNC_FULL_CRON" is "every saturday"
+    But the setting "TONTUYAU_TZ" is "Mars/Olympus"
     When the backend starts
-    Then it fails to start with an error about "TONTUYAU_SYNC_FULL_CRON"
+    Then it fails to start with an error about "TONTUYAU_TZ"

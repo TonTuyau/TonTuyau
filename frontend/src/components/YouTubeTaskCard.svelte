@@ -1,20 +1,21 @@
 <script lang="ts">
-  // A refresh on YouTube of the Tasks page (1.5): what it reads, its command, and what to read, pasted as a link or an
-  // id. Refused here when it isn't one (the API would refuse it too); the page starts it (onstart) and opens its run.
-  // One run at a time: while one holds the lock, the button waits.
-  import type { RunTask, Tasks } from '../lib/api/types'
+  // A refresh on YouTube of the Tasks page (1.5), or a download (2.0, "Add a video"): what it does, its command, and
+  // its video or channel, pasted as a link or an id. Refused here when it isn't one (the API would refuse it too); the page starts it (onstart) and opens its run.
+  // One run at a time: while one goes on (or waits), it's added to the run queue (2.0) and waits its turn.
+  import type { RunTask } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
-  import { taskCommands } from '../lib/runs'
+  import { taskCommands, taskHelp } from '../lib/runs'
   import { channelIdOf, videoIdOf } from '../lib/youtubeTargets'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
 
   let {
     task,
-    lock,
+    waits,
     onstart,
   }: {
     task: RunTask
-    lock: Tasks['lock']
+    waits: boolean
     onstart: (task: RunTask, target: string) => Promise<void>
   } = $props()
 
@@ -22,8 +23,9 @@
   let invalid = $state<string | null>(null)
   let pending = $state(false)
 
-  const video = $derived(task === 'refreshVideo')
+  const video = $derived(task === 'refreshVideo' || task === 'downloadVideo')
   const uid = $props.id()
+  const help = $derived(taskHelp[task])
 
   async function submit(event: SubmitEvent) {
     event.preventDefault()
@@ -48,7 +50,12 @@
 
 <article class="card" aria-labelledby="{uid}-title">
   <header>
-    <h2 id="{uid}-title">{t(`task.${task}`)}</h2>
+    <div class="title">
+      <h2 id="{uid}-title">{t(`task.${task}`)}</h2>
+      {#if help}
+        <HelpButton zone={t(`task.${task}`)}><p>{t(help)}</p></HelpButton>
+      {/if}
+    </div>
     <code>{taskCommands[task]}</code>
   </header>
   <p class="what">{t(`task.${task}.what`)}</p>
@@ -67,11 +74,19 @@
       <small id="{uid}-invalid" class="invalid" role="alert">{invalid}</small>
     {/if}
     <div class="actions">
-      <Button type="submit" variant="filled" disabled={pending || lock !== null}>
-        {task === 'refreshChannelVideos' ? t('task.refreshThem') : t('task.refresh')}
+      <Button type="submit" variant="filled" disabled={pending}>
+        {#if waits}
+          {t('task.addToQueue')}
+        {:else}
+          {task === 'downloadVideo'
+            ? t('task.download')
+            : task === 'refreshChannelVideos'
+              ? t('task.refreshThem')
+              : t('task.refresh')}
+        {/if}
       </Button>
-      {#if lock}
-        <small>{t('task.oneAtATime', { task: t(`task.${lock.task}`) })}</small>
+      {#if waits}
+        <small>{t('task.waitsItsTurn')}</small>
       {/if}
     </div>
   </form>
@@ -86,6 +101,13 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   header {

@@ -5,7 +5,7 @@ using TonTuyau.Application.Sync;
 
 namespace TonTuyau.Application.UnitTests.Browse;
 
-/// <summary>Images on cards come from what the sync recorded (QA09): the disk is only read when nothing is recorded.</summary>
+/// <summary>Images on cards come from what the import recorded (QA09): the disk is only read when nothing is recorded.</summary>
 public sealed class CardBuilderTests
 {
     private const string Thumbnail = "/cache/videos/a/abcdefghijk.jpg";

@@ -43,6 +43,28 @@ export function channelIdOf(input: string): string | null {
   return kind === 'channel' ? idOf(id ?? '', channelId) : null
 }
 
+const handle = /^@[A-Za-z0-9_.-]{3,30}$/
+
+/**
+ * A channel to add (2.0, "Add a channel"): its id (UC…), its @handle, or a link to either (/channel/UC…, /@name, a
+ * tab of it included); null otherwise. The backend reads a handle's id on YouTube.
+ */
+export function channelTargetOf(input: string): string | null {
+  const text = input.trim()
+  if (channelId.test(text) || handle.test(text)) {
+    return text
+  }
+  const url = linkOf(text)
+  if (!url || !isYouTube(url.hostname)) {
+    return null
+  }
+  const [first, second] = url.pathname.split('/').slice(1)
+  if (first === 'channel') {
+    return idOf(second ?? '', channelId)
+  }
+  return idOf(decodeURIComponent(first ?? ''), handle)
+}
+
 function linkOf(text: string): URL | null {
   try {
     return new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`)

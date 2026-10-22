@@ -2,7 +2,8 @@
 # A stand-in for yt-dlp in the integration tests (1.5): its version, and the Liked videos ("LL") the cookie check
 # reads: they answer a cookie holding SIGNED_IN; BOT_CHECK gets a bot check; anything else, or no cookie, is refused.
 # A video or channel is answered from the scenario's answers/ folder, next to this program (a link to it):
-# <id>.json is its metadata, <id>.err what yt-dlp says when it fails.
+# <id>.json is its metadata, <id>.err what yt-dlp says when it fails. A download writes a 4 KiB file. A channel's
+# tab is listed from <channel id>.<tab>.jsonl (2.0).
 if [[ "$*" == *--version* ]]; then
   echo "2026.08.19"
   exit 0
@@ -24,9 +25,46 @@ if [[ "${@: -1}" == *list=LL ]]; then
   echo "ERROR: [youtube:tab] LL: The playlist does not exist." >&2
   exit 1
 fi
+answers="$(dirname "$0")/answers"
+# A channel's tab (2.0, B5: the YouTube syncs): answers/<channel id>.<tab>.jsonl, a line per entry, newest first;
+# <channel id>.<tab>.err what yt-dlp says when it fails; neither: the channel has no such tab.
+if [[ "${@: -1}" =~ /channel/([^/]+)/(videos|shorts|streams)$ ]]; then
+  listed="$answers/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+  if [[ -f "$listed.err" ]]; then
+    cat "$listed.err" >&2
+    exit 1
+  fi
+  if [[ ! -f "$listed.jsonl" ]]; then
+    echo "ERROR: [youtube:tab] ${BASH_REMATCH[1]}: This channel does not have a ${BASH_REMATCH[2]} tab" >&2
+    exit 1
+  fi
+  cat "$listed.jsonl"
+  exit 0
+fi
 id="${@: -1}"
 id="${id##*[=/]}"
-answers="$(dirname "$0")/answers"
+# A download (2.0): the video's file and its info dict, in the folder asked for (--paths home:…), as yt-dlp leaves
+# them; the format asked for is kept in answers/<id>.format for the scenario to read.
+if [[ "$*" == *--write-info-json* ]]; then
+  folder=""
+  format=""
+  for i in "${!args[@]}"; do
+    if [[ "${args[$i]}" == "--paths" && "${args[$((i + 1))]}" == home:* ]]; then folder="${args[$((i + 1))]#home:}"; fi
+    if [[ "${args[$i]}" == "--format" ]]; then format="${args[$((i + 1))]}"; fi
+  done
+  if [[ -f "$answers/$id.err" ]]; then
+    cat "$answers/$id.err" >&2
+    exit 1
+  fi
+  if [[ ! -f "$answers/$id.json" ]]; then
+    echo "ERROR: [youtube] not faked here" >&2
+    exit 1
+  fi
+  printf '%s' "$format" > "$answers/$id.format"
+  cp "$answers/$id.json" "$folder/$id.info.json"
+  head -c 4096 /dev/zero > "$folder/$id.mkv"
+  exit 0
+fi
 if [[ -f "$answers/$id.json" ]]; then
   cat "$answers/$id.json"
   exit 0

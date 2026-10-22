@@ -10,7 +10,7 @@ public sealed record UpsertResult(int Created, int Updated, int Unchanged)
     /// <summary>Ids that were created or updated (their art may need copying again).</summary>
     public IReadOnlyList<string> ChangedIds { get; init; } = [];
 
-    /// <summary>Ids that were created (the sync counts its new videos by type from them).</summary>
+    /// <summary>Ids that were created (the import counts its new videos by type from them).</summary>
     public IReadOnlyList<string> CreatedIds { get; init; } = [];
 
     public int Total => Created + Updated + Unchanged;

@@ -1,7 +1,9 @@
 <script lang="ts">
-  // /login?next=…: username, password, "Stay logged in" (30 days instead of 8 hours). Every refusal shows the same
+  // /login?next=…: username, password (an eye shows it as typed, alpha.3), "Stay logged in" (30 days instead of 8
+  // hours). Every refusal shows the same
   // message: nothing tells whether the name exists. Once logged in (or if already), back to `next` when it's a page
   // of this site, else home.
+  import Icon from '../components/Icon.svelte'
   import Logo from '../components/Logo.svelte'
   import { auth, type LoginResult } from '../lib/auth.svelte'
   import { errorKind, errorTexts } from '../lib/errors'
@@ -13,6 +15,7 @@
   let username = $state('')
   let password = $state('')
   let remember = $state(false)
+  let passwordShown = $state(false)
   let busy = $state(false)
   let result = $state<Exclude<LoginResult, 'ok'> | null>(null)
   let usernameInput: HTMLInputElement | undefined = $state()
@@ -81,10 +84,31 @@
         maxlength="256"
       />
     </label>
-    <label class="field">
-      <span class="label">{t('login.password')}</span>
-      <input bind:value={password} name="password" type="password" autocomplete="current-password" required />
-    </label>
+    <!-- The eye is beside the label, not in it: the field's name stays "Password". -->
+    <div class="password">
+      <label class="field">
+        <span class="label">{t('login.password')}</span>
+        <input
+          bind:value={password}
+          name="password"
+          type={passwordShown ? 'text' : 'password'}
+          autocomplete="current-password"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+        />
+      </label>
+      <button
+        type="button"
+        class="reveal"
+        aria-pressed={passwordShown}
+        aria-label={t('login.showPassword')}
+        title={t(passwordShown ? 'login.hidePassword' : 'login.showPassword')}
+        onclick={() => (passwordShown = !passwordShown)}
+      >
+        <Icon name={passwordShown ? 'visibilityOff' : 'visibility'} />
+      </button>
+    </div>
     <label class="remember">
       <input type="checkbox" bind:checked={remember} name="remember" />
       <span>{t('login.remember')}</span>
@@ -152,6 +176,39 @@
     background: var(--color-input-bg);
     color: var(--color-text);
     font-size: var(--font-size-md);
+  }
+
+  .password {
+    position: relative;
+  }
+
+  .password input {
+    width: 100%;
+    padding-right: calc(var(--search-height) + var(--space-1));
+  }
+
+  /* Over the field's right end, as tall as it. */
+  .reveal {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    width: var(--search-height);
+    height: var(--search-height);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text-secondary);
+  }
+
+  .reveal:hover,
+  .reveal[aria-pressed='true'] {
+    color: var(--color-text);
+  }
+
+  .reveal:focus-visible {
+    outline: var(--focus-ring);
   }
 
   input:not([type='checkbox']):focus {

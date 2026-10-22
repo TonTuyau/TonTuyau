@@ -17,6 +17,20 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [Given("YouTube has the video {string}: the title {string}, {int} views")]
     public Task VideoFound(string name, string title, int views) => WriteAsync(name, VideoAnswer(name, title, views));
 
+    /// <summary>Several at once (2.0, the YouTube syncs' downloads): "alpha-05, alpha-04", each titled by its name.</summary>
+    [Given("YouTube has the videos {string}")]
+    public async Task VideosFound(string names)
+    {
+        foreach (string name in names.Split(',', StringSplitOptions.TrimEntries))
+        {
+            await WriteAsync(name, VideoAnswer(name, $"Video {name}", 10));
+        }
+    }
+
+    [When("YouTube no longer refuses the video {string}")]
+    public void NoLongerRefuses(string name) =>
+        File.Delete(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".err"));
+
     /// <summary>yt-dlp says it's unlisted (<c>availability</c>): only whoever has its link sees it.</summary>
     [Given("YouTube has the unlisted video {string}: the title {string}, {int} views")]
     public Task VideoUnlisted(string name, string title, int views)
@@ -159,9 +173,11 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     public Task Pause(int seconds) =>
         SendSettingsAsync($"{{\"comments\":\"off\",\"pauseSeconds\":{seconds}}}");
 
+    /// <param name="body">JSON; <c>&lt;201 characters&gt;</c> stands for that many, a format too long.</param>
     [When("I send the YouTube settings {string} with my session")]
     public async Task SendSettingsAsync(string body)
     {
+        body = body.Replace("<201 characters>", new string('b', 201), StringComparison.Ordinal);
         using HttpRequestMessage request = new(HttpMethod.Put, new Uri("/api/admin/youtube/settings", UriKind.Relative))
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
@@ -172,6 +188,12 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     [When("I refresh the video {string} with my session")]
     public Task RefreshVideo(string name) =>
         auth.PostWithSession($"/api/admin/tasks/refreshVideo/runs?target={FakeTubeArchivist.VideoId(name)}");
+
+    [When("I refresh everything with my session")]
+    public Task RefreshAll() => auth.PostWithSession("/api/admin/tasks/refreshAll/runs");
+
+    [When("I refresh everything, skipping what was read in the last {int} days, with my session")]
+    public Task RefreshAllWithin(int days) => auth.PostWithSession($"/api/admin/tasks/refreshAll/runs?days={days}");
 
     [When("I refresh the channel {string} with my session")]
     public Task RefreshChannel(string name) =>

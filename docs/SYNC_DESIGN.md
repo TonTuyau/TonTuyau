@@ -3,6 +3,8 @@
 > The dedicated discussion for the TubeArchivist → TonTuyau sync (Q7, R3-4).
 > Format chosen 2026-10-01: **I propose, you take it apart.** Nothing here is settled until you've agreed to it; I change it for your reasons, I don't defend it for the sake of it. I build it in M3 once it's agreed.
 > Status: **AGREED: v5 is the spec for M3** (2026-10-01), **implemented in M3** (2026-10-02, see *Implementation notes*). Any change goes through a new review round below.
+>
+> **Superseded in 2.0 (2026-10-18)**: TubeArchivist is a one-time import now ([PLAN_2.0.0.md](PLAN_2.0.0.md), A6): no incremental sync, no schedule, no deletions, no format guard. What follows is 1.x's design, kept for its history.
 
 ---
 

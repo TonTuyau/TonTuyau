@@ -4,6 +4,7 @@ using Polly.CircuitBreaker;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.TubeArchivist;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 using TonTuyau.TubeArchivist.UnitTests.Support;
 
 namespace TonTuyau.TubeArchivist.UnitTests;
@@ -76,9 +77,9 @@ public sealed class TubeArchivistGatewayTests
     {
         TubeArchivistGateway gateway = GatewayFactory.Create(new FixtureHandler());
 
-        Page<Channel> first = await gateway.GetChannelPageAsync(1, Ct);
-        Page<Channel> second = await gateway.GetChannelPageAsync(2, Ct);
-        Page<Channel> third = await gateway.GetChannelPageAsync(3, Ct);
+        Page<TaChannel> first = await gateway.GetChannelPageAsync(1, Ct);
+        Page<TaChannel> second = await gateway.GetChannelPageAsync(2, Ct);
+        Page<TaChannel> third = await gateway.GetChannelPageAsync(3, Ct);
 
         Assert.Equal(100, first.PageSize);
         Assert.Equal(100, first.Items.Count);
@@ -87,6 +88,25 @@ public sealed class TubeArchivistGatewayTests
         Assert.Empty(first.Rejected);
         Assert.Empty(second.Rejected);
         Assert.Empty(Ids(first).Intersect(Ids(second)));
+    }
+
+    [Fact]
+    public async Task A_listed_channel_says_whether_TubeArchivist_is_subscribed_to_it()
+    {
+        TubeArchivistGateway gateway = GatewayFactory.Create(new FixtureHandler());
+        JsonElement recorded = FixtureHandler.Get("channels-page-1").Json.GetProperty("data");
+        HashSet<string> subscribed = recorded
+            .EnumerateArray()
+            .Where(c => c.GetProperty("channel_subscribed").GetBoolean())
+            .Select(c => c.GetProperty("channel_id").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Page<TaChannel> page = await gateway.GetChannelPageAsync(1, Ct);
+
+        Assert.NotEmpty(subscribed);
+        Assert.Equal(
+            subscribed.Order(StringComparer.Ordinal),
+            page.Items.Where(c => c.Subscribed).Select(c => c.Channel.Id).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -222,7 +242,7 @@ public sealed class TubeArchivistGatewayTests
     }
 
     [Fact]
-    public async Task An_inactive_video_is_mapped()
+    public async Task An_inactive_video_is_mapped_not_checked()
     {
         JsonElement expected = FixtureHandler.Get("video-inactive").Json;
         string id = expected.GetProperty("youtube_id").GetString()!;
@@ -230,7 +250,8 @@ public sealed class TubeArchivistGatewayTests
         Video? video = await GatewayFactory.Create(new FixtureHandler()).GetVideoAsync(id, Ct);
 
         Assert.NotNull(video);
-        Assert.False(video.Active);
+        // TubeArchivist's own flag isn't kept (2.0): TonTuyau hasn't checked it yet.
+        Assert.Equal(YouTubeStatus.NotChecked, video.YouTube);
         Assert.Equal(VideoType.Video, video.Type);
         Assert.Equal($"{video.ChannelId}/{id}.mp4", video.MediaPath);
         Assert.Equal(
@@ -268,7 +289,6 @@ public sealed class TubeArchivistGatewayTests
         Channel? channel = await GatewayFactory.Create(new FixtureHandler()).GetChannelAsync(id, Ct);
 
         Assert.NotNull(channel);
-        Assert.Contains(VideoType.Video, channel.Tabs);
         Assert.Equal($"/cache/channels/{id}_thumb.jpg", channel.ThumbPath);
         Assert.Equal($"/cache/channels/{id}_banner.jpg", channel.BannerPath);
     }
@@ -513,7 +533,7 @@ public sealed class TubeArchivistGatewayTests
         Assert.Equal("TubeArchivist video abcdefghijk", ex.Subject);
     }
 
-    private static IEnumerable<string> Ids(Page<Channel> page) => page.Items.Select(c => c.Id);
+    private static IEnumerable<string> Ids(Page<TaChannel> page) => page.Items.Select(c => c.Channel.Id);
 
     private static IEnumerable<string> Ids(Page<Video> page) => page.Items.Select(v => v.Id);
 }

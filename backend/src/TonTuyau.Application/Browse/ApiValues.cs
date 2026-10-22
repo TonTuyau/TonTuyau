@@ -94,15 +94,20 @@ public static class ApiValues
     };
 
     /// <summary>The import history's periods (the admin dashboard).</summary>
-    /// <summary>The Tasks page's tasks (1.4): the kinds of run.</summary>
+    /// <summary>The kinds of run (1.4), as the Tasks page and the run history name them.</summary>
     public static readonly Table<SyncMode> Tasks = new()
     {
-        ["incremental"] = SyncMode.Incremental,
-        ["full"] = SyncMode.Full,
-        ["applyDeletions"] = SyncMode.ApplyDeletions,
+        ["import"] = SyncMode.Import,
+        ["indexRebuild"] = SyncMode.IndexRebuild,
         ["refreshVideo"] = SyncMode.RefreshVideo,
         ["refreshChannel"] = SyncMode.RefreshChannel,
         ["refreshChannelVideos"] = SyncMode.RefreshChannelVideos,
+        ["downloadVideo"] = SyncMode.DownloadVideo,
+        ["addChannel"] = SyncMode.AddChannel,
+        ["youTubeSync"] = SyncMode.YouTubeSync,
+        ["youTubeFullSync"] = SyncMode.YouTubeFullSync,
+        ["retryDownloads"] = SyncMode.RetryDownloads,
+        ["refreshAll"] = SyncMode.RefreshAll,
     };
 
     /// <summary>How a video's comments are listed (1.5, the watch page).</summary>
@@ -150,6 +155,26 @@ public static class ApiValues
         ["month"] = ImportPeriod.Month,
         ["year"] = ImportPeriod.Year,
         ["all"] = ImportPeriod.All,
+    };
+
+    public static readonly Table<DashboardChannelSort> DashboardChannelSorts = new()
+    {
+        ["name"] = DashboardChannelSort.Name,
+        ["videos"] = DashboardChannelSort.Videos,
+        ["shorts"] = DashboardChannelSort.Shorts,
+        ["streams"] = DashboardChannelSort.Streams,
+        ["gone"] = DashboardChannelSort.Gone,
+        ["private"] = DashboardChannelSort.Private,
+        ["unlisted"] = DashboardChannelSort.Unlisted,
+        ["retryLater"] = DashboardChannelSort.RetryLater,
+        ["notChecked"] = DashboardChannelSort.NotChecked,
+        ["total"] = DashboardChannelSort.Total,
+    };
+
+    public static readonly Table<SortDirection> SortDirections = new()
+    {
+        ["asc"] = SortDirection.Ascending,
+        ["desc"] = SortDirection.Descending,
     };
 
     public static readonly Table<DurationRange> Durations = new()

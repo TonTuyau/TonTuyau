@@ -23,19 +23,9 @@ internal sealed class ChannelDtoValidator : IValidator<ChannelDto>
             errors.Add("channel_name", "is required.");
         }
 
-        if (value.ChannelActive is null)
-        {
-            errors.Add("channel_active", "is required.");
-        }
-
         if (value.ChannelSubs is < 0)
         {
             errors.Add("channel_subs", "must be zero or more when present.");
-        }
-
-        if (value.ChannelLastRefresh is not null && !TaFormats.TryParseDate(value.ChannelLastRefresh, out _))
-        {
-            errors.Add("channel_last_refresh", "must be an ISO-8601 date when present.");
         }
 
         CheckArt(errors, "channel_thumb_url", value.ChannelThumbUrl, "thumb", idOk ? value.ChannelId : null);

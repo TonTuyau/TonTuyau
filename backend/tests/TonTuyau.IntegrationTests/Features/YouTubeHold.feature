@@ -10,7 +10,7 @@ Feature: A refresh on hold when YouTube refuses
     Given the clock shows "2026-10-16T08:00:00Z"
     And TubeArchivist has the channel "alpha" with 3 videos
     And the backend is ready
-    And a first sync has run
+    And a first import has run
     And I logged in as the admin
     And there's no pause between videos
     And the clock moves on 1 minutes

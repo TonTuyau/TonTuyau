@@ -21,16 +21,21 @@ RUN dotnet publish src/TonTuyau.Api/TonTuyau.Api.csproj \
       --configuration Release --runtime linux-x64 --self-contained false --no-restore --output /app \
  && rm -f /app/appsettings.Development.json
 
-# yt-dlp and Deno (1.5: TonTuyau reads YouTube with yt-dlp, which runs YouTube's JavaScript with Deno), pinned: each
-# version with the SHA-256 its GitHub release publishes, checked before use. YouTube changes often and yt-dlp follows:
-# a new yt-dlp is a new TonTuyau release. ffmpeg comes with the downloads (1.6).
+# yt-dlp and Deno (1.5: TonTuyau reads YouTube with yt-dlp, which runs YouTube's JavaScript with Deno), and ffmpeg
+# (2.0: yt-dlp merges a download's video and audio with it), pinned: each version with the SHA-256 its GitHub release
+# publishes, checked before use. YouTube changes often and yt-dlp follows: a new yt-dlp is a new TonTuyau release.
+# ffmpeg is a static build of a released FFmpeg (BtbN's, LGPL: TonTuyau only copies streams, never encodes), from a
+# month-end build, kept about two years (the daily ones go after two weeks): the monthly rebuild finds it again.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS tools
 ARG YTDLP_VERSION=2026.08.19
 ARG YTDLP_SHA256=58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a
 ARG DENO_VERSION=2.9.7
 ARG DENO_SHA256=c6527f24f4b16031d3ae4fa9f658d5f11534c8d84ce7dc8502420280919c3490
+ARG FFMPEG_BUILD=autobuild-2026-09-30-13-08
+ARG FFMPEG_NAME=ffmpeg-n9.0.2-17-g2a571b6068-linux64-lgpl-9.0
+ARG FFMPEG_SHA256=2d41cbea0ca1a15029b638330740f78d6f5aeb062355bf425433fc938705350a
 RUN apt-get update \
- && apt-get install --yes --no-install-recommends unzip \
+ && apt-get install --yes --no-install-recommends unzip xz-utils \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /tools
 RUN curl --fail --silent --show-error --location --output yt-dlp \
@@ -40,37 +45,44 @@ RUN curl --fail --silent --show-error --location --output yt-dlp \
       "https://github.com/denoland/deno/releases/download/v${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip" \
  && echo "${DENO_SHA256}  deno.zip" | sha256sum --check - \
  && unzip -q deno.zip deno \
- && rm deno.zip
+ && rm deno.zip \
+ && curl --fail --silent --show-error --location --output ffmpeg.tar.xz \
+      "https://github.com/BtbN/FFmpeg-Builds/releases/download/${FFMPEG_BUILD}/${FFMPEG_NAME}.tar.xz" \
+ && echo "${FFMPEG_SHA256}  ffmpeg.tar.xz" | sha256sum --check - \
+ && tar --extract --xz --file ffmpeg.tar.xz --strip-components 2 \
+      "${FFMPEG_NAME}/bin/ffmpeg" "${FFMPEG_NAME}/bin/ffprobe" \
+ && rm ffmpeg.tar.xz
 
 # The data folders, owned by the image's non-root user (app, uid 1654): made here, since the final image has no shell.
-# Volumes mounted there start with this ownership. The media share is mounted read-only at /youtube.
+# Volumes mounted there start with this ownership. The media folder is mounted at /youtube (2.0: TonTuyau writes its
+# downloads there, so the VM's folder must let the app user write).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS folders
-RUN mkdir -p /out/data/art /out/data/logs/sync /out/data/tools /out/youtube
+RUN mkdir -p /out/data/art /out/data/tools /out/youtube
 
 # Ubuntu "chiseled" (1.5.1): only what .NET needs (glibc, libstdc++, OpenSSL, ICU, time zones), no shell, no package
-# manager, non-root. Deno needs nothing more (glibc, libgcc); yt-dlp also zlib (below). CI runs both in the image.
+# manager, non-root. Deno needs nothing more (glibc, libgcc); yt-dlp also zlib (below); ffmpeg and ffprobe are static.
+# CI runs each of them in the image.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau backend" \
-      org.opencontainers.image.description="TonTuyau's API and sync (a read-only, YouTube-like UI over a TubeArchivist library)" \
+      org.opencontainers.image.description="TonTuyau's API, import and downloads (a self-hosted, YouTube-like video library)" \
       org.opencontainers.image.source="https://github.com/TonTuyau/TonTuyau" \
-      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 COPY --from=folders --chown=1654:1654 /out/data /data
 COPY --from=folders /out/youtube /youtube
 COPY --from=build /app /app
-COPY --from=tools --chmod=755 /tools/yt-dlp /tools/deno /usr/local/bin/
+COPY --from=tools --chmod=755 /tools/yt-dlp /tools/deno /tools/ffmpeg /tools/ffprobe /usr/local/bin/
 # yt-dlp's packed Python opens zlib, which the chiseled image doesn't carry: the same Ubuntu 24.04 library, alone.
 COPY --from=tools /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-# `tontuyau` on the PATH: `docker exec tontuyau-backend tontuyau sync status`. Deno's cache in /tmp: the app user's home
+# `tontuyau` on the PATH: `docker exec tontuyau-backend tontuyau status`. Deno's cache in /tmp: the app user's home
 # (/app) isn't writable.
 ENV PATH="/app:${PATH}" \
     ASPNETCORE_HTTP_PORTS=8080 \
     TONTUYAU_MEDIA_ROOT=/youtube \
     TONTUYAU_ART_ROOT=/data/art \
-    TONTUYAU_SYNC_LOG_ROOT=/data/logs/sync \
     TONTUYAU_TOOLS_ROOT=/data/tools \
     DENO_DIR=/tmp/deno
 USER 1654

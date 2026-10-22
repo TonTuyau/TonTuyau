@@ -5,12 +5,13 @@ using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.YouTube;
+using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
 
 /// <summary>
-/// The library the API scenarios browse: written straight through the repositories (as the sync would), with the
+/// The library the API scenarios browse: written straight through the repositories (as the import would), with the
 /// media share and the art store in temp folders.
 /// </summary>
 [Binding]
@@ -40,12 +41,11 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         Directory.CreateDirectory(ArtRoot);
         Set(ConfigKeys.MediaRoot, MediaRoot);
         Set(ConfigKeys.ArtRoot, ArtRoot);
-        Set(ConfigKeys.SyncLogRoot, Path.Combine(_root, "logs"));
     }
 
     /// <summary>
-    /// Columns: key, name, subscribers, tags (comma-separated), description, active (TubeArchivist's flag), youtube
-    /// (TonTuyau's state: not checked, on YouTube, retry later, gone). Art is copied.
+    /// Columns: key, name, subscribers, tags (comma-separated), description, youtube (TonTuyau's state: not checked,
+    /// on YouTube, retry later, gone). Art is copied.
     /// </summary>
     [Given("the channels:")]
     public async Task TheChannels(DataTable table)
@@ -59,10 +59,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                 Get(row, "name") ?? key,
                 Get(row, "description") ?? "",
                 (long)Number(Get(row, "subscribers") ?? "1000"),
-                bool.Parse(Get(row, "active") ?? "true"),
-                null,
                 List(Get(row, "tags")),
-                [VideoType.Video, VideoType.Short, VideoType.Stream],
                 $"/cache/channels/{id}_thumb.jpg",
                 $"/cache/channels/{id}_banner.jpg",
                 $"/cache/channels/{id}_tvart.jpg",
@@ -75,16 +72,24 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         }
 
         await state.WaitUntilReadyAsync();
-        await Services
-            .GetRequiredService<IChannelRepository>()
-            .UpsertAsync([.. _channels.Values], null, default);
+        IChannelRepository channels = Services.GetRequiredService<IChannelRepository>();
+        await channels.AddMissingAsync([.. _channels.Values], LibraryOrigin.TubeArchivist, default);
+        // Added not checked, as the import adds them; their state as a refresh records it.
+        IYouTubeFactsStore facts = Services.GetRequiredService<IYouTubeFactsStore>();
+        Channel[] checkedOnes = [.. _channels.Values.Where(c => c.YouTube != YouTubeStatus.NotChecked)];
+        foreach (Channel channel in checkedOnes)
+        {
+            await facts.SaveChannelAsync(new ChannelFacts(channel.Id, channel.YouTube, null), default);
+        }
+
+        await channels.ReindexAsync([.. checkedOnes.Select(c => c.Id)], default);
         await RefreshAsync();
     }
 
     /// <summary>
     /// Columns: key, title, channel (a channel key), type (video/short/stream), published (ISO date), views,
-    /// duration (seconds), tags, description, active (TubeArchivist's flag), youtube (TonTuyau's state: not checked, on
-    /// YouTube, retry later, gone), file (extension), codecs (e.g. <c>av1+opus</c>).
+    /// duration (seconds), tags, description, youtube (TonTuyau's state: not checked, on YouTube, retry later, gone),
+    /// file (extension), codecs (e.g. <c>av1+opus</c>).
     /// Thumbnails are copied; media files are not (see the "on the media share" step).
     /// </summary>
     [Given("the videos:")]
@@ -106,10 +111,8 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                 Get(row, "title") ?? key,
                 Get(row, "description") ?? "",
                 Type(Get(row, "type") ?? "video"),
-                bool.Parse(Get(row, "active") ?? "true"),
                 Get(row, "published") is { } published ? Date(published) : DefaultPublished,
                 DefaultPublished.AddDays(30),
-                null,
                 TimeSpan.FromSeconds(Number(Get(row, "duration") ?? "600")),
                 1000,
                 $"{channel.Id}/{id}.{extension}",
@@ -117,7 +120,6 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                 $"/cache/videos/{id[0]}/{id}.jpg",
                 List(Get(row, "tags")),
                 ["Howto & Style"],
-                [],
                 new VideoStats((long)Number(Get(row, "views") ?? "0"), 7, 0),
                 [
                     new MediaTrack(MediaTrackKind.Video, codecs[0], 2_000_000, 1920, 1080),
@@ -132,9 +134,30 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         }
 
         await state.WaitUntilReadyAsync();
+        IVideoRepository videos = Services.GetRequiredService<IVideoRepository>();
+        await videos.AddMissingAsync(added, LibraryOrigin.TubeArchivist, default);
+        // Added not checked, as the import adds them; their state as a refresh records it.
+        IYouTubeFactsStore facts = Services.GetRequiredService<IYouTubeFactsStore>();
+        Video[] checkedOnes = [.. added.Where(v => v.YouTube != YouTubeStatus.NotChecked)];
+        foreach (Video video in checkedOnes)
+        {
+            await facts.SaveVideoAsync(new VideoFacts(video.Id, video.ChannelId, video.YouTube, null), default);
+        }
+
+        await videos.ReindexAsync([.. checkedOnes.Select(v => v.Id)], default);
+        await RefreshAsync();
+    }
+
+    /// <summary>Their copies in the index only: the library (PostgreSQL) keeps them.</summary>
+    [Given("the index lost the video {string} and the channel {string}")]
+    public async Task IndexLost(string video, string channel)
+    {
         await Services
-            .GetRequiredService<IVideoRepository>()
-            .UpsertAsync(added, null, default);
+            .GetRequiredService<VideoIndex>()
+            .DeleteAsync([TestIds.Video(video)], default);
+        await Services
+            .GetRequiredService<ChannelIndex>()
+            .DeleteAsync([TestIds.Channel(channel)], default);
         await RefreshAsync();
     }
 
@@ -171,7 +194,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
     public void ThumbnailWidth(string key, int width) =>
         File.WriteAllBytes(ArtFileOf(_videos[key].ThumbnailPath), TestImages.Jpeg(width, Math.Max(1, width * 9 / 16)));
 
-    [Given("the sync recorded the thumbnail of the video {string} as {int} px wide with the versions {string}")]
+    [Given("the import recorded the thumbnail of the video {string} as {int} px wide with the versions {string}")]
     public async Task RecordedVideo(string key, int width, string widths)
     {
         await Services
@@ -182,7 +205,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         await RefreshAsync();
     }
 
-    [Given("the sync recorded the {word} of the channel {string} as {int} px wide with the versions {string}")]
+    [Given("the import recorded the {word} of the channel {string} as {int} px wide with the versions {string}")]
     public async Task RecordedChannel(string kind, string key, int width, string widths)
     {
         ArtSubject subject = kind switch
@@ -209,7 +232,16 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
         await File.WriteAllBytesAsync(file, Content(0, length));
     }
 
-    [Given("the full sync flagged the file of the video {string} as missing")]
+    /// <summary>A real video file (C3, Fixtures/Streaming): 10 s, a keyframe every 2 s.</summary>
+    [Given("the file of the video {string} is the test video {string}")]
+    public void FileIsTestVideo(string key, string name)
+    {
+        string file = Path.Combine(MediaRoot, _videos[key].MediaPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Streaming", name), file, overwrite: true);
+    }
+
+    [Given("the import flagged the file of the video {string} as missing")]
     public async Task FlaggedMissing(string key)
     {
         await Services
@@ -270,9 +302,9 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
     /// "gone", "private", "unlisted", "retry later", "on YouTube", "not checked": TonTuyau's state, checked a day ago;
     /// empty: none.
     /// </summary>
-    private static YouTubeStatus? YouTubeOf(string? state) => state switch
+    private static YouTubeStatus YouTubeOf(string? state) => state switch
     {
-        null => null,
+        null => YouTubeStatus.NotChecked,
         "gone" => new YouTubeStatus(YouTubeState.Gone, DefaultPublished.AddDays(40), "Video unavailable", null),
         "private" => new YouTubeStatus(YouTubeState.Private, DefaultPublished.AddDays(40), "Private video", null),
         "unlisted" => new YouTubeStatus(YouTubeState.Unlisted, DefaultPublished.AddDays(40), null, null),

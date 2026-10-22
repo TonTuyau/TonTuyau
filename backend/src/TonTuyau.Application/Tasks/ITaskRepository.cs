@@ -3,7 +3,7 @@ using TonTuyau.Application.Sync;
 
 namespace TonTuyau.Application.Tasks;
 
-/// <summary>The Tasks page's reads of the run history (Elasticsearch, <c>&lt;prefix&gt;-sync-runs</c>).</summary>
+/// <summary>The Tasks page's reads of the run history (2.0: <c>runs</c>, in PostgreSQL).</summary>
 public interface ITaskRepository
 {
     /// <returns>The latest run of that kind, whatever its outcome (running too), or null.</returns>
@@ -24,6 +24,10 @@ public interface ITaskRepository
     /// <returns>The refreshes on hold (1.5), the first to resume first.</returns>
     Task<IReadOnlyList<SyncRun>> GetOnHoldRunsAsync(CancellationToken cancellationToken);
 
-    /// <returns>Whether a run applied the deletion list of that full run, and succeeded.</returns>
-    Task<bool> WasAppliedAsync(string fullRunId, CancellationToken cancellationToken);
+    /// <returns>The runs waiting their turn (2.0), in the order they start: the first asked for first.</returns>
+    Task<IReadOnlyList<SyncRun>> GetQueuedRunsAsync(CancellationToken cancellationToken);
+
+    /// <returns>The runs of that kind not over yet (2.0, B7): queued, going on or on hold; the first asked for first.</returns>
+    Task<IReadOnlyList<SyncRun>> GetPendingRunsAsync(SyncMode mode, CancellationToken cancellationToken);
+
 }

@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import App from '../App.svelte'
+import { iconPath } from './Icon.svelte'
 import { ADMIN_GUIDE_STORAGE_KEY, adminGuide } from '../lib/adminGuide.svelte'
 import { apiKey, dashboard, page, run, tasks } from '../test/data'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
@@ -86,6 +87,10 @@ describe('the admin area', () => {
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/admin/tasks')
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current')
+    // The current page's icon filled, the others outlined.
+    const drawn = (name: string) => within(nav).getByRole('link', { name }).querySelector('path')?.getAttribute('d')
+    expect(drawn('Tasks')).toBe(iconPath('schedule-fill'))
+    expect(drawn('Dashboard')).toBe(iconPath('dashboard'))
   })
 
   it('goes to the API keys (1.5), which its menu then shows as the current one', async () => {
@@ -110,7 +115,7 @@ describe('the admin area', () => {
     goTo(`/admin/runs/${one.id}`)
     render(App)
 
-    expect(await screen.findByRole('heading', { name: 'Incremental sync', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'TubeArchivist import', level: 1 })).toBeInTheDocument()
     const nav = screen.getByRole('navigation', { name: 'Administration' })
     expect(within(nav).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
   })

@@ -44,14 +44,15 @@ const REVALIDATE = 'no-cache'
  * No inline script: index.html loads its theme script as a file (public/theme-init.js). No inline style either: the
  * app's few dynamic styles (the player's aspect ratio, the description's line count) are CSS custom properties that
  * Svelte sets through the CSSOM (element.style), which a CSP doesn't restrict, so neither 'unsafe-inline' nor
- * style-src-attr is needed.
+ * style-src-attr is needed. Media from blob: too (2.0, C3): a video played in parts plays through a MediaSource, whose
+ * address the page makes itself (URL.createObjectURL); hls.js runs without a worker, so no worker-src.
  */
 export const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self'",
-  "media-src 'self'",
+  "media-src 'self' blob:",
   "connect-src 'self'",
   "font-src 'self'",
   "object-src 'none'",

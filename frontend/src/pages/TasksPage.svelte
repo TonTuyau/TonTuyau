@@ -1,47 +1,57 @@
 <script lang="ts">
-  // The admin's Tasks page (1.4): the incremental sync, the full sync and applying deletions (when they run, how they
-  // last ran, the deletion list waiting), the refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
+  // The admin's Tasks page (1.4): the TubeArchivist import (2.0: how it last ran, or why it can't start), the
+  // refreshes on YouTube (1.5: a video, a channel, a channel and its videos,
   // pasted as a link or an id; a warning when there's no YouTube cookie; the refreshes on hold, with Resume now and
   // Cancel it), and the run history, all tasks' or one's (?task=, the chips). Kept up to
   // date by itself: asked again every 3 s while a run goes on, every 30 s else, without redrawing what didn't change
   // (Svelte updates the values that did: a row under the pointer stays); a running duration ticks every second from
   // its start, without asking. Starting a task opens its run's page (its live log); a refusal (409: a run going on,
-  // nothing to apply) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
+  // TubeArchivist not set up) says why above the cards. A 401 means the session ended meanwhile: the shell then goes to the
   // login page.
   import { untrack } from 'svelte'
+  import AddChannelCard from '../components/AddChannelCard.svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import HoldBar from '../components/HoldBar.svelte'
   import LoadMore from '../components/LoadMore.svelte'
+  import RunQueue from '../components/RunQueue.svelte'
   import RunStatePill from '../components/RunStatePill.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import TaskCard from '../components/TaskCard.svelte'
   import YouTubeTaskCard from '../components/YouTubeTaskCard.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { Run, RunTask, Tasks, YouTubeOverview } from '../lib/api/types'
+  import type { ChannelTabs, Run, RunTask, Tasks, YouTubeOverview, YouTubeSettings } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import { Pager, Remote } from '../lib/remote.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href } from '../lib/router/routes'
-  import { refreshTasks, runResult, runSeconds, startedBy } from '../lib/runs'
+  import { runResult, runSeconds, startedBy, youTubeTasks } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   const BUSY_EVERY = 3_000
   const IDLE_EVERY = 30_000
-  const tasksOrder: RunTask[] = ['incremental', 'full', 'applyDeletions', ...refreshTasks]
+  const tasksOrder: RunTask[] = ['import', 'indexRebuild', ...youTubeTasks]
 
   const tasks = new Remote<Tasks>()
   const history = new Pager<Run>()
   // Only for the warning: no cookie, YouTube may refuse.
   const youTube = new Remote<YouTubeOverview>()
+  // Only for "Add a channel"'s default tabs (2.0).
+  const youTubeSettings = new Remote<YouTubeSettings>()
 
   const filter = $derived(tasksOrder.find((task) => task === router.query.get('task')) ?? null)
-  const busy = $derived(tasks.data?.lock != null)
+  const busy = $derived(tasks.data?.lock != null || (tasks.data?.queue.length ?? 0) > 0)
+  /** A task asked for now waits its turn (2.0): a run goes on, one is on hold, or others wait already. */
+  const waits = $derived(
+    tasks.data != null && (tasks.data.lock != null || tasks.data.onHold.length > 0 || tasks.data.queue.length > 0),
+  )
 
   $effect(() => tasks.run((signal) => api.tasks(signal)))
   $effect(() => youTube.run((signal) => api.youTube(signal)))
+  $effect(() => youTubeSettings.run((signal) => api.youTubeSettings(signal)))
   $effect(() => {
     const task = filter
     return history.start((before, signal) => api.runs({ task: task ?? undefined, before: before ?? undefined }, signal))
@@ -83,10 +93,10 @@
   /** Why the last start or cancel was refused; cleared by the next one. */
   let refused = $state<string | null>(null)
 
-  async function onstart(task: RunTask, target?: string) {
+  async function onstart(task: RunTask, target?: string, tabs?: ChannelTabs, days?: number) {
     refused = null
     try {
-      const started = await api.startTask(task, target)
+      const started = await api.startTask(task, target, tabs, days)
       router.navigate(href.adminRun(started.id))
     } catch (error) {
       refused = t('task.refused', { reason: reasonOf(error) })
@@ -130,7 +140,6 @@
 <div class="page">
   <header>
     <h1>{t('admin.tasks')}</h1>
-    <p class="intro">{t('tasks.intro')}</p>
     {#if tasks.data?.lock}
       {@const lock = tasks.data.lock}
       <p class="busy" role="status">
@@ -152,26 +161,38 @@
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
+    <RunQueue queue={data.queue} onHold={data.onHold} {now} {oncancel} />
     <section class="group" aria-labelledby="ta-title">
       <h2 id="ta-title">TubeArchivist</h2>
       <div class="tasks">
-        {#each data.tasks as info (info.task)}
-          <TaskCard {info} {now} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+        {#each data.tasks.filter((info) => info.task === 'import') as info (info.task)}
+          <TaskCard {info} {now} {waits} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
         {/each}
       </div>
     </section>
     <section class="group" aria-labelledby="yt-title">
-      <h2 id="yt-title">YouTube</h2>
-      <p class="intro">{t('tasks.youTube.intro')}</p>
+      <div class="head">
+        <h2 id="yt-title">YouTube</h2>
+        <HelpButton zone="YouTube"><p>{t('tasks.youTube.intro')}</p></HelpButton>
+      </div>
       {#if youTube.data && youTube.data.cookie === null}
         <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
       {/if}
       {#each data.onHold as held (held.id)}
-        <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
+        <!-- Not held back by the queue (alpha.8): what waits in it waits for this very run, resumed or canceled.
+             Only another run going on (from the command line) holds it. -->
+        <HoldBar run={held} disabled={data.lock != null} {onresume} {oncancel} />
       {/each}
       <div class="tasks">
-        {#each refreshTasks as task (task)}
-          <YouTubeTaskCard {task} lock={data.lock} {onstart} />
+        {#each data.tasks.filter((info) => info.task !== 'import') as info (info.task)}
+          <TaskCard {info} {now} {waits} lock={data.lock} runningHere={data.runningHere} {onstart} {oncancel} />
+        {/each}
+        {#each youTubeTasks as task (task)}
+          {#if task === 'addChannel'}
+            <AddChannelCard {waits} defaultTabs={youTubeSettings.data?.defaultTabs ?? null} {onstart} />
+          {:else}
+            <YouTubeTaskCard {task} {waits} {onstart} />
+          {/if}
         {/each}
       </div>
     </section>
@@ -247,7 +268,13 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .intro,
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
   .busy {
     margin-top: var(--space-1);
     color: var(--color-text-secondary);

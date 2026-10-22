@@ -19,7 +19,7 @@ namespace TonTuyau.Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
 public sealed class TasksController(TaskService tasks) : ControllerBase
 {
-    /// <summary>The incremental sync, the full sync and applying deletions: when they run, how they last ran.</summary>
+    /// <summary>The TubeArchivist import (2.0): how it last ran, or why it can't start.</summary>
     [HttpGet("tasks")]
     [ProducesResponseType<TasksResponse>(StatusCodes.Status200OK)]
     public async Task<TasksResponse> GetTasksAsync(CancellationToken cancellationToken) =>
@@ -28,22 +28,30 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
             .ConfigureAwait(false);
 
     /// <summary>
-    /// Starts a task now: the run, just started (it goes on in the background). applyDeletions applies the list that
-    /// waits (see GET tasks). The refreshes (1.5) read their target on YouTube. 409 when a run is going on, no list
-    /// waits, or the target isn't one of the library.
+    /// Asks for a task (2.0: queued, started at once when nothing else goes on; it goes on in the background). The
+    /// import (2.0) adds what TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube;
+    /// a download (2.0, "Add a video") downloads a video into the library; "Add a channel" (2.0) subscribes to a channel,
+    /// added when it's new. 409 when TubeArchivist isn't set up, the target isn't one of the library (a refresh), or is
+    /// already (a download: with its file; a channel: subscribed to).
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
     public async Task<AcceptedResult> StartAsync(
-        [Description("incremental | full | applyDeletions | refreshVideo | refreshChannel | refreshChannelVideos.")]
+        [Description("import, refreshVideo, refreshChannel(Videos), downloadVideo, addChannel, the syncs, refreshAll…")]
         string task,
-        [FromQuery, Description("For the refreshes only: the video's or channel's YouTube id.")] string? target,
+        [FromQuery]
+        [Description("Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.")]
+        string? target,
+        [FromQuery, Description("addChannel only: videos,shorts,streams or some of them (default: the three).")]
+        string? tabs,
+        [FromQuery, Description("refreshAll only: skip what was read in the last this many days, 0 to 365 (7).")]
+        int? days,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, target, Account(), cancellationToken)
+            .StartAsync(task, target, tabs, Account(), cancellationToken, days)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }

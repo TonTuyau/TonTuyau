@@ -5,14 +5,17 @@ using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Library;
 using TonTuyau.Infrastructure.YouTube;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
 
 /// <summary>
-/// TonTuyau's own facts about videos and channels (1.5), in PostgreSQL, laid by the sync over what TubeArchivist says.
-/// Videos and channels are named as in the fake TubeArchivist ("alpha-01", "alpha").
+/// What TonTuyau knows of videos and channels on YouTube (1.5): since 2.0, their rows in the library (PostgreSQL),
+/// written as a refresh writes them: the state (<c>video_states</c>, <c>channel_states</c>), and once refreshed, the
+/// same columns the import filled. Videos and channels are named as in the fake TubeArchivist ("alpha-01", "alpha");
+/// they're in the library once an import ran.
 /// </summary>
 [Binding]
 public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthSteps auth)
@@ -24,39 +27,48 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         sync.Fake.Mutate(() => sync.Fake.Video(name).Active = false);
 
     [Given("TonTuyau found the video {string} gone from YouTube")]
-    public Task VideoGone(string name) => SaveAsync(new YouTubeVideoRow
-    {
-        VideoId = FakeTubeArchivist.VideoId(name),
-        ChannelId = ChannelOf(name),
-        State = YouTubeState.Gone,
-        CheckedAt = Checked,
-        Reason = "Video unavailable. This video has been removed by the uploader",
-    });
+    public Task VideoGone(string name) => SaveVideoAsync(
+        name,
+        row =>
+        {
+            row.YouTube.State = YouTubeState.Gone;
+            row.YouTube.CheckedAt = Checked;
+            row.YouTube.Reason = "Video unavailable. This video has been removed by the uploader";
+        });
 
     [Given("TonTuyau found the channel {string} gone from YouTube")]
-    public Task ChannelGone(string name) => SaveAsync(new YouTubeChannelRow
+    public async Task ChannelGone(string name)
     {
-        ChannelId = FakeTubeArchivist.ChannelId(name),
-        State = YouTubeState.Gone,
-        CheckedAt = Checked,
-        Reason = "This account has been terminated",
-    });
+        string channelId = FakeTubeArchivist.ChannelId(name);
+        await using (AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope())
+        {
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            ChannelRow row = await db.Channels.SingleAsync(c => c.Id == channelId);
+            row.YouTube.State = YouTubeState.Gone;
+            row.YouTube.CheckedAt = Checked;
+            row.YouTube.Reason = "This account has been terminated";
+            await db.SaveChangesAsync();
+        }
+
+        await state.Backend.Services
+            .GetRequiredService<IChannelRepository>()
+            .ReindexAsync([channelId], default);
+    }
 
     [Given("TonTuyau refreshed the video {string}: the title {string}, {int} views")]
-    public Task Refreshed(string name, string title, int views) => SaveAsync(new YouTubeVideoRow
-    {
-        VideoId = FakeTubeArchivist.VideoId(name),
-        ChannelId = ChannelOf(name),
-        State = YouTubeState.OnYouTube,
-        CheckedAt = Checked,
-        RefreshedAt = Checked,
-        Title = title,
-        Description = "From YouTube",
-        Tags = ["youtube"],
-        Categories = ["Education"],
-        Views = views,
-        Likes = 12,
-    });
+    public Task Refreshed(string name, string title, int views) => SaveVideoAsync(
+        name,
+        row =>
+        {
+            row.YouTube.State = YouTubeState.OnYouTube;
+            row.YouTube.CheckedAt = Checked;
+            row.YouTube.RefreshedAt = Checked;
+            row.Title = title;
+            row.Description = "From YouTube";
+            row.Tags = ["youtube"];
+            row.Views = views;
+            row.Likes = 12;
+        });
 
     [When("I request the video {string} of TubeArchivist")]
     public Task RequestVideo(string name) =>
@@ -73,7 +85,7 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
             .GetRequiredService<IVideoRepository>()
             .GetAsync(FakeTubeArchivist.VideoId(name), default);
         Assert.NotNull(video);
-        Assert.Equal(expected, Name(video.CurrentYouTube.State));
+        Assert.Equal(expected, Name(video.YouTube.State));
     }
 
     /// <summary>The comments as kept, in YouTube's order: "text by author", answers marked "↳".</summary>
@@ -90,7 +102,7 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         Assert.Equal(
             expected,
             string.Join(" | ", rows.Select(c => (c.ParentId is null ? "" : "↳") + c.Text + " by " + c.Author)));
-        YouTubeVideoRow? video = await db.YouTubeVideos.FindAsync(videoId);
+        VideoRow? video = await db.Videos.FindAsync(videoId);
         Assert.NotNull(video?.CommentsReadAt);
     }
 
@@ -101,7 +113,7 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
         string videoId = FakeTubeArchivist.VideoId(name);
         Assert.False(await db.VideoComments.AnyAsync(c => c.VideoId == videoId));
-        YouTubeVideoRow? video = await db.YouTubeVideos.FindAsync(videoId);
+        VideoRow? video = await db.Videos.FindAsync(videoId);
         Assert.Null(video?.CommentsReadAt);
     }
 
@@ -109,9 +121,9 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
     public async Task Chapters(string name, string expected)
     {
         await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
-        YouTubeVideoRow? video = await scope.ServiceProvider
+        VideoRow? video = await scope.ServiceProvider
             .GetRequiredService<TonTuyauDbContext>()
-            .YouTubeVideos
+            .Videos
             .FindAsync(FakeTubeArchivist.VideoId(name));
         Assert.NotNull(video);
         IEnumerable<string> chapters = video.Chapters
@@ -120,30 +132,30 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
     }
 
     [Then("PostgreSQL has the channel {string} as {string}")]
-    public async Task ChannelRow(string name, string expected)
+    public async Task ChannelIs(string name, string expected)
     {
         await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
-        YouTubeChannelRow? row = await scope.ServiceProvider
+        ChannelRow? row = await scope.ServiceProvider
             .GetRequiredService<TonTuyauDbContext>()
-            .YouTubeChannels
-            .FindAsync(FakeTubeArchivist.ChannelId(name));
+            .Channels
+            .SingleOrDefaultAsync(c => c.Id == FakeTubeArchivist.ChannelId(name));
         Assert.NotNull(row);
-        Assert.Equal(expected, Name(row.State));
+        Assert.Equal(expected, Name(row.YouTube.State));
     }
 
     [Then("PostgreSQL has the video {string} as {string}")]
-    public async Task VideoRow(string name, string expected)
+    public async Task VideoIs(string name, string expected)
     {
         await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
-        YouTubeVideoRow? row = await scope.ServiceProvider
+        VideoRow? row = await scope.ServiceProvider
             .GetRequiredService<TonTuyauDbContext>()
-            .YouTubeVideos
-            .FindAsync(FakeTubeArchivist.VideoId(name));
+            .Videos
+            .SingleOrDefaultAsync(v => v.Id == FakeTubeArchivist.VideoId(name));
         Assert.NotNull(row);
-        Assert.Equal(expected, Name(row.State));
+        Assert.Equal(expected, Name(row.YouTube.State));
     }
 
-    private static string Name(YouTubeState state) => state switch
+    private static string Name(YouTubeState? state) => state switch
     {
         YouTubeState.OnYouTube => "on YouTube",
         YouTubeState.RetryLater => "retry later",
@@ -153,32 +165,19 @@ public sealed class YouTubeFactsSteps(ScenarioState state, SyncSteps sync, AuthS
         _ => "not checked",
     };
 
-    /// <summary>"alpha-01" → the channel "alpha".</summary>
-    private static string ChannelOf(string video) => FakeTubeArchivist.ChannelId(video.Split('-')[0]);
-
-    /// <summary>
-    /// Written once the backend made its tables (it migrates PostgreSQL at startup). A video's channel gets a row first
-    /// (the foreign key), "not checked" unless a scenario said more; a channel updates that row.
-    /// </summary>
-    private async Task SaveAsync(object row)
+    /// <summary>Sets a video's facts on its row (written by a first import), then its index copy again.</summary>
+    private async Task SaveVideoAsync(string name, Action<VideoRow> facts)
     {
-        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
-        TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-        if (row is YouTubeVideoRow video && await db.YouTubeChannels.FindAsync(video.ChannelId) is null)
+        string videoId = FakeTubeArchivist.VideoId(name);
+        await using (AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope())
         {
-            db.YouTubeChannels.Add(new YouTubeChannelRow { ChannelId = video.ChannelId });
+            TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
+            facts(await db.Videos.SingleAsync(v => v.Id == videoId));
+            await db.SaveChangesAsync();
         }
 
-        if (row is YouTubeChannelRow channel && await db.YouTubeChannels.FindAsync(channel.ChannelId) is { } known)
-        {
-            // Updated, not replaced: deleting it would delete its videos' rows too.
-            db.Entry(known).CurrentValues.SetValues(channel);
-        }
-        else
-        {
-            db.Add(row);
-        }
-
-        await db.SaveChangesAsync();
+        await state.Backend.Services
+            .GetRequiredService<IVideoRepository>()
+            .ReindexAsync([videoId], default);
     }
 }

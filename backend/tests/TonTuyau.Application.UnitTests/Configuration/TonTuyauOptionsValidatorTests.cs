@@ -14,8 +14,6 @@ public sealed class TonTuyauOptionsValidatorTests
 
     public enum PathField { MediaRoot, ArtRoot }
 
-    public enum CronField { Incremental, Full }
-
     [Fact]
     public void Valid_options_pass()
     {
@@ -84,29 +82,6 @@ public sealed class TonTuyauOptionsValidatorTests
     }
 
     [Theory, CombinatorialData]
-    public void Cron_must_have_five_valid_fields(
-        CronField field,
-        [CombinatorialValues("", "every night", "0 1 * *", "0 0 1 * * *", "61 1 * * *")] string bad)
-    {
-        TonTuyauOptions o = ValidOptions.Create();
-        TonTuyauOptions options = o with
-        {
-            Sync = field == CronField.Incremental
-                ? o.Sync with { IncrementalCron = bad }
-                : o.Sync with { FullCron = bad },
-        };
-
-        ValidationException ex = Assert.Throws<ValidationException>(() => _validator.Validate(options));
-
-        Assert.Equal(
-            ConfigKeys.EnvironmentName(
-                field == CronField.Incremental
-                    ? ConfigKeys.SyncIncrementalCron
-                    : ConfigKeys.SyncFullCron),
-            Assert.Single(ex.Errors).Field);
-    }
-
-    [Theory, CombinatorialData]
     public void Index_prefix_must_be_a_valid_index_name_start(
         [CombinatorialValues(
             "",
@@ -137,13 +112,7 @@ public sealed class TonTuyauOptionsValidatorTests
 
     [Theory, CombinatorialData]
     public void Unparsable_sync_numbers_and_flags_are_reported(
-        [CombinatorialValues(
-            ConfigKeys.SyncMaxDeletions,
-            ConfigKeys.SyncMarginHours,
-            ConfigKeys.TaResultWindow,
-            ConfigKeys.SyncSchedulerEnabled,
-            ConfigKeys.SyncRejectGuardPercent,
-            ConfigKeys.SyncRejectGuardMinDocuments)] string key,
+        [CombinatorialValues(ConfigKeys.TaResultWindow, ConfigKeys.ArtResizeParallelism)] string key,
         [CombinatorialValues("ten", "-5", "1.5", "yes")] string value)
     {
         IConfigurationRoot config = new ConfigurationBuilder()
@@ -164,18 +133,7 @@ public sealed class TonTuyauOptionsValidatorTests
 
         _validator.Validate(options);
         Assert.Equal(
-            new SyncOptions(
-                "0 7-23 * * *",
-                "0 1 * * 6",
-                "Europe/Paris",
-                "/data/logs/sync",
-                100,
-                24,
-                true,
-                10_000,
-                50,
-                20,
-                Environment.ProcessorCount),
+            new SyncOptions("Europe/Paris", 10_000, Environment.ProcessorCount),
             options.Sync);
     }
 
@@ -188,17 +146,6 @@ public sealed class TonTuyauOptionsValidatorTests
         _validator.Validate(options);
         Assert.Equal(new DatabaseOptions("tontuyau-db", "tontuyau", "tontuyau", "d"), options.Database);
         Assert.Equal(new AccountOptions("admin", "", true), options.Accounts);
-    }
-
-    [Theory, CombinatorialData]
-    public void Guard_percent_must_be_between_0_and_100([CombinatorialValues(101, 150, 1000)] int percent)
-    {
-        SyncOptions sync = ValidOptions.Create().Sync with { RejectGuardPercent = percent };
-
-        ValidationException ex = Assert.Throws<ValidationException>(() =>
-            _validator.Validate(ValidOptions.Create() with { Sync = sync }));
-
-        Assert.Equal(ConfigKeys.EnvironmentName(ConfigKeys.SyncRejectGuardPercent), Assert.Single(ex.Errors).Field);
     }
 
     [Theory, CombinatorialData]
@@ -231,18 +178,6 @@ public sealed class TonTuyauOptionsValidatorTests
         Assert.Equal(3, options.Sync.ArtResizeParallelism);
     }
 
-    [Theory, CombinatorialData]
-    public void Guard_accepts_its_edge_values(
-        [CombinatorialValues(0, 50, 100)] int percent,
-        [CombinatorialValues(0, 20, 100_000)] int minimum)
-    {
-        SyncOptions sync = ValidOptions.Create()
-            .Sync with
-        { RejectGuardPercent = percent, RejectGuardMinDocuments = minimum };
-
-        _validator.Validate(ValidOptions.Create() with { Sync = sync });
-    }
-
     private static IEnumerable<KeyValuePair<string, string?>> Valid() =>
     [
         new(ConfigKeys.TaUrl, "http://ta.test"),
@@ -273,14 +208,42 @@ public sealed class TonTuyauOptionsValidatorTests
             new TubeArchivistOptions("", ""),
             new ElasticsearchOptions("", "", ""),
             new StorageOptions("relative", "relative"),
-            new SyncOptions("x", "x", "x"),
+            new SyncOptions("x"),
             new DatabaseOptions("", "", "", ""),
             new AccountOptions("", "", true),
             new YouTubeOptions());
 
         ValidationException ex = Assert.Throws<ValidationException>(() => _validator.Validate(options));
 
-        Assert.Equal(15, ex.Errors.Count);
+        Assert.Equal(13, ex.Errors.Count);
+    }
+
+    [Fact]
+    public void TubeArchivist_is_optional()
+    {
+        IConfigurationRoot config = new ConfigurationBuilder()
+            .AddInMemoryCollection(Valid().Where(k => k.Key is not (ConfigKeys.TaUrl or ConfigKeys.TaToken)))
+            .Build();
+
+        TonTuyauOptions options = TonTuyauOptionsReader.Read(config);
+
+        Assert.Null(options.TubeArchivist);
+        _validator.Validate(options);
+    }
+
+    [Theory]
+    [InlineData(ConfigKeys.TaUrl)]
+    [InlineData(ConfigKeys.TaToken)]
+    public void TubeArchivist_needs_both_its_address_and_its_token(string missing)
+    {
+        IConfigurationRoot config = new ConfigurationBuilder()
+            .AddInMemoryCollection(Valid().Where(k => k.Key != missing))
+            .Build();
+
+        ValidationException ex = Assert.Throws<ValidationException>(
+            () => _validator.Validate(TonTuyauOptionsReader.Read(config)));
+
+        Assert.Equal(ConfigKeys.EnvironmentName(missing), Assert.Single(ex.Errors).Field);
     }
 
     [Theory, CombinatorialData]
@@ -309,8 +272,8 @@ public sealed class TonTuyauOptionsValidatorTests
 
     private static TonTuyauOptions WithRequired(TonTuyauOptions o, RequiredField field, string value) => field switch
     {
-        RequiredField.TaUrl => o with { TubeArchivist = o.TubeArchivist with { BaseUrl = value } },
-        RequiredField.TaToken => o with { TubeArchivist = o.TubeArchivist with { Token = value } },
+        RequiredField.TaUrl => o with { TubeArchivist = o.TubeArchivist! with { BaseUrl = value } },
+        RequiredField.TaToken => o with { TubeArchivist = o.TubeArchivist! with { Token = value } },
         RequiredField.EsUrl => o with { Elasticsearch = o.Elasticsearch with { Url = value } },
         RequiredField.EsUsername => o with { Elasticsearch = o.Elasticsearch with { Username = value } },
         RequiredField.EsPassword => o with { Elasticsearch = o.Elasticsearch with { Password = value } },

@@ -52,8 +52,15 @@ public sealed class ScenarioState : IDisposable
         ResponseBody = await Response.Content.ReadAsByteArrayAsync();
     }
 
+    /// <summary>
+    /// Whether the backend imports TubeArchivist's library when it starts (2.0), as it does in production: off unless
+    /// a scenario is about it, so that each scenario says when its imports run.
+    /// </summary>
+    public bool ImportsAtStartup { get; set; }
+
     /// <summary>The backend under test, created on first use with the scenario's settings.</summary>
-    public TonTuyauFactory Backend => _factory ??= new TonTuyauFactory(Settings.ToConfiguration(), ServiceOverrides);
+    public TonTuyauFactory Backend =>
+        _factory ??= new TonTuyauFactory(Settings.ToConfiguration(), ServiceOverrides, ImportsAtStartup);
 
     /// <summary>The scenario's temporary folders: deleted once its backend has stopped (it may write to them).</summary>
     public List<string> TempFolders { get; } = [];

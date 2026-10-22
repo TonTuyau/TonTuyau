@@ -3,7 +3,7 @@ using TonTuyau.Application.Library;
 namespace TonTuyau.Application.TubeArchivist;
 
 /// <summary>
-/// Read-only access to TubeArchivist. Building blocks only (one page, one item, one file): no sync strategy here.
+/// Read-only access to TubeArchivist. Building blocks only (one page, one item, one file): no import strategy here.
 /// Every method may throw a <see cref="TubeArchivistException"/> subtype. A broken document is reported in
 /// <see cref="Page{T}.Rejected"/> for lists, and thrown as <see cref="Validation.ValidationException"/> for single items.
 /// </summary>
@@ -24,7 +24,7 @@ public interface ITubeArchivistGateway
     Task<long?> GetChannelVideoTotalAsync(string channelId, CancellationToken cancellationToken);
 
     /// <param name="page">1-based. A page with nothing on it means past the end.</param>
-    Task<Page<Channel>> GetChannelPageAsync(int page, CancellationToken cancellationToken);
+    Task<Page<TaChannel>> GetChannelPageAsync(int page, CancellationToken cancellationToken);
 
     /// <param name="page">1-based. A page with nothing on it means past the end.</param>
     Task<Page<Video>> GetVideoPageAsync(VideoPageQuery query, int page, CancellationToken cancellationToken);

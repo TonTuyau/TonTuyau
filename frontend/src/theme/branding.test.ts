@@ -10,13 +10,12 @@ const favicon =
       string
     >,
   )[0] ?? ''
-const icons =
-  Object.values(
-    import.meta.glob('../components/Icon.svelte', { query: '?raw', import: 'default', eager: true }) as Record<
-      string,
-      string
-    >,
-  )[0] ?? ''
+const icons = Object.values(
+  import.meta.glob('../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<
+    string,
+    string
+  >,
+).join('\n')
 
 const logo =
   Object.values(
@@ -69,5 +68,11 @@ describe('TonTuyau branding', () => {
 
   it("doesn't use YouTube's Shorts logo as the Shorts icon", () => {
     expect(icons).not.toContain('M17.77 10.32')
+  })
+
+  it("draws its icons from Material Symbols, not the classic Material Icons of YouTube's look", () => {
+    expect(icons).toContain('viewBox="0 -960 960 960"')
+    // The classic Material Icons' home, in their 24-unit box.
+    expect(icons).not.toContain('M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z')
   })
 })

@@ -6,6 +6,7 @@ using ManuHub.Ytdlp.NET;
 using ManuHub.Ytdlp.NET.Core;
 using Microsoft.Extensions.Logging;
 using TonTuyau.Application.Configuration;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.YouTube;
 using TonTuyau.YouTube.Dtos;
 
@@ -20,6 +21,7 @@ internal sealed partial class YouTubeClient(
     TonTuyauOptions options,
     YtdlpLocator ytdlp,
     IYouTubeCookieSource cookies,
+    YtdlpTempFolders temp,
     ILogger<YouTubeClient> logger) : IYouTubeClient
 {
     /// <summary>The longest one question may take; past it, the check failed (yt-dlp is stopped).</summary>
@@ -37,6 +39,12 @@ internal sealed partial class YouTubeClient(
     /// <summary>Up to this many comments, <see cref="CommentsTimeout"/> is enough.</summary>
     public const int QuickComments = 500;
 
+    /// <summary>The longest a download may take (2.0): hours of video, on a slow connection.</summary>
+    public static readonly TimeSpan DownloadTimeout = TimeSpan.FromHours(12);
+
+    /// <summary>The longest a tab's listing may take (2.0, B5): a whole tab of thousands, a page of 30 at a time.</summary>
+    public static readonly TimeSpan ListTimeout = TimeSpan.FromMinutes(30);
+
     /// <summary>
     /// Every run: no user config file, no cache (the image's home isn't writable), plain text, nothing downloaded.
     /// </summary>
@@ -50,9 +58,9 @@ internal sealed partial class YouTubeClient(
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(videoId);
-        if (comments?.Max is { } max)
+        if (comments?.Max is not null)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(max, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(comments.Max.Value, 1);
         }
 
         string arguments = $"{CommonArguments} --dump-single-json --no-playlist {CommentArguments(comments)}"
@@ -83,23 +91,26 @@ internal sealed partial class YouTubeClient(
     }
 
     public async Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(
-        string channelId,
+        string channel,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        ArgumentException.ThrowIfNullOrEmpty(channel);
+        bool handle = LibraryIds.IsHandle(channel);
         // The channel's page as a playlist, without a single video of it: only the channel's own fields.
         string arguments = $"{CommonArguments} --dump-single-json --flat-playlist --playlist-items 0 "
-            + $"https://www.youtube.com/channel/{channelId}";
+            + (handle ? $"https://www.youtube.com/{channel}" : $"https://www.youtube.com/channel/{channel}");
         YtdlpRun run = await RunAsync(arguments, CallTimeout, cancellationToken).ConfigureAwait(false);
         if (run.Failure is not null)
         {
             return new YouTubeLookup<YouTubeChannel>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
         }
 
-        ChannelInfoDto? info = Parse<ChannelInfoDto>(run.Output, channelId);
-        if (info is null || info.ChannelId != channelId || string.IsNullOrWhiteSpace(info.Channel))
+        ChannelInfoDto? info = Parse<ChannelInfoDto>(run.Output, channel);
+        // A handle's answer gives the channel's id; an id's must be that one.
+        bool itsId = handle ? LibraryIds.IsChannelId(info?.ChannelId) : info?.ChannelId == channel;
+        if (info is null || !itsId || string.IsNullOrWhiteSpace(info.Channel))
         {
-            LogUnexpectedAnswer(channelId);
+            LogUnexpectedAnswer(channel);
             return new YouTubeLookup<YouTubeChannel>(
                 YouTubeAnswer.CheckFailed,
                 null,
@@ -107,6 +118,150 @@ internal sealed partial class YouTubeClient(
         }
 
         return new YouTubeLookup<YouTubeChannel>(YouTubeAnswer.Found, ChannelOf(info), null);
+    }
+
+    /// <remarks>
+    /// yt-dlp is started directly here, with its arguments one by one: the format is the admin's, in yt-dlp's syntax,
+    /// which Ytdlp.NET's own check refuses (it takes the <c>&gt;</c> of <c>height&gt;=720</c> for a shell redirection).
+    /// </remarks>
+    public async Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
+        string videoId,
+        string format,
+        string folder,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(videoId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
+        ArgumentException.ThrowIfNullOrEmpty(folder);
+        List<string> arguments =
+        [
+            "--ignore-config", "--no-cache-dir", "--color", "never", "--no-playlist", "--no-progress", "--no-mtime",
+            "--format", format,
+            // One .mkv: the video and audio merged into it, or the one file remuxed; chapters and metadata inside.
+            "--merge-output-format", "mkv", "--remux-video", "mkv", "--embed-chapters", "--embed-metadata",
+            "--paths", $"home:{folder}", "--paths", $"temp:{folder}", "--output", "%(id)s.%(ext)s",
+            // What it downloaded, as the info dict yt-dlp writes next to it: the metadata read with the download.
+            "--write-info-json", "--no-write-playlist-metafiles",
+            $"https://www.youtube.com/watch?v={videoId}",
+        ];
+        // A name (the default, "ffmpeg") is found on the PATH by yt-dlp itself, ffprobe with it; a path is passed on.
+        if (options.YouTube.FfmpegPath.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            arguments.InsertRange(arguments.Count - 1, ["--ffmpeg-location", options.YouTube.FfmpegPath]);
+        }
+
+        YtdlpRun run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken).ConfigureAwait(false);
+        if (run.Failure is not null)
+        {
+            return new YouTubeLookup<YouTubeDownload>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
+        }
+
+        string infoFile = Path.Combine(folder, $"{videoId}.info.json");
+        string file = Path.Combine(folder, $"{videoId}.mkv");
+        VideoInfoDto? info = File.Exists(infoFile)
+            ? Parse<VideoInfoDto>(
+                await File.ReadAllTextAsync(infoFile, cancellationToken).ConfigureAwait(false),
+                videoId)
+            : null;
+        if (info is null
+            || !File.Exists(file)
+            || info.Id != videoId
+            || string.IsNullOrWhiteSpace(info.Title)
+            || info.ChannelId is null)
+        {
+            LogNoDownload(videoId);
+            return new YouTubeLookup<YouTubeDownload>(
+                YouTubeAnswer.CheckFailed,
+                null,
+                "yt-dlp didn't leave the video's file and metadata.");
+        }
+
+        YouTubeDownload download = new(
+            VideoOf(info, withComments: false),
+            file,
+            new FileInfo(file).Length,
+            TypeOf(info),
+            TracksOf(info));
+        return new YouTubeLookup<YouTubeDownload>(YouTubeAnswer.Found, download, null);
+    }
+
+    /// <remarks>
+    /// yt-dlp lists lazily (<c>--lazy-playlist</c>), a line per entry as YouTube pages them: once
+    /// <paramref name="stopAt"/> says so, yt-dlp is stopped, so the pages after it are never asked for.
+    /// </remarks>
+    public async Task<YouTubeLookup<IReadOnlyList<YouTubeListed>>> ListTabAsync(
+        string channelId,
+        ChannelTab tab,
+        Func<YouTubeListed, bool> stopAt,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        ArgumentNullException.ThrowIfNull(stopAt);
+        string page = tab.ToString().ToLowerInvariant();
+        List<YouTubeListed> listed = [];
+        bool stopped = false;
+        YtdlpRun run = await RunDirectAsync(
+            [
+                "--ignore-config",
+                "--no-cache-dir",
+                "--color",
+                "never",
+                "--flat-playlist",
+                "--lazy-playlist",
+                "--print",
+                "%(.{id,live_status,title})j",
+                $"https://www.youtube.com/channel/{channelId}/{page}",
+            ],
+            ListTimeout,
+            cancellationToken,
+            line =>
+            {
+                if (stopped || ListedOf(line) is not { } entry)
+                {
+                    return stopped;
+                }
+
+                listed.Add(entry);
+                stopped = stopAt(entry);
+                return stopped;
+            })
+            .ConfigureAwait(false);
+        if (run.Failure is not null)
+        {
+            // A channel without this tab (no shorts, never streamed): nothing to list.
+            return run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
+                ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null)
+                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                    run.Failure.Value.Answer,
+                    null,
+                    run.Failure.Value.Reason);
+        }
+
+        return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+    }
+
+    /// <summary>A listing's line: an entry with a video id; null otherwise (a warning, a playlist's own line).</summary>
+    internal static YouTubeListed? ListedOf(string line)
+    {
+        if (!line.StartsWith('{'))
+        {
+            return null;
+        }
+
+        try
+        {
+            ListedDto? dto = JsonSerializer.Deserialize<ListedDto>(line, Json);
+            return LibraryIds.IsVideoId(dto?.Id)
+                ? new YouTubeListed(
+                    dto!.Id!,
+                    dto.LiveStatus is "is_upcoming" or "is_live",
+                    string.IsNullOrWhiteSpace(dto.Title) ? null : dto.Title)
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task<YouTubeTools> GetToolsAsync(CancellationToken cancellationToken)
@@ -162,7 +317,7 @@ internal sealed partial class YouTubeClient(
         info.ChannelId!,
         info.Channel ?? "",
         PublishedOf(info),
-        info.Duration is { } seconds ? (int)Math.Round(seconds) : null,
+        info.Duration is null ? null : (int)Math.Round(info.Duration.Value),
         info.ViewCount,
         info.LikeCount,
         info.Tags ?? [],
@@ -173,6 +328,66 @@ internal sealed partial class YouTubeClient(
         withComments ? CommentsOf(info.Comments) : null,
         ChaptersOf(info.Chapters),
         info.Availability);
+
+    /// <summary>A stream when it was (or is) live, a short when YouTube says so, a video otherwise.</summary>
+    internal static VideoType TypeOf(VideoInfoDto info) =>
+        info.LiveStatus is "was_live" or "is_live" or "post_live" || info.MediaType == "livestream"
+            ? VideoType.Stream
+            : info.MediaType == "short"
+                ? VideoType.Short
+                : VideoType.Video;
+
+    /// <summary>The downloaded formats' tracks: each format's video and its audio, those it has.</summary>
+    internal static List<MediaTrack> TracksOf(VideoInfoDto info)
+    {
+        IReadOnlyList<FormatDto> formats = info.RequestedFormats is { Count: > 0 } requested
+            ? requested
+            : [new FormatDto(info.Vcodec, info.Acodec, info.Width, info.Height, info.Tbr)];
+        List<MediaTrack> tracks = [];
+        foreach (FormatDto format in formats)
+        {
+            long bitrate = format.Tbr is null ? 0 : (long)Math.Round(format.Tbr.Value * 1000);
+            if (CodecName(format.Vcodec) is { } video)
+            {
+                tracks.Add(new MediaTrack(MediaTrackKind.Video, video, bitrate, format.Width, format.Height));
+            }
+
+            if (CodecName(format.Acodec) is { } audio)
+            {
+                tracks.Add(new MediaTrack(MediaTrackKind.Audio, audio, bitrate, null, null));
+            }
+        }
+
+        return tracks;
+    }
+
+    /// <summary>
+    /// YouTube's codec string as ffprobe names the codec (as TubeArchivist's tracks do): <c>vp09.00.40.08</c> →
+    /// <c>vp9</c>, <c>av01…</c> → <c>av1</c>, <c>avc1…</c> → <c>h264</c>, <c>mp4a…</c> → <c>aac</c>; null for none.
+    /// </summary>
+    internal static string? CodecName(string? codec)
+    {
+        if (string.IsNullOrWhiteSpace(codec) || codec == "none")
+        {
+            return null;
+        }
+
+        string family = codec
+            .Split('.')[0]
+            .ToLowerInvariant();
+        return family switch
+        {
+            "vp09" or "vp9" => "vp9",
+            "vp08" or "vp8" => "vp8",
+            "av01" or "av1" => "av1",
+            "avc1" or "avc3" or "h264" => "h264",
+            "hev1" or "hvc1" or "hevc" or "h265" => "hevc",
+            "mp4a" or "aac" => "aac",
+            "ec-3" or "eac3" => "eac3",
+            "ac-3" or "ac3" => "ac3",
+            _ => family,
+        };
+    }
 
     internal static YouTubeChannel ChannelOf(ChannelInfoDto info) => new(
         info.ChannelId!,
@@ -210,7 +425,7 @@ internal sealed partial class YouTubeClient(
                     c.Author ?? "",
                     c.AuthorId,
                     c.AuthorThumbnail,
-                    c.Timestamp is { } seconds ? DateTimeOffset.FromUnixTimeSeconds(seconds) : null,
+                    c.Timestamp is null ? null : DateTimeOffset.FromUnixTimeSeconds(c.Timestamp.Value),
                     c.LikeCount,
                     c.IsPinned == true,
                     c.AuthorIsUploader == true,
@@ -229,9 +444,9 @@ internal sealed partial class YouTubeClient(
     /// <summary>To the second (<c>timestamp</c>) when YouTube says, else the day (<c>upload_date</c>), else unknown.</summary>
     private static DateTimeOffset? PublishedOf(VideoInfoDto info)
     {
-        if (info.Timestamp is { } seconds)
+        if (info.Timestamp is not null)
         {
-            return DateTimeOffset.FromUnixTimeSeconds(seconds);
+            return DateTimeOffset.FromUnixTimeSeconds(info.Timestamp.Value);
         }
 
         return DateTime.TryParseExact(
@@ -337,6 +552,162 @@ internal sealed partial class YouTubeClient(
         return YtdlpRun.Failed(answer, reason) with { Silent = YtdlpErrors.ReasonOf(log.Errors).Length == 0 };
     }
 
+    /// <summary>
+    /// One run of yt-dlp started directly (a download: its arguments one by one, no shell), signed in with the cookie
+    /// when there's one, as <see cref="RunAsync"/>. Its error lines classified the same way.
+    /// </summary>
+    /// <param name="output">
+    /// Given each line yt-dlp writes (a listing, B5); true: enough, yt-dlp is stopped and the run counts as done. Null:
+    /// its output isn't read.
+    /// </param>
+    private async Task<YtdlpRun> RunDirectAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        CancellationToken cancellationToken,
+        Func<string, bool>? output = null)
+    {
+        string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (cookie is null)
+        {
+            return await RunProcessAsync(arguments, limit, output, cancellationToken).ConfigureAwait(false);
+        }
+
+        string file = Path.Combine(Path.GetTempPath(), $"tontuyau-cookies-{Guid.NewGuid():N}.txt");
+        try
+        {
+            await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
+            return await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    /// <summary>
+    /// One run in a temp folder of its own (alpha.6: <see cref="YtdlpTempFolders"/>), removed once it's over, stopped
+    /// or not: what yt-dlp unpacked there doesn't stay behind.
+    /// </summary>
+    private async Task<YtdlpRun> RunProcessAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        Func<string, bool>? output,
+        CancellationToken cancellationToken)
+    {
+        string folder = temp.NewFolder();
+        try
+        {
+            return await RunProcessInAsync(arguments, limit, output, folder, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            temp.Remove(folder);
+        }
+    }
+
+    private async Task<YtdlpRun> RunProcessInAsync(
+        IReadOnlyList<string> arguments,
+        TimeSpan limit,
+        Func<string, bool>? output,
+        string folder,
+        CancellationToken cancellationToken)
+    {
+        ProcessStartInfo start = new(ytdlp.Path)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        start.Environment["TMPDIR"] = folder;
+        foreach (string argument in arguments)
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using Process process = new() { StartInfo = start };
+        List<string> errors = [];
+        process.ErrorDataReceived += (_, line) =>
+        {
+            if (line.Data is { Length: > 0 } text)
+            {
+                lock (errors)
+                {
+                    errors.Add(text);
+                }
+
+                LogDownloadLine(text);
+            }
+        };
+        // Enough read (a listing): yt-dlp is stopped. Without a reader, its output is drained, so that yt-dlp never waits
+        // on a full pipe.
+        using CancellationTokenSource enough = new();
+        process.OutputDataReceived += (_, line) =>
+        {
+            if (output is not null && line.Data is not null && !enough.IsCancellationRequested && output(line.Data))
+            {
+                enough.Cancel();
+            }
+        };
+        try
+        {
+            process.Start();
+        }
+        catch (Win32Exception ex)
+        {
+            LogToolMissing(ytdlp.Path, ex.Message);
+            return YtdlpRun.Failed(YouTubeAnswer.CheckFailed, "yt-dlp can't be run here.");
+        }
+
+        process.BeginErrorReadLine();
+        process.BeginOutputReadLine();
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            enough.Token);
+        timeout.CancelAfter(limit);
+        try
+        {
+            await process
+                .WaitForExitAsync(timeout.Token)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+            when (enough.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            process.Kill(entireProcessTree: true);
+            await process
+                .WaitForExitAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            return new YtdlpRun("", null);
+        }
+        catch (OperationCanceledException)
+        {
+            // yt-dlp and the ffmpeg it started: a half download is left in its folder, which the caller removes.
+            process.Kill(entireProcessTree: true);
+            await process
+                .WaitForExitAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            LogTimedOut(limit);
+            return YtdlpRun.Failed(YouTubeAnswer.CheckFailed, "yt-dlp took too long.");
+        }
+
+        if (process.ExitCode == 0)
+        {
+            return new YtdlpRun("", null);
+        }
+
+        string[] lines;
+        lock (errors)
+        {
+            lines = [.. errors];
+        }
+
+        (YouTubeAnswer answer, string reason) = YtdlpErrors.Classify(lines, process.ExitCode);
+        LogRefused(answer, reason);
+        return YtdlpRun.Failed(answer, reason) with { Silent = YtdlpErrors.ReasonOf(lines).Length == 0 };
+    }
+
     /// <summary>Ytdlp.NET over the configured program, or null (logged) when it's not there or can't be run.</summary>
     private Ytdlp? Start(YtdlpLog log)
     {
@@ -415,6 +786,12 @@ internal sealed partial class YouTubeClient(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp's answer about {Id} isn't JSON: {Error}")]
     private partial void LogNotJson(string id, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp ended without leaving {Id}'s file and metadata.")]
+    private partial void LogNoDownload(string id);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "yt-dlp (download): {Line}")]
+    private partial void LogDownloadLine(string line);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp answered, but not with {Id}'s metadata.")]
     private partial void LogUnexpectedAnswer(string id);

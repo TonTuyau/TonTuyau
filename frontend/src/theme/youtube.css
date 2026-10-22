@@ -163,16 +163,57 @@
   --player-max-height-small: calc(100vh - var(--topbar-height) - 160px);
   --player-max-height-large: calc(100vh - var(--topbar-height) - 48px);
   --player-min-height: 240px;
+  /* TonTuyau's own player controls (2.0, C1): over the video, so in white and black whatever the theme. */
+  --player-shade: linear-gradient(transparent, rgb(0 0 0 / 70%));
+  --player-track: rgb(255 255 255 / 25%);
+  --player-buffered: rgb(255 255 255 / 30%);
+  --player-hovered: rgb(255 255 255 / 45%);
+  --player-hover: rgb(255 255 255 / 12%);
+  --player-chip: rgb(255 255 255 / 8%);
+  --player-chip-hover: rgb(255 255 255 / 16%);
+  --player-panel: rgb(28 28 28 / 92%);
+  --player-scrim: rgb(0 0 0 / 55%);
+  --player-icon-size: 24px;
+  --player-row-height: 44px;
+  --player-bar-height: 16px;
+  --player-track-height: 3px;
+  --player-track-height-hover: 5px;
+  --player-track-height-under: 8px;
+  --player-chapter-gap: 2px;
+  --player-thumb-size: 13px;
+  --player-tip-width: 240px;
+  --player-tip-edge: 60px;
+  --player-volume-width: 64px;
+  --player-volume-height: 4px;
+  --player-menu-width: 300px;
+  --player-chapters-width: 320px;
+  --player-big-size: 72px;
+  --player-big-icon-size: 40px;
+  --player-flash-size: 64px;
+  --player-flash-icon-size: 36px;
+  --player-spinner-size: 48px;
+  --player-spinner-width: 4px;
+  --player-badge-size: 10px;
+  --player-badge-height: 14px;
+  --player-focus-offset: 2px;
+  /* The menus' bottom: above the bar and the row of buttons. */
+  --player-panel-bottom: calc(var(--player-row-height) + var(--player-bar-height) + var(--space-3));
   --menu-width: 280px;
   --login-width: 448px;
-  --admin-page-max-width: 1180px;
+  /* Wide enough for a Full HD screen at 100 % with the guide open (alpha.3: was 1180px). */
+  --admin-page-max-width: 1600px;
   --admin-search-max-width: 360px;
+  /* A zone's help (alpha.4): its round "?" and the bubble it opens. */
+  --help-size: 22px;
+  --help-width: 360px;
   --chart-tip-width: 200px;
   --badge-height: 20px;
   /* The labels' column of a task card (1.4): When, Last run. */
   --task-label-width: 72px;
   /* A run's log (1.4): its box, and its time and level columns. */
   --log-max-height: 440px;
+  /* A run's notes ("To know", alpha.3): a long run gathers many, they scroll in their own box past this. */
+  --notes-max-height: 320px;
   /* A run's facts and counts (1.4): their columns' narrowest. */
   --meta-min-width: 140px;
   --log-time-width: 5.5em;

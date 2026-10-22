@@ -1,3 +1,5 @@
+using TonTuyau.Application.Library;
+
 namespace TonTuyau.Application.YouTube;
 
 /// <summary>How TonTuyau reads YouTube (1.5), chosen on the admin's YouTube page.</summary>
@@ -13,14 +15,38 @@ namespace TonTuyau.Application.YouTube;
 /// When YouTube refuses (a bot check, too many requests): how long a refresh waits, on hold, before it resumes by itself.
 /// </param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
+/// <param name="DownloadFormat">
+/// What a download asks yt-dlp for (2.0), in its own syntax: the best video and the best audio by default (B6 sets it on
+/// the page).
+/// </param>
+/// <param name="SyncEveryHours">
+/// How often the incremental YouTube sync runs by itself (2.0, B5), in hours: 6 by default; 0: only by hand.
+/// </param>
+/// <param name="DefaultTabs">
+/// The tabs a channel added is subscribed to when none is named (2.0, B6: "Add a channel", the browser extension); null:
+/// the three (<see cref="NewChannelTabs"/>).
+/// </param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
     int PauseSeconds,
     int HoldMinutes,
     string? ChangedBy,
-    DateTimeOffset? ChangedAt)
+    DateTimeOffset? ChangedAt,
+    string DownloadFormat = YouTubeSettings.DefaultDownloadFormat,
+    int SyncEveryHours = YouTubeSettings.DefaultSyncEveryHours,
+    ChannelTabs? DefaultTabs = null)
 {
+    /// <summary>A format longer than this isn't one (yt-dlp's are a few dozen characters).</summary>
+    public const int MaxDownloadFormatLength = 200;
+
+    public const string DefaultDownloadFormat = "bestvideo+bestaudio";
+
+    public const int DefaultSyncEveryHours = 6;
+
+    /// <summary>A week: a longer wait is better done by hand.</summary>
+    public const int MaxSyncEveryHours = 168;
+
     public const int DefaultCommentsMax = 500;
     public const int DefaultPauseSeconds = 10;
     public const int DefaultHoldMinutes = 60;
@@ -32,6 +58,9 @@ public sealed record YouTubeSettings(
         DefaultHoldMinutes,
         null,
         null);
+
+    /// <summary>The tabs a channel added is subscribed to when none is named: the three unless set.</summary>
+    public ChannelTabs NewChannelTabs => DefaultTabs ?? ChannelTabs.All;
 
     /// <summary>What to ask yt-dlp for; null: no comments.</summary>
     public YouTubeCommentsRequest? CommentsRequest => Comments switch

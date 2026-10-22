@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using TonTuyau.Api.Contracts;
 using TonTuyau.Api.Errors;
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Tasks;
 
 namespace TonTuyau.Api.Cli;
 
 /// <summary>
-/// The command line's endpoints (1.4): <c>tontuyau sync …</c>, <c>tontuyau index rebuild</c> and (1.5)
+/// The command line's endpoints (1.4): <c>tontuyau import</c> (2.0), <c>tontuyau index rebuild</c> and (1.5)
 /// <c>tontuyau youtube …</c> start their run here,
 /// in the backend (its log, the Tasks page), follow its log and cancel it. Through the backend's Unix socket only
 /// (<see cref="CliOnlyFilter"/>); not under /api (the front doesn't forward them) nor in the OpenAPI document.
@@ -21,16 +22,8 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     /// <summary>The command line's name in the runs' logs, when it cancels one.</summary>
     public const string Name = "the command line";
 
-    [HttpPost("sync/incremental")]
-    public Task<IActionResult> IncrementalAsync() =>
-        StartAsync(() => runner.StartAsync(SyncMode.Incremental, SyncTrigger.Cli));
-
-    [HttpPost("sync/full")]
-    public Task<IActionResult> FullAsync() => StartAsync(() => runner.StartAsync(SyncMode.Full, SyncTrigger.Cli));
-
-    [HttpPost("sync/apply-deletions/{run}")]
-    public Task<IActionResult> ApplyDeletionsAsync(string run) =>
-        StartAsync(() => runner.StartAsync(SyncMode.ApplyDeletions, SyncTrigger.Cli, appliesTo: run));
+    [HttpPost("import")]
+    public Task<IActionResult> ImportAsync() => StartAsync(() => runner.StartImportAsync(SyncTrigger.Cli));
 
     [HttpPost("index/rebuild")]
     public Task<IActionResult> RebuildAsync() => StartAsync(() => runner.StartRebuildAsync(SyncTrigger.Cli));
@@ -46,6 +39,33 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     [HttpPost("youtube/channel-videos/{id}")]
     public Task<IActionResult> RefreshChannelVideosAsync(string id) =>
         StartAsync(() => runner.StartRefreshAsync(SyncMode.RefreshChannelVideos, id, SyncTrigger.Cli));
+
+    [HttpPost("youtube/download/{id}")]
+    public Task<IActionResult> DownloadVideoAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.DownloadVideo, id, SyncTrigger.Cli));
+
+    /// <summary>"Add a channel" (2.0, B4): <paramref name="target"/> its id or @handle, checked by the command line.</summary>
+    [HttpPost("youtube/add-channel")]
+    public Task<IActionResult> AddChannelAsync([FromQuery] string target, [FromQuery] string? tabs) =>
+        StartAsync(() => runner.StartAddChannelAsync(
+            target,
+            tabs is null ? null : ChannelTabs.Parse(tabs),
+            SyncTrigger.Cli));
+
+    /// <summary>The YouTube syncs (2.0, B5): the incremental one, or the full one.</summary>
+    [HttpPost("youtube/sync")]
+    public Task<IActionResult> SyncAsync([FromQuery] bool full, [FromQuery] string? channel) =>
+        StartAsync(() => runner.StartYouTubeSyncAsync(full, SyncTrigger.Cli, channelId: channel));
+
+    /// <summary>"Refresh everything" (2.0, B8): what was read in the last <paramref name="days"/> days skipped.</summary>
+    [HttpPost("youtube/refresh-all")]
+    public Task<IActionResult> RefreshAllAsync([FromQuery] int days) =>
+        StartAsync(() => runner.StartRefreshAllAsync(days, SyncTrigger.Cli));
+
+    /// <summary>A channel's failed downloads tried again (2.0, B5).</summary>
+    [HttpPost("youtube/retry/{id}")]
+    public Task<IActionResult> RetryAsync(string id) =>
+        StartAsync(() => runner.StartRefreshAsync(SyncMode.RetryDownloads, id, SyncTrigger.Cli));
 
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]
@@ -68,17 +88,13 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
             ? Accepted()
             : new ProblemResult(Problems.Conflict("This run isn't going on in the backend."));
 
-    /// <summary>202 and the run's id; 409 when the lock is busy or the run refused (the exit codes 3 and 4).</summary>
+    /// <summary>202 and the run's id (queued when another run goes on); 409 when the run is refused (exit code 4).</summary>
     private async Task<IActionResult> StartAsync(Func<Task<StartedRun>> start)
     {
         try
         {
             StartedRun run = await start().ConfigureAwait(false);
             return Accepted(new CliStarted(run.Id));
-        }
-        catch (SyncBusyException ex)
-        {
-            return new ProblemResult(Problems.SyncBusy(ex.Message));
         }
         catch (SyncRefusedException ex)
         {

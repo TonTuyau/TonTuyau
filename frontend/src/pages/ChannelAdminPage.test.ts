@@ -13,6 +13,7 @@ const channel = (overrides: Partial<AdminChannel> = {}): AdminChannel => ({
   channel: channelCard(),
   youTube: { state: 'onYouTube', checkedAt: '2026-10-12T08:00:00Z', reason: null, refreshedAt: '2026-10-12T08:00:00Z' },
   videos: { notChecked: 4, onYouTube: 100, unlisted: 6, private: 2, retryLater: 9, gone: 21 },
+  subscription: null,
   ...overrides,
 })
 
@@ -72,6 +73,22 @@ describe('ChannelAdminPage', () => {
     expect(screen.getByText('134 videos')).toBeInTheDocument()
   })
 
+  it('keeps the explanations behind each zone\'s "?"', async () => {
+    const user = userEvent.setup()
+    routes()
+    render(ChannelAdminPage, { id })
+
+    const help = await screen.findByRole('button', { name: 'Help: Its videos on YouTube' })
+    const text = screen.getByText(/"Retry later": the last check had no answer to trust/)
+    expect(text).not.toBeVisible()
+    await user.click(help)
+    expect(text).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Help: The channel on YouTube' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
   it('shows one state from the URL, and the chips link to each state', async () => {
     goTo(`/admin/channels/${id}?state=gone`)
     const api = routes()
@@ -103,7 +120,7 @@ describe('ChannelAdminPage', () => {
     )
   })
 
-  it('refreshes a video, the channel, or the channel and its videos: one task at a time', async () => {
+  it('refreshes a video, the channel, or the channel and its videos: while one goes on, the next waits its turn', async () => {
     const user = userEvent.setup()
     let busy = false
     const api = routes({
@@ -118,6 +135,8 @@ describe('ChannelAdminPage', () => {
         busy = true
         return run({ task: 'refreshVideo', state: 'running', finishedAt: null, target: never.video.id })
       },
+      '/api/admin/tasks/refreshChannel/runs': () =>
+        run({ task: 'refreshChannel', state: 'queued', finishedAt: null, target: id }),
     })
     render(ChannelAdminPage, { id })
 
@@ -129,8 +148,14 @@ describe('ChannelAdminPage', () => {
       'href',
       '/admin/runs/run-20261016T090000Z-aaaaaa',
     )
-    expect(screen.getByRole('button', { name: 'Refresh the channel' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Refresh Crème brûlée' })).toBeDisabled()
+    expect(screen.queryByText(/Added to the queue/)).not.toBeInTheDocument()
+    expect(screen.getByText('A run is going on: this one waits its turn.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Refresh Crème brûlée' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Refresh the channel' }))
+
+    expect(api.requests('/api/admin/tasks/refreshChannel/runs')[0]?.searchParams.get('target')).toBe(id)
+    expect(await screen.findByText('Added to the queue: "Refresh a channel" waits its turn.')).toBeInTheDocument()
   })
 
   it("shows each state as its coloured badge; a gone video can't be refreshed", async () => {
@@ -148,16 +173,147 @@ describe('ChannelAdminPage', () => {
     expect(within(states).getByText('Unlisted').closest('div')).toHaveTextContent('6')
   })
 
+  it('subscribes to a channel with the tabs ticked, then shows its subscription', async () => {
+    const user = userEvent.setup()
+    const subscribed = {
+      tabs: { videos: true, shorts: false, streams: true },
+      since: '2026-10-20T09:00:00Z',
+      by: 'claire',
+      origin: 'tonTuyau' as const,
+    }
+    let sent: unknown = null
+    let read = 0
+    routes({
+      [base]: () => (read++ === 0 ? channel() : channel({ subscription: subscribed })),
+      [`${base}/subscription`]: (_url: URL, init?: RequestInit) => {
+        sent = { method: init?.method, body: JSON.parse(String(init?.body)) }
+        return subscribed
+      },
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    expect(box).toHaveTextContent('Not subscribed')
+    expect(within(box).queryByRole('button', { name: 'Unsubscribe' })).not.toBeInTheDocument()
+    await user.click(within(box).getByRole('checkbox', { name: 'Shorts' }))
+    await user.click(within(box).getByRole('button', { name: 'Subscribe' }))
+
+    await vi.waitFor(() => expect(box).toHaveTextContent('by claire'))
+    expect(sent).toEqual({ method: 'PUT', body: { videos: true, shorts: false, streams: true } })
+    expect(within(box).getByRole('checkbox', { name: 'Shorts' })).not.toBeChecked()
+    expect(within(box).getByRole('button', { name: 'Save the tabs' })).toBeDisabled()
+    expect(within(box).getByRole('button', { name: 'Unsubscribe' })).toBeEnabled()
+  })
+
+  it("says a subscription taken from TubeArchivist, unsubscribes, and won't save no tab", async () => {
+    const user = userEvent.setup()
+    let method: string | undefined
+    routes({
+      [base]: channel({
+        subscription: {
+          tabs: { videos: true, shorts: true, streams: true },
+          since: '2026-10-18T09:00:00Z',
+          by: null,
+          origin: 'tubeArchivist',
+        },
+      }),
+      [`${base}/subscription`]: (_url: URL, init?: RequestInit) => {
+        method = init?.method
+        return new Response(null, { status: 204 })
+      },
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    expect(box).toHaveTextContent('taken from TubeArchivist')
+    for (const tab of ['Videos', 'Shorts', 'Streams']) {
+      await user.click(within(box).getByRole('checkbox', { name: tab }))
+    }
+    expect(within(box).getByRole('alert')).toHaveTextContent('Tick at least one tab.')
+    expect(within(box).getByRole('button', { name: 'Save the tabs' })).toBeDisabled()
+
+    await user.click(within(box).getByRole('button', { name: 'Unsubscribe' }))
+    await vi.waitFor(() => expect(method).toBe('DELETE'))
+  })
+
+  it('downloads everything of a subscribed channel, asked first, then opens its run', async () => {
+    const user = userEvent.setup()
+    const started = run({ id: 'run-20261020T190000Z-eeeeee', task: 'youTubeFullSync', state: 'queued' })
+    const api = routes({
+      [base]: channel({
+        subscription: {
+          tabs: { videos: true, shorts: false, streams: false },
+          since: '2026-10-20T09:00:00Z',
+          by: 'claire',
+          origin: 'tonTuyau',
+        },
+      }),
+      '/api/admin/tasks/youTubeFullSync/runs': started,
+    })
+    render(ChannelAdminPage, { id })
+
+    const box = await screen.findByRole('region', { name: 'Subscription' })
+    await user.click(within(box).getByRole('button', { name: 'Download everything' }))
+    const confirm = within(box).getByRole('group', { name: 'Download everything' })
+    expect(confirm).toHaveTextContent(/up to hours for a big channel/)
+    expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')).toEqual([])
+
+    await user.click(within(confirm).getByRole('button', { name: 'Download everything' }))
+    await vi.waitFor(() => expect(location.pathname).toBe(`/admin/runs/${started.id}`))
+    expect(api.requests('/api/admin/tasks/youTubeFullSync/runs')[0]?.searchParams.get('target')).toBe(id)
+  })
+
+  it('lists the failed downloads with why, and tries one or all of them again', async () => {
+    const user = userEvent.setup()
+    const asked = run({ id: 'run-20261020T200000Z-ffffff', task: 'downloadVideo', state: 'queued' })
+    const api = routes({
+      [`${base}/failed-downloads`]: [
+        {
+          videoId: 'fail0000001',
+          title: 'Le soufflé',
+          reason: 'Requested format is not available. Use --list-formats for a list of available formats',
+          tries: 3,
+          skipped: true,
+          firstFailedAt: '2026-10-19T08:00:00Z',
+          lastFailedAt: '2026-10-20T08:00:00Z',
+          youTubeUrl: 'https://www.youtube.com/watch?v=fail0000001',
+        },
+      ],
+      '/api/admin/tasks/downloadVideo/runs': asked,
+      '/api/admin/tasks/retryDownloads/runs': { ...asked, task: 'retryDownloads' },
+    })
+    render(ChannelAdminPage, { id })
+
+    const failed = await screen.findByRole('region', { name: 'Failed downloads · 1' })
+    const row = within(failed).getAllByRole('row')[1] as HTMLElement
+    expect(row).toHaveTextContent('Le soufflé')
+    expect(row).toHaveTextContent('Requested format is not available')
+    expect(row).toHaveTextContent('3 failures')
+    expect(row).toHaveTextContent('Left by the sync')
+    expect(within(row).getByRole('link', { name: 'Le soufflé' })).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/watch?v=fail0000001',
+    )
+
+    await user.click(within(row).getByRole('button', { name: /^Try again/ }))
+    expect(await within(failed).findByRole('status')).toHaveTextContent('Asked: it runs when its turn comes.')
+    expect(api.requests('/api/admin/tasks/downloadVideo/runs')[0]?.searchParams.get('target')).toBe('fail0000001')
+
+    await user.click(within(failed).getByRole('button', { name: 'Try them all again' }))
+    await vi.waitFor(() => expect(api.requests('/api/admin/tasks/retryDownloads/runs')).toHaveLength(1))
+    expect(api.requests('/api/admin/tasks/retryDownloads/runs')[0]?.searchParams.get('target')).toBe(id)
+  })
+
   it('says why a refresh was refused', async () => {
     const user = userEvent.setup()
     routes({
-      '/api/admin/tasks/refreshChannelVideos/runs': problemResponse(409, 'A sync is already running.', 'Conflict'),
+      '/api/admin/tasks/refreshChannelVideos/runs': problemResponse(409, 'A run is already going on.', 'Conflict'),
     })
     render(ChannelAdminPage, { id })
 
     await user.click(await screen.findByRole('button', { name: 'Refresh the channel and its videos' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A sync is already running.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not started: A run is already going on.')
   })
 
   it('says when the channel is not in TonTuyau', async () => {

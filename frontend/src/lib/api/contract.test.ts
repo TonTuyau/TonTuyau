@@ -12,6 +12,7 @@ import {
   channelCard,
   channelDetail,
   dashboard,
+  dashboardChannels,
   importHistory,
   page,
   run,
@@ -99,6 +100,32 @@ const contract: Endpoint[] = [
   { doc: '/api/auth/me', path: /^\/api\/auth\/me$/, params: {} },
   { doc: '/api/admin/dashboard', path: /^\/api\/admin\/dashboard$/, params: {} },
   {
+    doc: '/api/admin/dashboard/channels',
+    path: /^\/api\/admin\/dashboard\/channels$/,
+    params: {
+      q: { kind: 'text', min: 1, max: 100 },
+      sort: {
+        kind: 'enum',
+        values: [
+          'name',
+          'videos',
+          'shorts',
+          'streams',
+          'gone',
+          'private',
+          'unlisted',
+          'retryLater',
+          'notChecked',
+          'total',
+        ],
+      },
+      order: { kind: 'enum', values: ['asc', 'desc'] },
+      gone: { kind: 'enum', values: ['true', 'false'] },
+      cursor,
+      size: size(100),
+    },
+  },
+  {
     doc: '/api/admin/dashboard/imports',
     path: /^\/api\/admin\/dashboard\/imports$/,
     params: { period: { kind: 'enum', values: ['day', 'week', 'month', 'year', 'all'] } },
@@ -110,7 +137,18 @@ const contract: Endpoint[] = [
     params: {
       task: {
         kind: 'enum',
-        values: ['incremental', 'full', 'applyDeletions', 'refreshVideo', 'refreshChannel', 'refreshChannelVideos'],
+        values: [
+          'import',
+          'indexRebuild',
+          'refreshVideo',
+          'refreshChannel',
+          'refreshChannelVideos',
+          'downloadVideo',
+          'addChannel',
+          'youTubeSync',
+          'youTubeFullSync',
+          'retryDownloads',
+        ],
       },
       before: { kind: 'cursor' },
       size: size(100),
@@ -118,6 +156,7 @@ const contract: Endpoint[] = [
   },
   { doc: '/api/admin/runs/{id}', path: new RegExp(`^/api/admin/runs/${segment}$`), params: {} },
   { doc: '/api/admin/youtube', path: /^\/api\/admin\/youtube$/, params: {} },
+  { doc: '/api/admin/youtube/settings', path: /^\/api\/admin\/youtube\/settings$/, params: {} },
   { doc: '/api/admin/channels/{id}', path: new RegExp(`^/api/admin/channels/${segment}$`), params: {} },
   {
     doc: '/api/admin/channels/{id}/videos',
@@ -217,6 +256,7 @@ function answer(url: URL): unknown {
   // Logged in, so that the admin area asks for its dashboard too.
   if (path === '/api/auth/me') return { username: 'admin' }
   if (path === '/api/admin/dashboard') return dashboard()
+  if (path === '/api/admin/dashboard/channels') return page(dashboardChannels())
   if (path === '/api/admin/dashboard/imports') return importHistory()
   if (path === '/api/admin/tasks') return tasks()
   if (/^\/api\/admin\/runs\/[^/]+\/log$/.test(path)) return { lines: [], complete: true }

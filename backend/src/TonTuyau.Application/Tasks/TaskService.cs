@@ -10,23 +10,25 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Application.Tasks;
 
 /// <summary>
-/// The Tasks page's reads (1.4): the three tasks (incremental sync, full sync, applying deletions), the run history,
-/// a run, its log. The run history is in Elasticsearch (<see cref="ITaskRepository"/>, <see cref="ISyncStateStore"/>),
-/// the logs in PostgreSQL (<see cref="IRunLogRepository"/>).
+/// The Tasks page's reads (1.4): its task (2.0: the TubeArchivist import), the run history, a run, its log, all in
+/// PostgreSQL (<see cref="ITaskRepository"/>, <see cref="ISyncStateStore"/>, <see cref="IRunLogRepository"/>).
 /// </summary>
 public sealed class TaskService(
     ITaskRepository runs,
     ISyncStateStore state,
     IRunLogRepository logs,
     SyncRunner runner,
+    SyncService sync,
     YouTubeRefreshService refresh,
-    SyncSchedule schedule,
+    YouTubeSyncSchedule schedule,
     IValidator<RunListRequest> runListValidator,
     IValidator<RunLogRequest> runLogValidator,
-    TonTuyauOptions options,
     TimeProvider clock)
 {
     public const int DefaultRunsPerPage = 20;
+
+    /// <summary>"Refresh everything" skips what was read in the last days: a year at most.</summary>
+    public const int MaxSkipReadDays = 365;
     public const int MaxRunsPerPage = 100;
     public const int DefaultLogLinesPerPage = 500;
     public const int MaxLogLinesPerPage = 2000;
@@ -43,32 +45,31 @@ public sealed class TaskService(
             .GetLockAsync(cancellationToken)
             .ConfigureAwait(false);
         string? runningHere = runner.RunningId;
-        DateTimeOffset now = clock.GetUtcNow();
-        SyncOptions sync = options.Sync;
-        TaskView incremental = new(
-            SyncMode.Incremental,
-            sync.IncrementalCron,
-            sync.SchedulerEnabled ? schedule.NextOf(SyncMode.Incremental, now) : null,
-            await LatestAsync(SyncMode.Incremental, runningHere, cancellationToken).ConfigureAwait(false),
-            null);
-        TaskView full = new(
-            SyncMode.Full,
-            sync.FullCron,
-            sync.SchedulerEnabled ? schedule.NextOf(SyncMode.Full, now) : null,
-            await LatestAsync(SyncMode.Full, runningHere, cancellationToken).ConfigureAwait(false),
-            null);
-        TaskView deletions = new(
-            SyncMode.ApplyDeletions,
+        TaskView import = new(
+            SyncMode.Import,
+            await LatestAsync(SyncMode.Import, runningHere, cancellationToken).ConfigureAwait(false),
+            sync.CanImport ? null : SyncService.NoTubeArchivist);
+        TaskView youTubeSync = new(
+            SyncMode.YouTubeSync,
+            await LatestAsync(SyncMode.YouTubeSync, runningHere, cancellationToken).ConfigureAwait(false),
             null,
-            null,
-            await LatestAsync(SyncMode.ApplyDeletions, runningHere, cancellationToken).ConfigureAwait(false),
-            await WaitingAsync(cancellationToken).ConfigureAwait(false));
+            await schedule.NextAsync(cancellationToken).ConfigureAwait(false));
+        TaskView youTubeFullSync = new(
+            SyncMode.YouTubeFullSync,
+            await LatestAsync(SyncMode.YouTubeFullSync, runningHere, cancellationToken).ConfigureAwait(false),
+            null);
+        TaskView refreshAll = new(
+            SyncMode.RefreshAll,
+            await LatestAsync(SyncMode.RefreshAll, runningHere, cancellationToken).ConfigureAwait(false),
+            null);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
-            [incremental, full, deletions],
-            [.. onHold.Select(r => new RunView(r, Cancellable: true))]);
+            [import, youTubeSync, youTubeFullSync, refreshAll],
+            [.. onHold.Select(r => new RunView(r, Cancellable: true))],
+            [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))]);
     }
 
     /// <exception cref="ValidationException">The request isn't valid.</exception>
@@ -93,53 +94,107 @@ public sealed class TaskService(
             page.Total);
     }
 
-    /// <summary>Starts a task now, in this backend's background: the run, just started.</summary>
-    /// <param name="target">A refresh's video or channel (its YouTube id, 1.5); null for the other tasks.</param>
+    /// <summary>
+    /// Asks for a task (2.0: through the run queue): the run, started at once when nothing else goes on, else queued.
+    /// </summary>
+    /// <param name="target">
+    /// A refresh's video or channel (its YouTube id, 1.5), a download's video (its id or a YouTube link to it, 2.0),
+    /// the channel "Add a channel" adds (its id, @handle, or a link to either, B4), the one channel a full sync is of
+    /// (its id, optional, B5); null for the other tasks.
+    /// </param>
+    /// <param name="tabs">
+    /// "Add a channel" (B4): the tabs to subscribe to, <c>videos,shorts,streams</c> or some of them; null: the YouTube
+    /// settings' default ones (B6).
+    /// </param>
     /// <param name="account">Who starts it: the run's <see cref="SyncRun.StartedBy"/>.</param>
     /// <exception cref="ValidationException">Not a task, or a target missing or not expected.</exception>
     /// <exception cref="ConflictException">
-    /// A run is going on, no deletion list waits to be applied, or the target isn't one of the library.
+    /// TubeArchivist isn't set up (the import), the target isn't one of the library (a refresh), or is already, with its
+    /// file (a download).
     /// </exception>
+    /// <param name="days">"Refresh everything" (B8): what was read in the last this many days is skipped, 0 to 365; null: 7.</param>
     public async Task<RunView> StartAsync(
         string task,
         string? target,
+        string? tabs,
         string account,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? days = null)
     {
-        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode))
+        // An index rebuild starts from the command line only.
+        if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild)
         {
-            throw RequestRules.Invalid("task", $"must be one of {ApiValues.Tasks.Choices}.");
+            throw RequestRules.Invalid(
+                "task",
+                "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo, addChannel, "
+                    + "youTubeSync, youTubeFullSync, retryDownloads or refreshAll.");
         }
 
-        bool refresh = mode is SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos;
+        bool refresh = mode is SyncMode.RefreshVideo
+            or SyncMode.RefreshChannel
+            or SyncMode.RefreshChannelVideos
+            or SyncMode.DownloadVideo
+            or SyncMode.AddChannel
+            or SyncMode.RetryDownloads;
         if (refresh && target is null)
         {
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
         }
 
-        if (!refresh && target is not null)
+        // The full sync takes one too, optional: "Download everything" of one channel.
+        if (!refresh && mode != SyncMode.YouTubeFullSync && target is not null)
         {
-            throw RequestRules.Invalid("target", "is only for the refreshes.");
+            throw RequestRules.Invalid(
+                "target",
+                "is only for the refreshes, the downloads, addChannel and youTubeFullSync.");
         }
 
-        string? appliesTo = null;
-        if (mode == SyncMode.ApplyDeletions)
+        if (mode == SyncMode.YouTubeFullSync && target is not null && !LibraryIds.IsChannelId(target))
         {
-            SyncRun waiting = await WaitingAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new ConflictException("No deletion list waits to be applied.");
-            appliesTo = waiting.Id;
+            throw RequestRules.Invalid("target", "must be a YouTube channel's id (UC…).");
+        }
+
+        if (mode != SyncMode.AddChannel && tabs is not null)
+        {
+            throw RequestRules.Invalid("tabs", "is only for addChannel.");
+        }
+
+        if (days is not null && (mode != SyncMode.RefreshAll || days is < 0 or > MaxSkipReadDays))
+        {
+            throw RequestRules.Invalid("days", $"is only for refreshAll: 0 to {MaxSkipReadDays}.");
+        }
+
+        if (mode == SyncMode.DownloadVideo)
+        {
+            target = LibraryIds.VideoIdOf(target)
+                ?? throw RequestRules.Invalid("target", "must be a YouTube video's id or a link to it.");
         }
 
         StartedRun started;
         try
         {
-            started = refresh
+            started = mode == SyncMode.RefreshAll
+                ? await runner
+                    .StartRefreshAllAsync(days ?? YouTubeRefreshService.DefaultSkipReadDays, SyncTrigger.Admin, account)
+                    .ConfigureAwait(false)
+                : mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
+                ? await runner
+                    .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account, target)
+                    .ConfigureAwait(false)
+                : mode == SyncMode.AddChannel
+                ? await runner
+                    .StartAddChannelAsync(
+                        LibraryIds.ChannelTargetOf(target)
+                            ?? throw RequestRules.Invalid(
+                                "target",
+                                "must be a YouTube channel's id, its @handle, or a link to either."),
+                        TabsOf(tabs),
+                        SyncTrigger.Admin,
+                        account)
+                    .ConfigureAwait(false)
+                : refresh
                 ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
-                : await runner.StartAsync(mode, SyncTrigger.Admin, appliesTo, account).ConfigureAwait(false);
-        }
-        catch (SyncBusyException ex)
-        {
-            throw new ConflictException(ex.Message, ex);
+                : await runner.StartImportAsync(SyncTrigger.Admin, account).ConfigureAwait(false);
         }
         catch (SyncRefusedException ex)
         {
@@ -151,7 +206,7 @@ public sealed class TaskService(
 
     /// <summary>
     /// Asks the run going on to stop: it ends canceled soon after (between two requests). A refresh on hold (1.5) is
-    /// canceled at once: it won't resume.
+    /// canceled at once: it won't resume, and the queue goes on. A run waiting in the queue (2.0) won't start.
     /// </summary>
     /// <param name="account">Who asks: the run's log says it.</param>
     /// <exception cref="NotFoundException">No such run.</exception>
@@ -159,13 +214,20 @@ public sealed class TaskService(
     public async Task<RunView> CancelAsync(string id, string account, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        if (run.Outcome == SyncOutcome.Queued
+            && await runner.CancelQueuedAsync(run.Id, account, cancellationToken).ConfigureAwait(false) is { } canceled)
+        {
+            return new RunView(canceled, Cancellable: false);
+        }
+
         if (run.Outcome == SyncOutcome.OnHold)
         {
             try
             {
-                return new RunView(
-                    await refresh.CancelHeldAsync(run.Id, account, cancellationToken).ConfigureAwait(false),
-                    Cancellable: false);
+                SyncRun ended = await refresh.CancelHeldAsync(run.Id, account, cancellationToken).ConfigureAwait(false);
+                // The queue waited for it: it goes on.
+                await runner.TryStartNextAsync().ConfigureAwait(false);
+                return new RunView(ended, Cancellable: false);
             }
             catch (SyncBusyException ex)
             {
@@ -203,8 +265,11 @@ public sealed class TaskService(
         }
 
         throw new ConflictException(
-            run.Mode is not (SyncMode.RefreshVideo or SyncMode.RefreshChannel or SyncMode.RefreshChannelVideos)
-                ? "Only a refresh on YouTube can be put on hold: a sync can be canceled."
+            run.Mode is not (SyncMode.RefreshVideo
+                or SyncMode.RefreshChannel
+                or SyncMode.RefreshChannelVideos
+                or SyncMode.DownloadVideo)
+                ? "Only a refresh or a download can be put on hold: the other runs can be canceled."
                 : run.Outcome == SyncOutcome.Running
                 ? "This run goes on in another process (the command line): stop it there."
                 : "This run isn't going on.");
@@ -229,15 +294,34 @@ public sealed class TaskService(
         return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <returns>Null when none is named: the YouTube settings' default ones (B6).</returns>
+    /// <exception cref="ValidationException">Not tabs: <c>videos</c>, <c>shorts</c>, <c>streams</c>, by commas.</exception>
+    private static ChannelTabs? TabsOf(string? tabs) =>
+        tabs is null
+            ? null
+            : ChannelTabs.Parse(tabs)
+            ?? throw RequestRules.Invalid("tabs", "must be videos, shorts or streams, or some of them, by commas.");
+
     /// <summary>A run can be canceled while it goes on here, or while it's on hold (1.5).</summary>
     private static RunView View(SyncRun run, string? runningHere) =>
-        new(run, run.Id == runningHere || run.Outcome == SyncOutcome.OnHold);
+        new(run, run.Id == runningHere || run.Outcome is SyncOutcome.OnHold or SyncOutcome.Queued);
 
     /// <exception cref="NotFoundException">No such run.</exception>
     public async Task<RunView> GetRunAsync(string id, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
-        return View(run, runner.RunningId);
+        RunView view = View(run, runner.RunningId);
+        if (run.Outcome != SyncOutcome.Queued)
+        {
+            return view;
+        }
+
+        IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
+        int index = queue
+            .Select(r => r.Id)
+            .ToList()
+            .IndexOf(run.Id);
+        return view with { Position = index < 0 ? null : index + 1 };
     }
 
     /// <exception cref="NotFoundException">No such run.</exception>
@@ -251,24 +335,6 @@ public sealed class TaskService(
             .ConfigureAwait(false);
         bool settled = run.FinishedAt is not null && clock.GetUtcNow() - run.FinishedAt.Value >= LogSettles;
         return new RunLogView(lines, settled && lines.Count < (request.Size ?? DefaultLogLinesPerPage));
-    }
-
-    /// <returns>
-    /// The latest full run that finished, when it didn't delete because its list was over the limit, and no run has
-    /// applied that list yet. A newer full run (whatever its outcome) makes an older list outdated (see
-    /// <see cref="SyncService.ApplyDeletionsAsync(string, SyncTrigger, CancellationToken)"/>).
-    /// </returns>
-    private async Task<SyncRun?> WaitingAsync(CancellationToken cancellationToken)
-    {
-        SyncRun? latest = await state
-            .GetLatestFullRunAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (latest is null || !latest.DeletionsBlockedByLimit)
-        {
-            return null;
-        }
-
-        return await runs.WasAppliedAsync(latest.Id, cancellationToken).ConfigureAwait(false) ? null : latest;
     }
 
     private async Task<RunView?> LatestAsync(SyncMode mode, string? runningHere, CancellationToken cancellationToken)

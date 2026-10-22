@@ -47,12 +47,9 @@
         "fields": { "keyword": { "type": "keyword" } }
       },
       "categories": { "type": "keyword" },
-      "playlist_ids": { "type": "keyword" },
       "type": { "type": "keyword" },
-      "active": { "type": "boolean" },
       "published": { "type": "date" },
       "downloaded": { "type": "date" },
-      "last_refreshed": { "type": "date" },
       "duration_seconds": { "type": "double" },
       "media_size": { "type": "long" },
       "media_path": { "type": "keyword", "index": false, "doc_values": false },
@@ -78,7 +75,6 @@
       "youtube_checked_at": { "type": "date" },
       "youtube_reason": { "type": "keyword", "index": false, "doc_values": false },
       "youtube_refreshed_at": { "type": "date" },
-      "seen_in_run": { "type": "keyword" },
       "media_missing": { "type": "boolean" },
       "content_hash": { "type": "keyword", "index": false, "doc_values": false }
     }

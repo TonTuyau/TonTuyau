@@ -1,16 +1,17 @@
+using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 
 namespace TonTuyau.Application.Sync;
 
 public enum SyncMode
 {
-    Incremental,
-    Full,
-
     /// <summary>
-    /// Applies the deletion list a full run wrote but didn't apply (over the limit): a run of its own, since 1.4.
+    /// The TubeArchivist import (2.0): its whole library walked, what TonTuyau doesn't have added; nothing deleted.
     /// </summary>
-    ApplyDeletions,
+    Import,
+
+    /// <summary>The index written again from PostgreSQL into a new generation (2.0: nothing read from TubeArchivist).</summary>
+    IndexRebuild,
 
     /// <summary>Reads one video on YouTube (1.5): its state, and its metadata when it's there.</summary>
     RefreshVideo,
@@ -20,18 +21,65 @@ public enum SyncMode
 
     /// <summary>Reads one channel on YouTube, then each of its videos in the library (1.5).</summary>
     RefreshChannelVideos,
+
+    /// <summary>
+    /// Downloads one video from YouTube into the media folder (2.0), then adds it to the library, with its channel when
+    /// the library doesn't have it.
+    /// </summary>
+    DownloadVideo,
+
+    /// <summary>
+    /// Adds a channel (2.0, B4): read on YouTube by its id or <c>@handle</c>, added to the library when it's new, and
+    /// subscribed with <see cref="SyncRun.Tabs"/>. Nothing is downloaded: B5's syncs do.
+    /// </summary>
+    AddChannel,
+
+    /// <summary>
+    /// The incremental YouTube sync (2.0, B5): each subscribed channel's ticked tabs, newest first, down to the first
+    /// video the library has; what's new is downloaded. A channel never synced is listed whole. Every few hours by
+    /// itself (<see cref="YouTube.YouTubeSettings.SyncEveryHours"/>), or by hand.
+    /// </summary>
+    YouTubeSync,
+
+    /// <summary>
+    /// The full YouTube sync (2.0, B5): each subscribed channel's ticked tabs, whole; what the library doesn't have is
+    /// downloaded, and so are the files missing of the videos it has. By hand only; of one channel alone too
+    /// (<see cref="SyncRun.Target"/>: "Download everything" on its page).
+    /// </summary>
+    YouTubeFullSync,
+
+    /// <summary>
+    /// Tries the failed downloads of one channel again (2.0, B5: "Try them all again" on its page,
+    /// <see cref="SyncRun.Target"/>), skipped ones included, a pause between two.
+    /// </summary>
+    RetryDownloads,
+
+    /// <summary>
+    /// Refreshes everything from YouTube (2.0, B8): each channel then its videos, the least recently read first, what
+    /// was read in the last <see cref="SyncRun.SkipReadDays"/> days skipped; at the refreshes' pace, held on a refusal.
+    /// </summary>
+    RefreshAll,
 }
 
 public enum SyncTrigger
 {
+    /// <summary>By itself: a refresh resuming once its hold is over (1.5), the incremental YouTube sync (2.0).</summary>
     Scheduler,
     Cli,
 
-    /// <summary>The automatic index rebuild when the backend starts with changed index definitions (QA10 M5-10).</summary>
+    /// <summary>
+    /// When the backend starts: the TubeArchivist import (2.0), or the index rebuild after changed index definitions
+    /// (QA10 M5-10).
+    /// </summary>
     Startup,
 
     /// <summary>From the admin's Tasks page (1.4), by the account <see cref="SyncRun.StartedBy"/>.</summary>
     Admin,
+
+    /// <summary>
+    /// From the browser extension (2.0, B7: "Add to TonTuyau" on a YouTube page), by the key <see cref="SyncRun.StartedBy"/>.
+    /// </summary>
+    Extension,
 }
 
 public enum SyncOutcome
@@ -48,19 +96,15 @@ public enum SyncOutcome
     /// itself at <see cref="SyncRun.ResumeAt"/> (or when asked), from <see cref="SyncRun.Remaining"/>.
     /// </summary>
     OnHold,
+
+    /// <summary>
+    /// Asked for while another run went on (2.0, the run queue): it waits its turn, first come first served, and
+    /// starts by itself (<see cref="SyncRun.StartedAt"/> is then when it starts).
+    /// </summary>
+    Queued,
 }
 
-/// <param name="Watermark">
-/// Highest TubeArchivist <c>date_downloaded</c> (epoch seconds, TA's own clock) that a completed run indexed.
-/// Null until the first completed run.
-/// </param>
-/// <param name="FullRunRequested">Set by an incremental run that couldn't finish its walk (page-100 net).</param>
-public sealed record SyncCheckpoint(long? Watermark, bool FullRunRequested)
-{
-    public static readonly SyncCheckpoint Empty = new(null, false);
-}
-
-/// <summary>Who holds the sync lock, and until when (renewed while the run lives).</summary>
+/// <summary>Who holds the run lock, and until when (renewed while the run lives).</summary>
 public sealed record SyncLockInfo(
     string Owner,
     SyncMode Mode,
@@ -103,10 +147,6 @@ public sealed record SyncCounts
 
     public int MediaMissing { get; init; }
 
-    public int Deleted { get; init; }
-
-    public int KeptStillInTubeArchivist { get; init; }
-
     /// <summary>A refresh (1.5): videos and channels YouTube answered with their metadata.</summary>
     public int FoundOnYouTube { get; init; }
 
@@ -119,14 +159,25 @@ public sealed record SyncCounts
     /// <summary>A refresh: videos YouTube says their owner made private (1.5).</summary>
     public int PrivateOnYouTube { get; init; }
 
+    /// <summary>
+    /// A YouTube sync (2.0): the videos it listed and didn't download (gone, private, members only…), noted each.
+    /// </summary>
+    public int DownloadFailed { get; init; }
+
     /// <summary>A refresh: checks without an answer to trust (a bot check, the network…), to try again.</summary>
     public int CheckFailed { get; init; }
 
     /// <summary>A refresh: the comments read with the videos (answers included).</summary>
     public int CommentsRead { get; init; }
+
+    /// <summary>
+    /// The channels subscribed to (2.0, B4): TubeArchivist's, by an import (with the channels it added), or the one
+    /// "Add a channel" added.
+    /// </summary>
+    public int Subscribed { get; init; }
 }
 
-/// <summary>One sync run, as kept in the run history.</summary>
+/// <summary>One run (an import, an index rebuild, a refresh, a download), as kept in the run history.</summary>
 public sealed record SyncRun
 {
     public required string Id { get; init; }
@@ -135,7 +186,11 @@ public sealed record SyncRun
 
     public required SyncTrigger Trigger { get; init; }
 
+    /// <summary>When it started; while it's queued, when it was asked for.</summary>
     public required DateTimeOffset StartedAt { get; init; }
+
+    /// <summary>When it was asked for (2.0: the queue); null for the runs TonTuyau starts at once by itself.</summary>
+    public DateTimeOffset? QueuedAt { get; init; }
 
     /// <summary>The account that started it from the Tasks page (<see cref="SyncTrigger.Admin"/>), or null.</summary>
     public string? StartedBy { get; init; }
@@ -146,11 +201,20 @@ public sealed record SyncRun
 
     public string? Error { get; init; }
 
-    /// <summary>For an <see cref="SyncMode.ApplyDeletions"/> run: the full run whose deletion list it applied.</summary>
-    public string? AppliesTo { get; init; }
-
-    /// <summary>For a refresh (1.5): the video or channel it reads (its YouTube id).</summary>
+    /// <summary>
+    /// For a refresh (1.5): the video or channel it reads (its YouTube id); a download's video (2.0); the channel
+    /// "Add a channel" adds (its id, or its <c>@handle</c> until the run reads its id on YouTube).
+    /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>
+    /// "Refresh everything" (2.0, B8): what TonTuyau read on YouTube in the last this many days is skipped (0: nothing
+    /// is); null for the other runs.
+    /// </summary>
+    public int? SkipReadDays { get; init; }
+
+    /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
+    public ChannelTabs? Tabs { get; init; }
 
     /// <summary>A refresh on hold (1.5): when it resumes by itself; null otherwise.</summary>
     public DateTimeOffset? ResumeAt { get; init; }
@@ -166,14 +230,7 @@ public sealed record SyncRun
     /// <summary>The first rejected documents (subject: errors), capped to keep the history small.</summary>
     public IReadOnlyList<string> RejectedSamples { get; init; } = [];
 
-    /// <summary>Deletion list file written by a full run (null for incremental runs).</summary>
-    public string? DeletionFile { get; init; }
-
-    public int DeletionsPlanned { get; init; }
-
-    public bool DeletionsBlockedByLimit { get; init; }
-
-    /// <summary>The run rebuilt the indices (asked for, or instead of a sync because the definitions changed).</summary>
+    /// <summary>The run rebuilt the indices (asked for, or before an import because the definitions changed).</summary>
     public bool IndexRebuild { get; init; }
 
     public static string NewId(DateTimeOffset now) =>

@@ -105,7 +105,7 @@
         aria-current={section === 'dashboard' ? 'page' : undefined}
         title={full ? undefined : t('admin.dashboard')}
       >
-        <Icon name="dashboard" />
+        <Icon name="dashboard" filled={section === 'dashboard'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.dashboard')}</span>
       </a>
       <a
@@ -114,7 +114,7 @@
         aria-current={section === 'tasks' ? 'page' : undefined}
         title={full ? undefined : t('admin.tasks')}
       >
-        <Icon name="tasks" />
+        <Icon name="tasks" filled={section === 'tasks'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.tasks')}</span>
       </a>
       <a
@@ -123,7 +123,7 @@
         aria-current={section === 'youTube' ? 'page' : undefined}
         title={full ? undefined : t('admin.youTube')}
       >
-        <Icon name="smartDisplay" />
+        <Icon name="smartDisplay" filled={section === 'youTube'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.youTube')}</span>
       </a>
       <a
@@ -132,7 +132,7 @@
         aria-current={section === 'apiKeys' ? 'page' : undefined}
         title={full ? undefined : t('admin.apiKeys')}
       >
-        <Icon name="key" />
+        <Icon name="key" filled={section === 'apiKeys'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.apiKeys')}</span>
       </a>
       <a class="item back" href={href.home()} title={full ? undefined : t('admin.back')}>

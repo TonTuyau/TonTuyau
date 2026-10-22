@@ -14,7 +14,7 @@ public sealed class DocumentMapperTests
         ChannelName,
         Tags,
         Type,
-        Active,
+        State,
         Published,
         Duration,
         Views,
@@ -28,16 +28,12 @@ public sealed class DocumentMapperTests
     public void Videos_round_trip_through_the_document_and_its_json(
         VideoType type,
         bool active,
-        bool corrected,
-        bool refreshed)
+        bool corrected)
     {
         Video video = SampleData.Video() with
         {
             Type = type,
-            Active = active,
-            MediaPathCorrected
-            = corrected,
-            LastRefreshed = refreshed ? DateTimeOffset.UnixEpoch : null,
+            MediaPathCorrected = corrected,
             YouTube = StatusOf(active),
         };
 
@@ -52,7 +48,6 @@ public sealed class DocumentMapperTests
     {
         Channel channel = SampleData.Channel() with
         {
-            Active = active,
             BannerPath = withArt
             ? "/cache/channels/UCaaaaaaaaaaaaaaaaaaaaaa_banner.jpg"
             : null,
@@ -65,7 +60,7 @@ public sealed class DocumentMapperTests
         Assert.Equal(Canonical(channel), Canonical(back));
     }
 
-    /// <summary>A document always has a state (the sync lays TonTuyau's facts first): every field filled, or none.</summary>
+    /// <summary>A document always has a state: on YouTube and refreshed, or gone.</summary>
     private static YouTubeStatus StatusOf(bool active) =>
         active
             ? new YouTubeStatus(YouTubeState.OnYouTube, DateTimeOffset.UnixEpoch, null, DateTimeOffset.UnixEpoch)
@@ -90,7 +85,7 @@ public sealed class DocumentMapperTests
             VideoChange.ChannelName => v with { ChannelName = "Renamed" },
             VideoChange.Tags => v with { Tags = ["cuisine"] },
             VideoChange.Type => v with { Type = VideoType.Stream },
-            VideoChange.Active => v with { Active = false },
+            VideoChange.State => v with { YouTube = StatusOf(active: false) },
             VideoChange.Published => v with { Published = v.Published.AddSeconds(1) },
             VideoChange.Duration => v with { Duration = v.Duration + TimeSpan.FromSeconds(1) },
             VideoChange.Views => v with { Stats = v.Stats with { Views = v.Stats.Views + 1 } },
@@ -110,7 +105,6 @@ public sealed class DocumentMapperTests
         VideoDocument doc = DocumentMapper.ToDocument(SampleData.Video());
 
         Assert.Equal(doc.ContentHash, StoreJson.ContentHash(doc with { ContentHash = null }));
-        Assert.Null(doc.SeenInRun);
     }
 
     [Fact]

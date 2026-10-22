@@ -1,17 +1,21 @@
 <script lang="ts">
   // A channel's admin page (1.5, from the dashboard's Manage): the channel as TonTuyau knows it on YouTube, how many of
-  // its videos are in each state, the refreshes (the channel, the channel and its videos, one video), and its videos,
-  // latest first, by state (?state=, the chips) or words. One task at a time: while one goes on (any), the buttons
-  // wait and a line says which; the page asks again every 3 s then, and shows what changed once it's over. A refusal
-  // says why; a 401 ends the session.
+  // its videos are in each state, its subscription (2.0: subscribe, its tabs, unsubscribe), the refreshes (the channel,
+  // the channel and its videos, one video), and its videos,
+  // latest first, by state (?state=, the chips) or words. While a run goes on (any), a line says which and a refresh
+  // asked for waits its turn in the queue (alpha.3: the buttons stay enabled); the page asks again every 3 s then, and
+  // shows what changed once it's over. A refusal says why; a 401 ends the session.
   import { untrack } from 'svelte'
   import Avatar from '../components/Avatar.svelte'
   import Button from '../components/Button.svelte'
   import Chips from '../components/Chips.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import FailedDownloads from '../components/FailedDownloads.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import Icon from '../components/Icon.svelte'
   import LoadMore from '../components/LoadMore.svelte'
   import Skeleton from '../components/Skeleton.svelte'
+  import SubscriptionCard from '../components/SubscriptionCard.svelte'
   import Thumbnail from '../components/Thumbnail.svelte'
   import YouTubeStateBadge from '../components/YouTubeStateBadge.svelte'
   import { api, ApiError } from '../lib/api/client'
@@ -55,18 +59,25 @@
   })
 
   const lock = $derived(tasks.data?.lock ?? null)
+  /** A refresh asked for now waits its turn: a run goes on, one is on hold, or others wait already. */
+  const waits = $derived(
+    tasks.data != null && (tasks.data.lock != null || tasks.data.onHold.length > 0 || tasks.data.queue.length > 0),
+  )
   $effect(() => {
     const timer = setInterval(() => void tasks.refresh(), lock ? BUSY_EVERY : IDLE_EVERY)
     return () => clearInterval(timer)
   })
   // A run ending: what it changed.
   let wasBusy = false
+  // Each run ending: its failed downloads read again too.
+  let runsEnded = $state(0)
   $effect(() => {
     const busy = lock !== null
     if (wasBusy && !busy) {
       untrack(() => {
         void channel.refresh()
         void videos.refreshFirst((video) => video.video.id)
+        runsEnded++
       })
     }
     wasBusy = busy
@@ -79,13 +90,19 @@
   })
 
   let refused = $state<string | null>(null)
+  let queued = $state<string | null>(null)
   let pending = $state(false)
 
   async function refresh(task: RunTask, target: string) {
     refused = null
+    queued = null
     pending = true
+    const waiting = waits
     try {
       await api.startTask(task, target)
+      if (waiting) {
+        queued = t('channelAdmin.queued', { task: t(`task.${task}`) })
+      }
     } catch (error) {
       refused = t('task.refused', {
         reason: error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error),
@@ -156,13 +173,19 @@
         {/if}
       </p>
     {/if}
+    {#if queued}
+      <p class="queued">{queued}</p>
+    {/if}
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
 
     <div class="two">
       <section class="card" aria-labelledby="channel-title">
-        <h2 id="channel-title">{t('channelAdmin.onYouTube')}</h2>
+        <div class="head">
+          <h2 id="channel-title">{t('channelAdmin.onYouTube')}</h2>
+          <HelpButton zone={t('channelAdmin.onYouTube')}><p>{t('channelAdmin.refreshHint')}</p></HelpButton>
+        </div>
         <dl>
           <div>
             <dt>{t('channelAdmin.state')}</dt>
@@ -187,22 +210,23 @@
           </div>
         </dl>
         <div class="actions">
-          <Button
-            variant="filled"
-            disabled={pending || lock !== null}
-            onclick={() => void refresh('refreshChannel', card.id)}
-          >
+          <Button variant="filled" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>
             {t('channelAdmin.refreshChannel')}
           </Button>
-          <Button disabled={pending || lock !== null} onclick={() => void refresh('refreshChannelVideos', card.id)}>
+          <Button disabled={pending} onclick={() => void refresh('refreshChannelVideos', card.id)}>
             {t('channelAdmin.refreshAll')}
           </Button>
         </div>
-        <p class="hint">{t('channelAdmin.refreshHint')}</p>
+        {#if waits}
+          <p class="hint">{t('task.waitsItsTurn')}</p>
+        {/if}
       </section>
 
       <section class="card" aria-labelledby="states-title">
-        <h2 id="states-title">{t('channelAdmin.videosOnYouTube')}</h2>
+        <div class="head">
+          <h2 id="states-title">{t('channelAdmin.videosOnYouTube')}</h2>
+          <HelpButton zone={t('channelAdmin.videosOnYouTube')}><p>{t('channelAdmin.statesHint')}</p></HelpButton>
+        </div>
         <dl class="states">
           {#each states as s (s)}
             <div>
@@ -211,9 +235,12 @@
             </div>
           {/each}
         </dl>
-        <p class="hint">{t('channelAdmin.statesHint')}</p>
       </section>
+
+      <SubscriptionCard channelId={card.id} subscription={data.subscription} onchange={() => channel.refresh()} />
     </div>
+
+    <FailedDownloads channelId={card.id} refreshes={runsEnded} />
 
     <section class="videos" aria-labelledby="videos-title">
       <h2 id="videos-title" class="visually-hidden">{t('channelAdmin.videos')}</h2>
@@ -283,7 +310,7 @@
                     <!-- A gone video isn't read again (1.5): its refresh would be refused. -->
                     <span class="row-actions">
                       <Button
-                        disabled={pending || lock !== null || item.youTube.state === 'gone'}
+                        disabled={pending || item.youTube.state === 'gone'}
                         onclick={() => void refresh('refreshVideo', video.id)}
                       >
                         {t('task.refresh')} <span class="visually-hidden">{video.title}</span>
@@ -377,6 +404,10 @@
     margin-left: var(--space-2);
   }
 
+  .queued {
+    color: var(--color-text-secondary);
+  }
+
   .refused {
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-md);
@@ -388,6 +419,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
     gap: var(--space-4);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .card {

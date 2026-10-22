@@ -8,9 +8,13 @@ import type {
   ChannelCard,
   ChannelDetail,
   ChannelListParams,
+  ChannelTabs,
+  ChannelTotals,
   ChannelVideoListParams,
   Comments,
   CreatedApiKey,
+  DashboardChannelParams,
+  DownloadFailure,
   Dashboard,
   Home,
   ImportHistory,
@@ -25,6 +29,7 @@ import type {
   RunTask,
   SearchAll,
   SearchParams,
+  Subscription,
   Suggestions,
   Tasks,
   VideoCard,
@@ -66,7 +71,7 @@ export class ApiError extends Error {
   }
 }
 
-type QueryValue = string | number | null | undefined
+type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
 
 /** Builds `path?k=v…`, leaving out empty values so the backend applies its own defaults. */
@@ -154,6 +159,11 @@ async function remove(path: string): Promise<void> {
 
 const segment = encodeURIComponent
 
+/** The tabs ticked, as the API names them: `videos,shorts,streams` or some of them. */
+function tabNames(tabs: ChannelTabs): string {
+  return (['videos', 'shorts', 'streams'] as const).filter((tab) => tabs[tab]).join(',')
+}
+
 export const api = {
   home(size?: number, signal?: AbortSignal): Promise<Home> {
     return get('/api/home', { size }, signal)
@@ -212,6 +222,11 @@ export const api = {
     return get('/api/admin/dashboard', {}, signal)
   },
 
+  /** The dashboard's channels with their counts (alpha.3): by name, with videos gone, sorted, page by page. */
+  dashboardChannels(params: DashboardChannelParams, signal?: AbortSignal): Promise<Page<ChannelTotals>> {
+    return get('/api/admin/dashboard/channels', params, signal)
+  },
+
   /** The dashboard's import history of a period (1.2): 401 when nobody is logged in. */
   imports(period: ImportPeriod, signal?: AbortSignal): Promise<ImportHistory> {
     return get('/api/admin/dashboard/imports', { period }, signal)
@@ -233,12 +248,24 @@ export const api = {
   },
 
   /**
-   * Starts a task now (1.4): the run, just started. A refresh (1.5) takes its `target`, a video's or channel's id.
-   * 409 when a run is going on, no deletion list waits, or the target isn't one of the library.
+   * Asks for a task (2.0: queued, started at once when nothing else goes on): the run. A refresh (1.5) takes its
+   * `target`, a video's or channel's id; "Add a channel" (2.0) its id or @handle, and the tabs to subscribe to;
+   * "Refresh everything" (2.0) the days within which what was read is skipped. 409
+   * when the target isn't one of the library (a refresh), or is already (a download, a channel subscribed to).
    */
-  startTask(task: RunTask, target?: string): Promise<Run> {
-    const query = target === undefined ? '' : `?target=${encodeURIComponent(target)}`
-    return postFor(`/api/admin/tasks/${segment(task)}/runs${query}`)
+  startTask(task: RunTask, target?: string, tabs?: ChannelTabs, days?: number): Promise<Run> {
+    const query = new URLSearchParams()
+    if (target !== undefined) {
+      query.set('target', target)
+    }
+    if (tabs !== undefined) {
+      query.set('tabs', tabNames(tabs))
+    }
+    if (days !== undefined) {
+      query.set('days', String(days))
+    }
+    const search = query.size > 0 ? `?${query.toString()}` : ''
+    return postFor(`/api/admin/tasks/${segment(task)}/runs${search}`)
   },
 
   /** Asks the run going on to stop (1.4): it ends canceled soon after. 409 when it's over or runs elsewhere. */
@@ -321,6 +348,21 @@ export const api = {
     return get(`/api/admin/channels/${segment(id)}`, {}, signal)
   },
 
+  /** Subscribes to the channel (2.0), or changes which of its tabs are downloaded. 400 when none is ticked. */
+  subscribe(id: string, tabs: ChannelTabs): Promise<Subscription> {
+    return putFor(`/api/admin/channels/${segment(id)}/subscription`, tabs)
+  },
+
+  /** Unsubscribes (2.0): the channel and its videos stay, nothing more is downloaded. */
+  unsubscribe(id: string): Promise<void> {
+    return remove(`/api/admin/channels/${segment(id)}/subscription`)
+  },
+
+  /** Its videos the YouTube syncs couldn't download (2.0): why, how many times; the latest failed first. */
+  failedDownloads(id: string, signal?: AbortSignal): Promise<DownloadFailure[]> {
+    return get(`/api/admin/channels/${segment(id)}/failed-downloads`, {}, signal)
+  },
+
   /** Its videos with their state on YouTube, latest first; by state or words, page by page. */
   adminChannelVideos(
     id: string,
@@ -340,8 +382,18 @@ export const api = {
     commentsMax: number,
     pauseSeconds: number,
     holdMinutes: number,
+    syncEveryHours: number,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes })
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours })
+  },
+
+  /** The download settings (2.0): the format, the tabs a channel added gets; the reading settings stay as they are. */
+  saveDownloadSettings(
+    comments: YouTubeCommentsChoice,
+    downloadFormat: string,
+    defaultTabs: ChannelTabs,
+  ): Promise<YouTubeSettings> {
+    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

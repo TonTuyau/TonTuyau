@@ -1,10 +1,10 @@
 namespace TonTuyau.Application.Sync;
 
 /// <summary>
-/// A running sync's progress as plain lines, the same in a terminal and in a log (QA16-1: like the <c>tee</c> log):
+/// A run's progress as plain lines, the same in a terminal and in a log (QA16-1: like the <c>tee</c> log):
 /// the CLI prints them, and every run writes them to its log (1.4). A line at each phase change, then at most one
 /// every <see cref="Interval"/> (a 20-minute run prints about 130), and each phase's last state before the next phase
-/// (its result stays on screen). Thread-safe: the sync reports from several threads.
+/// (its result stays on screen). Thread-safe: the import reports from several threads.
 /// <para>
 /// A heartbeat (QA16-3 b): when nothing was shown for <see cref="Interval"/> (a long step with nothing new to report:
 /// a slow TubeArchivist answer, the index switch), the current line is shown again, so the time keeps going up and the

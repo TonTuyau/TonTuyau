@@ -1,7 +1,7 @@
 @elasticsearch
 Feature: TonTuyau's search store
-  TonTuyau keeps its own copy of the library in Elasticsearch. Every write is an upsert by id,
-  so doing the same work twice is harmless, and a rebuild never shows users a half-built index.
+  TonTuyau indexes its library (PostgreSQL since 2.0, Library.feature) in Elasticsearch. Every write to the index is
+  an upsert by id, so doing the same work twice is harmless, and a rebuild never shows users a half-built index.
 
   Scenario: The indices are created when the backend starts
     When the backend starts
@@ -16,30 +16,22 @@ Feature: TonTuyau's search store
     Then the backend becomes ready
     And the store holds 2 videos
 
-  Scenario: Upserting is idempotent and only rewrites what changed
+  Scenario: Writing the index is idempotent and only rewrites what changed
     Given the backend is ready
-    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are upserted
+    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are indexed
     Then 2 were created, 0 updated and 0 unchanged
-    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are upserted
+    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are indexed
     Then 0 were created, 0 updated and 2 unchanged
-    When the title of "aaaaaaaaaaa" becomes "Nouveau titre" and the videos "aaaaaaaaaaa, bbbbbbbbbbb" are upserted
+    When the title of "aaaaaaaaaaa" becomes "Nouveau titre" and the videos "aaaaaaaaaaa, bbbbbbbbbbb" are indexed
     Then 0 were created, 1 updated and 1 unchanged
-    And the video "aaaaaaaaaaa" has the title "Nouveau titre"
+    And the index's video "aaaaaaaaaaa" has the title "Nouveau titre"
 
-  Scenario: A run marks every video it saw, changed or not, and later plain writes keep that mark
+  Scenario: Deleting from the index removes only what exists
     Given the backend is ready
-    And the videos "aaaaaaaaaaa, bbbbbbbbbbb" are stored
-    When the videos "aaaaaaaaaaa, bbbbbbbbbbb" are upserted by run "run-2"
-    Then the videos "aaaaaaaaaaa, bbbbbbbbbbb" were last seen by run "run-2"
-    When the title of "aaaaaaaaaaa" becomes "Changé" and the videos "aaaaaaaaaaa" are upserted
-    Then the videos "aaaaaaaaaaa" were last seen by run "run-2"
-
-  Scenario: Deleting removes only what exists
-    Given the backend is ready
-    And the videos "aaaaaaaaaaa, bbbbbbbbbbb" are stored
-    When the videos "aaaaaaaaaaa, zzzzzzzzzzz" are deleted
+    And the videos "aaaaaaaaaaa, bbbbbbbbbbb" are indexed
+    When the videos "aaaaaaaaaaa, zzzzzzzzzzz" are deleted from the index
     Then 1 video was deleted
-    And the store holds 1 video
+    And reads find "bbbbbbbbbbb" but not "aaaaaaaaaaa"
 
   Scenario: Users keep browsing the old index while a rebuild writes the new one
     Given the backend is ready

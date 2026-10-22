@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
+using TonTuyau.Application.YouTube;
+using TonTuyau.Infrastructure.Elasticsearch;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -13,6 +15,18 @@ namespace TonTuyau.IntegrationTests.Steps;
 [Binding]
 public sealed class SearchStoreSteps(ScenarioState state)
 {
+    /// <summary>The videos' channel: in the library before them.</summary>
+    private static readonly Channel Channel = new(
+        "UCaaaaaaaaaaaaaaaaaaaaaa",
+        "Chaîne",
+        "",
+        0,
+        [],
+        null,
+        null,
+        null,
+        YouTubeStatus.NotChecked);
+
     private readonly Dictionary<string, Video> _videos = new(StringComparer.Ordinal);
     private UpsertResult? _upsert;
     private int _deleted;
@@ -56,27 +70,31 @@ public sealed class SearchStoreSteps(ScenarioState state)
     [When("the videos {string} are stored")]
     public async Task VideosAreStored(string ids)
     {
-        await Videos.UpsertAsync(VideosFor(ids), null, CancellationToken.None);
+        // Their channel first, as the import adds it.
+        await Services
+            .GetRequiredService<IChannelRepository>()
+            .AddMissingAsync([Channel], LibraryOrigin.TubeArchivist, CancellationToken.None);
+        await Videos.AddMissingAsync(VideosFor(ids), LibraryOrigin.TubeArchivist, CancellationToken.None);
         await Indices.RefreshAsync(CancellationToken.None);
     }
 
-    [When("the videos {string} are upserted")]
-    public async Task VideosAreUpserted(string ids) => await UpsertAsync(ids, null);
+    [Given("the videos {string} are indexed")]
+    [When("the videos {string} are indexed")]
+    public async Task VideosAreIndexed(string ids) => await IndexAsync(ids);
 
-    [When("the videos {string} are upserted by run {string}")]
-    public async Task VideosAreUpsertedByRun(string ids, string run) => await UpsertAsync(ids, run);
-
-    [When("the title of {string} becomes {string} and the videos {string} are upserted")]
-    public async Task TitleChangesAndUpsert(string id, string title, string ids)
+    [When("the title of {string} becomes {string} and the videos {string} are indexed")]
+    public async Task TitleChangesAndIndex(string id, string title, string ids)
     {
         _videos[id] = VideoFor(id) with { Title = title };
-        await UpsertAsync(ids, null);
+        await IndexAsync(ids);
     }
 
-    [When("the videos {string} are deleted")]
+    [When("the videos {string} are deleted from the index")]
     public async Task VideosAreDeleted(string ids)
     {
-        _deleted = await Videos.DeleteAsync(Ids(ids), CancellationToken.None);
+        _deleted = await Services
+            .GetRequiredService<VideoIndex>()
+            .DeleteAsync(Ids(ids), CancellationToken.None);
         await Indices.RefreshAsync(CancellationToken.None);
     }
 
@@ -84,18 +102,13 @@ public sealed class SearchStoreSteps(ScenarioState state)
     public void UpsertCounts(int created, int updated, int unchanged) =>
         Assert.Equal((created, updated, unchanged), (_upsert!.Created, _upsert.Updated, _upsert.Unchanged));
 
-    [Then("the video {string} has the title {string}")]
-    public async Task VideoHasTitle(string id, string title) =>
-        Assert.Equal(title, (await Videos.GetAsync(id, CancellationToken.None))?.Title);
-
-    [Then("the videos {string} were last seen by run {string}")]
-    public async Task LastSeenBy(string ids, string run)
+    [Then("the index's video {string} has the title {string}")]
+    public async Task VideoHasTitle(string id, string title)
     {
-        foreach (string id in Ids(ids))
-        {
-            JsonNode source = await RawAsync(HttpMethod.Get, $"/{Prefix}-videos/_doc/{id}");
-            Assert.Equal(run, source["_source"]?["seen_in_run"]?.GetValue<string>());
-        }
+        StoredVideo? indexed = await Services
+            .GetRequiredService<VideoIndex>()
+            .GetStoredAsync(id, CancellationToken.None);
+        Assert.Equal(title, indexed?.Video.Title);
     }
 
     [Then("{int} video(s) was/were deleted")]
@@ -142,11 +155,13 @@ public sealed class SearchStoreSteps(ScenarioState state)
             Assert.IsType<SearchStoreException>(state.Error).Message,
             StringComparison.Ordinal);
 
+    /// <summary>What users browse: the index's read alias (PostgreSQL holds both, since 2.0).</summary>
     [Then("reads find {string} but not {string}")]
     public async Task ReadsFind(string present, string absent)
     {
-        Assert.NotNull(await Videos.GetAsync(present, CancellationToken.None));
-        Assert.Null(await Videos.GetAsync(absent, CancellationToken.None));
+        VideoIndex index = Services.GetRequiredService<VideoIndex>();
+        Assert.NotNull(await index.GetStoredAsync(present, CancellationToken.None));
+        Assert.Null(await index.GetStoredAsync(absent, CancellationToken.None));
     }
 
     [Then("reads and writes of {string} both use generation {int}")]
@@ -262,9 +277,12 @@ public sealed class SearchStoreSteps(ScenarioState state)
             .ToArray();
     }
 
-    private async Task UpsertAsync(string ids, string? run)
+    /// <summary>Straight to the index (the write alias), as the library writes it after PostgreSQL.</summary>
+    private async Task IndexAsync(string ids)
     {
-        _upsert = await Videos.UpsertAsync(VideosFor(ids), run, CancellationToken.None);
+        _upsert = await Services
+            .GetRequiredService<VideoIndex>()
+            .IndexAsync([.. VideosFor(ids).Select(v => new StoredVideo(v, false))], CancellationToken.None);
         await Indices.RefreshAsync(CancellationToken.None);
     }
 
@@ -284,10 +302,8 @@ public sealed class SearchStoreSteps(ScenarioState state)
                 $"Vidéo {id}",
                 "",
                 VideoType.Video,
-                true,
                 DateTimeOffset.UnixEpoch,
                 DateTimeOffset.UnixEpoch,
-                null,
                 TimeSpan.FromSeconds(60),
                 1000,
                 $"UCaaaaaaaaaaaaaaaaaaaaaa/{id}.mp4",
@@ -295,9 +311,9 @@ public sealed class SearchStoreSteps(ScenarioState state)
                 $"/cache/videos/{id[0]}/{id}.jpg",
                 [],
                 [],
-                [],
                 new VideoStats(0, 0, 0),
-                []);
+                [],
+                YouTubeStatus.NotChecked);
             _videos[id] = video;
         }
 

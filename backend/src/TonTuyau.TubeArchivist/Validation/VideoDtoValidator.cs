@@ -40,11 +40,6 @@ internal sealed class VideoDtoValidator : IValidator<VideoDto>
             errors.Add("vid_type", "must be one of videos, shorts, streams.");
         }
 
-        if (value.Active is null)
-        {
-            errors.Add("active", "is required.");
-        }
-
         if (!TaFormats.TryParseDate(value.Published, out _))
         {
             errors.Add("published", "must be an ISO-8601 date.");
@@ -53,11 +48,6 @@ internal sealed class VideoDtoValidator : IValidator<VideoDto>
         if (value.DateDownloaded is not > 0)
         {
             errors.Add("date_downloaded", "must be a positive epoch timestamp.");
-        }
-
-        if (value.VidLastRefresh is not null && !TaFormats.TryParseDate(value.VidLastRefresh, out _))
-        {
-            errors.Add("vid_last_refresh", "must be an ISO-8601 date when present.");
         }
 
         if (value.MediaSize is not >= 0)

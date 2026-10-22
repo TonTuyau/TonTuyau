@@ -1,20 +1,22 @@
 <script lang="ts">
-  // A task of the Tasks page (1.4): what it does, its command, when it runs next, how it last ran, and its buttons.
-  // `now` (a clock ticking every second) keeps a running run's duration going up, without asking the API.
-  // Run now starts the incremental sync at once; the full sync (an hour) and applying deletions ask first. One run at a
-  // time: while one holds the lock, the buttons wait; this task's run, going on in this backend, can be canceled
-  // (asked first too). The page does the requests (onstart, oncancel).
+  // A task of the Tasks page (1.4; 2.0: the TubeArchivist import and the YouTube syncs): what it does, its command,
+  // when it runs (the incremental sync: when next, by itself), how it last ran, and its buttons. `now` (a clock ticking
+  // every second) keeps a running run's duration going up, without asking the API. Run now asks first for the long
+  // ones (an import, a full sync: up to hours); without TubeArchivist's settings the import can't start, and says why. One run at a time: while one goes on (or waits), it's added to the run queue (2.0); this task's run,
+  // going on in this backend, can be canceled (asked first too). The page does the requests (onstart, oncancel).
   import type { RunTask, TaskInfo, Tasks } from '../lib/api/types'
   import { formatAge, formatDateTime, formatRunTime } from '../lib/format'
-  import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
+  import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
-  import { runSeconds, taskCommands } from '../lib/runs'
+  import { runSeconds, taskCommands, taskHelp } from '../lib/runs'
   import Button from './Button.svelte'
+  import HelpButton from './HelpButton.svelte'
   import RunStatePill from './RunStatePill.svelte'
 
   let {
     info,
     now,
+    waits,
     lock,
     runningHere,
     onstart,
@@ -22,9 +24,10 @@
   }: {
     info: TaskInfo
     now: number
+    waits: boolean
     lock: Tasks['lock']
     runningHere: string | null
-    onstart: (task: RunTask) => Promise<void>
+    onstart: (task: RunTask, target?: string, tabs?: undefined, days?: number) => Promise<void>
     oncancel: (runId: string) => Promise<void>
   } = $props()
 
@@ -45,21 +48,59 @@
     }
   }
 
+  /** What Run now asks first, for the long tasks; null: it starts at once. */
+  const confirm = $derived(
+    info.task === 'import'
+      ? { text: t('task.confirmImport'), start: t('task.startImport') }
+      : info.task === 'youTubeFullSync'
+        ? { text: t('task.confirmFullSync'), start: t('task.startFullSync') }
+        : info.task === 'refreshAll'
+          ? { text: t('task.confirmRefreshAll'), start: t('task.startRefreshAll') }
+          : null,
+  )
+
+  // "Refresh everything" (2.0): what was read in the last this many days is skipped (0: nothing is).
+  const MAX_DAYS = 365
+  let days = $state<number | null>(7)
+  const daysInvalid = $derived(
+    info.task === 'refreshAll' && (days === null || !Number.isInteger(days) || days < 0 || days > MAX_DAYS),
+  )
+  const go = () =>
+    info.task === 'refreshAll' ? onstart(info.task, undefined, undefined, days ?? undefined) : onstart(info.task)
+
   function start() {
-    if (info.task === 'incremental') {
-      void act(() => onstart(info.task))
-    } else {
+    if (confirm) {
       asking = 'start'
+    } else {
+      void act(go)
     }
   }
 
+  /** When it runs: at startup (the import), next by itself (the incremental sync), or by hand only. */
+  const when = $derived(
+    info.unavailable ??
+      (info.task === 'import'
+        ? t('task.atStartup')
+        : info.next
+          ? new Date(info.next).getTime() <= now
+            ? t('task.dueNow')
+            : t('task.nextAt', { at: formatDateTime(info.next, i18n.lang) })
+          : t('task.byHand')),
+  )
+
   const last = $derived(info.lastRun)
   const titleId = $props.id()
+  const help = $derived(taskHelp[info.task])
 </script>
 
 <article class="card" aria-labelledby={titleId}>
   <header>
-    <h2 id={titleId}>{t(`task.${info.task}`)}</h2>
+    <div class="title">
+      <h2 id={titleId}>{t(`task.${info.task}`)}</h2>
+      {#if help}
+        <HelpButton zone={t(`task.${info.task}`)}><p>{t(help)}</p></HelpButton>
+      {/if}
+    </div>
     <code>{taskCommands[info.task]}</code>
   </header>
   <p class="what">{t(`task.${info.task}.what`)}</p>
@@ -67,23 +108,7 @@
     <div>
       <dt>{t('task.when')}</dt>
       <dd>
-        {#if info.task === 'applyDeletions'}
-          {#if info.waiting}
-            <b>{tp('task.waiting', info.waiting.count)}</b>
-            <small>
-              <a href={href.adminRun(info.waiting.runId)}>
-                {t('task.waitingFrom', { date: formatDateTime(info.waiting.startedAt, i18n.lang) })}
-              </a>
-            </small>
-          {:else}
-            <small>{t('task.afterFull')} · {t('task.nothingWaiting')}</small>
-          {/if}
-        {:else}
-          <code>{info.schedule}</code>
-          <small>
-            {info.next ? t('task.next', { date: formatDateTime(info.next, i18n.lang) }) : t('task.notScheduled')}
-          </small>
-        {/if}
+        <small>{when}</small>
       </dd>
     </div>
     <div>
@@ -126,44 +151,64 @@
       {/if}
     {:else if mine}
       <small>{t('task.elsewhere')}</small>
-    {:else if asking === 'start'}
+    {:else if asking === 'start' && confirm}
       <div class="confirm" role="group" aria-label={t(`task.${info.task}`)}>
-        <p>
-          {info.task === 'full' ? t('task.confirmFull') : tp('task.confirmApply', info.waiting?.count ?? 0)}
-        </p>
+        <p>{confirm.text}</p>
+        {#if info.task === 'refreshAll'}
+          <label class="days">
+            {t('task.refreshAllDays')}
+            <input type="number" min="0" max={MAX_DAYS} step="1" bind:value={days} aria-invalid={daysInvalid} />
+            {t('task.days')}
+          </label>
+          {#if daysInvalid}
+            <small class="invalid" role="alert">{t('task.daysInvalid')}</small>
+          {/if}
+        {/if}
         <div>
-          <Button
-            variant="filled"
-            disabled={pending || lock !== null}
-            onclick={() => void act(() => onstart(info.task))}
-          >
-            {info.task === 'full' ? t('task.startFull') : tp('task.apply', info.waiting?.count ?? 0)}
+          <Button variant="filled" disabled={pending || daysInvalid} onclick={() => void act(go)}>
+            {waits ? t('task.addToQueue') : confirm.start}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
         </div>
       </div>
     {:else}
-      <Button
-        variant="filled"
-        disabled={pending || lock !== null || (info.task === 'applyDeletions' && !info.waiting)}
-        onclick={start}
-      >
-        {#if info.task !== 'applyDeletions'}
-          {t('task.runNow')}
-        {:else if info.waiting}
-          {tp('task.apply', info.waiting.count)}
-        {:else}
-          {t('task.nothingToApply')}
-        {/if}
+      <Button variant="filled" disabled={pending || info.unavailable !== null} onclick={start}>
+        {waits ? t('task.addToQueue') : t('task.runNow')}
       </Button>
-      {#if lock}
-        <small>{t('task.oneAtATime', { task: t(`task.${lock.task}`) })}</small>
+      {#if waits}
+        <small>{t('task.waitsItsTurn')}</small>
       {/if}
     {/if}
   </div>
 </article>
 
 <style>
+  .days {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .days input {
+    width: 5em;
+    height: var(--button-height);
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    font: inherit;
+  }
+
+  .days input[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+
+  .invalid {
+    color: var(--color-error);
+  }
+
   .card {
     display: flex;
     flex-direction: column;
@@ -172,6 +217,13 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   header {
@@ -224,10 +276,6 @@
   small {
     color: var(--color-text-secondary);
     font-size: var(--font-size-xs);
-  }
-
-  small a {
-    color: var(--color-link);
   }
 
   .state {

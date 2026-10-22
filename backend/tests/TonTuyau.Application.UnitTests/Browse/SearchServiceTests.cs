@@ -142,6 +142,15 @@ public sealed class SearchServiceTests
     {
         public List<VideoQuery> Queries { get; } = [];
 
+        public Task<UpsertResult> ReindexAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<string>> GetIdsAfterAsync(
+            string? after,
+            int count,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public bool HasMore { get; set; }
 
         public Task<StorePage<VideoListItem>> FindAsync(
@@ -189,7 +198,12 @@ public sealed class SearchServiceTests
 
         public Task<UpsertResult> UpsertAsync(
             IReadOnlyCollection<Video> videos,
-            string? runId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<UpsertResult> AddMissingAsync(
+            IReadOnlyCollection<Video> videos,
+            LibraryOrigin origin,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
@@ -199,15 +213,6 @@ public sealed class SearchServiceTests
         public Task<long> CountAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task MarkSeenAsync(IReadOnlyCollection<string> ids, string runId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<IReadOnlyList<VideoSummary>> FindNotSeenAsync(
-            string runId,
-            IReadOnlyCollection<string> channelIds,
-            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<IReadOnlyList<VideoSummary>> FindByChannelsAsync(
@@ -228,12 +233,27 @@ public sealed class SearchServiceTests
             bool missing,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<VideoFileState>> ListFilesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>Counts channel searches; suggests <see cref="NamesFound"/> names at most.</summary>
     private sealed class RecordingChannels : IChannelRepository
     {
         public int Searches { get; private set; }
+
+        public Task<UpsertResult> ReindexAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<string>> GetIdsAfterAsync(
+            string? after,
+            int count,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public int NamesFound { get; set; }
 
@@ -268,7 +288,12 @@ public sealed class SearchServiceTests
 
         public Task<UpsertResult> UpsertAsync(
             IReadOnlyCollection<Channel> channels,
-            string? runId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<UpsertResult> AddMissingAsync(
+            IReadOnlyCollection<Channel> channels,
+            LibraryOrigin origin,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
@@ -280,20 +305,12 @@ public sealed class SearchServiceTests
         public Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task MarkSeenAsync(IReadOnlyCollection<string> ids, string runId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
         public Task<StoredChannel?> GetStoredAsync(string id, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task SetArtAsync(
             ArtSubject subject,
             IReadOnlyDictionary<string, ArtVersions> art,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<IReadOnlyList<ChannelSummary>> FindNotSeenAsync(
-            string runId,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }

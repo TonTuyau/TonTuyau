@@ -5,7 +5,7 @@ namespace TonTuyau.Application.Sync;
 /// <summary>
 /// A progress line, e.g. <c>[06:10] videos        37 / 120 channels · 12,000 videos · art 2,300 copied, 6,100
 /// resized</c>. A total ("x / y") is shown only when it's exactly known: TubeArchivist's page counts and hit totals
-/// aren't (last_page is wrong, total_hits stops at 10,000), and an incremental run can't know its end.
+/// aren't (last_page is wrong, total_hits stops at 10,000).
 /// </summary>
 public static class SyncProgressText
 {
@@ -39,14 +39,14 @@ public static class SyncProgressText
     {
         SyncPhase.Channels => "channels",
         SyncPhase.ChannelVideos => "videos",
-        SyncPhase.NewVideos => "new videos",
         SyncPhase.MediaCheck => "media check",
-        SyncPhase.DeletionList => "deletion list",
-        SyncPhase.Deletions or SyncPhase.DeletionsOverLimit => "deletions",
         SyncPhase.ArtRetry => "art retry",
+        SyncPhase.Indexing => "indexing",
         SyncPhase.IndexSwitch => "index switch",
         SyncPhase.YouTubeChannel => "yt channel",
         SyncPhase.YouTubeVideos => "yt videos",
+        SyncPhase.YouTubeDownload => "download",
+        SyncPhase.YouTubeLibrary => "yt library",
         _ => phase.ToString(),
     };
 
@@ -55,16 +55,14 @@ public static class SyncProgressText
         SyncPhase.Channels => $"{OutOf(p.Done, p.Total)} read" + Art(p.Counts),
         SyncPhase.ChannelVideos =>
             $"{OutOf(p.Done, p.Total)} channels · {Number(p.Counts.VideosRead)} videos" + Art(p.Counts),
-        SyncPhase.NewVideos => $"{Number(p.Done)} pages · {Number(p.Counts.VideosRead)} videos" + Art(p.Counts),
         SyncPhase.MediaCheck => $"{Number(p.FilesChecked)} files checked · {Number(p.FilesMissing)} missing",
-        SyncPhase.DeletionList => $"{OutOf(p.Done, p.Total)} entries looked up",
-        SyncPhase.Deletions when p.Total == 0 => "nothing to delete",
-        SyncPhase.Deletions => $"{OutOf(p.Done, p.Total)} confirmed with TubeArchivist",
-        SyncPhase.DeletionsOverLimit => $"{Number(p.Total ?? 0)} planned, over the limit: none made",
         SyncPhase.ArtRetry => $"{OutOf(p.Done, p.Total)} images retried",
+        SyncPhase.Indexing => $"{OutOf(p.Done, p.Total)} written to the new indices",
         SyncPhase.IndexSwitch => "switching to the new indices",
         SyncPhase.YouTubeChannel => "reading the channel",
         SyncPhase.YouTubeVideos => $"{OutOf(p.Done, p.Total)} read" + YouTube(p.Counts),
+        SyncPhase.YouTubeDownload => p.Done == 0 ? "downloading" : "recording it in the library",
+        SyncPhase.YouTubeLibrary => $"{OutOf(p.Done, p.Total)} channels and videos read" + YouTube(p.Counts),
         _ => Number(p.Done),
     };
 

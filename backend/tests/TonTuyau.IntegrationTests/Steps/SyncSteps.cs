@@ -1,9 +1,11 @@
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
+using TonTuyau.Infrastructure.Accounts;
 using TonTuyau.IntegrationTests.Support;
 
 namespace TonTuyau.IntegrationTests.Steps;
@@ -14,18 +16,15 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     private readonly string _root = state.Temporary(Path.Combine(
         Path.GetTempPath(),
         "tontuyau-sync-" + Guid.NewGuid().ToString("N")[..8]));
-    private readonly List<SyncRun> _fullRuns = [];
     private readonly Dictionary<string, FakeVideo> _removed = new(StringComparer.Ordinal);
     private FakeTubeArchivist? _fake;
     private SyncRun? _run;
-    private SyncRun? _applied;
     private readonly CancellationTokenSource _caller = new();
-    private long? _watermarkBefore;
     private int _listRequestsBefore;
-    private string? _lastDeletedVideo;
     private int _runsBeforeRestart;
     private bool _countedBeforeRestart;
     private ISyncLease? _otherProcessLease;
+    private Task _lettingGo = Task.CompletedTask;
 
     public FakeTubeArchivist Fake => _fake!;
 
@@ -48,8 +47,6 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Set(ConfigKeys.TaUrl, Fake.Url);
         Set(ConfigKeys.ArtRoot, ArtRoot);
         Set(ConfigKeys.MediaRoot, MediaRoot);
-        Set(ConfigKeys.SyncLogRoot, Path.Combine(_root, "logs"));
-        Set(ConfigKeys.SyncSchedulerEnabled, "false");
     }
 
     // ---------------------------------------------------------------- TubeArchivist's library
@@ -106,7 +103,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
             NextDownload());
 
     /// <summary>As the CLI's Ctrl-C (or, in 1.4, the Tasks page) does: the run's caller asks it to stop.</summary>
-    [Given("the caller cancels the sync right before TubeArchivist answers page {int}")]
+    [Given("the caller cancels the import right before TubeArchivist answers page {int}")]
     public void CancelWhilePaging(int page) =>
         Fake.BeforeAnswer[$"page={page.ToString(CultureInfo.InvariantCulture)}"] = () => _caller.Cancel();
 
@@ -128,7 +125,6 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     public void DeleteOne(string name) => Fake.Mutate(() =>
     {
         Remove(Fake.Video(name));
-        _lastDeletedVideo = FakeTubeArchivist.VideoId(name);
     });
 
     [Given("TubeArchivist deletes the channel {string} with its videos")]
@@ -209,26 +205,17 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Restart(ConfigKeys.TaResultWindow, window);
     }
 
-    [Given("the format guard stops above {int} percent rejected, after {int} documents")]
-    public void FormatGuard(int percent, int minimum)
-    {
-        Set(ConfigKeys.SyncRejectGuardPercent, percent.ToString(CultureInfo.InvariantCulture));
-        Restart(ConfigKeys.SyncRejectGuardMinDocuments, minimum);
-    }
-
     // ---------------------------------------------------------------- automatic index rebuild (QA10 M5-10)
 
-    /// <summary>The scheduler on, with crons that never fire during a scenario (only the startup check matters).</summary>
-    [Given("the scheduler is on, with no sync due soon")]
-    public async Task SchedulerOn()
+    /// <summary>The backend imports TubeArchivist's library when it starts, as in production (2.0).</summary>
+    [Given("the backend imports from TubeArchivist when it starts")]
+    public async Task ImportsAtStartup()
     {
-        // Counted now, with the current backend: reading them later would start a backend with the scheduler on (and
-        // its startup rebuild) before the restart the scenario is about.
+        // Counted now, with the current backend: reading them later would start a backend with the import on before
+        // the restart the scenario is about.
         _runsBeforeRestart = (await RecentRuns()).Count;
         _countedBeforeRestart = true;
-        Set(ConfigKeys.SyncSchedulerEnabled, "true");
-        Set(ConfigKeys.SyncIncrementalCron, "0 0 1 1 *");
-        Set(ConfigKeys.SyncFullCron, "0 0 1 1 *");
+        state.ImportsAtStartup = true;
         state.StopBackend();
     }
 
@@ -244,10 +231,18 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         await state.WaitUntilReadyAsync();
     }
 
+    [Then("an import started by the backend succeeds, with {int} new videos")]
+    public async Task StartupImportSucceeds(int created)
+    {
+        SyncRun run = await StartupRunAsync(SyncMode.Import);
+        Assert.True(run.Outcome == SyncOutcome.Succeeded, Describe());
+        Assert.Equal(created, run.Counts.Created);
+    }
+
     [Then("an index rebuild started by the backend succeeds")]
     public async Task StartupRebuildSucceeds()
     {
-        SyncRun run = await StartupRunAsync();
+        SyncRun run = await StartupRunAsync(SyncMode.IndexRebuild);
         Assert.Equal(SyncOutcome.Succeeded, run.Outcome);
         Assert.True(run.IndexRebuild);
     }
@@ -255,12 +250,12 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [Then("an index rebuild started by the backend fails")]
     public async Task StartupRebuildFails()
     {
-        SyncRun run = await StartupRunAsync();
+        SyncRun run = await StartupRunAsync(SyncMode.IndexRebuild);
         Assert.Equal(SyncOutcome.Failed, run.Outcome);
         Assert.True(run.IndexRebuild);
     }
 
-    [Then("no sync starts by itself")]
+    [Then("no run starts by itself")]
     public async Task NoRunStarts()
     {
         // The startup check runs right after the host starts: give it time to do something if it were going to.
@@ -269,21 +264,16 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Assert.Null(await Services.GetRequiredService<ISyncStateStore>().GetLockAsync(CancellationToken.None));
     }
 
-    [Then("the run rebuilt the indices instead")]
-    public void RebuiltInstead()
+    [Then("the run rebuilt the indices first")]
+    public void RebuiltFirst()
     {
         Assert.True(_run!.IndexRebuild);
-        Assert.Equal(SyncMode.Full, _run.Mode);
-        Assert.Contains(
-            _run.Notes,
-            n => n.StartsWith("Index rebuild instead of the incremental sync", StringComparison.Ordinal));
+        Assert.Equal(SyncMode.Import, _run.Mode);
+        Assert.Contains(_run.Notes, n => n.StartsWith("Index rebuild first", StringComparison.Ordinal));
     }
 
     [Then("the run didn't rebuild the indices")]
     public void NotRebuilt() => Assert.False(_run!.IndexRebuild);
-
-    [Given("the deletion limit is {int}")]
-    public void DeletionLimit(int limit) => Restart(ConfigKeys.SyncMaxDeletions, limit);
 
     [Given("the media share has every video's file except {string}")]
     public void MediaShare(string missing)
@@ -297,50 +287,76 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [When("the file of {string} appears on the share")]
     public void FileAppears(string name) => WriteMediaFile(Fake.Video(name));
 
-    [Given("another process holds the sync lock")]
+    /// <summary>TubeArchivist's settings removed (2.0: TonTuyau runs without it); the backend restarts with that.</summary>
+    [Given("TubeArchivist isn't set up")]
+    public void NoTubeArchivist()
+    {
+        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.TaUrl), null);
+        state.Settings.Set(ConfigKeys.EnvironmentName(ConfigKeys.TaToken), null);
+        state.StopBackend();
+    }
+
+    [Given("another process holds the run lock")]
     public async Task OtherProcessHoldsLock() =>
         _otherProcessLease = await Services
             .GetRequiredService<ISyncStateStore>()
-            .TryAcquireLockAsync(SyncMode.Full, SyncTrigger.Cli, CancellationToken.None);
+            .TryAcquireLockAsync(SyncMode.Import, SyncTrigger.Cli, CancellationToken.None);
+
+    /// <summary>The other process's run ends meanwhile (while the scenario waits on something else).</summary>
+    [Given("the other process lets go of the run lock in {int} seconds")]
+    public void OtherProcessLetsGo(int seconds)
+    {
+        ISyncLease lease = _otherProcessLease!;
+        _otherProcessLease = null;
+        _lettingGo = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+            await lease.DisposeAsync();
+        });
+    }
 
     // ---------------------------------------------------------------- runs
 
-    [Given("a first sync has run")]
-    public async Task FirstSync()
+    [Given("a first import has run")]
+    public async Task FirstImport()
     {
-        await RunAsync(() => Sync.RunAsync(SyncMode.Incremental, SyncTrigger.Scheduler, CancellationToken.None));
-        Assert.True(_run!.Outcome == SyncOutcome.Succeeded, $"The first sync failed: {_run.Error}");
+        await RunAsync(() => Sync.ImportAsync(SyncTrigger.Cli, null, NoSyncProgress.Instance, CancellationToken.None));
+        Assert.True(_run!.Outcome == SyncOutcome.Succeeded, $"The first import failed: {_run.Error}");
     }
 
-    [When("an incremental sync runs")]
-    public Task Incremental()
-        => RunAsync(() => Sync.RunAsync(SyncMode.Incremental, SyncTrigger.Scheduler, _caller.Token));
-
-    [Given("a full sync has run")]
-    [Given("another full sync has run")]
-    [When("a full sync runs")]
-    public Task Full() => RunAsync(() => Sync.RunAsync(SyncMode.Full, SyncTrigger.Scheduler, CancellationToken.None));
+    [Given("another import has run")]
+    [When("an import runs")]
+    public Task Import() =>
+        RunAsync(() => Sync.ImportAsync(SyncTrigger.Cli, null, NoSyncProgress.Instance, _caller.Token));
 
     [When("an index rebuild runs")]
     public Task Rebuild() => RunAsync(() => Sync.RebuildAsync(SyncTrigger.Cli, CancellationToken.None));
-
-    [When("the deletions of that run are applied")]
-    public Task ApplyLatest() => ApplyAsync(_fullRuns[^1].Id);
-
-    [When("the deletions of the first of those runs are applied")]
-    public Task ApplyFirst() => ApplyAsync(_fullRuns[^2].Id);
 
     // ---------------------------------------------------------------- outcomes
 
     [Then("the run succeeded")]
     public void Succeeded() => Assert.True(_run?.Outcome == SyncOutcome.Succeeded, Describe());
 
-    [Then("the run succeeded as an incremental run")]
-    public void SucceededIncremental()
-    {
-        Succeeded();
-        Assert.Equal(SyncMode.Incremental, _run!.Mode);
-    }
+    /// <summary>
+    /// From then on PostgreSQL refuses any video written (a trigger raising an error): a database failure in the
+    /// middle of a run, at a known point.
+    /// </summary>
+    [Given("PostgreSQL refuses the videos written after TubeArchivist answers {string}")]
+    public void RefuseVideosAfter(string request) =>
+        Fake.BeforeAnswer[request] = () =>
+        {
+            using IServiceScope scope = Services.CreateScope();
+            scope.ServiceProvider
+                .GetRequiredService<TonTuyauDbContext>()
+                .Database
+                .ExecuteSqlRaw(
+                    """
+                    CREATE FUNCTION refuse_videos() RETURNS trigger LANGUAGE plpgsql AS
+                      $$ BEGIN RAISE EXCEPTION 'refused by the test'; END $$;
+                    CREATE TRIGGER refuse_videos BEFORE INSERT OR UPDATE ON videos
+                      FOR EACH ROW EXECUTE FUNCTION refuse_videos();
+                    """);
+        };
 
     [Then("the run failed")]
     public void Failed() => Assert.True(_run?.Outcome == SyncOutcome.Failed, Describe());
@@ -353,16 +369,18 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Assert.NotNull(_run.FinishedAt);
     }
 
-    [Then("the stored run is canceled too")]
-    public async Task StoredCanceled()
+    [Then("the stored run is {word} too")]
+    public async Task StoredOutcome(string outcome)
     {
         SyncRun? stored = await Services
             .GetRequiredService<ISyncStateStore>()
             .GetRunAsync(_run!.Id, CancellationToken.None);
-        Assert.Equal(SyncOutcome.Canceled, stored?.Outcome);
+        Assert.NotNull(stored);
+        Assert.Equal(Enum.Parse<SyncOutcome>(outcome, ignoreCase: true), stored.Outcome);
+        Assert.NotNull(stored.FinishedAt);
     }
 
-    [Then("the sync lock is free")]
+    [Then("the run lock is free")]
     public async Task LockFree() =>
         Assert.Null(await Services.GetRequiredService<ISyncStateStore>().GetLockAsync(CancellationToken.None));
 
@@ -378,15 +396,6 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     {
         Assert.NotNull(state.Error);
         Assert.Contains(reason, state.Error.Message, StringComparison.Ordinal);
-    }
-
-    [Then("the run was escalated to a full run because {string}")]
-    public void Escalated(string reason)
-    {
-        Assert.Equal(SyncMode.Full, _run!.Mode);
-        Assert.Contains(
-            _run.Notes,
-            n => n.StartsWith("Escalated", StringComparison.Ordinal) && n.Contains(reason, StringComparison.Ordinal));
     }
 
     [Then("the run notes mention {string}")]
@@ -425,57 +434,8 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [Then("the run corrected {int} media path(s)")]
     public void Corrected(int count) => Assert.Equal(count, _run!.Counts.Corrected);
 
-    [Then("the run deleted {int} item(s)")]
-    public void Deleted(int count) => Assert.True(_run!.Counts.Deleted == count, Describe());
-
-    [Then("the run kept {int} item(s) still in TubeArchivist")]
-    public void Kept(int count) => Assert.Equal(count, _run!.Counts.KeptStillInTubeArchivist);
-
-    [Then("the run's deletions are blocked by the limit")]
-    public void Blocked() => Assert.True(_run!.DeletionsBlockedByLimit);
-
-    [Then("the deletion list of the run has {int} entry/entries")]
-    public async Task DeletionList(int count)
-    {
-        IReadOnlyList<DeletionEntry>? entries = await Services.GetRequiredService<IDeletionLog>()
-            .ReadAsync(_run!.Id, CancellationToken.None);
-        Assert.Equal(count, entries!.Count);
-        Assert.Equal(count, _run.DeletionsPlanned);
-    }
-
-    [Then("{int} item(s) was/were deleted by the apply")]
-    public void DeletedByApply(int count) => Assert.Equal(count, _applied!.Counts.Deleted);
-
-    [Then("{int} item(s) was/were kept by the apply, still in TubeArchivist")]
-    public void KeptByApply(int count) => Assert.Equal(count, _applied!.Counts.KeptStillInTubeArchivist);
-
-    [Then("the apply is a run of its own, for the list of {int} entries of that full run")]
-    public async Task ApplyIsItsOwnRun(int planned)
-    {
-        Assert.Equal(SyncMode.ApplyDeletions, _applied!.Mode);
-        Assert.Equal(SyncTrigger.Cli, _applied.Trigger);
-        Assert.Equal(SyncOutcome.Succeeded, _applied.Outcome);
-        Assert.NotNull(_applied.FinishedAt);
-        Assert.Equal(_fullRuns[^1].Id, _applied.AppliesTo);
-        Assert.Equal(planned, _applied.DeletionsPlanned);
-        Assert.NotEqual(_fullRuns[^1].Id, _applied.Id);
-        SyncRun? stored = await Services
-            .GetRequiredService<ISyncStateStore>()
-            .GetRunAsync(_applied.Id, CancellationToken.None);
-        Assert.Equal(_applied.Counts.Deleted, stored?.Counts.Deleted);
-    }
-
-    [Then("the full run's record is as that run left it")]
-    public async Task FullRunUntouched()
-    {
-        SyncRun full = _fullRuns[^1];
-        SyncRun? stored = await Services
-            .GetRequiredService<ISyncStateStore>()
-            .GetRunAsync(full.Id, CancellationToken.None);
-        Assert.Equal(full.Counts, stored?.Counts);
-        Assert.Equal(full.Notes, stored?.Notes);
-        Assert.Equal(full.FinishedAt, stored?.FinishedAt);
-    }
+    [Then("the run counted {int} subscription(s)")]
+    public void CountedSubscriptions(int count) => Assert.True(_run!.Counts.Subscribed == count, Describe());
 
     [Then("the run counted {int} missing media file(s)")]
     public void MissingMedia(int count) => Assert.Equal(count, _run!.Counts.MediaMissing);
@@ -527,6 +487,12 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     public async Task ShowsTitle(string name, string title) =>
         Assert.Equal(title, (await Videos.GetAsync(FakeTubeArchivist.VideoId(name), CancellationToken.None))?.Title);
 
+    [Then("the video {string} isn't a stream")]
+    public async Task IsNotStream(string name) =>
+        Assert.NotEqual(
+            VideoType.Stream,
+            (await Videos.GetAsync(FakeTubeArchivist.VideoId(name), CancellationToken.None))!.Type);
+
     [Then("the video {string} is a stream")]
     public async Task IsStream(string name) =>
         Assert.Equal(
@@ -541,27 +507,20 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         Assert.True(video.MediaPathCorrected);
     }
 
-    [Then("the watermark is the download date of the newest video")]
-    public async Task WatermarkNewest() =>
-        Assert.Equal(Fake.Videos.Max(v => v.Downloaded), (await Checkpoint()).Watermark);
-
-    [Then("the watermark didn't move")]
-    public async Task WatermarkUnchanged() => Assert.Equal(_watermarkBefore, (await Checkpoint()).Watermark);
-
     [Then("the video {string} is flagged as missing its file")]
     public async Task FlaggedMissing(string name)
     {
         await RefreshAsync();
-        Assert.Contains(FakeTubeArchivist.VideoId(name), await Videos.GetMediaMissingIdsAsync(CancellationToken.None));
+        StoredVideo? stored = await Videos.GetStoredAsync(FakeTubeArchivist.VideoId(name), CancellationToken.None);
+        Assert.True(stored?.MediaMissing);
     }
 
     [Then("the video {string} isn't flagged as missing its file")]
     public async Task NotFlaggedMissing(string name)
     {
         await RefreshAsync();
-        Assert.DoesNotContain(
-            FakeTubeArchivist.VideoId(name),
-            await Videos.GetMediaMissingIdsAsync(CancellationToken.None));
+        StoredVideo? stored = await Videos.GetStoredAsync(FakeTubeArchivist.VideoId(name), CancellationToken.None);
+        Assert.False(stored?.MediaMissing);
     }
 
     // ---------------------------------------------------------------- art
@@ -593,19 +552,6 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
     [Then("no art is pending")]
     public async Task NoArtPending() => Assert.Empty(await PendingArt());
 
-    [Then("its thumbnail is removed from the art volume")]
-    public void ThumbnailRemoved() => Assert.False(ArtExists(ThumbnailOf(_lastDeletedVideo!)));
-
-    // ---------------------------------------------------------------- resized art (QA09)
-
-    [Given("the resized versions are deleted from the art volume")]
-    public void DeleteVersions()
-    {
-        foreach (string file in Versions(ArtRoot))
-        {
-            File.Delete(file);
-        }
-    }
 
     [Then("every thumbnail has its {string} px versions")]
     public void EveryThumbnailHasVersions(string widths)
@@ -672,6 +618,8 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         {
             await _otherProcessLease.DisposeAsync();
         }
+
+        await _lettingGo;
 
         if (_fake is not null)
         {
@@ -762,20 +710,18 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
         }
     }
 
-    private Task<SyncCheckpoint> Checkpoint() =>
-        Services.GetRequiredService<ISyncStateStore>().GetCheckpointAsync(CancellationToken.None);
-
     private Task<IReadOnlyList<SyncRun>> RecentRuns() =>
         Services.GetRequiredService<ISyncStateStore>().GetRecentRunsAsync(50, CancellationToken.None);
 
-    /// <summary>The run the backend started by itself at startup, once finished (it runs in the background).</summary>
-    private async Task<SyncRun> StartupRunAsync()
+    /// <summary>The run of that kind the backend started by itself at startup, once finished (in the background).</summary>
+    private async Task<SyncRun> StartupRunAsync(SyncMode mode)
     {
         DateTime deadline = DateTime.UtcNow.AddSeconds(90);
         while (true)
         {
-            SyncRun? run = (await RecentRuns()).FirstOrDefault(r => r.Trigger == SyncTrigger.Startup);
-            if (run is { Outcome: not SyncOutcome.Running })
+            SyncRun? run = (await RecentRuns()).FirstOrDefault(r => r.Trigger == SyncTrigger.Startup && r.Mode == mode);
+            // Over: not running, nor waiting in the queue still (2.0: a run starts queued; alpha.4, it was read as over).
+            if (run is not null && run.Outcome is not (SyncOutcome.Queued or SyncOutcome.Running))
             {
                 _run = run;
                 return run;
@@ -784,7 +730,7 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
             if (DateTime.UtcNow > deadline)
             {
                 string seen = string.Join(", ", (await RecentRuns()).Select(r => $"{r.Trigger} {r.Mode} {r.Outcome}"));
-                Assert.Fail($"The backend didn't finish a startup rebuild within 90 s. Runs: {seen}.");
+                Assert.Fail($"The backend didn't finish a startup {mode} within 90 s. Runs: {seen}.");
             }
 
             await Task.Delay(250);
@@ -798,27 +744,14 @@ public sealed class SyncSteps(ScenarioState state) : IAsyncDisposable
 
     private async Task RunAsync(Func<Task<SyncRun>> run)
     {
-        _watermarkBefore = (await Checkpoint()).Watermark;
         _listRequestsBefore = Fake.CountRequests("/api/video/?");
         try
         {
             _run = await run();
-            if (_run.Mode == SyncMode.Full)
-            {
-                _fullRuns.Add(_run);
-            }
         }
         catch (SyncBusyException ex)
         {
             state.Error = ex;
-        }
-    }
-
-    private async Task ApplyAsync(string runId)
-    {
-        try
-        {
-            _applied = await Sync.ApplyDeletionsAsync(runId, SyncTrigger.Cli, CancellationToken.None);
         }
         catch (SyncRefusedException ex)
         {

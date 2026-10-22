@@ -69,7 +69,6 @@ internal sealed partial class SearchStoreHealthCheck(
 /// <summary>Creates missing indices at startup, retrying until Elasticsearch is there. Never stops the backend.</summary>
 internal sealed partial class IndexInitializer(
     IIndexManager indices,
-    ISyncStateStore syncState,
     SearchStoreReadiness readiness,
     IndexRebuildState rebuild,
     ILogger<IndexInitializer> logger) : BackgroundService
@@ -83,7 +82,6 @@ internal sealed partial class IndexInitializer(
             try
             {
                 await indices.EnsureAsync(stoppingToken).ConfigureAwait(false);
-                await syncState.EnsureAsync(stoppingToken).ConfigureAwait(false);
                 bool outdated = false;
                 foreach (IndexStatus status in await indices.GetStatusAsync(stoppingToken).ConfigureAwait(false))
                 {
@@ -120,7 +118,7 @@ internal sealed partial class IndexInitializer(
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Index {Index} was created by an older index definition: it needs a rebuild (automatic at startup "
-            + "when the scheduler is on, else at the next sync, or now with `tontuyau index rebuild`).")]
+        Message = "Index {Index} was created by an older index definition: it needs a rebuild (automatic at startup, "
+            + "else at the next import, or now with `tontuyau index rebuild`).")]
     private partial void LogOutdated(string index);
 }

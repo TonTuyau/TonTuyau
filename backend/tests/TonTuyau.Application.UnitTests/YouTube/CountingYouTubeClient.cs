@@ -1,3 +1,4 @@
+using TonTuyau.Application.Library;
 using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.UnitTests.YouTube;
@@ -25,6 +26,20 @@ internal sealed class CountingYouTubeClient : IYouTubeClient
     public Task<YouTubeLookup<YouTubeChannel>> GetChannelAsync(string channelId, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
+    public Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
+        string videoId,
+        string format,
+        string folder,
+        CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
     public Task<YouTubeCookieCheck> CheckCookieAsync(CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    public Task<YouTubeLookup<IReadOnlyList<YouTubeListed>>> ListTabAsync(
+        string channelId,
+        ChannelTab tab,
+        Func<YouTubeListed, bool> stopAt,
+        CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 }

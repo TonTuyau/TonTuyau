@@ -12,7 +12,7 @@ namespace TonTuyau.Infrastructure.Elasticsearch;
 
 // Browsing and search: the typed queries behind the REST API. They read the read alias (what users see).
 
-internal sealed partial class VideoRepository
+internal sealed partial class VideoIndex
 {
     /// <summary>Duration filter bounds, in seconds (API_CONTRACT.md: short &lt; 4 min, medium 4–20, long &gt; 20).</summary>
     public const double ShortUnder = 4 * 60;
@@ -337,7 +337,7 @@ internal sealed partial class VideoRepository
     }
 }
 
-internal sealed partial class ChannelRepository
+internal sealed partial class ChannelIndex
 {
     private static readonly Fields ListFields = Infer.Fields<ChannelListDocument>(
         c => c.Id,
@@ -476,9 +476,9 @@ internal sealed partial class ChannelRepository
         _ => throw new ArgumentOutOfRangeException(nameof(sort)),
     };
 
-    /// <summary>Every word typed starts a word of the name (see <see cref="VideoRepository.PrefixQuery"/>).</summary>
+    /// <summary>Every word typed starts a word of the name (see <see cref="VideoIndex.PrefixQuery"/>).</summary>
     private static BoolQuery NamePrefixQuery(string prefix) =>
-        VideoRepository.PrefixQuery(Infer.Field<ChannelDocument>(c => c.Name.Suffix("autocomplete")), prefix);
+        VideoIndex.PrefixQuery(Infer.Field<ChannelDocument>(c => c.Name.Suffix("autocomplete")), prefix);
 
     private static ChannelListItem ToListItem(ChannelListDocument d) =>
         new(d.Id, d.Name, d.Subscribers, d.ThumbPath, DocumentMapper.ToArt(d.ThumbArt));

@@ -8,14 +8,19 @@
   // `start` (the watch page's `t`) is where the video starts; seek() moves to a time and plays (a timecode's click).
   // Leaving a video (the next short, another page, a message in its place) empties its <video> at once, so its download
   // stops (1.1.0, the Firefox shorts fix): see release() below.
+  // On the watch page the video is played in parts (2.0, C3: lib/streaming.ts), about 30 s ahead, the whole file when
+  // that fails; the shorts play their file whole.
   import type { VideoDetail } from '../lib/api/types'
+  import { untrack } from 'svelte'
   import { playability, type Playability } from '../lib/codec'
   import { codecName } from '../lib/format'
   import { t } from '../lib/i18n/i18n.svelte'
   import type { PlayerSize } from '../lib/playerSize.svelte'
+  import { startPlayback, type Playback } from '../lib/streaming'
   import { ratioFromElement, ratioFromTracks, ratioCss, type Ratio } from '../lib/videoRatio'
   import Button from './Button.svelte'
   import Icon from './Icon.svelte'
+  import PlayerControls from './PlayerControls.svelte'
 
   // `shorts`: the /shorts/ player fills the frame its page gives it, starts by itself and loops (like YouTube).
   let {
@@ -78,6 +83,7 @@
   const fitted = $derived(variant === 'watch' && mode === 'play')
 
   let element: HTMLVideoElement | undefined = $state()
+  let box: HTMLElement | undefined = $state()
 
   // A <video> taken out of the page keeps downloading, and keeps its connection, until the garbage collector frees
   // it. Scrolling through shorts in Firefox, the old ones piled up (9 open downloads for 1 video on screen) and took
@@ -106,6 +112,24 @@
     }
   })
 
+  // The watch page's playback: in parts, or the whole file (its address set here, not in the markup).
+  let playback: Playback | undefined
+  $effect(() => {
+    const media = element
+    const url = video.mediaUrl
+    if (!media || variant !== 'watch') {
+      return
+    }
+    const started = startPlayback(media, url, { start: untrack(() => startAt) })
+    playback = started
+    return () => {
+      started.stop()
+      if (playback === started) {
+        playback = undefined
+      }
+    }
+  })
+
   function onloadedmetadata(event: Event & { currentTarget: HTMLVideoElement }) {
     loadedRatio = ratioFromElement(event.currentTarget)
     if (startAt !== null) {
@@ -128,7 +152,8 @@
 
   // A decode error and a missing file look the same to the media element: ask the server about the file.
   async function onerror() {
-    if (failure !== 'none') {
+    // In parts, an error is the parts': the playback falls back to the whole file by itself.
+    if (failure !== 'none' || (playback && playback.mode !== 'whole')) {
       return
     }
     const id = video.id
@@ -160,6 +185,7 @@
 {/snippet}
 
 <div
+  bind:this={box}
   class="player {variant === 'shorts' ? 'shorts' : mode === 'play' ? 'fit' : 'landscape'}"
   style:--video-ratio={fitted ? ratioCss(shape).ratio : undefined}
   style:--video-ratio-value={fitted ? ratioCss(shape).value : undefined}
@@ -169,10 +195,11 @@
     <!-- svelte-ignore a11y_media_has_caption (subtitles are out of v1, R2-12) -->
     <video
       bind:this={element}
-      src={video.mediaUrl}
+      src={variant === 'shorts' ? video.mediaUrl : undefined}
       poster={video.thumbnailUrl ?? undefined}
-      controls
-      autoplay={variant === 'shorts'}
+      controls={variant === 'shorts'}
+      disablepictureinpicture={variant === 'watch'}
+      autoplay
       loop={variant === 'shorts'}
       preload="metadata"
       aria-label={t('watch.player')}
@@ -181,17 +208,17 @@
       ontimeupdate={(event) => ontime?.(event.currentTarget.currentTime)}
     ></video>
     {#if uncertain && variant === 'shorts'}{@render notice()}{/if}
-    {#if onsizechange && variant === 'watch'}
-      <button
-        type="button"
-        class="size"
-        aria-label={size === 'small' ? t('player.large') : t('player.small')}
-        title={size === 'small' ? t('player.large') : t('player.small')}
-        aria-pressed={size === 'large'}
-        onclick={() => onsizechange(size === 'small' ? 'large' : 'small')}
-      >
-        <Icon name={size === 'small' ? 'playerLarge' : 'playerSmall'} />
-      </button>
+    <!-- The watch page's own controls (2.0, C1); the shorts keep the browser's. No picture-in-picture (the user's
+         choice): Firefox's own "Pop out this video" button, over the video, is off too. -->
+    {#if variant === 'watch' && element && box}
+      <PlayerControls
+        media={element}
+        {box}
+        chapters={video.chapters}
+        duration={video.durationSeconds}
+        {size}
+        {onsizechange}
+      />
     {/if}
   {:else}
     <div class="message" role="status">
@@ -242,39 +269,17 @@
     height: 100%;
   }
 
-  .size {
-    position: absolute;
-    top: var(--space-2);
-    right: var(--space-2);
-    display: grid;
-    place-items: center;
-    width: var(--icon-button-size);
-    height: var(--icon-button-size);
-    border: none;
-    border-radius: var(--radius-round);
-    background: var(--color-overlay);
-    color: var(--color-on-overlay);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
+  /* Full screen (the controls' button, F): the whole screen, the video in the middle of it. */
+  .player:fullscreen {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    border-radius: 0;
   }
 
-  .player:hover .size,
-  .size:focus-visible {
-    opacity: 1;
-  }
-
-  /* Touch screens have no hover: always shown. */
-  @media (hover: none) {
-    .size {
-      opacity: 1;
-    }
-  }
-
-  /* Below the watch page's one-column breakpoint the two sizes look the same: no button. */
-  @media (max-width: 1312px) {
-    .size {
-      display: none;
-    }
+  .player:fullscreen video {
+    object-fit: contain;
   }
 
   .notice {

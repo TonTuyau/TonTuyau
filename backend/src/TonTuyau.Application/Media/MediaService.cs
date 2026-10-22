@@ -8,7 +8,8 @@ using TonTuyau.Application.Sync;
 namespace TonTuyau.Application.Media;
 
 /// <param name="ContentType">What the file really is (see <see cref="MediaTypes.FileContentType"/>).</param>
-public sealed record MediaFile(StoredFile File, string ContentType, DownloadName DownloadName);
+/// <param name="Duration">The video's length, as the library knows it (the parts of a video played in parts, C3).</param>
+public sealed record MediaFile(StoredFile File, string ContentType, DownloadName DownloadName, TimeSpan Duration);
 
 /// <param name="ContentType">JPEG, PNG or WebP, as TubeArchivist made it.</param>
 public sealed record ArtFile(StoredFile File, string ContentType);
@@ -40,7 +41,7 @@ public sealed partial class MediaService(
 
         if (!LibraryPaths.IsMediaPath(video.MediaPath))
         {
-            // The sync validates paths before storing them: this is a damaged document, not a user mistake.
+            // The import validates paths before storing them: this is a damaged document, not a user mistake.
             LogBadPath(id, video.MediaPath);
             throw unavailable;
         }
@@ -50,7 +51,8 @@ public sealed partial class MediaService(
         return new MediaFile(
             file,
             MediaTypes.FileContentType(extension),
-            DownloadFileName.For(video.Title, extension));
+            DownloadFileName.For(video.Title, extension),
+            video.Duration);
     }
 
     /// <exception cref="ValidationException">Not a video id.</exception>
@@ -64,7 +66,7 @@ public sealed partial class MediaService(
     }
 
     /// <summary>A resized version of a video's thumbnail (WebP, contract v1.4).</summary>
-    /// <param name="width">From the URL: only the widths the sync makes (360, 720); anything else is a 404.</param>
+    /// <param name="width">From the URL: only the widths TonTuyau makes (360, 720); anything else is a 404.</param>
     /// <exception cref="ValidationException">Not a video id.</exception>
     /// <exception cref="NotFoundException">Unknown video, a width that isn't made, or a version not made (yet).</exception>
     public async Task<ArtFile> GetThumbnailVersionAsync(string id, string width, CancellationToken cancellationToken)
@@ -101,7 +103,7 @@ public sealed partial class MediaService(
     }
 
     /// <param name="kind"><c>thumb</c> or <c>banner</c>. Any other kind (e.g. TubeArchivist's <c>tvart</c>, which the
-    /// sync still copies) is an image that doesn't exist: a 404 (contract v1.1).</param>
+    /// import still copies) is an image that doesn't exist: a 404 (contract v1.1).</param>
     /// <exception cref="ValidationException">Not a channel id.</exception>
     /// <exception cref="NotFoundException">Unknown channel, unknown kind, or no copied image of this kind.</exception>
     public async Task<ArtFile> GetChannelArtAsync(string id, string kind, CancellationToken cancellationToken)
@@ -146,7 +148,7 @@ public sealed partial class MediaService(
         return new ArtFile(file, MediaTypes.ImageContentType(MediaTypes.ExtensionOf(cachePath)));
     }
 
-    /// <summary>The width asked for, when it's one the sync makes; anything else (not a number too) is a 404.</summary>
+    /// <summary>The width asked for, when it's one TonTuyau makes; anything else (not a number too) is a 404.</summary>
     private static int SizeOf(string width, IReadOnlyList<int> made)
     {
         foreach (int size in made)

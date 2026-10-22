@@ -35,17 +35,9 @@ public sealed class SyncProgressTextTests
     [Theory]
     [InlineData(SyncPhase.Channels, 100, 150, "[06:10] channels      100 / 150 read")]
     [InlineData(SyncPhase.ChannelVideos, 37, 120, "[06:10] videos        37 / 120 channels · 12,000 videos")]
-    [InlineData(SyncPhase.NewVideos, 12, null, "[06:10] new videos    12 pages · 12,000 videos")]
     [InlineData(SyncPhase.MediaCheck, 0, null, "[06:10] media check   45,339 files checked · 3 missing")]
-    [InlineData(SyncPhase.DeletionList, 120, 400, "[06:10] deletion list 120 / 400 entries looked up")]
-    [InlineData(SyncPhase.Deletions, 12, 40, "[06:10] deletions     12 / 40 confirmed with TubeArchivist")]
-    [InlineData(SyncPhase.Deletions, 0, 0, "[06:10] deletions     nothing to delete")]
-    [InlineData(
-        SyncPhase.DeletionsOverLimit,
-        0,
-        1_200,
-        "[06:10] deletions     1,200 planned, over the limit: none made")]
     [InlineData(SyncPhase.ArtRetry, 5, 20, "[06:10] art retry     5 / 20 images retried")]
+    [InlineData(SyncPhase.Indexing, 120, 400, "[06:10] indexing      120 / 400 written to the new indices")]
     [InlineData(SyncPhase.IndexSwitch, 0, null, "[06:10] index switch  switching to the new indices")]
     public void Each_phase_has_its_line(SyncPhase phase, int done, int? total, string expected)
     {
@@ -68,10 +60,8 @@ public sealed class SyncProgressTextTests
             SyncProgressText.Line(Progress(SyncPhase.ChannelVideos, 37, 120, counts), TimeSpan.FromSeconds(370)));
     }
 
-    // The phases whose end isn't known never show one, whatever is passed (a page count, TubeArchivist's capped
-    // total_hits).
+    // The phases whose end isn't known never show one, whatever is passed (TubeArchivist's capped total_hits).
     [Theory]
-    [InlineData(SyncPhase.NewVideos)]
     [InlineData(SyncPhase.MediaCheck)]
     public void Phases_without_a_known_end_never_show_a_total(SyncPhase phase)
     {

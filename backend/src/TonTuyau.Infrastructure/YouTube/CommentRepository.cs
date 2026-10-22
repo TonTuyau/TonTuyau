@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TonTuyau.Application.Comments;
 using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure.Accounts;
+using TonTuyau.Infrastructure.Library;
 
 namespace TonTuyau.Infrastructure.YouTube;
 
@@ -15,11 +16,11 @@ internal sealed class CommentRepository(IServiceScopeFactory scopes) : ICommentR
         await using (scope.ConfigureAwait(false))
         {
             TonTuyauDbContext db = scope.ServiceProvider.GetRequiredService<TonTuyauDbContext>();
-            YouTubeVideoRow? video = await db.YouTubeVideos
+            VideoRow? video = await db.Videos
                 .AsNoTracking()
-                .FirstOrDefaultAsync(v => v.VideoId == videoId, cancellationToken)
+                .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken)
                 .ConfigureAwait(false);
-            if (video?.CommentsReadAt is not { } readAt)
+            if (video?.CommentsReadAt is null)
             {
                 return null;
             }
@@ -27,7 +28,7 @@ internal sealed class CommentRepository(IServiceScopeFactory scopes) : ICommentR
             long kept = await db.VideoComments
                 .LongCountAsync(c => c.VideoId == videoId, cancellationToken)
                 .ConfigureAwait(false);
-            return new CommentsRead(readAt, kept, video.CommentCount);
+            return new CommentsRead(video.CommentsReadAt.Value, kept, video.CommentCount);
         }
     }
 

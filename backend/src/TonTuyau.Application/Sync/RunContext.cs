@@ -10,15 +10,11 @@ namespace TonTuyau.Application.Sync;
 /// <see cref="Count"/> may be called from several threads at once (the art resizing runs in parallel): the counts and
 /// the progress change under one lock, and each report is made under it, so reports arrive in order.
 /// </remarks>
-/// <param name="guardPercent">Stop when more than this share of the documents read is rejected (100 = never).</param>
-/// <param name="guardMinimum">Don't judge before this many documents are read.</param>
 /// <param name="progressStart">When the command started, for the elapsed time of the progress.</param>
 internal sealed class RunContext(
     ISyncStateStore state,
     SyncRun run,
     IReadOnlySet<string> pendingArt,
-    int guardPercent,
-    int guardMinimum,
     ISyncProgressReporter progress,
     DateTimeOffset progressStart,
     CancellationToken cancellationToken)
@@ -39,13 +35,8 @@ internal sealed class RunContext(
 
     public HashSet<string> PendingArt { get; } = new(pendingArt, StringComparer.Ordinal);
 
-    public HashSet<string> KnownChannels { get; } = new(StringComparer.Ordinal);
-
     /// <summary>The videos whose file the walk didn't find on the media share (<see cref="CheckedFile"/>).</summary>
     public HashSet<string> MissingMedia { get; } = new(StringComparer.Ordinal);
-
-    /// <summary>Highest TubeArchivist <c>date_downloaded</c> seen in this run (epoch seconds).</summary>
-    public long? MaxDownloaded { get; private set; }
 
     /// <summary>Changes the counts (thread-safe) and reports the progress.</summary>
     public void Count(Func<SyncCounts, SyncCounts> change)
@@ -103,13 +94,7 @@ internal sealed class RunContext(
         }
     }
 
-    public void SawDownloaded(DateTimeOffset downloaded)
-    {
-        long seconds = downloaded.ToUnixTimeSeconds();
-        MaxDownloaded = MaxDownloaded is not null ? Math.Max(MaxDownloaded.Value, seconds) : seconds;
-    }
-
-    /// <summary>Counts rejected documents and stops the run when most of what TubeArchivist sends is broken.</summary>
+    /// <summary>Counts rejected documents (not imported), and keeps the first ones as samples.</summary>
     public void Rejected(IReadOnlyList<RejectedItem> rejected)
     {
         if (rejected.Count > 0)
@@ -120,13 +105,6 @@ internal sealed class RunContext(
                 _rejectedSamples.Add(
                     $"{item.Subject}: " + string.Join("; ", item.Errors.Select(e => $"{e.Field} {e.Message}")));
             }
-        }
-
-        int read = Run.Counts.VideosRead + Run.Counts.ChannelsRead;
-        // Both conditions: the minimum is a gate (too few documents to judge), the share decides once past it.
-        if (read >= guardMinimum && Run.Counts.Rejected * 100L > read * (long)guardPercent)
-        {
-            throw new TubeArchivistFormatChangedException(read, Run.Counts.Rejected);
         }
     }
 
@@ -140,7 +118,7 @@ internal sealed class RunContext(
         await state.SaveRunAsync(Run, CancellationToken.None).ConfigureAwait(false);
     }
 
-    // Under _gate. Nothing before the first phase (e.g. apply-deletions starting from the latest run's counts).
+    // Under _gate. Nothing before the first phase.
     private void Report()
     {
         if (_phase is not null)

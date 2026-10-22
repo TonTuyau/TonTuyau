@@ -1,6 +1,6 @@
 <script lang="ts">
   // A run's page (1.4): what it is (its task, state, id), who started it and when, how long it ran (ticking while it
-  // goes on), its result counts, its notes and error, the list it applied, and its log (RunLogView). While it goes on,
+  // goes on), its result counts, its notes and error, and its log (RunLogView). While it goes on,
   // the run is asked again every 2 s, and Cancel (asked first) stops it when it goes on in this backend; a refresh can
   // also be put on hold by hand (1.5, asked first). A refresh on hold is asked again every 30 s, with Resume now and
   // Cancel it. A 404: no such run. A 401: the session ended,
@@ -22,7 +22,7 @@
   import type { TextKey } from '../lib/i18n/types'
   import { Remote } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
-  import { isRefresh, runSeconds, startedBy } from '../lib/runs'
+  import { asksYouTube, isRefresh, runSeconds, startedBy } from '../lib/runs'
   import { pageTitle } from '../lib/title.svelte'
 
   let { id }: { id: string } = $props()
@@ -38,6 +38,8 @@
 
   const run = $derived(remote.data)
   const running = $derived(run?.state === 'running')
+  /** Waiting its turn (2.0): asked again as often as a run going on, to see it start. */
+  const queued = $derived(run?.state === 'queued')
   const held = $derived(run?.state === 'onHold')
 
   let now = $state(Date.now())
@@ -46,7 +48,7 @@
       const timer = setInterval(() => void remote.refresh(), HELD_EVERY)
       return () => clearInterval(timer)
     }
-    if (!running) {
+    if (!running && !queued) {
       return
     }
     const timer = setInterval(() => {
@@ -113,12 +115,8 @@
   /** Its counts, as the run's kind has them. */
   function counts(r: Run): [TextKey, number][] {
     const c = r.counts
-    if (r.task === 'applyDeletions') {
-      return [
-        ['run.count.planned', r.deletionsPlanned],
-        ['run.count.deleted', c.deleted],
-        ['run.count.kept', c.kept],
-      ]
+    if (r.task === 'indexRebuild') {
+      return []
     }
     if (isRefresh(r)) {
       return [
@@ -134,20 +132,15 @@
         ['run.count.updated', c.updated],
       ]
     }
-    const out: [TextKey, number][] = [
+    return [
       ['run.count.videosRead', c.videosRead],
       ['run.count.created', c.created],
-      ['run.count.updated', c.updated],
       ['run.count.unchanged', c.unchanged],
       ['run.count.rejected', c.rejected],
       ['run.count.artCopied', c.artCopied],
       ['run.count.artResized', c.artResized],
+      ['run.count.mediaMissing', c.mediaMissing],
     ]
-    if (r.task === 'full') {
-      out.push(['run.count.mediaMissing', c.mediaMissing])
-      out.push(r.deletionsBlocked ? ['run.count.waiting', r.deletionsPlanned] : ['run.count.deleted', c.deleted])
-    }
-    return out
   }
 </script>
 
@@ -172,6 +165,14 @@
       </p>
     </div>
 
+    {#if run.state === 'queued'}
+      <div class="actions">
+        <p>{t('run.queued', { position: run.position ?? '–' })}</p>
+        {#if run.cancellable}
+          <Button onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
+        {/if}
+      </div>
+    {/if}
     {#if running && run.cancellable}
       <div class="actions">
         {#if asking}
@@ -191,7 +192,7 @@
             </div>
           </div>
         {:else}
-          {#if isRefresh(run)}
+          {#if asksYouTube(run)}
             <Button onclick={() => (askingHold = true)}>{t('hold.put')}</Button>
           {/if}
           <Button onclick={() => (asking = true)}>{t('task.cancelRun')}</Button>
@@ -238,14 +239,13 @@
 
     <section class="card" aria-labelledby="result-title">
       <h2 id="result-title">{running ? t('run.soFar') : t('run.result')}</h2>
-      {#if run.appliesTo}
-        <p>{t('run.appliesTo')} <a href={href.adminRun(run.appliesTo)}><code>{run.appliesTo}</code></a></p>
-      {/if}
       {#if run.target}
         <p>
           {t('run.target')}
-          <a href={run.task === 'refreshVideo' ? href.watch(run.target) : href.channel(run.target)}
-            ><code>{run.target}</code></a
+          <a
+            href={run.task === 'refreshVideo' || run.task === 'downloadVideo'
+              ? href.watch(run.target)
+              : href.channel(run.target)}><code>{run.target}</code></a
           >
         </p>
       {/if}
@@ -426,6 +426,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    max-height: var(--notes-max-height);
+    overflow-y: auto;
     margin: 0;
     padding: 0;
     list-style: none;

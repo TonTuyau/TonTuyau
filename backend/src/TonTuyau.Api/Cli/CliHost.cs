@@ -75,7 +75,6 @@ internal static class CliHost
         {
             // The backend may never have started: make sure the indices exist.
             await host.Services.GetRequiredService<IIndexManager>().EnsureAsync(cancel.Token).ConfigureAwait(false);
-            await host.Services.GetRequiredService<ISyncStateStore>().EnsureAsync(cancel.Token).ConfigureAwait(false);
         }
         catch (SearchStoreException ex)
         {

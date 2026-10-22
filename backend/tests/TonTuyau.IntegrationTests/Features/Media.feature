@@ -140,8 +140,8 @@ Feature: Media and art files
       | /media/{video:creme}          | isn't on the media share     |
       | /media/{video:creme}/download | isn't on the media share     |
 
-  Scenario: A file the full sync flagged as missing isn't served, even if it came back
-    Given the full sync flagged the file of the video "huiles" as missing
+  Scenario: A file the import flagged as missing isn't served, even if it came back
+    Given the import flagged the file of the video "huiles" as missing
     When I request "/media/{video:huiles}"
     Then the answer is a problem 404
 
@@ -202,7 +202,7 @@ Feature: Media and art files
       | /art/channels/{channel:tomcooks}/banner      |
       | /art/channels/UCzzzzzzzzzzzzzzzzzzzzzz/thumb |
 
-  Scenario Outline: Other kinds of channel art don't exist, TV art included (the sync still copies it)
+  Scenario Outline: Other kinds of channel art don't exist, TV art included (the import still copies it)
     When I request "/art/channels/{channel:tomcooks}/<kind>"
     Then the answer is a problem 404
 
@@ -246,7 +246,7 @@ Feature: Media and art files
       | thumb  | 320   |
       | banner | 1280  |
 
-  Scenario Outline: Only the widths the sync makes exist
+  Scenario Outline: Only the widths TonTuyau makes exist
     Given the resized versions of the video "huiles" were made
     And the resized versions of the channel "tomcooks" were made
     When I request "<path>"
@@ -264,7 +264,7 @@ Feature: Media and art files
       | /art/channels/UCzzzzzzzzzzzzzzzzzzzzzz/thumb/48 |
       | /art/videos/zzzzzzzzzzz/360                   |
 
-  Scenario: A version the sync hasn't made (yet) is a 404
+  Scenario: A version not made (yet) is a 404
     When I request "/art/videos/{video:creme}/360"
     Then the answer is a problem 404
 

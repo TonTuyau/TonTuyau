@@ -30,7 +30,7 @@ public interface IArtStore
     ArtVersions? Describe(string cachePath, IReadOnlyList<int> widths);
 }
 
-/// <summary>Makes the resized WebP versions of copied art (QA09). CPU-bound: the sync runs several at once.</summary>
+/// <summary>Makes the resized WebP versions of copied art (QA09). CPU-bound: the import runs several at once.</summary>
 public interface IArtResizer
 {
     /// <summary>
@@ -61,7 +61,10 @@ public enum MediaRootState
     Empty,
 }
 
-/// <summary>The video files on the (read-only) NFS share, under <c>TONTUYAU_MEDIA_ROOT</c>.</summary>
+/// <summary>
+/// The video files under <c>TONTUYAU_MEDIA_ROOT</c>: TubeArchivist's share, which TonTuyau writes its own downloads to
+/// since 2.0 (same layout, <c>&lt;channel id&gt;/&lt;video id&gt;.&lt;ext&gt;</c>).
+/// </summary>
 public interface IMediaLibrary
 {
     /// <summary>Missing or empty root = the share is probably not mounted: never conclude "every file is gone".</summary>
@@ -73,37 +76,20 @@ public interface IMediaLibrary
     /// <returns>The file, or null when it isn't on the share (right now).</returns>
     /// <exception cref="ArgumentException">Not a media path (see <c>LibraryPaths.IsMediaPath</c>).</exception>
     StoredFile? Find(string mediaPath);
-}
 
-/// <summary>One line of a full run's deletion list.</summary>
-/// <param name="Kind"><c>video</c> or <c>channel</c>.</param>
-public sealed record DeletionEntry(
-    string Kind,
-    string Id,
-    string Title,
-    string? ChannelId,
-    string? Type,
-    DateTimeOffset? Downloaded,
-    string? LastSeenRun)
-{
-    /// <summary>Copied art to remove with the item (TubeArchivist cache paths).</summary>
-    public IReadOnlyList<string> Art { get; init; } = [];
+    /// <summary>
+    /// A new, empty folder for one download (2.0), on the media folder's file system so that placing the file is a
+    /// rename: a half-downloaded file never shows in the library's folders.
+    /// </summary>
+    /// <exception cref="IOException">The media folder can't be written to.</exception>
+    string NewDownloadFolder(string videoId);
 
-    public bool Equals(DeletionEntry? other) =>
-        other is not null
-        && (Kind, Id, Title, ChannelId, Type, Downloaded, LastSeenRun)
-            == (other.Kind, other.Id, other.Title, other.ChannelId, other.Type, other.Downloaded, other.LastSeenRun)
-        && Art.SequenceEqual(other.Art);
+    /// <summary>Moves a downloaded file to its place in the library, replacing a file there.</summary>
+    /// <param name="mediaPath">Where it goes, e.g. <c>UCxxx/abcdefghijk.mkv</c>.</param>
+    /// <exception cref="ArgumentException">Not a media path.</exception>
+    /// <exception cref="IOException">It can't be moved there.</exception>
+    void Place(string file, string mediaPath);
 
-    public override int GetHashCode() => HashCode.Combine(Kind, Id);
-}
-
-/// <summary>Deletion lists of full runs, as JSONL files under <c>TONTUYAU_SYNC_LOG_ROOT</c>, for a person to check.</summary>
-public interface IDeletionLog
-{
-    /// <returns>The file written.</returns>
-    Task<string> WriteAsync(string runId, IReadOnlyList<DeletionEntry> entries, CancellationToken cancellationToken);
-
-    /// <returns>The run's list, or null when there's no file for it.</returns>
-    Task<IReadOnlyList<DeletionEntry>?> ReadAsync(string runId, CancellationToken cancellationToken);
+    /// <summary>Deletes a download's folder and whatever is left in it; nothing when it's gone already.</summary>
+    void RemoveDownloadFolder(string folder);
 }

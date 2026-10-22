@@ -4,9 +4,10 @@ using TonTuyau.Api.Cli;
 using TonTuyau.Api.Errors;
 using TonTuyau.Api.Hosting;
 using TonTuyau.Application.Sync;
+using TonTuyau.Application.YouTube;
 using TonTuyau.Infrastructure;
 
-// `tontuyau sync …` / `tontuyau index …`: one command, then exit (see CliRunner for the list).
+// `tontuyau import` / `tontuyau index …`: one command, then exit (see CliRunner for the list).
 if (CliRunner.IsCommand(args))
 {
     return await CliHost.RunAsync(args);
@@ -22,9 +23,13 @@ CliSocket.ListenAlso(builder);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
 builder.Services.AddTonTuyau();
 builder.Services.AddSingleton<SyncRunner>();
-builder.Services.AddSingleton<Func<SyncMode, CancellationToken, Task<SyncRun>>>(sp =>
-    (mode, ct) => sp.GetRequiredService<SyncRunner>().RunAsync(mode, SyncTrigger.Scheduler, ct));
-builder.Services.AddHostedService<SyncScheduler>();
+// TubeArchivist's library imported at startup, when its settings are there (2.0).
+builder.Services.AddHostedService<ImportAtStartup>();
+// The run queue's look every few seconds (2.0).
+builder.Services.AddHostedService<RunQueueWatcher>();
+// The incremental YouTube sync, every few hours (2.0).
+builder.Services.AddSingleton<YouTubeSyncSchedule>();
+builder.Services.AddHostedService<YouTubeSyncScheduler>();
 builder.Services.AddHostedService<IndexAutoRebuild>();
 builder.Services.AddHostedService<YtdlpUpdater>();
 builder.Services.AddHostedService<RefreshResumer>();

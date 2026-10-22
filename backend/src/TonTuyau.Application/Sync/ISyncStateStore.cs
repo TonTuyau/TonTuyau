@@ -1,6 +1,6 @@
 namespace TonTuyau.Application.Sync;
 
-/// <summary>A held sync lock. Renewed in the background; disposing it releases the lock.</summary>
+/// <summary>A held run lock. Renewed in the background; disposing it releases the lock.</summary>
 public interface ISyncLease : IAsyncDisposable
 {
     SyncLockInfo Info { get; }
@@ -9,16 +9,11 @@ public interface ISyncLease : IAsyncDisposable
     CancellationToken Lost { get; }
 }
 
-/// <summary>Sync state kept in TonTuyau's Elasticsearch (index <c>&lt;prefix&gt;-sync</c>), shared by every process.</summary>
+/// <summary>
+/// The runs' state, shared by every process (2.0: in PostgreSQL): the history, the lock, the pictures to copy again.
+/// </summary>
 public interface ISyncStateStore
 {
-    /// <summary>Creates the sync index if it's missing.</summary>
-    Task EnsureAsync(CancellationToken cancellationToken);
-
-    Task<SyncCheckpoint> GetCheckpointAsync(CancellationToken cancellationToken);
-
-    Task SaveCheckpointAsync(SyncCheckpoint checkpoint, CancellationToken cancellationToken);
-
     /// <summary>
     /// Takes the lock if it's free or its lease has expired (a crashed holder).
     /// </summary>
@@ -33,12 +28,6 @@ public interface ISyncStateStore
 
     /// <returns>Most recent first.</returns>
     Task<IReadOnlyList<SyncRun>> GetRecentRunsAsync(int count, CancellationToken cancellationToken);
-
-    /// <returns>
-    /// The most recent full run that finished (succeeded, failed or canceled: it may have changed the library since an
-    /// older run's deletion list), or null.
-    /// </returns>
-    Task<SyncRun?> GetLatestFullRunAsync(CancellationToken cancellationToken);
 
     /// <returns>TubeArchivist cache paths of art that failed to copy and must be retried.</returns>
     Task<IReadOnlySet<string>> GetPendingArtAsync(CancellationToken cancellationToken);

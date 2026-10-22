@@ -14,12 +14,11 @@ namespace TonTuyau.Infrastructure;
 public static class AccountsServiceCollectionExtensions
 {
     /// <summary>
-    /// TonTuyau's PostgreSQL (EF Core), the accounts, the API keys, the YouTube cookie and the yt-dlp chosen in it.
+    /// The accounts, the API keys, the YouTube cookie and the yt-dlp chosen, in TonTuyau's PostgreSQL (its context:
+    /// <see cref="SearchStoreServiceCollectionExtensions.AddSearchStore"/>).
     /// </summary>
     public static IServiceCollection AddAccounts(this IServiceCollection services)
     {
-        services.AddDbContext<TonTuyauDbContext>((sp, o) =>
-            o.UseNpgsql(ConnectionString(sp.GetRequiredService<TonTuyauOptions>().Database)));
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
         services.AddScoped<AccountService>();
@@ -55,13 +54,4 @@ public static class AccountsServiceCollectionExtensions
                 .ConfigureAwait(false);
         }
     }
-
-    private static string ConnectionString(DatabaseOptions database) =>
-        new NpgsqlConnectionStringBuilder
-        {
-            Host = database.Host,
-            Database = database.Name,
-            Username = database.Username,
-            Password = database.Password,
-        }.ConnectionString;
 }

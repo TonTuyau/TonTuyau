@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { auth } from '../lib/auth.svelte'
 import { i18n } from '../lib/i18n/i18n.svelte'
 import type { ChannelTotals, ImportBar, ImportHistory } from '../lib/api/types'
-import { dashboard, importHistory } from '../test/data'
+import { dashboard, dashboardChannels, importHistory, page } from '../test/data'
 import { fakeApi, problemResponse } from '../test/fakeApi'
 import DashboardPage from './DashboardPage.svelte'
+
+const CHANNELS = '/api/admin/dashboard/channels'
 
 /** The channel names in the table, top to bottom. */
 const names = () =>
@@ -36,7 +38,7 @@ const total = (label: string) => screen.getAllByText(label, { selector: 'dt' })[
 
 describe('DashboardPage', () => {
   it('shows the totals as the API counted them', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+    fakeApi({ '/api/admin/dashboard': dashboard(), [CHANNELS]: page(dashboardChannels()) })
     render(DashboardPage)
 
     await screen.findByText('Channels', { selector: 'dt' })
@@ -45,11 +47,11 @@ describe('DashboardPage', () => {
     expect(total('Shorts')).toBe('1,231')
     expect(total('Streams')).toBe('574')
     expect(total('Gone from YouTube')).toBe('85')
-    expect(screen.getByText(/^Library synced/)).toBeInTheDocument()
+    expect(screen.getByText(/^Library updated/)).toBeInTheDocument()
   })
 
   it('shows the play time with each type’s share and average length, as given', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+    fakeApi({ '/api/admin/dashboard': dashboard(), [CHANNELS]: page(dashboardChannels()) })
     render(DashboardPage)
 
     const card = within(await screen.findByRole('region', { name: 'Play time' }))
@@ -62,7 +64,11 @@ describe('DashboardPage', () => {
   })
 
   it('asks for the last month by default, a bar per day, empty ones too, the step and counts on hover', async () => {
-    const api = fakeApi({ '/api/admin/dashboard': dashboard(), '/api/admin/dashboard/imports': importHistory() })
+    const api = fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      '/api/admin/dashboard/imports': importHistory(),
+      [CHANNELS]: page(dashboardChannels()),
+    })
     render(DashboardPage)
 
     const card = within(await screen.findByRole('region', { name: 'Import history' }))
@@ -79,7 +85,7 @@ describe('DashboardPage', () => {
     expect(bars[2]?.querySelectorAll('rect')).toHaveLength(3)
     expect(card.getAllByText('Types not recorded (before 1.2)').length).toBeGreaterThan(0)
 
-    // 22:00 UTC on the 11th is the 12th in Paris, the sync's time zone.
+    // 22:00 UTC on the 11th is the 12th in Paris, the dashboard's time zone.
     await hover(2)
     const tip = card.getByRole('status')
     expect(tip).toHaveTextContent('Oct 12')
@@ -145,7 +151,11 @@ describe('DashboardPage', () => {
   })
 
   it('switches to a log scale: powers of ten, a small import shows, its types share its height, remembered', async () => {
-    const api = fakeApi({ '/api/admin/dashboard': dashboard(), '/api/admin/dashboard/imports': importHistory() })
+    const api = fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      '/api/admin/dashboard/imports': importHistory(),
+      [CHANNELS]: page(dashboardChannels()),
+    })
     const user = userEvent.setup()
     const { unmount } = render(DashboardPage)
 
@@ -177,7 +187,7 @@ describe('DashboardPage', () => {
     expect(again.getByRole('button', { name: 'Log' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('says when the period brought no video, and when there was no sync yet', async () => {
+  it('says when the period brought no video, and when there was no import yet', async () => {
     fakeApi({
       '/api/admin/dashboard': dashboard({ lastSync: null }),
       '/api/admin/dashboard/imports': importHistory({ total: 0, bars: [] }),
@@ -185,36 +195,60 @@ describe('DashboardPage', () => {
     render(DashboardPage)
 
     expect(await screen.findByText('No new video over this period')).toBeInTheDocument()
-    expect(screen.getByText('No successful sync yet')).toBeInTheDocument()
+    expect(screen.getByText('No video added yet')).toBeInTheDocument()
   })
 
-  it('lists every channel biggest first; a column sorts, again the other way', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+  it('lists the channels biggest first; a column asks for them sorted, again the other way', async () => {
+    const api = fakeApi({ '/api/admin/dashboard': dashboard(), [CHANNELS]: page(dashboardChannels()) })
     const user = userEvent.setup()
     render(DashboardPage)
 
     await screen.findByRole('table', { name: 'Channels' })
     expect(names()).toEqual(['Vinyl Archive', 'Écoles du Goût', 'Atelier Bois'])
     expect(screen.getByRole('columnheader', { name: /Total/ })).toHaveAttribute('aria-sort', 'descending')
+    const asked = () => api.requests(CHANNELS).map((url) => `${url.searchParams}`)
+    expect(asked()).toEqual(['sort=total&order=desc'])
 
     await user.click(screen.getByRole('button', { name: 'Channel' }))
-    expect(names()).toEqual(['Atelier Bois', 'Écoles du Goût', 'Vinyl Archive'])
-    expect(screen.getByRole('columnheader', { name: /Channel/ })).toHaveAttribute('aria-sort', 'ascending')
-
+    expect(await screen.findByRole('columnheader', { name: /Channel/ })).toHaveAttribute('aria-sort', 'ascending')
     await user.click(screen.getByRole('button', { name: /Channel/ }))
-    expect(names()).toEqual(['Vinyl Archive', 'Écoles du Goût', 'Atelier Bois'])
-
     await user.click(within(screen.getByRole('table', { name: 'Channels' })).getByRole('button', { name: 'Shorts' }))
-    expect(names()).toEqual(['Écoles du Goût', 'Atelier Bois', 'Vinyl Archive'])
-    expect(screen.getByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
+
+    await vi.waitFor(() =>
+      expect(asked()).toEqual([
+        'sort=total&order=desc',
+        'sort=name&order=asc',
+        'sort=name&order=desc',
+        'sort=shorts&order=desc',
+      ]),
+    )
+    expect(await screen.findByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
     expect(screen.getByRole('link', { name: 'Go to channel Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
   })
 
-  it("counts each channel's videos gone, private and unlisted, in their colours when not 0, and sorts by them", async () => {
-    const data = dashboard()
-    data.channels[1] = { ...(data.channels[1] as ChannelTotals), private: 4, unlisted: 7 }
-    fakeApi({ '/api/admin/dashboard': data })
+  it('loads the next channels as asked, after the first page', async () => {
+    const [vinyl, ecoles, atelier] = dashboardChannels() as [ChannelTotals, ChannelTotals, ChannelTotals]
+    const api = fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      [CHANNELS]: (url: URL) =>
+        url.searchParams.get('cursor') === 'next' ? page([atelier], 3) : page([vinyl, ecoles], 3, 'next'),
+    })
     const user = userEvent.setup()
+    render(DashboardPage)
+
+    await screen.findByRole('table', { name: 'Channels' })
+    expect(names()).toEqual(['Vinyl Archive', 'Écoles du Goût'])
+    await user.click(screen.getByRole('button', { name: 'Show more' }))
+
+    await vi.waitFor(() => expect(names()).toEqual(['Vinyl Archive', 'Écoles du Goût', 'Atelier Bois']))
+    expect(api.requests(CHANNELS).at(-1)?.searchParams.get('cursor')).toBe('next')
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
+  })
+
+  it("counts each channel's videos gone, private and unlisted, in their colours when not 0", async () => {
+    const channels = dashboardChannels()
+    channels[1] = { ...(channels[1] as ChannelTotals), private: 4, unlisted: 7 }
+    fakeApi({ '/api/admin/dashboard': dashboard(), [CHANNELS]: page(channels) })
     render(DashboardPage)
 
     const table = await screen.findByRole('table', { name: 'Channels' })
@@ -223,38 +257,38 @@ describe('DashboardPage', () => {
     expect(within(ecoles).getByText('7')).toHaveClass('state', 'unlisted')
     const vinyl = within(table).getByRole('link', { name: 'Vinyl Archive' }).closest('tr') as HTMLElement
     expect(within(vinyl).getByText('24')).toHaveClass('state', 'gone')
-
-    await user.click(within(table).getByRole('button', { name: 'Unlisted' }))
-    expect(names()[0]).toBe('Écoles du Goût')
   })
 
-  it('finds a channel by name (accents and case ignored) and keeps those with videos gone from YouTube', async () => {
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+  it('asks for the channels by name once typing pauses, and for those with videos gone from YouTube', async () => {
+    const [, ecoles] = dashboardChannels() as [ChannelTotals, ChannelTotals]
+    const api = fakeApi({
+      '/api/admin/dashboard': dashboard(),
+      [CHANNELS]: (url: URL) =>
+        url.searchParams.get('gone') === 'true' ? page([]) : url.searchParams.has('q') ? page([ecoles]) : page([]),
+    })
     const user = userEvent.setup()
     render(DashboardPage)
 
     await user.type(await screen.findByRole('searchbox', { name: 'Search channels' }), 'ECOLE')
-    expect(names()).toEqual(['Écoles du Goût'])
+    await vi.waitFor(() => expect(names()).toEqual(['Écoles du Goût']))
+    expect(api.requests(CHANNELS).at(-1)?.searchParams.get('q')).toBe('ECOLE')
     expect(screen.getByText('1 of 3 channels')).toBeInTheDocument()
 
-    await user.clear(screen.getByRole('searchbox'))
     const gone = screen.getByRole('button', { name: 'Gone from YouTube', pressed: false })
     await user.click(gone)
     expect(gone).toHaveAttribute('aria-pressed', 'true')
-    expect(names()).toEqual(['Vinyl Archive', 'Atelier Bois'])
-
-    await user.type(screen.getByRole('searchbox'), 'école')
-    expect(names()).toEqual(['No channel'])
+    await vi.waitFor(() => expect(names()).toEqual(['No channel']))
+    expect(`${api.requests(CHANNELS).at(-1)?.searchParams}`).toBe('q=ECOLE&sort=total&order=desc&gone=true')
   })
 
   it('speaks French', async () => {
     i18n.setLang('fr')
-    fakeApi({ '/api/admin/dashboard': dashboard() })
+    fakeApi({ '/api/admin/dashboard': dashboard(), [CHANNELS]: page(dashboardChannels()) })
     render(DashboardPage)
 
     expect(await screen.findByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument()
     expect(await screen.findByText('Disparues de YouTube', { selector: 'dt' })).toBeInTheDocument()
-    expect(screen.getByText('3 sur 3 chaînes')).toBeInTheDocument()
+    expect(await screen.findByText('3 sur 3 chaînes')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Dernier mois' })).toHaveAttribute('aria-pressed', 'true')
     i18n.setLang('en')
   })

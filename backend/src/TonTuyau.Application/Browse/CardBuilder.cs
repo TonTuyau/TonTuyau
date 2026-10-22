@@ -8,8 +8,8 @@ namespace TonTuyau.Application.Browse;
 
 /// <summary>
 /// Turns store items into cards: adds what lives elsewhere (the channel's thumbnail for a video, the per-type video
-/// counts for a channel) and each image's versions, as the sync recorded them in the store (QA09: no disk access per
-/// card). An image the sync hasn't recorded yet (a store from before resized art) is looked up in the art store.
+/// counts for a channel) and each image's versions, as the import or a refresh recorded them in the store (QA09: no
+/// disk access per card). An image not recorded yet (a store from before resized art) is looked up in the art store.
 /// </summary>
 public sealed class CardBuilder(IVideoRepository videos, IChannelRepository channels, IArtStore art)
 {
@@ -85,7 +85,7 @@ public sealed class CardBuilder(IVideoRepository videos, IChannelRepository chan
     }
 
     /// <summary>
-    /// The image's versions: as recorded by the sync, or, when it hasn't recorded them, what the art store holds (null
+    /// The image's versions: as recorded in the store, or, when they aren't, what the art store holds (null
     /// when the path isn't an art path or the image was never copied).
     /// </summary>
     public ArtVersions? Image(string? cachePath, ArtVersions? recorded, IReadOnlyList<int> widths)
@@ -113,7 +113,7 @@ public sealed class CardBuilder(IVideoRepository videos, IChannelRepository chan
             video.Stats.Views,
             video.ThumbnailPath,
             thumbnailArt,
-            video.CurrentYouTube);
+            video.YouTube);
     }
 
     private VideoCardView VideoCard(VideoListItem item, ChannelListItem? owner) => new(

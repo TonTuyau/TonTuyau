@@ -67,6 +67,7 @@ internal sealed record ChannelDto(
     string? ChannelName,
     string? ChannelDescription,
     bool? ChannelActive,
+    bool? ChannelSubscribed,
     long? ChannelSubs,
     string? ChannelLastRefresh,
     List<string?>? ChannelTags,

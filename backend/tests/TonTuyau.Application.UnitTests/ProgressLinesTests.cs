@@ -68,13 +68,13 @@ public sealed partial class ProgressLinesTests
         progress.Report(Progress(SyncPhase.ChannelVideos, 120, 120));
         clock.Advance(TimeSpan.FromSeconds(1));
         progress.Report(Progress(SyncPhase.MediaCheck, 0, null));
-        progress.Report(Progress(SyncPhase.Deletions, 0, 0));
+        progress.Report(Progress(SyncPhase.IndexSwitch, 0, null));
 
         Assert.Equal(
             [
                 "[00:00] videos        120 / 120 channels · 0 videos",
                 "[00:01] media check   0 files checked · 0 missing",
-                "[00:01] deletions     nothing to delete",
+                "[00:01] index switch  switching to the new indices",
             ],
             Lines(output));
     }
@@ -129,12 +129,12 @@ public sealed partial class ProgressLinesTests
         clock.Advance(TimeSpan.FromSeconds(1));
         // A count the line doesn't show changes.
         progress.Report(Progress(SyncPhase.MediaCheck, 0, null) with { Counts = new SyncCounts { MediaMissing = 1 } });
-        progress.Report(Progress(SyncPhase.Deletions, 0, 0));
-        progress.Report(Progress(SyncPhase.Deletions, 0, 0) with { Counts = new SyncCounts { Rejected = 1 } });
+        progress.Report(Progress(SyncPhase.IndexSwitch, 0, null));
+        progress.Report(Progress(SyncPhase.IndexSwitch, 0, null) with { Counts = new SyncCounts { Rejected = 1 } });
         progress.Finish();
 
         Assert.Equal(
-            ["[00:00] media check   0 files checked · 0 missing", "[00:01] deletions     nothing to delete"],
+            ["[00:00] media check   0 files checked · 0 missing", "[00:01] index switch  switching to the new indices"],
             Lines(output));
     }
 
@@ -149,7 +149,7 @@ public sealed partial class ProgressLinesTests
         Assert.Equal("", output.ToString());
     }
 
-    // A first full sync of the real library: about 20 minutes, a report every 100 ms (12,000), 6 phases. The throttle
+    // A first import of the real library: about 20 minutes, a report every 100 ms (12,000), 6 phases. The throttle
     // keeps it to about 130 lines, not thousands. Each 10 s mark shows the latest state (the heartbeat's timer is due
     // just before the report of that instant).
     [Fact]
@@ -163,7 +163,7 @@ public sealed partial class ProgressLinesTests
             SyncPhase.Channels,
             SyncPhase.ChannelVideos,
             SyncPhase.MediaCheck,
-            SyncPhase.Deletions,
+            SyncPhase.Indexing,
             SyncPhase.ArtRetry,
             SyncPhase.IndexSwitch,
         ];
@@ -191,7 +191,7 @@ public sealed partial class ProgressLinesTests
         Assert.Equal("[19:55] index switch  switching to the new indices", lines[^1]);
     }
 
-    // The sync reports from several threads at once (the art resizing), while the heartbeat may fire: every line must
+    // The import reports from several threads at once (the art resizing), while the heartbeat may fire: every line must
     // come out whole, never two interleaved.
     [Fact]
     public async Task Reports_from_many_threads_come_out_whole()

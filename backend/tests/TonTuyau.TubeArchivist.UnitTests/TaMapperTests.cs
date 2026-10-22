@@ -1,4 +1,5 @@
 using TonTuyau.Application.Library;
+using TonTuyau.Application.YouTube;
 using TonTuyau.TubeArchivist.Dtos;
 using TonTuyau.TubeArchivist.Mapping;
 
@@ -26,11 +27,10 @@ public sealed class TaMapperTests
 
         Assert.Equal(["a", "b"], video.Tags);
         Assert.Empty(video.Categories);
-        Assert.Empty(video.PlaylistIds);
     }
 
     [Fact]
-    public void Missing_description_and_stats_get_neutral_values()
+    public void Missing_description_and_stats_get_neutral_values_and_it_isnt_checked_yet()
     {
         Video video = TaMapper.ToVideo(
             VideoDtoValidatorTests.ValidVideo() with { Description = null, Stats = null, VidLastRefresh = null });
@@ -39,7 +39,7 @@ public sealed class TaMapperTests
         Assert.Equal(
             new VideoStats(0, 0, 0),
             video.Stats);
-        Assert.Null(video.LastRefreshed);
+        Assert.Equal(YouTubeStatus.NotChecked, video.YouTube);
     }
 
     [Fact]
@@ -96,12 +96,12 @@ public sealed class TaMapperTests
             null,
             null,
             null,
+            null,
             ["videos", "live", "streams", "podcasts"],
             null,
             "",
             null));
 
-        Assert.Equal([VideoType.Video, VideoType.Stream], channel.Tabs);
         Assert.Null(channel.BannerPath);
         Assert.Equal(0, channel.Subscribers);
     }

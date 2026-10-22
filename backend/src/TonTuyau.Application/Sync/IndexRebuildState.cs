@@ -8,7 +8,7 @@ public enum IndexRebuildStatus
 
     UpToDate,
 
-    /// <summary>The definitions changed: the next sync (or the startup auto-rebuild) rebuilds.</summary>
+    /// <summary>The definitions changed: the startup auto-rebuild, or the next import, rebuilds.</summary>
     Pending,
 
     Running,

@@ -7,7 +7,7 @@
 # From the repository: docker compose --env-file .env -f docker/docker-compose.yml up -d
 #
 # Everything comes from `.env` (see .env.example). The videos: the folder TONTUYAU_MEDIA_PATH on the VM (a local
-# folder, or a share you mounted there), bind-mounted read-only.
+# folder, or a share you mounted there), bind-mounted: TonTuyau writes its downloads there (2.0).
 name: tontuyau
 
 services:
@@ -58,17 +58,19 @@ services:
     image: ghcr.io/tontuyau/tontuyau-backend:${TONTUYAU_VERSION:-latest}
     container_name: tontuyau-backend
     restart: unless-stopped
+    # Who it runs as (2.0): the videos folder's owner or group, so its downloads fit the share (README).
+    user: "${TONTUYAU_UID:-1654}:${TONTUYAU_GID:-1654}"
     depends_on:
       tontuyau-reservoir: { condition: service_healthy }
       tontuyau-db: { condition: service_healthy }
     networks: [default, tontuyau-db]
     environment:
-      # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art, logs /data/logs/sync).
+      # Fixed inside the stack (the image sets the paths too: media /youtube, art /data/art).
       TONTUYAU_ES_URL: http://tontuyau-reservoir:9200
       TONTUYAU_ES_USERNAME: elastic
       TONTUYAU_ES_PASSWORD: ${TONTUYAU_ES_PASSWORD:?set TONTUYAU_ES_PASSWORD in .env}
-      TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:?set TONTUYAU_TA_URL in .env}
-      TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:?set TONTUYAU_TA_TOKEN in .env}
+      TONTUYAU_TA_URL: ${TONTUYAU_TA_URL:-}
+      TONTUYAU_TA_TOKEN: ${TONTUYAU_TA_TOKEN:-}
       TONTUYAU_DB_HOST: tontuyau-db
       TONTUYAU_DB_NAME: ${TONTUYAU_DB_NAME:-tontuyau}
       TONTUYAU_DB_USERNAME: ${TONTUYAU_DB_USERNAME:-tontuyau}
@@ -78,30 +80,23 @@ services:
       TONTUYAU_ADMIN_PASSWORD: ${TONTUYAU_ADMIN_PASSWORD:-}
       # Optional: empty means the backend's default (README, "Configuration").
       TONTUYAU_ES_INDEX_PREFIX: ${TONTUYAU_ES_INDEX_PREFIX:-}
-      TONTUYAU_SYNC_INCREMENTAL_CRON: ${TONTUYAU_SYNC_INCREMENTAL_CRON:-}
-      TONTUYAU_SYNC_FULL_CRON: ${TONTUYAU_SYNC_FULL_CRON:-}
       TONTUYAU_TZ: ${TONTUYAU_TZ:-}
-      TONTUYAU_SYNC_SCHEDULER_ENABLED: ${TONTUYAU_SYNC_SCHEDULER_ENABLED:-}
-      TONTUYAU_SYNC_MAX_DELETIONS: ${TONTUYAU_SYNC_MAX_DELETIONS:-}
-      TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS: ${TONTUYAU_SYNC_INCREMENTAL_MARGIN_HOURS:-}
-      TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS: ${TONTUYAU_SYNC_REJECT_GUARD_MIN_DOCUMENTS:-}
-      TONTUYAU_SYNC_REJECT_GUARD_PERCENT: ${TONTUYAU_SYNC_REJECT_GUARD_PERCENT:-}
       TONTUYAU_TA_RESULT_WINDOW: ${TONTUYAU_TA_RESULT_WINDOW:-}
       TONTUYAU_ART_RESIZE_PARALLELISM: ${TONTUYAU_ART_RESIZE_PARALLELISM:-}
       TONTUYAU_COOKIE_SECURE: ${TONTUYAU_COOKIE_SECURE:-}
       TONTUYAU_TRUSTED_PROXIES: ${TONTUYAU_TRUSTED_PROXIES:-}
-      # The container's clock for log timestamps; the sync schedule uses TONTUYAU_TZ.
+      # The container's clock for log timestamps; the dashboard's charts use TONTUYAU_TZ.
       TZ: ${TONTUYAU_TZ:-Europe/Paris}
     volumes:
-      # Your videos, read-only. A missing folder stops `up` with an error instead of mounting an empty one.
+      # Your videos: TonTuyau reads them, and writes its downloads next to them (2.0), group-writable. The backend runs
+      # as TONTUYAU_UID:TONTUYAU_GID (1654 by default): the folder must let it write (README, "The videos folder"). A
+      # missing folder stops `up` with an error instead of mounting an empty one.
       - type: bind
         source: ${TONTUYAU_MEDIA_PATH:?set TONTUYAU_MEDIA_PATH in .env (the videos folder on the VM)}
         target: /youtube
-        read_only: true
         bind:
           create_host_path: false
       - tontuyau-art:/data/art
-      - tontuyau-sync-logs:/data/logs/sync
       # The yt-dlp versions TonTuyau downloads (1.5): kept across restarts and upgrades.
       - tontuyau-tools:/data/tools
     healthcheck:
@@ -145,5 +140,4 @@ volumes:
   tontuyau-db-data:
   tontuyau-es-data:
   tontuyau-art:
-  tontuyau-sync-logs:
   tontuyau-tools:

@@ -7,7 +7,7 @@ import type { Track, VideoType } from '../src/lib/api/types.ts'
 import { fixturesDir, type ChannelFixture, type VideoFixture } from './db.ts'
 import { bannerWidths, channelThumbWidths, versionsOf, videoWidths } from './imageSizes.ts'
 
-/** "Now" of the fixtures: the mock library was synced at this time. */
+/** "Now" of the fixtures: the mock library was imported at this time. */
 const SYNCED_AT = Date.parse('2026-10-02T18:00:00Z')
 const HOUR = 3_600_000
 const DAY = 24 * HOUR

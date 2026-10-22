@@ -1,5 +1,6 @@
 <script lang="ts">
-  // A run's state (1.4): running, succeeded, failed, canceled, on hold (1.5), as a coloured pill with its word.
+  // A run's state (1.4): waiting (2.0, the queue), running, succeeded, failed, canceled, on hold (1.5), as a coloured
+  // pill with its word.
   import type { RunState } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
 
@@ -42,6 +43,12 @@
   .canceled {
     background: var(--color-surface);
     color: var(--color-text-secondary);
+  }
+
+  .queued {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    box-shadow: inset 0 0 0 var(--border-width) var(--color-border);
   }
 
   .onHold {

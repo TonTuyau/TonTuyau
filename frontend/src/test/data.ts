@@ -132,31 +132,35 @@ export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         { type: 'stream', count: 574, seconds: 1_044_000, share: 0.29, averageSeconds: 7200 },
       ],
     },
-    channels: [
-      channelTotals({
-        id: 'UCbig',
-        name: 'Vinyl Archive',
-        counts: { videos: 1203, shorts: 0, streams: 156 },
-        gone: 24,
-        total: 1359,
-      }),
-      channelTotals({
-        id: 'UCmid',
-        name: 'Écoles du Goût',
-        counts: { videos: 412, shorts: 96, streams: 12 },
-        gone: 0,
-        total: 520,
-      }),
-      channelTotals({
-        id: 'UCsmall',
-        name: 'Atelier Bois',
-        counts: { videos: 254, shorts: 61, streams: 3 },
-        gone: 7,
-        total: 318,
-      }),
-    ],
     ...overrides,
   }
+}
+
+/** The dashboard's channels, biggest first (alpha.3: their own call). */
+export function dashboardChannels(): ChannelTotals[] {
+  return [
+    channelTotals({
+      id: 'UCbig',
+      name: 'Vinyl Archive',
+      counts: { videos: 1203, shorts: 0, streams: 156 },
+      gone: 24,
+      total: 1359,
+    }),
+    channelTotals({
+      id: 'UCmid',
+      name: 'Écoles du Goût',
+      counts: { videos: 412, shorts: 96, streams: 12 },
+      gone: 0,
+      total: 520,
+    }),
+    channelTotals({
+      id: 'UCsmall',
+      name: 'Atelier Bois',
+      counts: { videos: 254, shorts: 61, streams: 3 },
+      gone: 7,
+      total: 318,
+    }),
+  ]
 }
 
 /**
@@ -178,7 +182,7 @@ export function importHistory(overrides: Partial<ImportHistory> = {}): ImportHis
   }
 }
 
-/** A run of the history (1.4): an incremental sync, succeeded. */
+/** A run of the history (2.0): the import when the backend started, succeeded. */
 export function apiKey(overrides: Partial<ApiKey> = {}): ApiKey {
   return {
     id: 7,
@@ -196,11 +200,13 @@ export function apiKey(overrides: Partial<ApiKey> = {}): ApiKey {
 export function run(overrides: Partial<Run> = {}): Run {
   return {
     id: 'run-20261012T120000Z-3f9a1c',
-    task: 'incremental',
-    trigger: 'scheduler',
+    task: 'import',
+    trigger: 'startup',
     startedBy: null,
     state: 'succeeded',
     startedAt: '2026-10-12T12:00:00Z',
+    queuedAt: '2026-10-12T12:00:00Z',
+    position: null,
     finishedAt: '2026-10-12T12:00:07Z',
     error: null,
     counts: {
@@ -216,19 +222,17 @@ export function run(overrides: Partial<Run> = {}): Run {
       artResized: 24,
       artResizeFailed: 0,
       mediaMissing: 0,
-      deleted: 0,
-      kept: 0,
       foundOnYouTube: 0,
       unlistedOnYouTube: 0,
       goneFromYouTube: 0,
       privateOnYouTube: 0,
       checkFailed: 0,
       commentsRead: 0,
+      subscribed: 0,
+      downloadFailed: 0,
     },
-    deletionsPlanned: 0,
-    deletionsBlocked: false,
-    appliesTo: null,
     target: null,
+    tabs: null,
     resumeAt: null,
     left: 0,
     indexRebuild: false,
@@ -238,31 +242,18 @@ export function run(overrides: Partial<Run> = {}): Run {
   }
 }
 
-/** The Tasks page (1.4): nothing going on, a full run's list of 312 waiting. */
+/** The Tasks page (2.0): nothing going on, the import ran when the backend started. */
 export function tasks(overrides: Partial<Tasks> = {}): Tasks {
-  const full = run({
-    id: 'run-20261009T230000Z-d3a2c7',
-    task: 'full',
-    startedAt: '2026-10-09T23:00:00Z',
-    finishedAt: '2026-10-10T00:08:12Z',
-    deletionsPlanned: 312,
-    deletionsBlocked: true,
-  })
   return {
     lock: null,
     runningHere: null,
     tasks: [
-      { task: 'incremental', schedule: '0 7-23 * * *', next: '2026-10-12T13:00:00Z', lastRun: run(), waiting: null },
-      { task: 'full', schedule: '0 1 * * 6', next: '2026-10-16T23:00:00Z', lastRun: full, waiting: null },
-      {
-        task: 'applyDeletions',
-        schedule: null,
-        next: null,
-        lastRun: null,
-        waiting: { runId: full.id, startedAt: full.startedAt, count: 312 },
-      },
+      { task: 'import', lastRun: run(), unavailable: null, next: null },
+      { task: 'youTubeSync', lastRun: null, unavailable: null, next: '2026-10-12T18:00:00Z' },
+      { task: 'youTubeFullSync', lastRun: null, unavailable: null, next: null },
     ],
     onHold: [],
+    queue: [],
     ...overrides,
   }
 }

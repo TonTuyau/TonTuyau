@@ -22,14 +22,21 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidator<VideoDto>, VideoDtoValidator>();
         services.AddSingleton<IValidator<ChannelDto>, ChannelDtoValidator>();
         services.AddTransient<ReadOnlyGuardHandler>();
-        services.AddTransient(sp => new TokenAuthHandler(sp.GetRequiredService<TonTuyauOptions>().TubeArchivist.Token));
+        // TubeArchivist is optional (2.0): without its settings, the gateway exists (the import needs one) but
+        // nothing calls it, the import being refused first.
+        services.AddTransient(sp => new TokenAuthHandler(
+            sp.GetRequiredService<TonTuyauOptions>().TubeArchivist?.Token ?? ""));
 
         services.AddHttpClient<ITubeArchivistGateway, TubeArchivistGateway>(
             HttpClientName,
             (sp, client) =>
             {
-                string baseUrl = sp.GetRequiredService<TonTuyauOptions>().TubeArchivist.BaseUrl;
-                client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                TubeArchivistOptions? tubeArchivist = sp.GetRequiredService<TonTuyauOptions>().TubeArchivist;
+                if (tubeArchivist is not null)
+                {
+                    client.BaseAddress = new Uri(tubeArchivist.BaseUrl.TrimEnd('/') + "/");
+                }
+
                 client.Timeout = Timeout.InfiniteTimeSpan; // Timeouts are handled by the resilience pipeline.
             })
             .AddHttpMessageHandler<ReadOnlyGuardHandler>()

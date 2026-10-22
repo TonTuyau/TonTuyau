@@ -1,61 +1,79 @@
 <script lang="ts" module>
-  // Material Design icon paths (Apache License 2.0, https://github.com/google/material-design-icons).
-  const paths = {
-    menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
-    dashboard: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
-    key: 'M12.65 10A6 6 0 0 0 7 6a6 6 0 0 0 0 12 6 6 0 0 0 5.65-4H17v4h4v-4h2v-4H12.65zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z',
-    smartDisplay:
-      'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM9.5 16.5v-9l7 4.5-7 4.5z',
-    tasks:
-      'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z',
-    search:
-      'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
-    home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
+  // Material Symbols, Rounded, weight 400: Google's own SVG files, as they come, in src/assets/icons (see its README).
+  // Not the classic Material Icons YouTube's look comes from.
+  const files = import.meta.glob('../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<
+    string,
+    string
+  >
+
+  /** Each icon's file in src/assets/icons, by Google's name; `<name>-fill.svg` next to it is its filled form. */
+  const symbols = {
+    menu: 'menu',
+    dashboard: 'dashboard',
+    key: 'key',
+    smartDisplay: 'smart_display',
+    tasks: 'schedule',
+    search: 'search',
+    home: 'home',
     // Our own vertical-video glyph (a portrait frame with a play triangle), not YouTube's Shorts logo.
-    shorts:
-      'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h8V4H8zm2.5 4.75v6.5l4.5-3.25z',
-    channels:
-      'M20 8H4V6h16v2zm-2-6H6v2h12V2zm4 10v8c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2zm-6 4l-6-3.27v6.53L16 16z',
-    videos:
-      'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z',
-    streams:
-      'M7.76 16.24C6.67 15.16 6 13.66 6 12s.67-3.16 1.76-4.24l1.42 1.42C8.45 9.9 8 10.9 8 12c0 1.1.45 2.1 1.17 2.83l-1.41 1.41zm8.48 0C17.33 15.16 18 13.66 18 12s-.67-3.16-1.76-4.24l-1.42 1.42C15.55 9.9 16 10.9 16 12c0 1.1-.45 2.1-1.17 2.83l1.41 1.41zM12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm8 2c0 2.21-.9 4.21-2.35 5.65l1.42 1.42C20.88 17.26 22 14.76 22 12s-1.12-5.26-2.93-7.07l-1.42 1.42C19.1 7.79 20 9.79 20 12zM6.35 6.35L4.93 4.93C3.12 6.74 2 9.24 2 12s1.12 5.26 2.93 7.07l1.42-1.42C4.9 16.21 4 14.21 4 12s.9-4.21 2.35-5.65z',
-    download: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
-    close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
-    back: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z',
-    tune: 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
-    translate:
-      'M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z',
-    like: 'M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z',
-    warning: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z',
-    person:
-      'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
-    movie:
-      'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z',
-    broken:
-      'M21 5v6.59l-3-3.01-4 4.01-4-4-4 4-3-3.01V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2zm-3 6.42l3 3.01V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-6.58l3 2.99 4-4 4 4 4-3.99z',
-    check: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
-    logout:
-      'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z',
-    more: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
-    appearance:
-      'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z',
-    chevron: 'M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
-    up: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z',
-    down: 'M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z',
-    playerLarge: 'M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z',
-    playerSmall:
-      'M19 7H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 8H5V9h14v6zm-8-4H7v2h4v-2z',
+    shorts: 'tontuyau_shorts',
+    channels: 'subscriptions',
+    videos: 'video_library',
+    streams: 'sensors',
+    download: 'download',
+    close: 'close',
+    back: 'arrow_back',
+    tune: 'tune',
+    translate: 'translate',
+    like: 'thumb_up',
+    warning: 'warning',
+    person: 'person',
+    movie: 'movie',
+    broken: 'broken_image',
+    check: 'check',
+    // The player's own controls.
+    play: 'play_arrow',
+    pause: 'pause',
+    volumeUp: 'volume_up',
+    volumeDown: 'volume_down',
+    volumeOff: 'volume_off',
+    fullscreen: 'fullscreen',
+    fullscreenExit: 'fullscreen_exit',
+    settings: 'settings',
+    loop: 'repeat',
+    speed: 'speed',
+    chapters: 'list',
+    visibility: 'visibility',
+    visibilityOff: 'visibility_off',
+    logout: 'logout',
+    more: 'more_vert',
+    appearance: 'dark_mode',
+    chevron: 'chevron_right',
+    up: 'arrow_upward',
+    down: 'arrow_downward',
+    playerLarge: 'fit_page_width',
+    playerSmall: 'width_normal',
   } as const
 
-  export type IconName = keyof typeof paths
+  export type IconName = keyof typeof symbols
+
+  /** The one path of an icon file, or null when there's no such file. */
+  export function iconPath(file: string): string | null {
+    const svg = files[`../assets/icons/${file}.svg`]
+    return svg === undefined ? null : (/\sd="([^"]+)"/.exec(svg)?.[1] ?? null)
+  }
+
+  export const iconFiles: Readonly<Record<IconName, string>> = symbols
 </script>
 
 <script lang="ts">
-  let { name }: { name: IconName } = $props()
+  let { name, filled = false }: { name: IconName; filled?: boolean } = $props()
+
+  // The filled form only where there's one (the navigation's icons): the others stay outlined.
+  const d = $derived((filled ? iconPath(`${symbols[name]}-fill`) : null) ?? iconPath(symbols[name]) ?? '')
 </script>
 
-<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={paths[name]} /></svg>
+<svg class="icon" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path {d} /></svg>
 
 <style>
   .icon {

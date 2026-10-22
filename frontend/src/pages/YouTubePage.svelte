@@ -6,7 +6,9 @@
   // comments a refresh reads: none (the default), the top N, or all; going easy on YouTube (the pause between videos,
   // how long a refresh YouTube refused waits on hold). A refusal says why; a 401 ends the session.
   import Button from '../components/Button.svelte'
+  import DownloadSettings from '../components/DownloadSettings.svelte'
   import ErrorState from '../components/ErrorState.svelte'
+  import HelpButton from '../components/HelpButton.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
   import type {
@@ -24,6 +26,8 @@
   import { pageTitle } from '../lib/title.svelte'
 
   const FOLLOW_EVERY = 3_000
+  // A week: the backend refuses more (a longer wait is better done by hand).
+  const MAX_SYNC_EVERY_HOURS = 168
 
   const overview = new Remote<YouTubeOverview>()
   const ytdlp = new Remote<YtdlpState>()
@@ -81,8 +85,10 @@
   let commentsInvalid = $state<string | null>(null)
   let pauseSeconds = $state<number | null>(10)
   let holdMinutes = $state<number | null>(60)
+  let syncEveryHours = $state<number | null>(6)
   let pauseInvalid = $state(false)
   let holdInvalid = $state(false)
+  let syncInvalid = $state(false)
 
   // The form starts on what's saved, and comes back to it after each save (or refusal).
   function showSaved(saved: YouTubeSettings) {
@@ -90,6 +96,7 @@
     commentsMax = saved.commentsMax
     pauseSeconds = saved.pauseSeconds
     holdMinutes = saved.holdMinutes
+    syncEveryHours = saved.syncEveryHours
   }
 
   let settingsShown = false
@@ -106,7 +113,16 @@
     commentsInvalid = comments === 'top' && !wholeFrom(max, 1) ? t('youTube.comments.max.invalid') : null
     pauseInvalid = !wholeFrom(pauseSeconds, 0)
     holdInvalid = !wholeFrom(holdMinutes, 1)
-    if (commentsInvalid !== null || pauseInvalid || holdInvalid || pauseSeconds === null || holdMinutes === null) {
+    syncInvalid = !wholeFrom(syncEveryHours, 0) || (syncEveryHours ?? 0) > MAX_SYNC_EVERY_HOURS
+    if (
+      commentsInvalid !== null ||
+      pauseInvalid ||
+      holdInvalid ||
+      syncInvalid ||
+      pauseSeconds === null ||
+      holdMinutes === null ||
+      syncEveryHours === null
+    ) {
       return
     }
     pending = true
@@ -118,6 +134,7 @@
         commentsMax ?? settings.data?.commentsMax ?? 500,
         pauseSeconds,
         holdMinutes,
+        syncEveryHours,
       )
     } catch (error) {
       refused = t('youTube.refused', { reason: reasonOf(error) })
@@ -221,7 +238,6 @@
 <div class="page">
   <header>
     <h1>{t('admin.youTube')}</h1>
-    <p class="intro">{t('youTube.intro')}</p>
   </header>
 
   {#if refused}
@@ -236,7 +252,10 @@
     {@const data = overview.data}
     <div class="two">
       <section class="card" aria-labelledby="{uid}-cookie">
-        <h2 id="{uid}-cookie">{t('youTube.cookie')}</h2>
+        <div class="head">
+          <h2 id="{uid}-cookie">{t('youTube.cookie')}</h2>
+          <HelpButton zone={t('youTube.cookie')}><p>{t('youTube.cookie.hint')}</p></HelpButton>
+        </div>
         {#if data.cookie}
           {@const cookie = data.cookie}
           <dl>
@@ -290,7 +309,6 @@
           </dl>
           <p class="hint">{t('youTube.cookie.noneHint')}</p>
         {/if}
-        <p class="hint">{t('youTube.cookie.hint')}</p>
       </section>
 
       <section class="card" aria-labelledby="{uid}-tools">
@@ -325,9 +343,20 @@
   {/if}
 
   <section class="card" aria-labelledby="{uid}-ytdlp">
-    <div>
+    <div class="head">
       <h2 id="{uid}-ytdlp">yt-dlp</h2>
-      <p class="hint">{t('ytdlp.intro')}</p>
+      <HelpButton zone="yt-dlp">
+        <p>{t('ytdlp.intro')}</p>
+        <dl>
+          <dt>{t('ytdlp.latest')}</dt>
+          <dd>{t('ytdlp.latestHint')}</dd>
+          <dt>{t('ytdlp.official')}</dt>
+          <dd>{t('ytdlp.officialHint')}</dd>
+          <dt>{t('ytdlp.nightly')}</dt>
+          <dd>{t('ytdlp.nightlyHint')}</dd>
+        </dl>
+        <p>{t('ytdlp.hint')}</p>
+      </HelpButton>
     </div>
     {#if ytdlp.status === 'loading'}
       <Skeleton layout="page" />
@@ -374,10 +403,7 @@
           <label class="choice">
             <input type="radio" name="{uid}-kind" value="latest" bind:group={kind} />
             <b>{t('ytdlp.latest')}</b>
-            <small>
-              {t('ytdlp.latestHint')}
-              {#if latest}{t('ytdlp.latestNow', { version: latest })}{/if}
-            </small>
+            {#if latest}<small>{t('ytdlp.latestNow', { version: latest })}</small>{/if}
           </label>
           {#if versions.data}
             {@const offered = versions.data}
@@ -385,7 +411,6 @@
             <label class="choice">
               <input type="radio" name="{uid}-kind" value="official" bind:group={kind} />
               <b>{t('ytdlp.official')}</b>
-              <small>{t('ytdlp.officialHint')}</small>
               <select bind:value={official} disabled={kind !== 'official'} aria-label={t('ytdlp.official')}>
                 {#each offered.official as release (release.version)}
                   <option value={release.version}>{optionLabel(release.version, release.publishedAt, image)}</option>
@@ -395,7 +420,6 @@
             <label class="choice">
               <input type="radio" name="{uid}-kind" value="nightly" bind:group={kind} />
               <b>{t('ytdlp.nightly')}</b>
-              <small>{t('ytdlp.nightlyHint')}</small>
               <select bind:value={nightly} disabled={kind !== 'nightly'} aria-label={t('ytdlp.nightly')}>
                 {#each offered.nightly as release (release.version)}
                   <option value={release.version}>{optionLabel(release.version, release.publishedAt, null)}</option>
@@ -412,14 +436,27 @@
           <Button type="submit" variant="filled" disabled={pending}>{t('ytdlp.use')}</Button>
         </div>
       </form>
-      <p class="hint">{t('ytdlp.hint')}</p>
     {/if}
   </section>
 
   <section class="card" aria-labelledby="{uid}-reading">
-    <div>
+    <div class="head">
       <h2 id="{uid}-reading">{t('youTube.reading')}</h2>
-      <p class="hint">{t('youTube.reading.intro')}</p>
+      <HelpButton zone={t('youTube.reading')}>
+        <p>{t('youTube.reading.intro')}</p>
+        <dl>
+          <dt>{t('youTube.comments')}, {t('youTube.comments.off')}</dt>
+          <dd>{t('youTube.comments.offHint')}</dd>
+          <dt>{t('youTube.comments')}, {t('youTube.comments.all')}</dt>
+          <dd>{t('youTube.comments.allHint')}</dd>
+          <dt>{t('youTube.easy.pause')}</dt>
+          <dd>{t('youTube.easy.pauseHint')}</dd>
+          <dt>{t('youTube.easy.hold')}</dt>
+          <dd>{t('youTube.easy.holdHint')}</dd>
+          <dt>{t('youTube.sync.every')}</dt>
+          <dd>{t('youTube.sync.everyHint')}</dd>
+        </dl>
+      </HelpButton>
     </div>
     {#if settings.status === 'loading'}
       <Skeleton layout="page" />
@@ -433,7 +470,6 @@
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="off" bind:group={comments} />
             <b>{t('youTube.comments.off')}</b>
-            <small>{t('youTube.comments.offHint')}</small>
           </label>
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="top" bind:group={comments} />
@@ -459,7 +495,7 @@
           <label class="choice">
             <input type="radio" name="{uid}-comments" value="all" bind:group={comments} />
             <b>{t('youTube.comments.all')}</b>
-            <small>{t('youTube.comments.allHint')}</small>
+            <small>{t('youTube.comments.allShort')}</small>
           </label>
         </fieldset>
         <fieldset>
@@ -467,7 +503,6 @@
           <label class="easy">
             <span>
               <b>{t('youTube.easy.pause')}</b>
-              <small>{t('youTube.easy.pauseHint')}</small>
             </span>
             <span class="number">
               <input
@@ -487,7 +522,6 @@
           <label class="easy">
             <span>
               <b>{t('youTube.easy.hold')}</b>
-              <small>{t('youTube.easy.holdHint')}</small>
             </span>
             <span class="number">
               <input
@@ -505,6 +539,29 @@
             {/if}
           </label>
         </fieldset>
+        <fieldset>
+          <legend>{t('youTube.sync')}</legend>
+          <label class="easy">
+            <span>
+              <b>{t('youTube.sync.every')}</b>
+            </span>
+            <span class="number">
+              <input
+                type="number"
+                min="0"
+                max={MAX_SYNC_EVERY_HOURS}
+                step="1"
+                inputmode="numeric"
+                aria-invalid={syncInvalid}
+                bind:value={syncEveryHours}
+              />
+              <small>{t('youTube.sync.hours')}</small>
+            </span>
+            {#if syncInvalid}
+              <small class="invalid" role="alert">{t('youTube.sync.every.invalid')}</small>
+            {/if}
+          </label>
+        </fieldset>
         <div class="actions">
           <Button type="submit" variant="filled" disabled={pending}>{t('youTube.comments.save')}</Button>
         </div>
@@ -512,6 +569,9 @@
       <p class="hint">
         {savedComments(current)}
         {t('youTube.easy.saved', { pause: current.pauseSeconds, hold: current.holdMinutes })}
+        {current.syncEveryHours > 0
+          ? t('youTube.sync.saved', { hours: current.syncEveryHours })
+          : t('youTube.sync.savedByHand')}
         {#if current.changedBy && current.changedAt}
           · {t('youTube.comments.changedBy', {
             by: current.changedBy,
@@ -521,6 +581,10 @@
       </p>
     {/if}
   </section>
+
+  {#if settings.data}
+    <DownloadSettings current={settings.data} onsaved={() => settings.refresh()} />
+  {/if}
 </div>
 
 <style>
@@ -543,9 +607,11 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .intro {
-    margin-top: var(--space-1);
-    color: var(--color-text-secondary);
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
   }
 
   .two {

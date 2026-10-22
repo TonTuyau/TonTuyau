@@ -23,7 +23,12 @@ public sealed class DashboardSteps(ScenarioState state)
     /// Columns: started (ISO instant; each run finishes 10 minutes later unless running), outcome, new (videos
     /// created), videos / shorts / streams (empty: not recorded, as in 1.1), rebuild.
     /// </summary>
-    [Given("the sync runs:")]
+    /// <summary>
+    /// Runs that can add videos: TubeArchivist imports, or (column <c>task</c>, alpha.8) TonTuyau's downloads
+    /// (<c>youTubeSync</c>, <c>downloadVideo</c>…).
+    /// </summary>
+    [Given("the TubeArchivist imports:")]
+    [Given("the runs that add videos:")]
     public async Task TheSyncRuns(DataTable table)
     {
         await state.WaitUntilReadyAsync();
@@ -38,8 +43,10 @@ public sealed class DashboardSteps(ScenarioState state)
             SyncRun run = new()
             {
                 Id = SyncRun.NewId(started),
-                Mode = SyncMode.Incremental,
-                Trigger = SyncTrigger.Scheduler,
+                Mode = row.TryGetValue("task", out string? task)
+                    ? Enum.Parse<SyncMode>(task, ignoreCase: true)
+                    : SyncMode.Import,
+                Trigger = SyncTrigger.Startup,
                 StartedAt = started,
                 FinishedAt = outcome == SyncOutcome.Running ? null : started.AddMinutes(10),
                 Outcome = outcome,
@@ -51,23 +58,22 @@ public sealed class DashboardSteps(ScenarioState state)
         }
     }
 
-    /// <summary>A run that applied a full run's deletion list (1.4): never a sync for the dashboard.</summary>
-    [Given("a run applied a deletion list at {string}")]
-    public async Task AppliedDeletions(string at)
+    /// <summary>A refresh on YouTube (1.5): never an import for the dashboard.</summary>
+    [Given("a refresh ran at {string}")]
+    public async Task ARefreshRan(string at)
     {
         await state.WaitUntilReadyAsync();
         DateTimeOffset started = DateTimeOffset.Parse(at, CultureInfo.InvariantCulture);
         SyncRun run = new()
         {
             Id = SyncRun.NewId(started),
-            Mode = SyncMode.ApplyDeletions,
+            Mode = SyncMode.RefreshChannelVideos,
             Trigger = SyncTrigger.Cli,
             StartedAt = started,
             FinishedAt = started.AddMinutes(2),
             Outcome = SyncOutcome.Succeeded,
-            AppliesTo = "run-20260101T000000Z-abcdef",
-            DeletionsPlanned = 140,
-            Counts = new SyncCounts { Deleted = 140 },
+            Target = "UCaaaaaaaaaaaaaaaaaaaaaa",
+            Counts = new SyncCounts { Created = 140, VideosRead = 140 },
         };
         await state.Backend.Services
             .GetRequiredService<ISyncStateStore>()
@@ -78,28 +84,17 @@ public sealed class DashboardSteps(ScenarioState state)
     public void PlayTimeIs(DataTable table) =>
         AssertRows(table, Json["playTime"]!["types"]!, (item, column) => Scalar(item[column]));
 
+    /// <summary>The items of a page of the dashboard's channels (alpha.3: their own call).</summary>
     [Then("the dashboard's channels are:")]
     public void ChannelsAre(DataTable table) =>
         AssertRows(
             table,
-            Json["channels"]!,
+            Json["items"]!,
             (item, column) => column switch
             {
                 "videos" or "shorts" or "streams" => Scalar(item["counts"]![column]),
                 _ => Scalar(item[column]),
             });
-
-    /// <summary>Restarts the backend (log in after this) with a repository that pages through the runs.</summary>
-    [Given("the dashboard reads the runs {int} at a time")]
-    public void RunsPerPage(int runs)
-    {
-        state.ServiceOverrides.Add(services => services.Replace(ServiceDescriptor.Singleton<IDashboardRepository>(
-            sp => new DashboardRepository(
-                sp.GetRequiredService<ElasticsearchClient>(),
-                sp.GetRequiredService<IndexNames>(),
-                runs))));
-        state.StopBackend();
-    }
 
     [Then("the import history is by {string} in {string}: {int} bars, {int} new videos")]
     public void ImportHistoryIs(string step, string timeZone, int bars, long total)
@@ -112,6 +107,15 @@ public sealed class DashboardSteps(ScenarioState state)
                 history["timeZone"]!.GetValue<string>(),
                 history["bars"]!.AsArray().Count,
                 history["total"]!.GetValue<long>()));
+    }
+
+    /// <summary>All its bars together, by type (alpha.8: the downloads record theirs).</summary>
+    [Then("the import history's new videos are {int} videos, {int} shorts and {int} streams")]
+    public void HistoryByType(int videos, int shorts, int streams)
+    {
+        JsonArray bars = Json["bars"]!.AsArray();
+        long Sum(string type) => bars.Sum(b => b!["byType"]![type]!.GetValue<long>());
+        Assert.Equal((videos, shorts, streams), ((int)Sum("videos"), (int)Sum("shorts"), (int)Sum("streams")));
     }
 
     /// <summary>The bars whose total isn't 0, oldest first.</summary>

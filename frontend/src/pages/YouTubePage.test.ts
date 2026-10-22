@@ -53,6 +53,9 @@ function routes(given: Record<string, unknown> = {}) {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     },
@@ -70,6 +73,9 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     }
@@ -102,8 +108,8 @@ describe('YouTubePage', () => {
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/^All the comments are read\./)).toBeInTheDocument()
     expect(sent).toEqual([
-      { comments: 'top', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60 },
-      { comments: 'all', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60 },
+      { comments: 'top', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 6 },
+      { comments: 'all', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 6 },
     ])
   })
 
@@ -115,6 +121,9 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
       changedAt: null,
     }
@@ -123,7 +132,7 @@ describe('YouTubePage', () => {
         if (init?.method === 'PUT') {
           const body = JSON.parse(String(init.body)) as YouTubeSettings
           sent.push(body)
-          saved = { ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+          saved = { ...saved, ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
         }
         return saved
       },
@@ -150,7 +159,104 @@ describe('YouTubePage', () => {
     await user.type(pause, '0')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/A pause of about 0 s between videos; on hold 90 min/)).toBeInTheDocument()
-    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90 }])
+    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90, syncEveryHours: 6 }])
+  })
+
+  it('sets the download format and the tabs a channel added gets, checked first', async () => {
+    const user = userEvent.setup()
+    const sent: unknown[] = []
+    let saved: YouTubeSettings = {
+      comments: 'top',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
+      changedBy: null,
+      changedAt: null,
+    }
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as Partial<YouTubeSettings>
+          sent.push(body)
+          saved = { ...saved, ...body }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Downloading' })
+    expect(card).toHaveTextContent(
+      'Downloads ask for bestvideo+bestaudio; a channel added gets: Videos · Shorts · Streams.',
+    )
+    const format = within(card).getByRole('textbox', { name: /^Format/ })
+    await user.clear(format)
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(within(card).getByRole('alert')).toHaveTextContent("yt-dlp's format, on one line")
+    expect(sent).toEqual([])
+
+    await user.type(format, 'bestvideo[[height<=1080]+bestaudio/best')
+    await user.click(within(card).getByRole('checkbox', { name: 'Shorts' }))
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(
+      await within(card).findByText(
+        /Downloads ask for bestvideo\[height<=1080\]\+bestaudio\/best; a channel added gets: Videos · Streams\./,
+      ),
+    ).toBeInTheDocument()
+    expect(sent).toEqual([
+      {
+        comments: 'top',
+        downloadFormat: 'bestvideo[height<=1080]+bestaudio/best',
+        defaultTabs: { videos: true, shorts: false, streams: true },
+      },
+    ])
+  })
+
+  it('runs the YouTube sync every few hours, or on demand only at 0, checked first', async () => {
+    const user = userEvent.setup()
+    const sent: unknown[] = []
+    let saved: YouTubeSettings = {
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      syncEveryHours: 6,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
+      changedBy: null,
+      changedAt: null,
+    }
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as YouTubeSettings
+          sent.push(body)
+          saved = { ...saved, ...body, changedBy: 'admin', changedAt: new Date().toISOString() }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Reading YouTube' })
+    const sync = await within(card).findByRole('group', { name: 'The YouTube sync' })
+    expect(within(card).getByText(/The YouTube sync every 6 h\./)).toBeInTheDocument()
+    const every = within(sync).getByRole('spinbutton', { name: /^Run it by itself every/ })
+
+    await user.clear(every)
+    await user.type(every, '169')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(within(sync).getByRole('alert')).toHaveTextContent('A whole number of hours, from 0 to 168.')
+    expect(sent).toEqual([])
+
+    await user.clear(every)
+    await user.type(every, '0')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await within(card).findByText(/The YouTube sync on demand only\./)).toBeInTheDocument()
+    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 0 }])
   })
 
   it('refuses a number below 1 before asking, and shows what is saved after a refusal', async () => {
@@ -159,7 +265,17 @@ describe('YouTubePage', () => {
       '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) =>
         init?.method === 'PUT'
           ? problemResponse(400, 'comments is required.', 'Invalid request')
-          : { comments: 'off', commentsMax: 500, pauseSeconds: 10, holdMinutes: 60, changedBy: null, changedAt: null },
+          : {
+              comments: 'off',
+              commentsMax: 500,
+              pauseSeconds: 10,
+              holdMinutes: 60,
+              syncEveryHours: 6,
+              downloadFormat: 'bestvideo+bestaudio',
+              defaultTabs: { videos: true, shorts: true, streams: true },
+              changedBy: null,
+              changedAt: null,
+            },
     })
     render(YouTubePage)
 
@@ -204,7 +320,12 @@ describe('YouTubePage', () => {
     const card = await screen.findByRole('region', { name: 'YouTube cookie' })
     expect(within(card).getByText('None')).toBeInTheDocument()
     expect(within(card).getByText(/Send one from TonTuyau's browser extension/)).toBeInTheDocument()
-    expect(within(card).queryByRole('button')).not.toBeInTheDocument()
+    // Nothing to check nor remove: its help only.
+    expect(
+      within(card)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['Help: YouTube cookie'])
   })
 
   it('says why YouTube refused the cookie', async () => {

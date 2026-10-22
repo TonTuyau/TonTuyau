@@ -7,7 +7,7 @@ public enum ArtSubject
     ChannelThumb,
     ChannelBanner,
 
-    /// <summary>TubeArchivist's TV art: copied by the sync, never served (contract v1.1), never resized.</summary>
+    /// <summary>TubeArchivist's TV art: copied by the import, never served (contract v1.1), never resized.</summary>
     ChannelTvArt,
 }
 
@@ -15,8 +15,8 @@ public enum ArtSubject
 public sealed record ArtOwner(ArtSubject Subject, string Id);
 
 /// <summary>
-/// The resized versions the sync makes (QA09, contract v1.4): WebP, quality 80, these widths, never upscaled.
-/// One table for the sync (what to make) and the API (which sized URLs exist).
+/// The resized versions TonTuyau makes (QA09, contract v1.4): WebP, quality 80, these widths, never upscaled.
+/// One table for the import and the refreshes (what to make) and the API (which sized URLs exist).
 /// </summary>
 public static class ArtSizes
 {
