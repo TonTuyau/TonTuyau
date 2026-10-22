@@ -1569,6 +1569,259 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/media/{id}/hls/{session}/index.m3u8': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+          session: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/media/{id}/hls/{session}/init.mp4': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+          session: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/media/{id}/hls/{session}/{index}.m4s': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+          session: string
+          index: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/media/{id}/hls/{session}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          session: string
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/art/videos/{id}': {
     parameters: {
       query?: never

@@ -577,6 +577,26 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("sync_lock", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Streaming.VideoKeyframesRow", b =>
+                {
+                    b.Property<string>("VideoId")
+                        .HasColumnType("text")
+                        .HasColumnName("video_id");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.PrimitiveCollection<int[]>("TimesMs")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("times_ms");
+
+                    b.HasKey("VideoId");
+
+                    b.ToTable("video_keyframes", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.YouTube.VideoCommentRow", b =>
                 {
                     b.Property<string>("VideoId")
@@ -972,6 +992,15 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.HasOne("TonTuyau.Infrastructure.Library.VideoRow", null)
                         .WithOne("YouTube")
                         .HasForeignKey("TonTuyau.Infrastructure.Library.VideoStateRow", "VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Streaming.VideoKeyframesRow", b =>
+                {
+                    b.HasOne("TonTuyau.Infrastructure.Library.VideoRow", null)
+                        .WithOne()
+                        .HasForeignKey("TonTuyau.Infrastructure.Streaming.VideoKeyframesRow", "VideoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

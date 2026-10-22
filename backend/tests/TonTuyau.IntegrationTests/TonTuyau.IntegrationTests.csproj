@@ -26,6 +26,11 @@
   <ItemGroup>
     <!-- Stand-ins for yt-dlp and Deno (1.5), for the backend under test. -->
     <None Include="FakeTools\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The small videos of the Infrastructure tests (C3: a video played in parts), not copied twice. -->
+    <None
+      Include="..\TonTuyau.Infrastructure.UnitTests\Fixtures\Streaming\*"
+      LinkBase="Fixtures\Streaming"
+      CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -8,7 +8,8 @@ using TonTuyau.Application.Sync;
 namespace TonTuyau.Application.Media;
 
 /// <param name="ContentType">What the file really is (see <see cref="MediaTypes.FileContentType"/>).</param>
-public sealed record MediaFile(StoredFile File, string ContentType, DownloadName DownloadName);
+/// <param name="Duration">The video's length, as the library knows it (the parts of a video played in parts, C3).</param>
+public sealed record MediaFile(StoredFile File, string ContentType, DownloadName DownloadName, TimeSpan Duration);
 
 /// <param name="ContentType">JPEG, PNG or WebP, as TubeArchivist made it.</param>
 public sealed record ArtFile(StoredFile File, string ContentType);
@@ -50,7 +51,8 @@ public sealed partial class MediaService(
         return new MediaFile(
             file,
             MediaTypes.FileContentType(extension),
-            DownloadFileName.For(video.Title, extension));
+            DownloadFileName.For(video.Title, extension),
+            video.Duration);
     }
 
     /// <exception cref="ValidationException">Not a video id.</exception>

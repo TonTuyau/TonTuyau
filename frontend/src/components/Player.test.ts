@@ -57,8 +57,11 @@ describe('Player (codec check, R2-13)', () => {
   describe('canPlayType "maybe" (M5a-16)', () => {
     // What Chromium answers for an ambiguous codec string (no profile), checked in Chrome 152.
     const maybeType = 'video/mp4; codecs="avc1"'
+    // The file's type only: no HLS of its own (C3: the player would take it for the parts), as jsdom.
     const stub = (answer: string) =>
-      vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue(answer as CanPlayTypeResult)
+      vi
+        .spyOn(HTMLMediaElement.prototype, 'canPlayType')
+        .mockImplementation((type) => (type.startsWith('video/') ? (answer as CanPlayTypeResult) : ''))
 
     it('plays, with the notice and the download under the player', () => {
       const canPlayType = stub('maybe')

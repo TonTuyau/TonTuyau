@@ -11,6 +11,7 @@ using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Media;
 using TonTuyau.Application.Pump;
+using TonTuyau.Application.Streaming;
 using TonTuyau.Application.Tasks;
 using TonTuyau.Application.Validation;
 
@@ -38,6 +39,7 @@ internal static class ApiServices
         services.AddSingleton<CommentService>();
         services.AddSingleton<SearchService>();
         services.AddSingleton<MediaService>();
+        services.AddSingleton<StreamingService>();
         services.AddSingleton<DashboardService>();
         // Scoped: it reads the runs' logs through the database context.
         services.AddScoped<TaskService>();

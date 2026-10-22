@@ -372,6 +372,15 @@ public sealed class ApiSteps(ScenarioState state, LibrarySteps library)
     [Then("the body is empty")]
     public void BodyEmpty() => Assert.Empty(state.ResponseBody);
 
+    [Then("the body contains {string}")]
+    public void BodyContains(string text) =>
+        Assert.Contains(text, Encoding.UTF8.GetString(state.ResponseBody), StringComparison.Ordinal);
+
+    /// <summary>A fragmented MP4 (C3): an init segment (ftyp, moov) or a part (moof, mdat).</summary>
+    [Then("the body is MP4 starting with the box {string}")]
+    public void BodyIsMp4(string box) =>
+        Assert.Equal(box, Encoding.ASCII.GetString(state.ResponseBody, 4, 4));
+
     [Then("the body doesn't contain {string}")]
     public void BodyDoesNotContain(string text) =>
         Assert.DoesNotContain(text, Encoding.UTF8.GetString(state.ResponseBody), StringComparison.Ordinal);
@@ -398,6 +407,10 @@ public sealed class ApiSteps(ScenarioState state, LibrarySteps library)
     private List<string> Seen { get; } = [];
 
     private List<long> Totals { get; } = [];
+
+    /// <summary>Without a session nor a key: what a visitor sends (C3: the player closing its viewing).</summary>
+    [When("I send {word} {string}")]
+    public Task Send(string method, string path) => SendAsync(new HttpMethod(method), path);
 
     private async Task SendAsync(HttpMethod method, string path, params string[] headers)
     {

@@ -25,7 +25,7 @@ interface Seen {
 const INDEX = '<!doctype html><title>TonTuyau</title>'
 /** Spelled out here on purpose: a change to the policy must change this test too. */
 const CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; " +
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self' blob:; " +
   "connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; " +
   "frame-ancestors 'self'"
 const SCRIPT = 'console.log("app")'

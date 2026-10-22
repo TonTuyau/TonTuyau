@@ -8,11 +8,15 @@
   // `start` (the watch page's `t`) is where the video starts; seek() moves to a time and plays (a timecode's click).
   // Leaving a video (the next short, another page, a message in its place) empties its <video> at once, so its download
   // stops (1.1.0, the Firefox shorts fix): see release() below.
+  // On the watch page the video is played in parts (2.0, C3: lib/streaming.ts), about 30 s ahead, the whole file when
+  // that fails; the shorts play their file whole.
   import type { VideoDetail } from '../lib/api/types'
+  import { untrack } from 'svelte'
   import { playability, type Playability } from '../lib/codec'
   import { codecName } from '../lib/format'
   import { t } from '../lib/i18n/i18n.svelte'
   import type { PlayerSize } from '../lib/playerSize.svelte'
+  import { startPlayback, type Playback } from '../lib/streaming'
   import { ratioFromElement, ratioFromTracks, ratioCss, type Ratio } from '../lib/videoRatio'
   import Button from './Button.svelte'
   import Icon from './Icon.svelte'
@@ -108,6 +112,24 @@
     }
   })
 
+  // The watch page's playback: in parts, or the whole file (its address set here, not in the markup).
+  let playback: Playback | undefined
+  $effect(() => {
+    const media = element
+    const url = video.mediaUrl
+    if (!media || variant !== 'watch') {
+      return
+    }
+    const started = startPlayback(media, url, { start: untrack(() => startAt) })
+    playback = started
+    return () => {
+      started.stop()
+      if (playback === started) {
+        playback = undefined
+      }
+    }
+  })
+
   function onloadedmetadata(event: Event & { currentTarget: HTMLVideoElement }) {
     loadedRatio = ratioFromElement(event.currentTarget)
     if (startAt !== null) {
@@ -130,7 +152,8 @@
 
   // A decode error and a missing file look the same to the media element: ask the server about the file.
   async function onerror() {
-    if (failure !== 'none') {
+    // In parts, an error is the parts': the playback falls back to the whole file by itself.
+    if (failure !== 'none' || (playback && playback.mode !== 'whole')) {
       return
     }
     const id = video.id
@@ -172,7 +195,7 @@
     <!-- svelte-ignore a11y_media_has_caption (subtitles are out of v1, R2-12) -->
     <video
       bind:this={element}
-      src={video.mediaUrl}
+      src={variant === 'shorts' ? video.mediaUrl : undefined}
       poster={video.thumbnailUrl ?? undefined}
       controls={variant === 'shorts'}
       disablepictureinpicture={variant === 'watch'}
