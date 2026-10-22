@@ -53,28 +53,14 @@
   const video = $derived(remote.status === 'ready' && remote.data?.id === id ? remote.data : undefined)
 
   // The frame takes the short's own shape (from the player: the API's track, else the loaded file), as big as the
-  // page allows (1.1.0: never letterboxed, so the title overlay sits on the picture's bottom edge), and the download
-  // goes away if the file turns out to be missing on the share.
+  // page allows (1.1.0: never letterboxed, so the title overlay sits on the picture's bottom edge, over which the
+  // player's bar runs), and the download goes away if the file turns out to be missing on the share.
   let ratio = $state<Ratio>()
   let fileMissing = $state(false)
   $effect(() => {
     void video?.id
     fileMissing = false
-    paused = false
   })
-
-  // The title overlay sits on the bottom of the picture, where the browser draws its own controls: it steps aside
-  // while they may be showing (the pointer over the video, see the CSS; paused; a few seconds after a touch).
-  const TOUCH_CONTROLS_MS = 3000
-  let paused = $state(false)
-  let touched = $state(false)
-  let touchTimer: ReturnType<typeof setTimeout> | undefined
-  function noteTouch() {
-    touched = true
-    clearTimeout(touchTimer)
-    touchTimer = setTimeout(() => (touched = false), TOUCH_CONTROLS_MS)
-  }
-  $effect(() => () => clearTimeout(touchTimer))
 
   // Not a short, says the API: the watch page plays it.
   $effect(() => {
@@ -158,7 +144,6 @@
       }
     }
     const ontouchstart = (event: TouchEvent) => {
-      noteTouch()
       touchY = event.touches[0]?.clientY ?? null
     }
     const ontouchend = (event: TouchEvent) => {
@@ -196,12 +181,9 @@
     <div class="stage">
       <div
         class="frame"
-        class:controls={paused || touched}
         aria-busy={!video}
         style:--video-ratio={video && ratio ? ratioCss(ratio).ratio : undefined}
         style:--video-ratio-value={video && ratio ? ratioCss(ratio).value : undefined}
-        onplaycapture={() => (paused = false)}
-        onpausecapture={() => (paused = true)}
       >
         {#if video && video.type === 'short'}
           <Player {video} {probe} variant="shorts" bind:ratio onunavailable={() => (fileMissing = true)} />
@@ -316,8 +298,8 @@
     border-radius: 0;
   }
 
-  /* Over the bottom of the picture; only its links take clicks (the video stays clickable). The browser's own controls
-     are drawn there too: the overlay fades out while they may be showing (.controls, or the pointer over the video). */
+  /* Over the bottom of the picture; only its links take clicks (the video stays clickable). The player's thin bar runs
+     along its bottom edge, over it. */
   .info {
     position: absolute;
     right: 0;
@@ -330,17 +312,6 @@
     background: linear-gradient(transparent, var(--color-overlay));
     color: var(--color-on-overlay);
     pointer-events: none;
-    transition: opacity var(--transition-fast);
-  }
-
-  .controls .info {
-    opacity: 0;
-  }
-
-  @media (hover: hover) {
-    .frame:has(:global(video:hover)) .info {
-      opacity: 0;
-    }
   }
 
   .info a {
@@ -383,7 +354,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    padding-bottom: var(--shorts-controls-clearance);
   }
 
   .action {

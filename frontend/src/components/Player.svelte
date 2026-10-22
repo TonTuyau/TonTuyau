@@ -21,6 +21,7 @@
   import Button from './Button.svelte'
   import Icon from './Icon.svelte'
   import PlayerControls from './PlayerControls.svelte'
+  import ShortsControls from './ShortsControls.svelte'
 
   // `shorts`: the /shorts/ player fills the frame its page gives it, starts by itself and loops (like YouTube).
   let {
@@ -197,8 +198,7 @@
       bind:this={element}
       src={variant === 'shorts' ? video.mediaUrl : undefined}
       poster={video.thumbnailUrl ?? undefined}
-      controls={variant === 'shorts'}
-      disablepictureinpicture={variant === 'watch'}
+      disablepictureinpicture
       autoplay
       loop={variant === 'shorts'}
       preload="metadata"
@@ -208,9 +208,11 @@
       ontimeupdate={(event) => ontime?.(event.currentTarget.currentTime)}
     ></video>
     {#if uncertain && variant === 'shorts'}{@render notice()}{/if}
-    <!-- The watch page's own controls (2.0, C1); the shorts keep the browser's. No picture-in-picture (the user's
-         choice): Firefox's own "Pop out this video" button, over the video, is off too. -->
-    {#if variant === 'watch' && element && box}
+    <!-- TonTuyau's own controls: the watch page's (2.0, C1), the shorts' (2.0.1, as YouTube's Shorts). No
+         picture-in-picture (the user's choice): Firefox's own "Pop out this video" button, over the video, is off too. -->
+    {#if variant === 'shorts' && element && box}
+      <ShortsControls media={element} {box} duration={video.durationSeconds} />
+    {:else if element && box}
       <PlayerControls
         media={element}
         {box}

@@ -11,7 +11,12 @@
   import { t } from '../lib/i18n/i18n.svelte'
   import { barSegments, filledPart, type Segment } from '../lib/playerBar'
   import type { PlayerSize } from '../lib/playerSize.svelte'
-  import { readPreference, writePreference } from '../lib/storage'
+  import {
+    restoreVolume,
+    setVolume as keepVolume,
+    toggleMute as keepMute,
+    volumeIcon as iconFor,
+  } from '../lib/playerVolume'
   import Icon from './Icon.svelte'
 
   let {
@@ -37,8 +42,6 @@
   const STEP_SECONDS = 5
   const VOLUME_STEP = 0.05
   const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-  const VOLUME_KEY = 'tontuyau.volume'
-  const MUTED_KEY = 'tontuyau.muted'
 
   let paused = $state(true)
   let started = $state(false)
@@ -110,14 +113,8 @@
     }
   })
 
-  // The volume as left last time (this browser).
-  $effect(() => {
-    const saved = Number(readPreference(VOLUME_KEY))
-    if (readPreference(VOLUME_KEY) !== null && saved >= 0 && saved <= 1) {
-      media.volume = saved
-    }
-    media.muted = readPreference(MUTED_KEY) === 'true'
-  })
+  // The volume as left last time (this browser), on the shorts too.
+  $effect(() => restoreVolume(media))
 
   $effect(() => {
     const onchange = () => (fullscreen = document.fullscreenElement === box)
@@ -184,21 +181,8 @@
     time = media.currentTime
   }
 
-  function setVolume(value: number) {
-    media.volume = Math.min(Math.max(value, 0), 1)
-    media.muted = media.volume === 0
-    writePreference(VOLUME_KEY, String(media.volume))
-    writePreference(MUTED_KEY, String(media.muted))
-  }
-
-  function toggleMute() {
-    media.muted = !media.muted
-    if (!media.muted && media.volume === 0) {
-      media.volume = 0.5
-    }
-    writePreference(MUTED_KEY, String(media.muted))
-    writePreference(VOLUME_KEY, String(media.volume))
-  }
+  const setVolume = (value: number) => keepVolume(media, value)
+  const toggleMute = () => keepMute(media)
 
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -322,7 +306,7 @@
     wake()
   }
 
-  const volumeIcon = $derived(muted || volume === 0 ? 'volumeOff' : volume < 0.5 ? 'volumeDown' : 'volumeUp')
+  const volumeIcon = $derived(iconFor(volume, muted))
   const speedLabel = (value: number) => (value === 1 ? t('player.normal') : `${value}×`)
 </script>
 

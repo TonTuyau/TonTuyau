@@ -165,6 +165,8 @@
   --player-min-height: 240px;
   /* TonTuyau's own player controls (2.0, C1): over the video, so in white and black whatever the theme. */
   --player-shade: linear-gradient(transparent, rgb(0 0 0 / 70%));
+  /* The shorts' buttons, at the top of the picture (2.0.1). */
+  --player-shade-top: linear-gradient(rgb(0 0 0 / 55%), transparent);
   --player-track: rgb(255 255 255 / 25%);
   --player-buffered: rgb(255 255 255 / 30%);
   --player-hovered: rgb(255 255 255 / 45%);
@@ -219,8 +221,6 @@
   --log-time-width: 5.5em;
   --log-level-width: 2.6em;
   --shorts-action-size: 48px;
-  /* Room left under the shorts overlay for the video's native controls. */
-  --shorts-controls-clearance: 48px;
   --bottom-nav-height: 48px;
   /* Height of what covers the bottom of the viewport (the phone bottom bar); the shell sets it. */
   --bottom-inset: 0px;

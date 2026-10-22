@@ -232,7 +232,7 @@ describe('ShortsPage (/shorts/<id>)', () => {
   })
 
   // 1.1.0: the frame is the short's exact shape (no black bars), so the title overlay sits on the picture's bottom
-  // edge, where the browser's controls are drawn too: it steps aside while they may be showing.
+  // edge; 2.0.1: TonTuyau's own controls, the thin bar along that edge, the buttons at the top.
   describe('the title overlay', () => {
     async function open() {
       vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably')
@@ -257,28 +257,25 @@ describe('ShortsPage (/shorts/<id>)', () => {
       expect(frame.style.getPropertyValue('--video-ratio')).toBe('1080 / 1350')
     })
 
-    it('steps aside while the video is paused (its controls show), and comes back when it plays', async () => {
+    it("plays with TonTuyau's own controls, not the browser's (2.0.1)", async () => {
       const frame = await open()
       const media = frame.querySelector('video') as HTMLVideoElement
 
-      await fireEvent.pause(media)
-      expect(frame).toHaveClass('controls')
-      await fireEvent.play(media)
-      expect(frame).not.toHaveClass('controls')
+      expect(media).not.toHaveAttribute('controls')
+      expect(media.loop).toBe(true)
+      expect(within(frame).getByRole('slider', { name: 'Position in the video' })).toBeInTheDocument()
+      expect(within(frame).getByRole('button', { name: 'Mute' })).toBeInTheDocument()
     })
 
-    it('steps aside for a few seconds after a touch (touch screens show the controls on a tap)', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true })
-      try {
-        const frame = await open()
+    it('stays over the picture whether the short plays or not (no browser controls to make room for)', async () => {
+      const frame = await open()
+      const media = frame.querySelector('video') as HTMLVideoElement
+      const info = frame.querySelector('.info') as HTMLElement
 
-        await fireEvent.touchStart(frame, { touches: [{ clientY: 300 }] })
-        expect(frame).toHaveClass('controls')
-        await vi.advanceTimersByTimeAsync(3000)
-        expect(frame).not.toHaveClass('controls')
-      } finally {
-        vi.useRealTimers()
-      }
+      await fireEvent.pause(media)
+      expect(info).toBeVisible()
+      await fireEvent.play(media)
+      expect(info).toBeVisible()
     })
   })
 })
