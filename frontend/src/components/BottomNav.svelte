@@ -17,7 +17,7 @@
     {#each items as item (item.label)}
       <li>
         <a href={item.url} class="item" aria-current={item.current ? 'page' : undefined}>
-          <Icon name={item.icon} />
+          <Icon name={item.icon} filled={item.current} />
           <span class="label">{t(item.label)}</span>
         </a>
       </li>
