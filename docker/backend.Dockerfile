@@ -68,7 +68,7 @@ ARG REVISION=unknown
 LABEL org.opencontainers.image.title="TonTuyau backend" \
       org.opencontainers.image.description="TonTuyau's API, import and downloads (a self-hosted, YouTube-like video library)" \
       org.opencontainers.image.source="https://github.com/TonTuyau/TonTuyau" \
-      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 COPY --from=folders --chown=1654:1654 /out/data /data

@@ -171,7 +171,7 @@ TonTuyau/
 ├─ docs/
 ├─ scripts/check.sh                # build + all tests, front and back
 ├─ .env.example
-├─ LICENSE                         # MIT
+├─ LICENSE                         # GPL-3.0-or-later
 └─ README.md
 ```
 

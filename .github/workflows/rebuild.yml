@@ -77,7 +77,7 @@ jobs:
             org.opencontainers.image.url=https://github.com/TonTuyau/TonTuyau
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
             org.opencontainers.image.revision=${{ steps.release.outputs.revision }}
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.licenses=GPL-3.0-or-later
 
       # Fresh base images (pull), no build cache: every layer is built again on them.
       - uses: docker/build-push-action@v6
