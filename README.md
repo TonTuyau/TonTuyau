@@ -73,7 +73,10 @@ same watch page, the same search, on your computer and your phone.
 
 ## 🧲 LaPompe, the browser extension
 
-<img src="https://raw.githubusercontent.com/TonTuyau/LaPompe/main/icons/lapompe.svg" alt="LaPompe's logo" width="64" height="64" align="right">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TonTuyau/LaPompe/main/icons/lapompe-light.svg">
+  <img src="https://raw.githubusercontent.com/TonTuyau/LaPompe/main/icons/lapompe.svg" alt="LaPompe's logo" width="64" height="64" align="right">
+</picture>
 
 *LaPompe remplit TonTuyau*: "the pump fills your pipe".
 
