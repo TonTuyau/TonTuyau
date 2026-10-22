@@ -179,7 +179,9 @@
         <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
       {/if}
       {#each data.onHold as held (held.id)}
-        <HoldBar run={held} disabled={busy} {onresume} {oncancel} />
+        <!-- Not held back by the queue (alpha.8): what waits in it waits for this very run, resumed or canceled.
+             Only another run going on (from the command line) holds it. -->
+        <HoldBar run={held} disabled={data.lock != null} {onresume} {oncancel} />
       {/each}
       <div class="tasks">
         {#each data.tasks.filter((info) => info.task !== 'import') as info (info.task)}
