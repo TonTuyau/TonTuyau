@@ -466,7 +466,8 @@ TonTuyau is free software: you can redistribute it and/or modify it under the te
 or (at your option) any later version. It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 
 The backend image ships [FFmpeg](https://ffmpeg.org) (LGPL), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense)
-and [Deno](https://deno.com) (MIT), unchanged, each under its own licence.
+and [Deno](https://deno.com) (MIT), unchanged, each under its own licence. The icons are Google's
+[Material Symbols](https://fonts.google.com/icons) (Apache 2.0).
 
 TonTuyau is not affiliated with, endorsed by, or sponsored by YouTube or Google. Download only what you have the right
 to keep.
