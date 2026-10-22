@@ -34,11 +34,11 @@ public sealed class DashboardService(
         LibraryStats stats = await store
             .GetLibraryStatsAsync([], cancellationToken)
             .ConfigureAwait(false);
-        SyncRun? lastSuccess = await store
-            .GetLatestSuccessfulRunAsync(cancellationToken)
+        SyncRun? lastAddition = await store
+            .GetLatestAdditionAsync(cancellationToken)
             .ConfigureAwait(false);
         return new DashboardView(
-            lastSuccess?.FinishedAt,
+            lastAddition?.FinishedAt,
             Totals(channels.Count, stats),
             PlayTime(stats));
     }

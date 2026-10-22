@@ -28,6 +28,9 @@ Feature: The YouTube syncs
     And the latest run's "counts.created" is "2" within 5 seconds
     And the latest run's "counts.channelsRead" is "1" within 5 seconds
     And the latest run's notes mention ": 2 videos to download."
+    # alpha.8: the dashboard's history counts the downloads, by type: the first import's 2 and these 2.
+    When I request "/api/admin/dashboard/imports?period=day" with my session
+    Then the import history's new videos are 4 videos, 0 shorts and 0 streams
 
   Scenario: Another channel's videos listed on a subscribed channel's tab are downloaded once, not at every sync (alpha.5)
     Given YouTube has the videos "beta-02, beta-01"

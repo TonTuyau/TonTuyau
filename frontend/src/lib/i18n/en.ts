@@ -531,8 +531,8 @@ export const en = {
   'run.missing': 'No such run',
   'run.missingHint': 'Check the address, or go back to the Tasks page.',
 
-  'dashboard.synced': 'Library imported {age}',
-  'dashboard.neverSynced': 'No successful import yet',
+  'dashboard.synced': 'Library updated {age}',
+  'dashboard.neverSynced': 'No video added yet',
   'dashboard.channels': 'Channels',
   'dashboard.gone': 'Gone from YouTube',
   'dashboard.private': 'Private',

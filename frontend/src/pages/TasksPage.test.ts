@@ -566,6 +566,32 @@ describe('TasksPage', () => {
       expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
     })
 
+    it('lets a run on hold be resumed or canceled while others wait behind it, not while another goes on', async () => {
+      const held = run({ id: 'run-20261016T140200Z-7c31aa', task: 'youTubeSync', state: 'onHold', cancellable: true })
+      const waiting = run({ id: 'run-20261016T150000Z-1a2b3c', task: 'refreshVideo', state: 'queued', position: 1 })
+      fakeApi({
+        '/api/admin/tasks': tasks({ onHold: [held], queue: [waiting] }),
+        '/api/admin/runs': page([waiting, held]),
+      })
+      const { unmount } = render(TasksPage)
+
+      const bar = await screen.findByRole('region', { name: 'On hold' })
+      expect(within(bar).getByRole('button', { name: 'Resume now' })).toBeEnabled()
+      expect(within(bar).getByRole('button', { name: 'Cancel it' })).toBeEnabled()
+      unmount()
+
+      fakeApi({
+        '/api/admin/tasks': tasks({
+          onHold: [held],
+          lock: { task: 'import', trigger: 'cli', since: new Date().toISOString() },
+        }),
+        '/api/admin/runs': page([held]),
+      })
+      render(TasksPage)
+      const busyBar = await screen.findByRole('region', { name: 'On hold' })
+      expect(within(busyBar).getByRole('button', { name: 'Resume now' })).toBeDisabled()
+    })
+
     it('says why a start was refused', async () => {
       const user = userEvent.setup()
       fakeApi({

@@ -240,7 +240,7 @@ public sealed class DashboardServiceTests
             return Task.FromResult(Stats);
         }
 
-        public Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken) =>
+        public Task<SyncRun?> GetLatestAdditionAsync(CancellationToken cancellationToken) =>
             Task.FromResult(LatestSuccess);
 
         public Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(

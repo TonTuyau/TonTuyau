@@ -94,17 +94,20 @@ Feature: The admin dashboard
       | size   | 0     |
       | cursor | nope  |
 
-  Scenario: The last import is when the latest successful import finished, whether it brought videos or not
-    Given the TubeArchivist imports:
-      | started              | outcome   | new | videos | shorts | streams | rebuild |
-      | 2026-09-01T07:00:00Z | succeeded | 40  |        |        |         | false   |
-      | 2026-09-05T07:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
-      | 2026-09-06T07:00:00Z | failed    | 3   | 2      | 1      | 0       | false   |
-      | 2026-09-07T07:00:00Z | running   | 2   | 2      | 0      | 0       | false   |
+  # alpha.8: an import or a download of TonTuyau's, the latest finished one that added videos (failed after some too).
+  Scenario: The last time videos came is when the latest finished run that added some ended, an import or a download
+    Given the runs that add videos:
+      | task          | started              | outcome   | new | videos | shorts | streams | rebuild |
+      | import        | 2026-09-01T07:00:00Z | succeeded | 40  |        |        |         | false   |
+      | import        | 2026-09-05T07:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
+      | youTubeSync   | 2026-09-06T05:00:00Z | succeeded | 2   | 1      | 1      | 0       | false   |
+      | downloadVideo | 2026-09-06T07:00:00Z | failed    | 1   | 1      | 0      | 0       | false   |
+      | youTubeSync   | 2026-09-06T11:00:00Z | succeeded | 0   | 0      | 0      | 0       | false   |
+      | youTubeSync   | 2026-09-07T07:00:00Z | running   | 2   | 2      | 0      | 0       | false   |
     And a refresh ran at "2026-09-08T07:00:00Z"
     When I log in as the admin
     And I request "/api/admin/dashboard" with my session
-    Then "lastSync" is "2026-09-05T07:10:00Z"
+    Then "lastSync" is "2026-09-06T07:10:00Z"
 
   Scenario: Without any run, no last import
     When I log in as the admin

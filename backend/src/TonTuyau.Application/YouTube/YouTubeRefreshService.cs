@@ -1127,7 +1127,8 @@ public sealed partial class YouTubeRefreshService(
         UpsertResult added = await videos
             .AddMissingAsync([video], LibraryOrigin.TonTuyau, context.CancellationToken)
             .ConfigureAwait(false);
-        context.Count(c => Add(c, added));
+        // By type too (alpha.8): the dashboard's history splits the new videos as the imports do.
+        context.Count(c => Add(c, added) with { CreatedByType = AddType(c.CreatedByType, video.Type, added.Created) });
         return video;
     }
 
@@ -1288,6 +1289,17 @@ public sealed partial class YouTubeRefreshService(
             YouTubeAnswer.Private => c with { PrivateOnYouTube = c.PrivateOnYouTube + 1 },
             _ => c with { CheckFailed = c.CheckFailed + 1 },
         });
+    }
+
+    private static TypeCounts AddType(TypeCounts? counts, VideoType type, int created)
+    {
+        TypeCounts before = counts ?? TypeCounts.None;
+        return type switch
+        {
+            VideoType.Short => before with { Shorts = before.Shorts + created },
+            VideoType.Stream => before with { Streams = before.Streams + created },
+            _ => before with { Videos = before.Videos + created },
+        };
     }
 
     private static SyncCounts Add(SyncCounts counts, UpsertResult result) => counts with
