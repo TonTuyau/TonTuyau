@@ -28,6 +28,7 @@ internal static class RunJson
         // PostgreSQL takes instants in UTC only.
         StartedAt = run.StartedAt.ToUniversalTime(),
         FinishedAt = run.FinishedAt?.ToUniversalTime(),
+        Created = run.Counts.Created,
         Run = Write(run),
     };
 }

@@ -6,7 +6,9 @@ namespace TonTuyau.Api.Contracts;
 /// The admin dashboard (contract v1.6): everything its page shows but the import history and, since alpha.3, the
 /// channels (their own calls).
 /// </summary>
-/// <param name="LastSync">When the latest successful import finished; null when there's none.</param>
+/// <param name="LastSync">
+/// When the latest run that added videos finished (an import or a download, alpha.8); null when none did.
+/// </param>
 public sealed record DashboardResponse(
     DateTime? LastSync,
     LibraryTotals Totals,

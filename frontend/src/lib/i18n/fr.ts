@@ -543,8 +543,8 @@ export const fr: Dictionary = {
   'run.missing': "Cette exécution n'existe pas",
   'run.missingHint': "Vérifiez l'adresse, ou revenez à la page des tâches.",
 
-  'dashboard.synced': 'Bibliothèque importée {age}',
-  'dashboard.neverSynced': 'Aucun import réussi pour l’instant',
+  'dashboard.synced': 'Bibliothèque mise à jour {age}',
+  'dashboard.neverSynced': 'Aucune vidéo ajoutée pour l’instant',
   'dashboard.channels': 'Chaînes',
   'dashboard.gone': 'Disparues de YouTube',
   'dashboard.private': 'Privées',

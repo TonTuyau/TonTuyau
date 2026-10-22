@@ -21,6 +21,9 @@ public sealed class RunRow
 
     public DateTimeOffset? FinishedAt { get; set; }
 
+    /// <summary>The videos it added to the library (its <c>counts.created</c>): the dashboard's history reads it.</summary>
+    public int Created { get; set; }
+
     /// <summary>The run itself, as <see cref="RunJson"/> writes it.</summary>
     public required string Run { get; set; }
 }

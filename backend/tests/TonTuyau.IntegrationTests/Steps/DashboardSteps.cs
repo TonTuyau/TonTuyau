@@ -23,7 +23,12 @@ public sealed class DashboardSteps(ScenarioState state)
     /// Columns: started (ISO instant; each run finishes 10 minutes later unless running), outcome, new (videos
     /// created), videos / shorts / streams (empty: not recorded, as in 1.1), rebuild.
     /// </summary>
+    /// <summary>
+    /// Runs that can add videos: TubeArchivist imports, or (column <c>task</c>, alpha.8) TonTuyau's downloads
+    /// (<c>youTubeSync</c>, <c>downloadVideo</c>…).
+    /// </summary>
     [Given("the TubeArchivist imports:")]
+    [Given("the runs that add videos:")]
     public async Task TheSyncRuns(DataTable table)
     {
         await state.WaitUntilReadyAsync();
@@ -38,7 +43,9 @@ public sealed class DashboardSteps(ScenarioState state)
             SyncRun run = new()
             {
                 Id = SyncRun.NewId(started),
-                Mode = SyncMode.Import,
+                Mode = row.TryGetValue("task", out string? task)
+                    ? Enum.Parse<SyncMode>(task, ignoreCase: true)
+                    : SyncMode.Import,
                 Trigger = SyncTrigger.Startup,
                 StartedAt = started,
                 FinishedAt = outcome == SyncOutcome.Running ? null : started.AddMinutes(10),
@@ -100,6 +107,15 @@ public sealed class DashboardSteps(ScenarioState state)
                 history["timeZone"]!.GetValue<string>(),
                 history["bars"]!.AsArray().Count,
                 history["total"]!.GetValue<long>()));
+    }
+
+    /// <summary>All its bars together, by type (alpha.8: the downloads record theirs).</summary>
+    [Then("the import history's new videos are {int} videos, {int} shorts and {int} streams")]
+    public void HistoryByType(int videos, int shorts, int streams)
+    {
+        JsonArray bars = Json["bars"]!.AsArray();
+        long Sum(string type) => bars.Sum(b => b!["byType"]![type]!.GetValue<long>());
+        Assert.Equal((videos, shorts, streams), ((int)Sum("videos"), (int)Sum("shorts"), (int)Sum("streams")));
     }
 
     /// <summary>The bars whose total isn't 0, oldest first.</summary>

@@ -47,7 +47,7 @@ describe('DashboardPage', () => {
     expect(total('Shorts')).toBe('1,231')
     expect(total('Streams')).toBe('574')
     expect(total('Gone from YouTube')).toBe('85')
-    expect(screen.getByText(/^Library imported/)).toBeInTheDocument()
+    expect(screen.getByText(/^Library updated/)).toBeInTheDocument()
   })
 
   it('shows the play time with each type’s share and average length, as given', async () => {
@@ -195,7 +195,7 @@ describe('DashboardPage', () => {
     render(DashboardPage)
 
     expect(await screen.findByText('No new video over this period')).toBeInTheDocument()
-    expect(screen.getByText('No successful import yet')).toBeInTheDocument()
+    expect(screen.getByText('No video added yet')).toBeInTheDocument()
   })
 
   it('lists the channels biggest first; a column asks for them sorted, again the other way', async () => {

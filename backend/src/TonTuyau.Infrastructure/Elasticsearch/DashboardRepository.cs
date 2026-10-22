@@ -162,11 +162,11 @@ internal sealed class DashboardRepository(
         return new LibraryStats(byType, result.GetFilter(Gone)?.DocCount ?? 0, byChannel);
     }
 
-    public Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken) =>
-        runs.GetLatestSuccessfulSyncAsync(cancellationToken);
+    public Task<SyncRun?> GetLatestAdditionAsync(CancellationToken cancellationToken) =>
+        runs.GetLatestAdditionAsync(cancellationToken);
 
     public Task<IReadOnlyList<SyncRun>> GetRunsSinceAsync(DateTimeOffset? since, CancellationToken cancellationToken) =>
-        runs.GetSyncsSinceAsync(since, cancellationToken);
+        runs.GetAdditionsSinceAsync(since, cancellationToken);
 
     private static IReadOnlyCollection<StringTermsBucket> Buckets(AggregateDictionary? aggregations, string name) =>
         aggregations?.GetStringTerms(name)?.Buckets

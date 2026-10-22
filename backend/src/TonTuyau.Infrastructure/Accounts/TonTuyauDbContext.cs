@@ -237,6 +237,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasConversion<string>();
             run.Property(r => r.StartedAt).HasColumnName("started_at");
             run.Property(r => r.FinishedAt).HasColumnName("finished_at");
+            run.Property(r => r.Created).HasColumnName("created");
             run
                 .Property(r => r.Run)
                 .HasColumnName("run")

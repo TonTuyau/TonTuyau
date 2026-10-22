@@ -1,7 +1,7 @@
 @elasticsearch @api
 Feature: The admin dashboard's import history
-  The new videos of the finished TubeArchivist imports (2.0: never a refresh, nor an index rebuild, which adds
-  none), over a period:
+  The new videos of the finished runs that add some (2.0: TubeArchivist's imports; alpha.8: TonTuyau's downloads
+  too; never a refresh, nor an index rebuild, which adds none), each counted when its run started, over a period:
   the last day a bar per import (an empty one too), the last 7 or 30 days a bar per day, the weeks (from Monday) of the last 365 days, or
   every month since the first import. Days are those of TONTUYAU_TZ (Europe/Paris here: UTC+2 in summer,
   UTC+1 in winter). Every step has its bar, an empty one too. Runs of 1.1 didn't record the types.
@@ -34,6 +34,22 @@ Feature: The admin dashboard's import history
       | start                | total | videos | shorts | streams | notRecorded |
       | 2026-10-13T21:30:00Z | 4     | 3      | 0      | 1       | 0           |
       | 2026-10-14T08:00:00Z | 6     | 3      | 2      | 1       | 0           |
+
+  Scenario: TonTuyau's downloads count as the imports do, with their types
+    Given the runs that add videos:
+      | task           | started              | outcome   | new | videos | shorts | streams | rebuild |
+      | downloadVideo  | 2026-10-14T02:00:00Z | succeeded | 1   | 1      | 0      | 0       | false   |
+      | youTubeSync    | 2026-10-14T04:00:00Z | succeeded | 3   | 1      | 2      | 0       | false   |
+      | retryDownloads | 2026-10-12T04:00:00Z | succeeded | 1   | 0      | 0      | 1       | false   |
+    When I log in as the admin
+    And I request "/api/admin/dashboard/imports?period=week" with my session
+    Then the import history is by "day" in "Europe/Paris": 7 bars, 17 new videos
+    And its bars with new videos are:
+      | start                | total | videos | shorts | streams | notRecorded |
+      | 2026-10-08T22:00:00Z | 2     | 1      | 1      | 0       | 0           |
+      | 2026-10-11T22:00:00Z | 1     | 0      | 0      | 1       | 0           |
+      | 2026-10-12T22:00:00Z | 4     | 3      | 0      | 1       | 0           |
+      | 2026-10-13T22:00:00Z | 10    | 5      | 4      | 1       | 0           |
 
   Scenario: The last week: a bar per day in Paris (23:30 on the 13th is the 13th)
     When I log in as the admin

@@ -274,7 +274,7 @@ public sealed class ImportHistoryTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<SyncRun?> GetLatestSuccessfulRunAsync(CancellationToken cancellationToken) =>
+        public Task<SyncRun?> GetLatestAdditionAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 }
