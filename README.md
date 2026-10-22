@@ -365,12 +365,6 @@ Each month (the 15th), the latest release's images are rebuilt from the same sou
 base images' security fixes reach you without a new TonTuyau release: `docker compose pull && docker compose up -d`
 takes them.
 
-**From 1.x to 2.0** ([what's new](docs/releases/2.0.0.md)): start from an empty TonTuyau and import again. 2.0 keeps the library in PostgreSQL, in new tables.
-Stop the stack, remove its PostgreSQL and Elasticsearch volumes (`docker compose down`, then
-`docker volume rm tontuyau_tontuyau-db-data tontuyau_tontuyau-es-data`), take the new compose file and `.env.example`
-(the `TONTUYAU_SYNC_*` settings are gone), keep `TONTUYAU_TA_URL` and `TONTUYAU_TA_TOKEN`, and `docker compose up -d`.
-The images (`tontuyau-art`) are reused.
-
 ## Backups
 
 | What | Content | Back it up? |
