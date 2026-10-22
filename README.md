@@ -9,7 +9,7 @@ A self-hosted video library that looks and feels like YouTube, fills itself from
 disks.
 
 [![CI](https://github.com/TonTuyau/TonTuyau/actions/workflows/ci.yml/badge.svg)](https://github.com/TonTuyau/TonTuyau/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/tag/TonTuyau/TonTuyau?include_prereleases&sort=semver&label=release&color=0f8b8d)](https://github.com/TonTuyau/TonTuyau/tags)
+[![Release](https://img.shields.io/github/v/release/TonTuyau/TonTuyau?label=release&color=0f8b8d)](https://github.com/TonTuyau/TonTuyau/releases/latest)
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL--3.0--or--later-0f8b8d)](LICENSE)
 [![Images on GHCR](https://img.shields.io/badge/images-ghcr.io%2Ftontuyau-0f8b8d?logo=docker&logoColor=white)](https://github.com/orgs/TonTuyau/packages)
 <br>
@@ -297,7 +297,7 @@ Read by the compose file only:
 
 | Variable | Default |
 |---|---|
-| `TONTUYAU_VERSION` | `latest`: the images' tag (`2.0.0`, `2.0`, `latest`, or a pre-release to try such as `2.0.0-alpha.8`) |
+| `TONTUYAU_VERSION` | `latest`: the images' tag (`2.0.0`, `2.0`, `latest`, or a pre-release to try, such as `2.1.0-alpha.1`) |
 | `TONTUYAU_HTTP_PORT` | `80`: the web app's port, the only one the stack publishes |
 | `TONTUYAU_MEDIA_PATH` | required: the videos folder on the host |
 | `TONTUYAU_UID`, `TONTUYAU_GID` | `1654`, `1654`: who the backend runs as, to fit the videos folder |
@@ -356,6 +356,8 @@ docker compose pull && docker compose up -d
 ```
 
 `TONTUYAU_VERSION` in `.env` picks the version: `latest`, or a pinned one (`2.0.0`, or `2.0` for the latest 2.0.x).
+What each version brings, and anything to do before upgrading to it, is in its
+[release notes](https://github.com/TonTuyau/TonTuyau/releases) (also in [docs/releases](docs/releases)).
 When a new version changes the search index's definitions, **the backend rebuilds the index by itself at startup**,
 from PostgreSQL, while still serving the current one. `docker exec tontuyau-backend tontuyau --version` says what runs.
 
@@ -363,7 +365,7 @@ Each month (the 15th), the latest release's images are rebuilt from the same sou
 base images' security fixes reach you without a new TonTuyau release: `docker compose pull && docker compose up -d`
 takes them.
 
-**From 1.x to 2.0**: start from an empty TonTuyau and import again. 2.0 keeps the library in PostgreSQL, in new tables.
+**From 1.x to 2.0** ([what's new](docs/releases/2.0.0.md)): start from an empty TonTuyau and import again. 2.0 keeps the library in PostgreSQL, in new tables.
 Stop the stack, remove its PostgreSQL and Elasticsearch volumes (`docker compose down`, then
 `docker volume rm tontuyau_tontuyau-db-data tontuyau_tontuyau-es-data`), take the new compose file and `.env.example`
 (the `TONTUYAU_SYNC_*` settings are gone), keep `TONTUYAU_TA_URL` and `TONTUYAU_TA_TOKEN`, and `docker compose up -d`.
@@ -453,8 +455,9 @@ for its knobs (empty library, failing API, slow answers).
   `cd frontend && pnpm run api:openapi`.
 - The version lives in `backend/Directory.Build.props` and `frontend/package.json`; `check.sh` fails when they differ.
 - GitHub Actions runs on pull requests and version tags: `check.sh` (the backend's part only when the backend
-  changed), then both images. A version tag `vX.Y.Z` publishes them to GHCR as `X.Y.Z`, `X.Y` and `latest`; a
-  pre-release tag (`v2.0.0-alpha.8`) only as itself.
+  changed), then both images. A version tag `vX.Y.Z` publishes them to GHCR as `X.Y.Z`, `X.Y` and `latest`, then
+  makes its GitHub Release from `docs/releases/X.Y.Z.md`; a pre-release tag (`v2.1.0-alpha.1`) publishes only its own
+  image tag and a pre-release.
 - `scripts/build-images.sh` builds the images locally (tag `dev`): run the stack with `TONTUYAU_VERSION=dev`.
 
 </details>
