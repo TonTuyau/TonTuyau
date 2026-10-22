@@ -72,7 +72,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=TonTuyau ${{ matrix.image }}
-            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a read-only, YouTube-like UI over a TubeArchivist library
+            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a self-hosted, YouTube-like video library
             org.opencontainers.image.source=https://github.com/TonTuyau/TonTuyau
             org.opencontainers.image.url=https://github.com/TonTuyau/TonTuyau
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
