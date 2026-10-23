@@ -139,6 +139,14 @@
     color: var(--color-text-secondary);
   }
 
+  /* "Follow its log" (2.1.1): a link in the sentence, so it looks like one. */
+  .asked a {
+    color: var(--color-link);
+    font-weight: var(--font-weight-medium);
+    text-decoration: underline;
+    text-underline-offset: var(--underline-offset);
+  }
+
   .refused {
     color: var(--color-error);
   }

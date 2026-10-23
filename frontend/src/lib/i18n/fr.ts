@@ -555,7 +555,6 @@ export const fr: Dictionary = {
   'dashboard.unlisted': 'Non répertoriées',
   'dashboard.retryLater': 'À réessayer',
   'dashboard.notChecked': 'Pas vérifiées',
-  'dashboard.goToChannel': 'Aller à la chaîne',
   'youTubeState.notChecked': 'Pas vérifiée',
   'youTubeState.onYouTube': 'Sur YouTube',
   'youTubeState.unlisted': 'Non répertoriée',

@@ -52,6 +52,18 @@ describe('router', () => {
     expect(router.route).toEqual({ name: 'channels' })
   })
 
+  it('starts a navigation at the top of the page, but for a link that keeps the scroll (a filter, 2.1.1)', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+
+    link('/admin/tasks?task=youTubeSync', { 'data-keep-scroll': '' }).click()
+    expect(location.search).toBe('?task=youTubeSync')
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    link('/feed/streams').click()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    scrollTo.mockRestore()
+  })
+
   it('turns a click on an in-app link into a navigation', () => {
     link('/feed/streams').click()
 
