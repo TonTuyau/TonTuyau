@@ -348,6 +348,9 @@ describe('WatchPage', () => {
       render(WatchPage, { probe: probably })
 
       const list = await screen.findByRole('region', { name: 'Chapters' })
+      // After a line, in the description's box (2.1.0), with their count.
+      expect(within(list).getByRole('heading')).toHaveTextContent('Chapters · 3')
+      expect(list.closest('.description')).not.toBeNull()
       const links = within(list).getAllByRole('link')
       expect(links.map((link) => link.getAttribute('href'))).toEqual([
         '/watch?v=vid00000001',
