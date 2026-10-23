@@ -48,7 +48,7 @@ internal sealed class YouTubeSettingsRepository(IServiceScopeFactory scopes) : I
             row.ChangedBy = settings.ChangedBy;
             row.ChangedAt = settings.ChangedAt;
             row.DownloadFormat = settings.DownloadFormat;
-            row.SyncEveryHours = settings.SyncEveryHours;
+            row.SyncEveryMinutes = settings.SyncEveryMinutes;
             row.DefaultVideos = settings.NewChannelTabs.Videos;
             row.DefaultShorts = settings.NewChannelTabs.Shorts;
             row.DefaultStreams = settings.NewChannelTabs.Streams;

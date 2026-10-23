@@ -26,8 +26,8 @@ public sealed class YouTubeSettingsRow
     /// <summary>What a download asks yt-dlp for (2.0), in its syntax.</summary>
     public string DownloadFormat { get; set; } = YouTubeSettings.DefaultDownloadFormat;
 
-    /// <summary>How often the incremental YouTube sync runs by itself (2.0), in hours; 0: by hand only.</summary>
-    public int SyncEveryHours { get; set; } = YouTubeSettings.DefaultSyncEveryHours;
+    /// <summary>How often the incremental YouTube sync runs by itself, in minutes (2.1.0); 0: by hand only.</summary>
+    public int SyncEveryMinutes { get; set; } = YouTubeSettings.DefaultSyncEveryMinutes;
 
     /// <summary>The tabs a channel added gets when none is named (2.0, B6): the three by default.</summary>
     public bool DefaultVideos { get; set; } = true;
@@ -47,7 +47,7 @@ public sealed class YouTubeSettingsRow
             row.ChangedBy,
             row.ChangedAt,
             row.DownloadFormat,
-            row.SyncEveryHours,
+            row.SyncEveryMinutes,
             new ChannelTabs(row.DefaultVideos, row.DefaultShorts, row.DefaultStreams));
     }
 }

@@ -4247,7 +4247,7 @@ export interface components {
       /** Format: int32 */
       holdMinutes: null | number
       /** Format: int32 */
-      syncEveryHours: null | number
+      syncEveryMinutes: null | number
       downloadFormat?: null | string
       defaultTabs?: null | components['schemas']['ChannelTabsRequest']
     }
@@ -4260,7 +4260,7 @@ export interface components {
       /** Format: int32 */
       holdMinutes: number
       /** Format: int32 */
-      syncEveryHours: number
+      syncEveryMinutes: number
       downloadFormat: string
       defaultTabs: components['schemas']['ChannelTabsResponse']
       changedBy: null | string

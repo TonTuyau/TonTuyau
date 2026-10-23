@@ -5,7 +5,7 @@ using TonTuyau.Application.Tasks;
 namespace TonTuyau.Application.YouTube;
 
 /// <summary>
-/// When the incremental YouTube sync runs by itself (2.0, B5): <see cref="YouTubeSettings.SyncEveryHours"/> after the
+/// When the incremental YouTube sync runs by itself (2.0, B5): <see cref="YouTubeSettings.SyncEveryMinutes"/> after the
 /// last one was asked for (at once when none ever ran), through the run queue, while TonTuyau is subscribed to a
 /// channel. One at a time: not while one waits, runs or is on hold. The full sync is by hand only.
 /// </summary>
@@ -16,7 +16,7 @@ public sealed class YouTubeSyncSchedule(
     IYouTubeSettingsRepository settings,
     TimeProvider clock)
 {
-    /// <returns>When it's due next; null when it's by hand only (0 hours).</returns>
+    /// <returns>When it's due next; null when it's by hand only (0 minutes).</returns>
     public async Task<DateTimeOffset?> NextAsync(CancellationToken cancellationToken)
     {
         YouTubeSettings read = await settings.GetAsync(cancellationToken).ConfigureAwait(false);
@@ -42,7 +42,7 @@ public sealed class YouTubeSyncSchedule(
     }
 
     private DateTimeOffset? Next(YouTubeSettings read, SyncRun? last) =>
-        read.SyncEveryHours <= 0 ? null
+        read.SyncEveryMinutes <= 0 ? null
         : last is null ? clock.GetUtcNow()
-        : (last.QueuedAt ?? last.StartedAt).AddHours(read.SyncEveryHours);
+        : (last.QueuedAt ?? last.StartedAt).AddMinutes(read.SyncEveryMinutes);
 }

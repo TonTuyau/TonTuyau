@@ -5146,7 +5146,7 @@
         }
       },
       "YouTubeSettingsRequest": {
-        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "syncEveryHours"],
+        "required": ["comments", "commentsMax", "pauseSeconds", "holdMinutes", "syncEveryMinutes"],
         "type": "object",
         "properties": {
           "comments": {
@@ -5164,7 +5164,7 @@
             "type": ["null", "integer"],
             "format": "int32"
           },
-          "syncEveryHours": {
+          "syncEveryMinutes": {
             "type": ["null", "integer"],
             "format": "int32"
           },
@@ -5189,7 +5189,7 @@
           "commentsMax",
           "pauseSeconds",
           "holdMinutes",
-          "syncEveryHours",
+          "syncEveryMinutes",
           "downloadFormat",
           "defaultTabs",
           "changedBy",
@@ -5212,7 +5212,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "syncEveryHours": {
+          "syncEveryMinutes": {
             "type": "integer",
             "format": "int32"
           },
