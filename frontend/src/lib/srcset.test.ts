@@ -1,4 +1,4 @@
-import { imageSizes, srcset } from './srcset'
+import { imageSizes, srcset, uiScales } from './srcset'
 
 const theme =
   Object.values(
@@ -24,15 +24,46 @@ describe('srcset (resized art, contract v1.4)', () => {
     expect(srcset(undefined)).toBeUndefined()
   })
 
-  it('gives every layout a display width', () => {
-    expect(imageSizes.grid).toBe('(max-width: 600px) 100vw, (min-width: 2600px) calc((100vw - 200px) / 6), 400px')
-    expect(imageSizes.compact).toBe('168px')
-    expect(imageSizes.row).toBe('(max-width: 600px) 100vw, 500px')
-    expect(imageSizes.short).toBe(
-      '(max-width: 600px) 158vw, (min-width: 2192px) calc((100vw - 192px) * 256 / 810), 633px',
-    )
-    expect(imageSizes.avatar).toEqual({ xs: '24px', sm: '36px', md: '88px', lg: '160px' })
-    expect(imageSizes.banner).toBe('(max-width: 1284px) 100vw, 1284px')
+  it('gives every layout a display width, the normal one last', () => {
+    expect(imageSizes.grid).toMatch(/, \(min-width: 2600px\) calc\(\(100vw - 200px\) \/ 6\), 400px$/)
+    expect(imageSizes.compact).toMatch(/, 168px$/)
+    expect(imageSizes.row).toMatch(/^\(max-width: 600px\) 100vw, .*, 500px$/)
+    expect(imageSizes.short).toMatch(/, \(min-width: 2192px\) calc\(\(100vw - 192px\) \* 256 \/ 810\), 633px$/)
+    expect(Object.values(imageSizes.avatar).map((sizes) => sizes.split(', ').at(-1))).toEqual([
+      '24px',
+      '36px',
+      '88px',
+      '160px',
+    ])
+    expect(imageSizes.banner).toMatch(/^\(max-width: 1284px\) 100vw, .*, 1284px$/)
+  })
+
+  // 2.1.0: the theme scales the whole interface on big screens (the root's font size, every size in rem); the images
+  // are shown that much wider, and `sizes` says so, with the theme's very media conditions.
+  describe('big screens (the interface scaled)', () => {
+    const steps = [...theme.matchAll(/@media ([^{]+) \{\s*:root \{\s*font-size: (\d+)%;/g)].map(([, when, size]) => ({
+      when: when?.trim(),
+      factor: Number(size) / 100,
+    }))
+
+    it('scales as the theme does: the same media conditions and factors', () => {
+      expect([...steps].sort((a, b) => b.factor - a.factor)).toEqual([...uiScales])
+    })
+
+    it('asks for every image that much wider there, a big screen first', () => {
+      expect(imageSizes.compact).toBe(
+        '(min-width: 4800px) and (min-height: 2600px) 336px, (min-width: 3200px) and (min-height: 1800px) 252px, ' +
+          '(min-width: 2400px) and (min-height: 1250px) 210px, 168px',
+      )
+      expect(imageSizes.avatar.lg).toContain('(min-width: 3200px) and (min-height: 1800px) 240px')
+      // A 4K screen: the cards at least 1.5 × 400 px, or the capped column, the guide and gaps scaled too.
+      expect(imageSizes.grid).toContain(
+        '(min-width: 3200px) and (min-height: 1800px) max(600px, calc((100vw - 300px) / 6))',
+      )
+      expect(imageSizes.short).toContain(
+        '(min-width: 3200px) and (min-height: 1800px) max(949.5px, calc((100vw - 288px) * 256 / 810))',
+      )
+    })
   })
 
   it('asks for short thumbnails at their drawn width: the 16:9 frame cropped into the portrait card', () => {
@@ -57,9 +88,7 @@ describe('srcset (resized art, contract v1.4)', () => {
       const from = 400 * columns + minus
 
       expect([columns, minus, from]).toEqual([6, 200, 2600])
-      expect(imageSizes.grid).toBe(
-        `(max-width: 600px) 100vw, (min-width: ${from}px) calc((100vw - ${minus}px) / ${columns}), 400px`,
-      )
+      expect(imageSizes.grid).toContain(`, (min-width: ${from}px) calc((100vw - ${minus}px) / ${columns}), 400px`)
     })
 
     it('short cards: drawn wider than 633 px from the viewport where the capped card passes 200 px', () => {
@@ -85,9 +114,11 @@ function token(name: string): string {
   return match[1].trim()
 }
 
-/** A pixel token, following one var() hop (e.g. --grid-gap-x: var(--space-4)). */
+/** A length token in CSS px at the normal scale (rem: 16 px), following one var() hop (e.g. var(--space-4)). */
 function px(name: string): number {
   const value = token(name)
   const alias = /^var\((--[\w-]+)\)$/.exec(value)?.[1]
-  return alias ? px(alias) : Number(/^(\d+)px$/.exec(value)?.[1])
+  if (alias) return px(alias)
+  const rem = /^([\d.]+)rem$/.exec(value)?.[1]
+  return rem ? Number(rem) * 16 : Number(/^(\d+)px$/.exec(value)?.[1])
 }

@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/svelte'
 import { i18n } from '../lib/i18n/i18n.svelte'
 import { shortsPlayer } from '../lib/shortsPlayer.svelte'
+import { imageSizes } from '../lib/srcset'
 import { videoCard } from '../test/data'
 import ShortCard from './ShortCard.svelte'
 import VideoCard from './VideoCard.svelte'
@@ -114,9 +115,9 @@ describe('VideoCard', () => {
     const thumbnail = (container: HTMLElement) => container.querySelector('.thumbnail img') as HTMLImageElement
 
     it.each([
-      ['grid', '(max-width: 600px) 100vw, (min-width: 2600px) calc((100vw - 200px) / 6), 400px'],
-      ['row', '(max-width: 600px) 100vw, 500px'],
-      ['compact', '168px'],
+      ['grid', imageSizes.grid],
+      ['row', imageSizes.row],
+      ['compact', imageSizes.compact],
     ] as const)('%s cards', (variant, sizes) => {
       const { container } = render(VideoCard, { video: videoCard(), variant })
 
@@ -133,7 +134,7 @@ describe('VideoCard', () => {
 
       const avatar = container.querySelector('.avatar img') as HTMLImageElement
       expect(avatar).toHaveAttribute('srcset', '/art/from-the-api/UCtest-thumb 900w')
-      expect(avatar).toHaveAttribute('sizes', '36px')
+      expect(avatar).toHaveAttribute('sizes', imageSizes.avatar.sm)
     })
 
     it('keeps the first row eager and high priority', () => {
@@ -160,10 +161,7 @@ describe('VideoCard', () => {
     it('sizes short cards as short cards', () => {
       const { container } = render(ShortCard, { video: videoCard({ type: 'short' }) })
 
-      expect(thumbnail(container)).toHaveAttribute(
-        'sizes',
-        '(max-width: 600px) 158vw, (min-width: 2192px) calc((100vw - 192px) * 256 / 810), 633px',
-      )
+      expect(thumbnail(container)).toHaveAttribute('sizes', imageSizes.short)
       expect(thumbnail(container).getAttribute('srcset')).toContain('360w')
     })
   })

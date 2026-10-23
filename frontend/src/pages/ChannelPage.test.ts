@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/svelte'
 import { channelDetail, page, videoCard } from '../test/data'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 import { i18n } from '../lib/i18n/i18n.svelte'
+import { imageSizes } from '../lib/srcset'
 import ChannelPage from './ChannelPage.svelte'
 
 describe('ChannelPage', () => {
@@ -108,12 +109,12 @@ describe('ChannelPage', () => {
       'srcset',
       '/art/from-the-api/UCtest-banner/1280 1280w, /art/from-the-api/UCtest-banner 2560w',
     )
-    expect(banner).toHaveAttribute('sizes', '(max-width: 1284px) 100vw, 1284px')
+    expect(banner).toHaveAttribute('sizes', imageSizes.banner)
     const avatar = container.querySelector('.head .avatar img') as HTMLImageElement
     expect(avatar).toHaveAttribute(
       'srcset',
       '/art/from-the-api/UCtest-thumb/tiny 48w, /art/from-the-api/UCtest-thumb 900w',
     )
-    expect(avatar).toHaveAttribute('sizes', '160px')
+    expect(avatar).toHaveAttribute('sizes', imageSizes.avatar.lg)
   })
 })
