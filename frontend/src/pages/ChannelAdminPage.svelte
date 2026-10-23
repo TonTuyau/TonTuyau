@@ -228,7 +228,7 @@
           {#each states as s (s)}
             <div>
               <dt><YouTubeStateBadge state={s} /></dt>
-              <dd>{number(data.videos[s])}</dd>
+              <dd class:zero={data.videos[s] === 0}>{number(data.videos[s])}</dd>
             </div>
           {/each}
         </dl>
@@ -456,12 +456,34 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Its videos by state (2.1.1): the badges in a column as wide as the widest one, the counts in a right-aligned one,
+     each count beside its badge's middle; a zero in the secondary colour, so the counts that matter stand out. The
+     other cards' label column (--task-label-width) is too narrow for "On YouTube" or "Not checked". */
+  .states {
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+    gap: var(--space-2) var(--space-6);
+  }
+
+  .states div {
+    display: contents;
+  }
+
   .states dt {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
     color: var(--color-text);
     font-size: var(--font-size-sm);
+  }
+
+  .states dd {
+    justify-content: flex-end;
+    align-items: center;
+    font-size: var(--font-size-md);
+  }
+
+  .states dd.zero {
+    color: var(--color-text-secondary);
   }
 
   .actions {
