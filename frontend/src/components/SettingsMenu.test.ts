@@ -27,7 +27,7 @@ describe('SettingsMenu', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('menu', { name: 'Settings' })).toBeInTheDocument()
     const rows = screen.getAllByRole('menuitem').map((row) => row.textContent?.trim())
-    expect(rows).toEqual(['Appearance: Device theme', 'Language: English', 'Shorts player: Vertical'])
+    expect(rows).toEqual(['Appearance: Device theme', 'Language: English', 'Shorts player: Standard'])
     expect(screen.getByRole('menuitem', { name: 'Appearance: Device theme' })).toHaveFocus()
   })
 
@@ -128,31 +128,31 @@ describe('SettingsMenu', () => {
     expect(screen.getAllByRole('menuitem').map((row) => row.textContent?.trim())).toEqual([
       'Apparence : Clair',
       'Langue : Français',
-      'Lecteur de Shorts : Vertical',
+      'Lecteur de Shorts : Standard',
     ])
   })
 
-  it('switches the shorts player to normal and back, saved like the theme', async () => {
+  it('switches the shorts player to landscape and back, saved like the theme', async () => {
     const user = userEvent.setup()
     render(SettingsMenu)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Shorts player: Vertical' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Shorts player: Standard' }))
 
     expect(screen.getByRole('menu', { name: 'Shorts player' })).toBeInTheDocument()
     expect(screen.getAllByRole('menuitemradio').map((option) => option.textContent?.trim())).toEqual([
-      'Vertical',
-      'Normal',
+      'Standard',
+      'Landscape',
     ])
-    expect(screen.getByRole('menuitemradio', { name: 'Vertical' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('menuitemradio', { name: 'Standard' })).toHaveAttribute('aria-checked', 'true')
 
-    await user.click(screen.getByRole('menuitemradio', { name: 'Normal' }))
+    await user.click(screen.getByRole('menuitemradio', { name: 'Landscape' }))
 
     expect(shortsPlayer.preference).toBe('normal')
     expect(localStorage.getItem(SHORTS_PLAYER_STORAGE_KEY)).toBe('normal')
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    expect(screen.getByRole('menuitem', { name: 'Shorts player: Normal' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Shorts player: Landscape' })).toBeInTheDocument()
   })
 })
