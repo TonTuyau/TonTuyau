@@ -110,6 +110,8 @@
 
   /* Borders and focus */
   --border-width: 1px;
+  /* A link's underline in a sentence (2.1.1): a little below the letters. */
+  --underline-offset: 0.15em;
   --focus-ring: 2px solid var(--color-focus);
   --focus-offset: 2px;
 
