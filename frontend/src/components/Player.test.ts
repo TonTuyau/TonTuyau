@@ -207,6 +207,21 @@ describe('Player (codec check, R2-13)', () => {
       expect(onsizechange).toHaveBeenLastCalledWith('small')
     })
 
+    it('makes the large player the theater view, the same <video> going on (2.1.1)', async () => {
+      const { container, rerender } = render(Player, {
+        video: videoDetail(),
+        probe: (): Playability => 'probably',
+        size: 'small',
+        onsizechange: vi.fn(),
+      })
+      const media = container.querySelector('video')
+
+      expect(container.querySelector('.player')).not.toHaveClass('theater')
+      await rerender({ size: 'large' })
+      expect(container.querySelector('.player')).toHaveClass('theater')
+      expect(container.querySelector('video')).toBe(media)
+    })
+
     it('is not there without a handler, nor in the shorts player', () => {
       render(Player, { video: videoDetail(), probe: (): Playability => 'probably' })
       render(Player, {
