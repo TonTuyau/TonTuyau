@@ -1,10 +1,12 @@
 // Vite plugin for `pnpm run dev:mockup`: the dev server itself answers /api, /art and /media from the
 // fixtures, so the app runs unchanged (same fetch calls as against the real backend).
-// Review knobs: open /__mock in the browser (scenario normal / empty / error / down / offline, response delay).
+// Review knobs: open /__mock in the browser (scenario normal / empty / error / down / offline, response delay, logged
+// in as admin or not: the admin pages, mock/admin.ts).
 import { createReadStream, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Connect, Plugin } from 'vite'
+import { adminMockState, handleAdmin, type AdminMockState } from './admin.ts'
 import { artFor } from './art.ts'
 import { emptyDb, fixturesDir, loadDb, type MockDb, type VideoFixture } from './db.ts'
 import { handleApi, notFound, problemResponse, type MockResponse } from './handler.ts'
@@ -22,6 +24,8 @@ interface State {
   /** 'real' only when the local real-channels layer exists (dev-data/mockup, git-ignored). */
   channels: ChannelsMode
   realAvailable: boolean
+  /** The admin side: logged in or not, the runs, keys and settings (in memory). */
+  admin: AdminMockState
 }
 
 /** (Re)builds the library for the current channels mode. */
@@ -61,6 +65,22 @@ export function sampleFor(video: VideoFixture, demo = false): keyof typeof sampl
 
 /** Ids starting with "mockGone": the API says the file is there, the share doesn't have it (edge case, M5). */
 export const missingOnShare = (id: string) => id.startsWith('mockGone')
+
+/** A request's JSON body; undefined when there's none or it isn't JSON. */
+function readJson(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = []
+    req.on('data', (chunk: Buffer) => chunks.push(chunk))
+    req.on('end', () => {
+      try {
+        resolve(chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString()) : undefined)
+      } catch {
+        resolve(undefined)
+      }
+    })
+    req.on('error', () => resolve(undefined))
+  })
+}
 
 function send(res: ServerResponse, response: MockResponse, head = false): void {
   res.statusCode = response.status
@@ -144,6 +164,10 @@ function controlPage(state: State, url: URL): MockResponse {
       console.log(`[mock] channels: ${describeMode(state)}`)
     }
   }
+  const admin = url.searchParams.get('admin')
+  if (admin === 'on' || admin === 'off') {
+    state.admin.loggedIn = admin === 'on'
+  }
   const delay = url.searchParams.get('delay')
   if (delay !== null && /^\d{1,5}$/.test(delay)) {
     state.delayMs = Number(delay)
@@ -160,6 +184,7 @@ function controlPage(state: State, url: URL): MockResponse {
   }</p>
 <p>Scenario: ${link('scenario=normal', 'normal')} ${link('scenario=empty', 'empty library')} ${link('scenario=error', 'every /api call fails (500)')}
 ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('scenario=offline', 'no answer at all (connection dropped)')}</p>
+<p>Admin: <b>${state.admin.loggedIn ? 'logged in as admin' : 'logged out'}</b> ${link('admin=on', 'log in as admin')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>)</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>
 <p><a href="/">← back to the app</a></p>`
   return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body }
@@ -182,6 +207,23 @@ export function createMockMiddleware(state: State): Connect.NextHandleFunction {
           () => send(res, { status: 502, headers: { 'content-type': 'text/plain' }, body: '' }, head),
           state.delayMs,
         )
+      } else if ((path.startsWith('/api/admin/') || path.startsWith('/api/auth/')) && state.scenario !== 'error') {
+        void readJson(req).then((body) => {
+          const db = state.scenario === 'empty' ? emptyDb : state.db
+          const answer = handleAdmin(db, state.admin, req.method ?? 'GET', url, body)
+          const response: MockResponse =
+            answer === null || answer.body === undefined
+              ? { status: answer?.status ?? 404, headers: {}, body: '' }
+              : {
+                  status: answer.status,
+                  headers: {
+                    'content-type':
+                      answer.status >= 400 ? 'application/problem+json' : 'application/json; charset=utf-8',
+                  },
+                  body: JSON.stringify(answer.body),
+                }
+          setTimeout(() => send(res, response, head), state.delayMs)
+        })
       } else if (path.startsWith('/api/')) {
         const db = state.scenario === 'empty' ? emptyDb : state.db
         const response =
@@ -236,8 +278,15 @@ export function createMockMiddleware(state: State): Connect.NextHandleFunction {
 export function mockApi(): Plugin {
   const realAvailable = hasRealLayer()
   const mode: ChannelsMode = realAvailable ? 'real' : 'synthetic'
-  const state: State = { db: emptyDb, scenario: 'normal', delayMs: 300, channels: mode, realAvailable }
-  state.db = buildDb(state)
+  const db = buildDb({ channels: mode, realAvailable })
+  const state: State = {
+    db,
+    scenario: 'normal',
+    delayMs: 300,
+    channels: mode,
+    realAvailable,
+    admin: adminMockState(db),
+  }
   console.log(`[mock] channels: ${describeMode(state)}`)
   const reload = (file: string) => {
     if (file.startsWith(fixturesDir)) {

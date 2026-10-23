@@ -19,8 +19,9 @@ namespace TonTuyau.Application.YouTube;
 /// What a download asks yt-dlp for (2.0), in its own syntax: the best video and the best audio by default (B6 sets it on
 /// the page).
 /// </param>
-/// <param name="SyncEveryHours">
-/// How often the incremental YouTube sync runs by itself (2.0, B5), in hours: 6 by default; 0: only by hand.
+/// <param name="SyncEveryMinutes">
+/// How often the incremental YouTube sync runs by itself (2.0, B5), in minutes since 2.1.0 (it was hours), for whoever
+/// wants it eager: 6 hours by default; 0: only by hand.
 /// </param>
 /// <param name="DefaultTabs">
 /// The tabs a channel added is subscribed to when none is named (2.0, B6: "Add a channel", the browser extension); null:
@@ -34,7 +35,7 @@ public sealed record YouTubeSettings(
     string? ChangedBy,
     DateTimeOffset? ChangedAt,
     string DownloadFormat = YouTubeSettings.DefaultDownloadFormat,
-    int SyncEveryHours = YouTubeSettings.DefaultSyncEveryHours,
+    int SyncEveryMinutes = YouTubeSettings.DefaultSyncEveryMinutes,
     ChannelTabs? DefaultTabs = null)
 {
     /// <summary>A format longer than this isn't one (yt-dlp's are a few dozen characters).</summary>
@@ -42,10 +43,10 @@ public sealed record YouTubeSettings(
 
     public const string DefaultDownloadFormat = "bestvideo+bestaudio";
 
-    public const int DefaultSyncEveryHours = 6;
+    public const int DefaultSyncEveryMinutes = 6 * 60;
 
     /// <summary>A week: a longer wait is better done by hand.</summary>
-    public const int MaxSyncEveryHours = 168;
+    public const int MaxSyncEveryMinutes = 7 * 24 * 60;
 
     public const int DefaultCommentsMax = 500;
     public const int DefaultPauseSeconds = 10;

@@ -115,7 +115,7 @@ public sealed class YouTubeController(
                 request.CommentsMax,
                 request.PauseSeconds,
                 request.HoldMinutes,
-                request.SyncEveryHours,
+                request.SyncEveryMinutes,
                 request.DownloadFormat,
                 request.DefaultTabs?.ToTabs("defaultTabs"),
                 Account(),

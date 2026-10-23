@@ -41,7 +41,7 @@
     })}
   </p>
   <div class="actions">
-    <Button variant="filled" {disabled} onclick={() => onresume(run.id)}>{t('hold.resume')}</Button>
+    <Button variant="primary" {disabled} onclick={() => onresume(run.id)}>{t('hold.resume')}</Button>
     <Button {disabled} onclick={() => oncancel(run.id)}>{t('hold.cancel')}</Button>
   </div>
 </section>

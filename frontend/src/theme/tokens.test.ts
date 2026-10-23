@@ -53,7 +53,16 @@ describe('theme tokens', () => {
 
   it('gives every theme-dependent colour a light and a dark value', () => {
     const colours = [...theme.matchAll(/(--color-[\w-]+):\s*([^;]+);/g)]
-    const fixed = ['--color-brand', '--color-on-brand', '--color-overlay', '--color-on-overlay', '--color-scrim']
+    // The brand and the primary button (2.1.0) are the same teal on both themes.
+    const fixed = [
+      '--color-brand',
+      '--color-on-brand',
+      '--color-button-primary',
+      '--color-on-button-primary',
+      '--color-overlay',
+      '--color-on-overlay',
+      '--color-scrim',
+    ]
     const single = colours.filter(([, name, value]) => !value?.startsWith('light-dark(') && !fixed.includes(name ?? ''))
 
     expect(colours.length).toBeGreaterThan(20)

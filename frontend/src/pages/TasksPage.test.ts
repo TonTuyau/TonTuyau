@@ -398,7 +398,7 @@ describe('TasksPage', () => {
           commentsMax: 500,
           pauseSeconds: 10,
           holdMinutes: 60,
-          syncEveryHours: 6,
+          syncEveryMinutes: 360,
           downloadFormat: 'bestvideo+bestaudio',
           defaultTabs: { videos: true, shorts: false, streams: false },
           changedBy: null,

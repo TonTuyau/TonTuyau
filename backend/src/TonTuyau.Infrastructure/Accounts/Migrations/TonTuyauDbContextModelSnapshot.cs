@@ -752,11 +752,11 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("pause_seconds");
 
-                    b.Property<int>("SyncEveryHours")
+                    b.Property<int>("SyncEveryMinutes")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(6)
-                        .HasColumnName("sync_every_hours");
+                        .HasDefaultValue(360)
+                        .HasColumnName("sync_every_minutes");
 
                     b.HasKey("Id");
 

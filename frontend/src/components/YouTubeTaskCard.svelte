@@ -74,7 +74,7 @@
       <small id="{uid}-invalid" class="invalid" role="alert">{invalid}</small>
     {/if}
     <div class="actions">
-      <Button type="submit" variant="filled" disabled={pending}>
+      <Button type="submit" variant="primary" disabled={pending}>
         {#if waits}
           {t('task.addToQueue')}
         {:else}

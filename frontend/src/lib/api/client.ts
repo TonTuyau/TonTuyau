@@ -382,9 +382,9 @@ export const api = {
     commentsMax: number,
     pauseSeconds: number,
     holdMinutes: number,
-    syncEveryHours: number,
+    syncEveryMinutes: number,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryHours })
+    return putFor('/api/admin/youtube/settings', { comments, commentsMax, pauseSeconds, holdMinutes, syncEveryMinutes })
   },
 
   /** The download settings (2.0): the format, the tabs a channel added gets; the reading settings stay as they are. */

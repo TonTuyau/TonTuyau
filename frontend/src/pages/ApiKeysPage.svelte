@@ -112,7 +112,7 @@
           {/each}
         </select>
       </div>
-      <Button type="submit" variant="filled" disabled={creating}>{t('apiKeys.create')}</Button>
+      <Button type="submit" variant="primary" disabled={creating}>{t('apiKeys.create')}</Button>
     </div>
     <small>{t(`apiKeys.kind.${kind}.what`)}</small>
     {#if formError}
@@ -209,7 +209,7 @@
                     <div role="group" aria-label={t('apiKeys.deleteKey', { name: key.name })}>
                       <p>{t('apiKeys.confirmDelete', { name: key.name })}</p>
                       <Button
-                        variant="filled"
+                        variant="primary"
                         disabled={pending !== null}
                         onclick={() => void act(key.id, () => api.deleteApiKey(key.id))}
                       >

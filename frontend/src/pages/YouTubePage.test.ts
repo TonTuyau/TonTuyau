@@ -53,7 +53,7 @@ function routes(given: Record<string, unknown> = {}) {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
-      syncEveryHours: 6,
+      syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
@@ -73,7 +73,7 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
-      syncEveryHours: 6,
+      syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
@@ -108,8 +108,8 @@ describe('YouTubePage', () => {
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/^All the comments are read\./)).toBeInTheDocument()
     expect(sent).toEqual([
-      { comments: 'top', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 6 },
-      { comments: 'all', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 6 },
+      { comments: 'top', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryMinutes: 360 },
+      { comments: 'all', commentsMax: 2000, pauseSeconds: 10, holdMinutes: 60, syncEveryMinutes: 360 },
     ])
   })
 
@@ -121,7 +121,7 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
-      syncEveryHours: 6,
+      syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
@@ -159,7 +159,9 @@ describe('YouTubePage', () => {
     await user.type(pause, '0')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/A pause of about 0 s between videos; on hold 90 min/)).toBeInTheDocument()
-    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90, syncEveryHours: 6 }])
+    expect(sent).toEqual([
+      { comments: 'off', commentsMax: 500, pauseSeconds: 0, holdMinutes: 90, syncEveryMinutes: 360 },
+    ])
   })
 
   it('sets the download format and the tabs a channel added gets, checked first', async () => {
@@ -170,7 +172,7 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
-      syncEveryHours: 6,
+      syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
@@ -215,7 +217,7 @@ describe('YouTubePage', () => {
     ])
   })
 
-  it('runs the YouTube sync every few hours, or on demand only at 0, checked first', async () => {
+  it('runs the YouTube sync every few minutes or hours, or on demand only at 0, checked first', async () => {
     const user = userEvent.setup()
     const sent: unknown[] = []
     let saved: YouTubeSettings = {
@@ -223,7 +225,7 @@ describe('YouTubePage', () => {
       commentsMax: 500,
       pauseSeconds: 10,
       holdMinutes: 60,
-      syncEveryHours: 6,
+      syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: { videos: true, shorts: true, streams: true },
       changedBy: null,
@@ -246,17 +248,36 @@ describe('YouTubePage', () => {
     expect(within(card).getByText(/The YouTube sync every 6 h\./)).toBeInTheDocument()
     const every = within(sync).getByRole('spinbutton', { name: /^Run it by itself every/ })
 
+    const unit = within(sync).getByRole('combobox', { name: 'Unit' })
+    expect(every).toHaveValue(6)
+    expect(unit).toHaveValue('hours')
+
     await user.clear(every)
     await user.type(every, '169')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
-    expect(within(sync).getByRole('alert')).toHaveTextContent('A whole number of hours, from 0 to 168.')
+    expect(within(sync).getByRole('alert')).toHaveTextContent('A whole number, up to a week')
     expect(sent).toEqual([])
+
+    // In minutes (2.1.0), for whoever wants it eager.
+    await user.clear(every)
+    await user.type(every, '15')
+    await user.selectOptions(unit, 'minutes')
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    expect(await within(card).findByText(/The YouTube sync every 15 min\./)).toBeInTheDocument()
+    expect(sent.at(-1)).toMatchObject({ syncEveryMinutes: 15 })
+    expect(unit).toHaveValue('minutes')
 
     await user.clear(every)
     await user.type(every, '0')
     await user.click(within(card).getByRole('button', { name: 'Save' }))
     expect(await within(card).findByText(/The YouTube sync on demand only\./)).toBeInTheDocument()
-    expect(sent).toEqual([{ comments: 'off', commentsMax: 500, pauseSeconds: 10, holdMinutes: 60, syncEveryHours: 0 }])
+    expect(sent.at(-1)).toEqual({
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      syncEveryMinutes: 0,
+    })
   })
 
   it('refuses a number below 1 before asking, and shows what is saved after a refusal', async () => {
@@ -270,7 +291,7 @@ describe('YouTubePage', () => {
               commentsMax: 500,
               pauseSeconds: 10,
               holdMinutes: 60,
-              syncEveryHours: 6,
+              syncEveryMinutes: 360,
               downloadFormat: 'bestvideo+bestaudio',
               defaultTabs: { videos: true, shorts: true, streams: true },
               changedBy: null,

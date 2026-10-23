@@ -439,7 +439,7 @@ cd frontend && pnpm install && pnpm dev                                         
 ```
 
 Or the front alone, on a synthetic library, with no backend at all: `cd frontend && pnpm run dev:mockup`, then `/__mock`
-for its knobs (empty library, failing API, slow answers).
+for its knobs (empty library, failing API, slow answers, logged in as admin for the admin pages).
 
 <details>
 <summary>The API types, the version, CI and the images</summary>

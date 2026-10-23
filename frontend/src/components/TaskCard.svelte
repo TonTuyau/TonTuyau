@@ -139,7 +139,7 @@
         <div class="confirm" role="group" aria-label={t('task.confirmCancel')}>
           <p>{t('task.confirmCancel')}</p>
           <div>
-            <Button variant="filled" disabled={pending} onclick={() => void act(() => oncancel(running.id))}>
+            <Button variant="primary" disabled={pending} onclick={() => void act(() => oncancel(running.id))}>
               {t('task.cancelRun')}
             </Button>
             <Button onclick={() => (asking = null)}>{t('task.keepRunning')}</Button>
@@ -165,14 +165,14 @@
           {/if}
         {/if}
         <div>
-          <Button variant="filled" disabled={pending || daysInvalid} onclick={() => void act(go)}>
+          <Button variant="primary" disabled={pending || daysInvalid} onclick={() => void act(go)}>
             {waits ? t('task.addToQueue') : confirm.start}
           </Button>
           <Button onclick={() => (asking = null)}>{t('task.back')}</Button>
         </div>
       </div>
     {:else}
-      <Button variant="filled" disabled={pending || info.unavailable !== null} onclick={start}>
+      <Button variant="primary" disabled={pending || info.unavailable !== null} onclick={start}>
         {waits ? t('task.addToQueue') : t('task.runNow')}
       </Button>
       {#if waits}
