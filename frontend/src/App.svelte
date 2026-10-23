@@ -28,6 +28,7 @@
   // Narrow screens: the mini rail, and the hamburger opens the full guide as a drawer.
   // Phones (QA06 M5a-15, QA07 M5a-21): the bottom navigation bar is the only navigation: no mini rail, no ☰,
   // and the drawer can't open (it closes if the window shrinks to phone width while it's open).
+  // The watch page (2.1.0), as YouTube's: no guide docked at any width, the video has the room; ☰ opens the drawer.
   const matches = (query: string, fallback: boolean) => globalThis.matchMedia?.(query).matches ?? fallback
   let wide = $state(matches(wideQuery, true))
   let phone = $state(matches(phoneQuery, false))
@@ -71,7 +72,7 @@
     if (phone) {
       return
     }
-    if (wide) {
+    if (wide && !undocked) {
       guide.toggle()
     } else {
       drawerOpen = !drawerOpen
@@ -85,7 +86,9 @@
   }
 
   const route = $derived(router.route)
-  const full = $derived(wide && guide.expanded)
+  /** No guide docked on the left: the watch page. */
+  const undocked = $derived(route.name === 'watch')
+  const full = $derived(wide && guide.expanded && !undocked)
 </script>
 
 <svelte:window {onkeydown} />
@@ -96,8 +99,14 @@
 {:else}
   <TopBar {onmenu} menu={!phone} />
 
-  <div class="layout" class:full class:phone data-guide={phone ? 'bottom' : full ? 'full' : 'mini'}>
-    {#if !phone}
+  <div
+    class="layout"
+    class:full
+    class:phone
+    class:undocked
+    data-guide={phone ? 'bottom' : undocked ? 'drawer' : full ? 'full' : 'mini'}
+  >
+    {#if !phone && !undocked}
       <aside class="guide">
         <Sidebar variant={full ? 'full' : 'mini'} />
       </aside>
@@ -167,6 +176,11 @@
 
   .layout.full {
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+
+  /* The watch page: no rail, the drawer only. */
+  .layout.undocked {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Phones: no rail; the page keeps clear of the fixed bottom bar (pages that size to the viewport read it). */
