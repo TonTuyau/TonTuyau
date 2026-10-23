@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends string">
-  // YouTube's chip bar: one choice among a few (sorts). Each chip is a link, so the choice lives in the URL.
+  // YouTube's chip bar: one choice among a few (sorts). Each chip is a link, so the choice lives in the URL. Choosing
+  // one only changes what the page lists: it stays where it is (2.1.1: the Tasks page's history jumped to its top).
   let {
     label,
     options,
@@ -10,8 +11,11 @@
 
 <nav class="chips" aria-label={label}>
   {#each options as option (option.value)}
-    <a class="chip" href={hrefFor(option.value)} aria-current={option.value === selected ? 'true' : undefined}
-      >{option.label}</a
+    <a
+      class="chip"
+      href={hrefFor(option.value)}
+      aria-current={option.value === selected ? 'true' : undefined}
+      data-keep-scroll>{option.label}</a
     >
   {/each}
 </nav>
