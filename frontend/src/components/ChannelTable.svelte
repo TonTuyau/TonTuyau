@@ -14,7 +14,6 @@
   import { Pager } from '../lib/remote.svelte'
   import { href } from '../lib/router/routes'
   import Avatar from './Avatar.svelte'
-  import Button from './Button.svelte'
   import ErrorState from './ErrorState.svelte'
   import LoadMore from './LoadMore.svelte'
   import Skeleton from './Skeleton.svelte'
@@ -127,7 +126,6 @@
               </button>
             </th>
           {/each}
-          <th><span class="visually-hidden">{t('dashboard.goToChannel')}</span></th>
         </tr>
       </thead>
       <tbody>
@@ -148,15 +146,10 @@
             <td class="num">{@render stateCount('retryLater', channel.retryLater)}</td>
             <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
             <td class="num"><b>{number(channel.total)}</b></td>
-            <td>
-              <Button href={href.channel(channel.id)}>
-                {t('dashboard.goToChannel')} <span class="visually-hidden">{channel.name}</span>
-              </Button>
-            </td>
           </tr>
         {:else}
           <tr>
-            <td class="empty" colspan={columns.length + 1}>{t('dashboard.noChannel')}</td>
+            <td class="empty" colspan={columns.length}>{t('dashboard.noChannel')}</td>
           </tr>
         {/each}
       </tbody>
