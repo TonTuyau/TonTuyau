@@ -91,9 +91,11 @@
     background: var(--color-surface-hover);
   }
 
+  /* Two pixels of brand, both inside the card: the list scrolls sideways, so it clips anything drawn outside it (an
+     outer ring showed at the bottom and right only, cut at the top and on the first card's left). */
   a.playing {
     border-color: var(--color-brand);
-    box-shadow: 0 0 0 var(--border-width) var(--color-brand);
+    box-shadow: inset 0 0 0 var(--border-width) var(--color-brand);
   }
 
   b {
