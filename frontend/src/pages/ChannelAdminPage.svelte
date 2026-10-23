@@ -151,12 +151,9 @@
         <code>{card.id}</code>
       </div>
       <div class="links">
-        <a class="link-button" href={href.channel(card.id)}>{t('channelAdmin.openHere')}</a>
-        <a
-          class="link-button"
-          href={`https://www.youtube.com/channel/${encodeURIComponent(card.id)}`}
-          target="_blank"
-          rel="noreferrer noopener">{t('channelAdmin.openYouTube')}</a
+        <Button href={href.channel(card.id)}>{t('channelAdmin.openHere')}</Button>
+        <Button href={`https://www.youtube.com/channel/${encodeURIComponent(card.id)}`} external
+          >{t('channelAdmin.openYouTube')}</Button
         >
       </div>
     </header>
@@ -210,7 +207,7 @@
           </div>
         </dl>
         <div class="actions">
-          <Button variant="filled" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>
+          <Button variant="primary" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>
             {t('channelAdmin.refreshChannel')}
           </Button>
           <Button disabled={pending} onclick={() => void refresh('refreshChannelVideos', card.id)}>
@@ -382,17 +379,6 @@
     flex-wrap: wrap;
     gap: var(--space-2);
     margin-left: auto;
-  }
-
-  .link-button {
-    display: inline-flex;
-    align-items: center;
-    height: var(--button-height);
-    padding: 0 var(--space-4);
-    border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-pill);
-    color: var(--color-text);
-    font-weight: var(--font-weight-medium);
   }
 
   .busy {

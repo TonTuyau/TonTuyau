@@ -3,6 +3,7 @@
   // hours). Every refusal shows the same
   // message: nothing tells whether the name exists. Once logged in (or if already), back to `next` when it's a page
   // of this site, else home.
+  import Button from '../components/Button.svelte'
   import Icon from '../components/Icon.svelte'
   import Logo from '../components/Logo.svelte'
   import { auth, type LoginResult } from '../lib/auth.svelte'
@@ -116,7 +117,7 @@
 
     <div class="actions">
       <a class="back" href={href.home()}>{t('login.back')}</a>
-      <button type="submit" class="submit" disabled={busy}>{t('login.submit')}</button>
+      <Button type="submit" variant="primary" disabled={busy}>{t('login.submit')}</Button>
     </div>
   </form>
 </div>
@@ -240,21 +241,6 @@
   .back {
     color: var(--color-link);
     font-weight: var(--font-weight-medium);
-  }
-
-  .submit {
-    height: var(--button-height);
-    padding: 0 var(--space-6);
-    border: none;
-    border-radius: var(--radius-pill);
-    background: var(--color-brand);
-    color: var(--color-on-brand);
-    font-weight: var(--font-weight-medium);
-  }
-
-  .submit:disabled {
-    opacity: 0.6;
-    cursor: default;
   }
 
   @media (max-width: 600px) {

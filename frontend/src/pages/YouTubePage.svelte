@@ -289,7 +289,7 @@
               <div class="confirm" role="group" aria-label={t('youTube.cookie.remove')}>
                 <p>{t('youTube.cookie.confirmRemove')}</p>
                 <div>
-                  <Button variant="filled" disabled={pending} onclick={() => void removeCookie()}>
+                  <Button variant="primary" disabled={pending} onclick={() => void removeCookie()}>
                     {t('youTube.cookie.remove')}
                   </Button>
                   <Button onclick={() => (confirmingRemove = false)}>{t('youTube.cookie.keep')}</Button>
@@ -433,7 +433,7 @@
           {/if}
         </fieldset>
         <div class="actions">
-          <Button type="submit" variant="filled" disabled={pending}>{t('ytdlp.use')}</Button>
+          <Button type="submit" variant="primary" disabled={pending}>{t('ytdlp.use')}</Button>
         </div>
       </form>
     {/if}
@@ -563,7 +563,7 @@
           </label>
         </fieldset>
         <div class="actions">
-          <Button type="submit" variant="filled" disabled={pending}>{t('youTube.comments.save')}</Button>
+          <Button type="submit" variant="primary" disabled={pending}>{t('youTube.comments.save')}</Button>
         </div>
       </form>
       <p class="hint">

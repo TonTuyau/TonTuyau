@@ -233,7 +233,8 @@
           {mode === 'failed' ? t('watch.playbackFailed') : t('watch.unsupported', { codec: codecs })}
         </p>
         <p class="hint">{t('watch.unsupportedHint')}</p>
-        <Button href={video.downloadUrl} download variant="filled"><Icon name="download" />{t('watch.download')}</Button
+        <Button href={video.downloadUrl} download variant="primary"
+          ><Icon name="download" />{t('watch.download')}</Button
         >
       {/if}
     </div>

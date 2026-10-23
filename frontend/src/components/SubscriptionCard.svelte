@@ -97,7 +97,7 @@
   {/if}
   <div class="actions">
     <Button
-      variant="filled"
+      variant="primary"
       disabled={pending || none || !changed}
       onclick={() => void act(() => api.subscribe(channelId, { ...tabs }))}
     >
@@ -116,7 +116,7 @@
     <div class="confirm" role="group" aria-label={t('subscription.everything')}>
       <p>{t('subscription.everythingConfirm')}</p>
       <div class="actions">
-        <Button variant="filled" disabled={pending} onclick={() => void downloadEverything()}>
+        <Button variant="primary" disabled={pending} onclick={() => void downloadEverything()}>
           {t('subscription.everything')}
         </Button>
         <Button onclick={() => (askingEverything = false)}>{t('task.back')}</Button>

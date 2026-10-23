@@ -179,7 +179,7 @@
           <div class="confirm" role="group" aria-label={t('task.confirmCancel')}>
             <p>{t('task.confirmCancel')}</p>
             <div>
-              <Button variant="filled" onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
+              <Button variant="primary" onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
               <Button onclick={() => (asking = false)}>{t('task.keepRunning')}</Button>
             </div>
           </div>
@@ -187,7 +187,7 @@
           <div class="confirm" role="group" aria-label={t('hold.confirmTitle')}>
             <p><b>{t('hold.confirmTitle')}</b> {t('hold.confirm')}</p>
             <div>
-              <Button variant="filled" onclick={() => void hold(run.id)}>{t('hold.put')}</Button>
+              <Button variant="primary" onclick={() => void hold(run.id)}>{t('hold.put')}</Button>
               <Button onclick={() => (askingHold = false)}>{t('task.keepRunning')}</Button>
             </div>
           </div>
