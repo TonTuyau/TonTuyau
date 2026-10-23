@@ -113,6 +113,29 @@ describe('App shell', () => {
       await user.keyboard('{Escape}')
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
+
+    it('is not docked on the watch page, even expanded elsewhere: the hamburger opens it over the page (2.1.0)', async () => {
+      localStorage.setItem(GUIDE_STORAGE_KEY, 'expanded')
+      guide.reload()
+      fakeApi({})
+      goTo('/watch?v=vid00000001')
+      const user = userEvent.setup()
+      render(App)
+
+      expect(layout()).toHaveAttribute('data-guide', 'drawer')
+      expect(screen.queryByRole('navigation', { name: 'Main navigation' })).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Menu' }))
+      const drawer = screen.getByRole('dialog', { name: 'Main navigation' })
+      expect(within(drawer).getByRole('link', { name: 'Shorts' })).toBeInTheDocument()
+      expect(localStorage.getItem(GUIDE_STORAGE_KEY)).toBe('expanded')
+      await user.keyboard('{Escape}')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      // Back on another page, the guide is docked as it was.
+      goTo('/channels')
+      await vi.waitFor(() => expect(layout()).toHaveAttribute('data-guide', 'full'))
+    })
   })
 
   describe('phone bottom bar (QA06, M5a-15)', () => {
