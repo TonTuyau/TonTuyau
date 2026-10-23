@@ -157,7 +157,6 @@
 
 <form class="search" role="search" onsubmit={submit} {onfocusout}>
   <div class="field">
-    <Icon name="search" />
     <input
       bind:this={input}
       bind:value
@@ -232,14 +231,6 @@
 
   .field:focus-within {
     border-color: var(--color-focus);
-  }
-
-  .field > :global(.icon) {
-    visibility: hidden;
-  }
-
-  .field:focus-within > :global(.icon) {
-    visibility: visible;
   }
 
   input {
