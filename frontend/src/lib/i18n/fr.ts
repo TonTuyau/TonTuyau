@@ -640,6 +640,18 @@ export const fr: Dictionary = {
   'dashboard.search': 'Rechercher une chaîne',
   'dashboard.channel': 'Chaîne',
   'dashboard.total': 'Total',
+  'dashboard.size': 'Taille',
+  'storage.title': 'Stockage',
+  'storage.hint':
+    "Le disque du dossier des vidéos, et ce qui le remplit : les vidéos de TonTuyau par type, les autres fichiers du disque (pas à TonTuyau), l'espace libre. Les données de TonTuyau lui-même, ses images, sa base et son index de recherche, sont sur ses propres volumes.",
+  'storage.free': '{free} libres',
+  'storage.of': 'sur {total}, sur le disque du dossier des vidéos',
+  'storage.low': "Peu d'espace libre sur le disque : les prochains téléchargements pourraient ne pas tenir.",
+  'storage.unknownDisk': 'de vidéos (le disque du dossier des vidéos ne dit pas son espace libre)',
+  'storage.other': 'Autres fichiers du disque',
+  'storage.freeLabel': 'Libre',
+  'storage.data':
+    'Les données de TonTuyau, sur ses volumes : images {art} · base {database} · index de recherche {index}',
   'dashboard.noChannel': 'Aucune chaîne',
 
   'help.label': 'Aide : {zone}',
@@ -662,6 +674,7 @@ export const fr: Dictionary = {
   'count.videos': { one: '{count} vidéo', other: '{count} vidéos' },
   'count.shorts': { one: '{count} short', other: '{count} shorts' },
   'count.streams': { one: '{count} live', other: '{count} lives' },
+  'storage.count': { one: '{count} fichier', other: '{count} fichiers' },
   'count.channels': { one: '{count} chaîne', other: '{count} chaînes' },
   'count.results': { one: '{count} résultat', other: '{count} résultats' },
   'count.likes': { one: '{count} « J’aime »', other: '{count} « J’aime »' },

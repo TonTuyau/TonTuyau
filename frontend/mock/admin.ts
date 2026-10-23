@@ -28,6 +28,8 @@ import type { ChannelFixture, MockDb, VideoFixture } from './db.ts'
 
 export interface AdminMockState {
   loggedIn: boolean
+  /** 2.2.0 mockup: the videos folder's disk, as /__mock sets it: roomy, almost full, or not saying. */
+  disk: 'normal' | 'low' | 'unknown'
   runs: Run[]
   keys: ApiKey[]
   settings: YouTubeSettings
@@ -148,6 +150,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
   })
   return {
     loggedIn: false,
+    disk: 'normal',
     runs,
     keys: [
       {
@@ -233,7 +236,24 @@ function totals(db: MockDb, channel: ChannelFixture): ChannelTotals {
     retryLater: states('retryLater'),
     notChecked: states('notChecked'),
     total: own.length,
+    // 2.2.0 mockup: the size of its files (not in the API yet).
+    ...{ size: own.reduce((sum, video) => sum + video.fileSize, 0) },
   }
+}
+
+const TB = 1e12
+
+/**
+ * 2.2.0 mockup (docs/PLAN_2.2.0.md): the storage, from the fixtures' file sizes; the disk 1 TB, 412 GB free (or almost
+ * full, or not saying, as /__mock sets it); TonTuyau's own data made up.
+ */
+function storage(db: MockDb, state: AdminMockState) {
+  const types = (['video', 'short', 'stream'] as const).map((type) => {
+    const own = db.videos.filter((video) => video.type === type)
+    return { type, bytes: own.reduce((sum, video) => sum + video.fileSize, 0), count: own.length }
+  })
+  const disk = state.disk === 'unknown' ? null : { total: TB, free: state.disk === 'low' ? 0.04 * TB : 0.412 * TB }
+  return { disk, types, data: { art: 6.1e9, database: 1.24e9, index: 3.4e9 } }
 }
 
 function dashboard(db: MockDb, state: AdminMockState): Dashboard {
@@ -242,6 +262,7 @@ function dashboard(db: MockDb, state: AdminMockState): Dashboard {
   const all = seconds(db.videos) || 1
   const latest = state.runs.filter((run) => run.counts.created > 0 && run.finishedAt).at(-1)
   return {
+    ...{ storage: storage(db, state) },
     lastSync: latest?.finishedAt ?? null,
     totals: {
       channels: db.channels.length,
@@ -388,7 +409,19 @@ export function handleAdmin(
     const rows = db.channels
       .map((candidate) => totals(db, candidate))
       .filter((row) => row.name.toLowerCase().includes(q) && (params.get('gone') !== 'true' || row.gone > 0))
-      .sort((a, b) => b.total - a.total)
+      .sort((a, b) => {
+        // Any column, as the backend sorts them (2.2.0 mockup: the size too); names A to Z, numbers biggest first.
+        const key = params.get('sort') ?? 'total'
+        const value = (row: ChannelTotals): number | string =>
+          key === 'name'
+            ? row.name.toLowerCase()
+            : key in row.counts
+              ? row.counts[key as keyof ChannelTotals['counts']]
+              : ((row as unknown as Record<string, number>)[key] ?? 0)
+        const [x, y] = [value(a), value(b)]
+        const order = x < y ? -1 : x > y ? 1 : 0
+        return params.get('order') === 'asc' ? order : -order
+      })
     return { status: 200, body: page(rows) }
   }
   if (resource === 'dashboard' && id === 'imports') {
