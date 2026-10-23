@@ -90,7 +90,7 @@
       <p class="invalid" role="alert">{refused}</p>
     {/if}
     <div class="actions">
-      <Button type="submit" variant="filled" disabled={pending || noTab}>{t('youTube.comments.save')}</Button>
+      <Button type="submit" variant="primary" disabled={pending || noTab}>{t('youTube.comments.save')}</Button>
     </div>
   </form>
   <p class="hint">

@@ -39,6 +39,14 @@
   --color-skeleton: light-dark(#e5e5e5, #272727);
   --color-button: light-dark(#0f0f0f, #f1f1f1);
   --color-on-button: light-dark(#ffffff, #0f0f0f);
+  /* The two kinds of action button (2.1.0, components/Button.svelte). The primary: a deeper teal than the brand's, so
+     its white text reads (4.8:1, the brand's is 4.1:1), and it stands out on a dark card (3.4:1). The secondary: in
+     the dark theme much lighter than the cards (#212121), on which the surface grey (#272727) all but vanished. */
+  --color-button-primary: #0d7f81;
+  --color-button-primary-hover: light-dark(#0a6d6f, #119496);
+  --color-on-button-primary: #ffffff;
+  --color-button-secondary: light-dark(#f2f2f2, #454545);
+  --color-button-secondary-hover: light-dark(#e5e5e5, #555555);
   --color-warning-bg: light-dark(#fff3d6, #3d2e00);
   --color-on-warning: light-dark(#7a4f00, #ffd36a);
   --color-error: light-dark(#cc0000, #ff6b6b);

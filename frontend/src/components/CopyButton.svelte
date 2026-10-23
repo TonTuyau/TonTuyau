@@ -23,12 +23,12 @@
     padding: 0 var(--space-3);
     border: none;
     border-radius: var(--radius-md);
-    background: var(--color-surface);
+    background: var(--color-button-secondary);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
   }
 
   .copy:hover {
-    background: var(--color-surface-hover);
+    background: var(--color-button-secondary-hover);
   }
 </style>

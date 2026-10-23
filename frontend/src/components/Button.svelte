@@ -1,21 +1,26 @@
 <script lang="ts">
-  // Pill button (YouTube style). `href` makes it a link (e.g. Download), `variant` picks the colours.
+  // Pill button (YouTube style). `href` makes it a link (e.g. Download; `external` opens another site in a new tab).
+  // Two kinds only (2.1.0), the same on every page: `primary`, the zone's one main action, in TonTuyau's teal; and
+  // `secondary` (the default), every other action, grey, made lighter in the dark theme so it stands out on a card.
   import type { Snippet } from 'svelte'
 
   let {
     href,
     download,
+    external = false,
     type = 'button',
-    variant = 'tonal',
+    variant = 'secondary',
     onclick,
     disabled = false,
     children,
   }: {
     href?: string
     download?: boolean
+    /** A link to another site: a new tab, no referrer. */
+    external?: boolean
     /** `submit` in a form (1.5: creating an API key). */
     type?: 'button' | 'submit'
-    variant?: 'tonal' | 'filled'
+    variant?: 'primary' | 'secondary'
     onclick?: () => void
     disabled?: boolean
     children: Snippet
@@ -23,7 +28,13 @@
 </script>
 
 {#if href}
-  <a class="button {variant}" {href} download={download ? '' : undefined}>{@render children()}</a>
+  <a
+    class="button {variant}"
+    {href}
+    download={download ? '' : undefined}
+    target={external ? '_blank' : undefined}
+    rel={external ? 'noreferrer noopener' : undefined}>{@render children()}</a
+  >
 {:else}
   <button {type} class="button {variant}" {onclick} {disabled}>{@render children()}</button>
 {/if}
@@ -42,18 +53,22 @@
     white-space: nowrap;
   }
 
-  .tonal {
-    background: var(--color-surface);
+  .secondary {
+    background: var(--color-button-secondary);
     color: var(--color-text);
   }
 
-  .tonal:hover {
-    background: var(--color-surface-hover);
+  .secondary:hover:not(:disabled) {
+    background: var(--color-button-secondary-hover);
   }
 
-  .filled {
-    background: var(--color-button);
-    color: var(--color-on-button);
+  .primary {
+    background: var(--color-button-primary);
+    color: var(--color-on-button-primary);
+  }
+
+  .primary:hover:not(:disabled) {
+    background: var(--color-button-primary-hover);
   }
 
   .button:disabled {
