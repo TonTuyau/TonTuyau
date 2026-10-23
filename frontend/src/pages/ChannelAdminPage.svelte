@@ -386,8 +386,12 @@
     font-weight: var(--font-weight-medium);
   }
 
+  /* "Follow its log" (2.1.1): a link in the sentence, so it looks like one, not like the sentence's teal. */
   .busy a {
     margin-left: var(--space-2);
+    color: var(--color-link);
+    text-decoration: underline;
+    text-underline-offset: var(--underline-offset);
   }
 
   .queued {
