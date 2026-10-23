@@ -82,6 +82,8 @@
     ratio = shape
   })
   const fitted = $derived(variant === 'watch' && mode === 'play')
+  // The large player (2.1.1): the whole width, as tall as the page leaves (the video letterboxed on black).
+  const theater = $derived(fitted && size === 'large')
 
   let element: HTMLVideoElement | undefined = $state()
   let box: HTMLElement | undefined = $state()
@@ -188,6 +190,7 @@
 <div
   bind:this={box}
   class="player {variant === 'shorts' ? 'shorts' : mode === 'play' ? 'fit' : 'landscape'}"
+  class:theater
   style:--video-ratio={fitted ? ratioCss(shape).ratio : undefined}
   style:--video-ratio-value={fitted ? ratioCss(shape).value : undefined}
   data-mode={mode}
@@ -270,6 +273,19 @@
 
   .shorts {
     height: 100%;
+  }
+
+  /* The theater view (2.1.1): the whole width, edge to edge, no round corners; as tall as the window leaves under the
+     top bar with the title in sight, but never taller than the video is at that width (a narrow window doesn't get a
+     tall black box). The video sits in the middle, black around it. Under 1312 px the page is one column and both
+     sizes look the same: the usual fit. */
+  @media (min-width: 1313px) {
+    .theater {
+      width: 100%;
+      height: min(var(--player-theater-height), 100vw / var(--video-ratio-value));
+      aspect-ratio: auto;
+      border-radius: 0;
+    }
   }
 
   /* Full screen (the controls' button, F): the whole screen, the video in the middle of it. */

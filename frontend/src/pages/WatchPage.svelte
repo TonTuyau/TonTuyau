@@ -242,7 +242,9 @@
 
 <style>
   /* Small player (YouTube's default view): the player and the details in the main column, the channel's other
-     videos beside both. Large player (theater view): the player across the whole width, the rest below.
+     videos beside both. Large player (theater view, 2.1.1): the player edge to edge on black, from the top bar
+     down (no padding, no round corners), the rest below in the usual centred column: the outer columns are the
+     margins, the middle ones the details (as wide as beside the small player) and the side column.
      The last row takes any extra height of the side column, so the player and the title stay together. */
   .watch {
     display: grid;
@@ -257,11 +259,24 @@
     padding: var(--space-6);
   }
 
-  .watch.large {
-    grid-template-areas:
-      'stage stage'
-      'primary secondary';
-    --player-max-height: var(--player-max-height-large);
+  @media (min-width: 1313px) {
+    .watch.large {
+      grid-template-areas:
+        'stage stage stage stage'
+        '. primary secondary .';
+      grid-template-columns:
+        minmax(var(--space-6), 1fr)
+        minmax(0, calc(var(--watch-max-width) - 3 * var(--space-6) - var(--watch-side-width)))
+        var(--watch-side-width)
+        minmax(var(--space-6), 1fr);
+      column-gap: 0;
+      max-width: none;
+      padding: 0 0 var(--space-6);
+    }
+
+    .watch.large .secondary {
+      margin-left: var(--space-6);
+    }
   }
 
   .stage {

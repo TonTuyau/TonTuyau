@@ -169,7 +169,8 @@
   /* Player box height caps: the small (default) view leaves room for the title under it; the large (theater)
      view takes the viewport. A box is never taller than its cap, so a vertical video gets narrower instead. */
   --player-max-height-small: calc(100vh - var(--topbar-height) - 10rem);
-  --player-max-height-large: calc(100vh - var(--topbar-height) - 3rem);
+  /* The theater view's height (2.1.1): the window under the top bar, less a title line and its spacing. */
+  --player-theater-height: calc(100dvh - var(--topbar-height) - 4rem);
   --player-min-height: 15rem;
   /* TonTuyau's own player controls (2.0, C1): over the video, so in white and black whatever the theme. */
   --player-shade: linear-gradient(transparent, rgb(0 0 0 / 70%));
