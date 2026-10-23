@@ -47,7 +47,7 @@ describe('ShortsPage (/shorts/<id>)', () => {
     expect(params?.has('channel')).toBe(false)
     expect(backend.requests('/api/channels/UCtest/videos')).toEqual([])
     expect(screen.getByLabelText('1,200 likes')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open in the normal player' })).toHaveAttribute('href', '/watch?v=s1')
+    expect(screen.getByRole('link', { name: 'Open in the landscape player' })).toHaveAttribute('href', '/watch?v=s1')
     expect(screen.getByRole('button', { name: 'Previous short' })).toBeDisabled()
   })
 
