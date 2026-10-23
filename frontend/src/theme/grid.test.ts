@@ -63,6 +63,7 @@ describe('listing grids on very wide screens', () => {
     for (const source of Object.values(pages)) {
       expect(source).toContain('max-width: var(--page-max-width);')
     }
-    expect(token('--page-max-width')).toBe('1284px')
+    // 1284 px at the normal scale (2.1.0: in rem, scaled on big screens).
+    expect(token('--page-max-width')).toBe('80.25rem')
   })
 })

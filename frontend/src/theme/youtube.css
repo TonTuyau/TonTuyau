@@ -90,23 +90,23 @@
   --line-height-normal: 1.45;
 
   /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
   --radius-pill: 999px;
   --radius-round: 50%;
 
   /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
 
   /* Borders and focus */
   --border-width: 1px;
@@ -114,17 +114,17 @@
   --focus-offset: 2px;
 
   /* Layout sizes */
-  --topbar-height: 56px;
-  --sidebar-width: 240px;
-  --sidebar-mini-width: 72px;
-  --search-max-width: 640px;
-  --search-height: 40px;
-  --button-height: 36px;
-  --chip-height: 32px;
-  --icon-size: 24px;
-  --icon-button-size: 40px;
-  --card-min-width: 300px;
-  --short-card-width: 200px;
+  --topbar-height: 3.5rem;
+  --sidebar-width: 15rem;
+  --sidebar-mini-width: 4.5rem;
+  --search-max-width: 40rem;
+  --search-height: 2.5rem;
+  --button-height: 2.25rem;
+  --chip-height: 2rem;
+  --icon-size: 1.5rem;
+  --icon-button-size: 2.5rem;
+  --card-min-width: 18.75rem;
+  --short-card-width: 12.5rem;
   /* The listing grids (home sections, feeds, a channel's videos): as many columns of at least the card's width as
      fit, up to a cap; past the cap, the cards grow (like YouTube's home on very wide screens). Below the cap the
      columns are exactly the plain auto-fill ones; phones keep one column (two for shorts). srcset.ts follows these
@@ -156,21 +156,21 @@
       1fr
     )
   );
-  --compact-thumb-width: 168px;
-  --row-thumb-width: 500px;
-  --avatar-xs: 24px;
-  --avatar-sm: 36px;
-  --avatar-md: 88px;
-  --avatar-lg: 160px;
+  --compact-thumb-width: 10.5rem;
+  --row-thumb-width: 31.25rem;
+  --avatar-xs: 1.5rem;
+  --avatar-sm: 2.25rem;
+  --avatar-md: 5.5rem;
+  --avatar-lg: 10rem;
   --banner-aspect: 6.2;
-  --page-max-width: 1284px;
-  --watch-max-width: 1754px;
-  --watch-side-width: 402px;
+  --page-max-width: 80.25rem;
+  --watch-max-width: 109.625rem;
+  --watch-side-width: 25.125rem;
   /* Player box height caps: the small (default) view leaves room for the title under it; the large (theater)
      view takes the viewport. A box is never taller than its cap, so a vertical video gets narrower instead. */
-  --player-max-height-small: calc(100vh - var(--topbar-height) - 160px);
-  --player-max-height-large: calc(100vh - var(--topbar-height) - 48px);
-  --player-min-height: 240px;
+  --player-max-height-small: calc(100vh - var(--topbar-height) - 10rem);
+  --player-max-height-large: calc(100vh - var(--topbar-height) - 3rem);
+  --player-min-height: 15rem;
   /* TonTuyau's own player controls (2.0, C1): over the video, so in white and black whatever the theme. */
   --player-shade: linear-gradient(transparent, rgb(0 0 0 / 70%));
   /* The shorts' buttons, at the top of the picture (2.0.1). */
@@ -183,55 +183,55 @@
   --player-chip-hover: rgb(255 255 255 / 16%);
   --player-panel: rgb(28 28 28 / 92%);
   --player-scrim: rgb(0 0 0 / 55%);
-  --player-icon-size: 24px;
-  --player-row-height: 44px;
-  --player-bar-height: 16px;
-  --player-track-height: 3px;
-  --player-track-height-hover: 5px;
-  --player-track-height-under: 8px;
-  --player-chapter-gap: 2px;
-  --player-thumb-size: 13px;
-  --player-tip-width: 240px;
-  --player-tip-edge: 60px;
-  --player-volume-width: 64px;
-  --player-volume-height: 4px;
-  --player-menu-width: 300px;
-  --player-chapters-width: 320px;
-  --player-big-size: 72px;
-  --player-big-icon-size: 40px;
-  --player-flash-size: 64px;
-  --player-flash-icon-size: 36px;
-  --player-spinner-size: 48px;
-  --player-spinner-width: 4px;
-  --player-badge-size: 10px;
-  --player-badge-height: 14px;
-  --player-focus-offset: 2px;
+  --player-icon-size: 1.5rem;
+  --player-row-height: 2.75rem;
+  --player-bar-height: 1rem;
+  --player-track-height: 0.1875rem;
+  --player-track-height-hover: 0.3125rem;
+  --player-track-height-under: 0.5rem;
+  --player-chapter-gap: 0.125rem;
+  --player-thumb-size: 0.8125rem;
+  --player-tip-width: 15rem;
+  --player-tip-edge: 3.75rem;
+  --player-volume-width: 4rem;
+  --player-volume-height: 0.25rem;
+  --player-menu-width: 18.75rem;
+  --player-chapters-width: 20rem;
+  --player-big-size: 4.5rem;
+  --player-big-icon-size: 2.5rem;
+  --player-flash-size: 4rem;
+  --player-flash-icon-size: 2.25rem;
+  --player-spinner-size: 3rem;
+  --player-spinner-width: 0.25rem;
+  --player-badge-size: 0.625rem;
+  --player-badge-height: 0.875rem;
+  --player-focus-offset: 0.125rem;
   /* The menus' bottom: above the bar and the row of buttons. */
   --player-panel-bottom: calc(var(--player-row-height) + var(--player-bar-height) + var(--space-3));
-  --menu-width: 280px;
-  --login-width: 448px;
+  --menu-width: 17.5rem;
+  --login-width: 28rem;
   /* Wide enough for a Full HD screen at 100 % with the guide open (alpha.3: was 1180px). */
-  --admin-page-max-width: 1600px;
-  --admin-search-max-width: 360px;
+  --admin-page-max-width: 100rem;
+  --admin-search-max-width: 22.5rem;
   /* A zone's help (alpha.4): its round "?" and the bubble it opens. */
-  --help-size: 22px;
-  --help-width: 360px;
-  --chart-tip-width: 200px;
-  --badge-height: 20px;
+  --help-size: 1.375rem;
+  --help-width: 22.5rem;
+  --chart-tip-width: 12.5rem;
+  --badge-height: 1.25rem;
   /* The labels' column of a task card (1.4): When, Last run. */
-  --task-label-width: 72px;
+  --task-label-width: 4.5rem;
   /* A run's log (1.4): its box, and its time and level columns. */
-  --log-max-height: 440px;
+  --log-max-height: 27.5rem;
   /* A run's notes ("To know", alpha.3): a long run gathers many, they scroll in their own box past this. */
-  --notes-max-height: 320px;
+  --notes-max-height: 20rem;
   /* A run's facts and counts (1.4): their columns' narrowest. */
-  --meta-min-width: 140px;
+  --meta-min-width: 8.75rem;
   --log-time-width: 5.5em;
   --log-level-width: 2.6em;
-  --shorts-action-size: 48px;
-  --bottom-nav-height: 48px;
+  --shorts-action-size: 3rem;
+  --bottom-nav-height: 3rem;
   /* Height of what covers the bottom of the viewport (the phone bottom bar); the shell sets it. */
-  --bottom-inset: 0px;
+  --bottom-inset: 0rem;
 
   /* Elevation and motion */
   --shadow-menu: 0 4px 32px light-dark(rgb(0 0 0 / 10%), rgb(0 0 0 / 60%));
@@ -239,6 +239,27 @@
   --z-topbar: 20;
   --z-menu: 30;
   --z-drawer: 40;
+}
+
+/* Big screens (2.1.0): every size above is in rem, so the whole interface scales with the root's font size: a
+   quarter more from QHD (2560 × 1440, the 1440p ultrawides), half more on 4K, twice on 5K and up. Width and height both,
+   so a wide but short screen isn't blown up. lib/srcset.ts gives the images the same steps (srcset.test.ts checks). */
+@media (min-width: 2400px) and (min-height: 1250px) {
+  :root {
+    font-size: 125%;
+  }
+}
+
+@media (min-width: 3200px) and (min-height: 1800px) {
+  :root {
+    font-size: 150%;
+  }
+}
+
+@media (min-width: 4800px) and (min-height: 2600px) {
+  :root {
+    font-size: 200%;
+  }
 }
 
 :root[data-theme='light'] {
