@@ -14,8 +14,9 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
     /// <param name="commentsMax">For <c>top</c>: how many (1 or more); absent: the one kept.</param>
     /// <param name="pauseSeconds">Between two videos of a refresh (0 or more); absent: the one kept.</param>
     /// <param name="holdMinutes">How long a refused refresh waits (1 or more); absent: the one kept.</param>
-    /// <param name="syncEveryHours">
-    /// How often the incremental YouTube sync runs by itself (2.0, 0 to 168; 0: by hand only); absent: the one kept.
+    /// <param name="syncEveryMinutes">
+    /// How often the incremental YouTube sync runs by itself, in minutes (2.1.0; 1 to a week, 0: by hand only); absent:
+    /// the one kept.
     /// </param>
     /// <param name="downloadFormat">
     /// What a download asks yt-dlp for (2.0, B6), in its syntax: one line, not empty, 200 characters at most (checked no
@@ -29,7 +30,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         int? commentsMax,
         int? pauseSeconds,
         int? holdMinutes,
-        int? syncEveryHours,
+        int? syncEveryMinutes,
         string? downloadFormat,
         ChannelTabs? defaultTabs,
         string by,
@@ -57,9 +58,11 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
             errors.Add("holdMinutes", "must be 1 or more.");
         }
 
-        if (syncEveryHours is < 0 or > YouTubeSettings.MaxSyncEveryHours)
+        if (syncEveryMinutes is < 0 or > YouTubeSettings.MaxSyncEveryMinutes)
         {
-            errors.Add("syncEveryHours", $"must be 0 (by hand only) to {YouTubeSettings.MaxSyncEveryHours}.");
+            errors.Add(
+                "syncEveryMinutes",
+                $"must be 0 (by hand only) to {YouTubeSettings.MaxSyncEveryMinutes} (a week).");
         }
 
         string? format = downloadFormat?.Trim();
@@ -87,7 +90,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
             CommentsMax = commentsMax ?? current.CommentsMax,
             PauseSeconds = pauseSeconds ?? current.PauseSeconds,
             HoldMinutes = holdMinutes ?? current.HoldMinutes,
-            SyncEveryHours = syncEveryHours ?? current.SyncEveryHours,
+            SyncEveryMinutes = syncEveryMinutes ?? current.SyncEveryMinutes,
             DownloadFormat = format ?? current.DownloadFormat,
             DefaultTabs = defaultTabs ?? current.DefaultTabs,
             ChangedBy = by,

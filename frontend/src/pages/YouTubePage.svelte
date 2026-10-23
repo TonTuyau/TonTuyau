@@ -27,7 +27,8 @@
 
   const FOLLOW_EVERY = 3_000
   // A week: the backend refuses more (a longer wait is better done by hand).
-  const MAX_SYNC_EVERY_HOURS = 168
+  /** A week, in minutes (2.1.0: the interval is in minutes, shown in minutes or hours). */
+  const MAX_SYNC_EVERY_MINUTES = 7 * 24 * 60
 
   const overview = new Remote<YouTubeOverview>()
   const ytdlp = new Remote<YtdlpState>()
@@ -85,7 +86,9 @@
   let commentsInvalid = $state<string | null>(null)
   let pauseSeconds = $state<number | null>(10)
   let holdMinutes = $state<number | null>(60)
-  let syncEveryHours = $state<number | null>(6)
+  // The interval as shown: a number, in minutes or hours (a whole number of hours shows in hours, as the default 6).
+  let syncEvery = $state<number | null>(6)
+  let syncUnit = $state<'minutes' | 'hours'>('hours')
   let pauseInvalid = $state(false)
   let holdInvalid = $state(false)
   let syncInvalid = $state(false)
@@ -96,7 +99,23 @@
     commentsMax = saved.commentsMax
     pauseSeconds = saved.pauseSeconds
     holdMinutes = saved.holdMinutes
-    syncEveryHours = saved.syncEveryHours
+    const inHours = saved.syncEveryMinutes > 0 && saved.syncEveryMinutes % 60 === 0
+    syncUnit = inHours ? 'hours' : 'minutes'
+    syncEvery = inHours ? saved.syncEveryMinutes / 60 : saved.syncEveryMinutes
+  }
+
+  /** The interval in minutes, as typed; null when it isn't a whole number. */
+  const syncEveryMinutes = $derived(
+    syncEvery === null || !Number.isInteger(syncEvery) ? null : syncEvery * (syncUnit === 'hours' ? 60 : 1),
+  )
+
+  /** "15 min", "6 h", "1 h 30 min". */
+  function every(minutes: number): string {
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    const h = hours > 0 ? `${hours} ${t('youTube.sync.hours')}` : ''
+    const min = rest > 0 ? `${rest} ${t('youTube.sync.minutes')}` : ''
+    return [h, min].filter(Boolean).join(' ')
   }
 
   let settingsShown = false
@@ -113,7 +132,7 @@
     commentsInvalid = comments === 'top' && !wholeFrom(max, 1) ? t('youTube.comments.max.invalid') : null
     pauseInvalid = !wholeFrom(pauseSeconds, 0)
     holdInvalid = !wholeFrom(holdMinutes, 1)
-    syncInvalid = !wholeFrom(syncEveryHours, 0) || (syncEveryHours ?? 0) > MAX_SYNC_EVERY_HOURS
+    syncInvalid = !wholeFrom(syncEveryMinutes, 0) || (syncEveryMinutes ?? 0) > MAX_SYNC_EVERY_MINUTES
     if (
       commentsInvalid !== null ||
       pauseInvalid ||
@@ -121,7 +140,7 @@
       syncInvalid ||
       pauseSeconds === null ||
       holdMinutes === null ||
-      syncEveryHours === null
+      syncEveryMinutes === null
     ) {
       return
     }
@@ -134,7 +153,7 @@
         commentsMax ?? settings.data?.commentsMax ?? 500,
         pauseSeconds,
         holdMinutes,
-        syncEveryHours,
+        syncEveryMinutes,
       )
     } catch (error) {
       refused = t('youTube.refused', { reason: reasonOf(error) })
@@ -549,13 +568,16 @@
               <input
                 type="number"
                 min="0"
-                max={MAX_SYNC_EVERY_HOURS}
+                max={syncUnit === 'hours' ? MAX_SYNC_EVERY_MINUTES / 60 : MAX_SYNC_EVERY_MINUTES}
                 step="1"
                 inputmode="numeric"
                 aria-invalid={syncInvalid}
-                bind:value={syncEveryHours}
+                bind:value={syncEvery}
               />
-              <small>{t('youTube.sync.hours')}</small>
+              <select bind:value={syncUnit} aria-label={t('youTube.sync.unit')}>
+                <option value="minutes">{t('youTube.sync.unit.minutes')}</option>
+                <option value="hours">{t('youTube.sync.unit.hours')}</option>
+              </select>
             </span>
             {#if syncInvalid}
               <small class="invalid" role="alert">{t('youTube.sync.every.invalid')}</small>
@@ -569,8 +591,8 @@
       <p class="hint">
         {savedComments(current)}
         {t('youTube.easy.saved', { pause: current.pauseSeconds, hold: current.holdMinutes })}
-        {current.syncEveryHours > 0
-          ? t('youTube.sync.saved', { hours: current.syncEveryHours })
+        {current.syncEveryMinutes > 0
+          ? t('youTube.sync.saved', { every: every(current.syncEveryMinutes) })
           : t('youTube.sync.savedByHand')}
         {#if current.changedBy && current.changedAt}
           · {t('youTube.comments.changedBy', {
@@ -683,6 +705,16 @@
   .max input,
   .number input {
     width: 8rem;
+    height: var(--button-height);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    font: inherit;
+  }
+
+  .number select {
     height: var(--button-height);
     padding: 0 var(--space-3);
     border: var(--border-width) solid var(--color-border);

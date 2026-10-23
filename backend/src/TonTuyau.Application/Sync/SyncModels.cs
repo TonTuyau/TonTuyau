@@ -37,7 +37,7 @@ public enum SyncMode
     /// <summary>
     /// The incremental YouTube sync (2.0, B5): each subscribed channel's ticked tabs, newest first, down to the first
     /// video the library has; what's new is downloaded. A channel never synced is listed whole. Every few hours by
-    /// itself (<see cref="YouTube.YouTubeSettings.SyncEveryHours"/>), or by hand.
+    /// itself (<see cref="YouTube.YouTubeSettings.SyncEveryMinutes"/>), or by hand.
     /// </summary>
     YouTubeSync,
 

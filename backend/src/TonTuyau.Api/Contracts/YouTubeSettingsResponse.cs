@@ -10,8 +10,9 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="CommentsMax">For <c>top</c>: how many (kept for it while another is chosen).</param>
 /// <param name="PauseSeconds">Between two videos of a refresh: a random wait of half to 1.5 times this (10 by default).</param>
 /// <param name="HoldMinutes">How long a refresh YouTube refused waits, on hold, before it resumes (60 by default).</param>
-/// <param name="SyncEveryHours">
-/// How often the incremental YouTube sync runs by itself (contract v2.4), in hours (6 by default); 0: by hand only.
+/// <param name="SyncEveryMinutes">
+/// How often the incremental YouTube sync runs by itself, in minutes (contract v2.11: it was hours; 360 by default); 0:
+/// by hand only.
 /// </param>
 /// <param name="DownloadFormat">
 /// What a download asks yt-dlp for (contract v2.5), in its syntax (<c>bestvideo+bestaudio</c> by default).
@@ -23,7 +24,7 @@ public sealed record YouTubeSettingsResponse(
     int CommentsMax,
     int PauseSeconds,
     int HoldMinutes,
-    int SyncEveryHours,
+    int SyncEveryMinutes,
     string DownloadFormat,
     ChannelTabsResponse DefaultTabs,
     string? ChangedBy,
@@ -37,7 +38,7 @@ public sealed record YouTubeSettingsResponse(
             settings.CommentsMax,
             settings.PauseSeconds,
             settings.HoldMinutes,
-            settings.SyncEveryHours,
+            settings.SyncEveryMinutes,
             settings.DownloadFormat,
             (ChannelTabsResponse)settings.NewChannelTabs,
             settings.ChangedBy,

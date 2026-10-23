@@ -171,9 +171,9 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultDownloadFormat);
             // The default for the rows there before 2.0; 0 is a value (by hand only), not "unset": EF sends it.
             settings
-                .Property(s => s.SyncEveryHours)
-                .HasColumnName("sync_every_hours")
-                .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultSyncEveryHours)
+                .Property(s => s.SyncEveryMinutes)
+                .HasColumnName("sync_every_minutes")
+                .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultSyncEveryMinutes)
                 .HasSentinel(-1);
             // No database default (false would then read as "unset"): the migration fills the rows there with true.
             settings.Property(s => s.DefaultVideos).HasColumnName("default_videos");
