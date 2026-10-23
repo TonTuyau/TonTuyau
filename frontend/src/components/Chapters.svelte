@@ -1,6 +1,7 @@
 <script lang="ts">
-  // A video's chapters (1.5), always shown in its description box (in the player itself in a later version): a row
-  // of cards, the one playing outlined; a click goes there (a plain click seeks the player, like a timecode).
+  // A video's chapters (1.5), always shown in its description box, after a line that sets them apart from the
+  // description (2.1.0), their count by their heading: a row of cards, the one playing outlined; a click goes there (a
+  // plain click seeks the player, like a timecode).
   import type { Chapter } from '../lib/api/types'
   import { formatDuration } from '../lib/format'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -30,7 +31,7 @@
 </script>
 
 <section class="chapters" aria-labelledby="chapters-title">
-  <h2 id="chapters-title">{t('watch.chapters')}</h2>
+  <h2><span id="chapters-title">{t('watch.chapters')}</span> <span class="count">· {chapters.length}</span></h2>
   <ol>
     {#each chapters as chapter, index (index)}
       <li>
@@ -41,7 +42,7 @@
           onclick={(event) => go(event, chapter.startSeconds)}
         >
           <b>{chapter.title}</b>
-          <span>{formatDuration(chapter.startSeconds)}</span>
+          <span class="at">{formatDuration(chapter.startSeconds)}</span>
         </a>
       </li>
     {/each}
@@ -49,10 +50,14 @@
 </section>
 
 <style>
+  /* Not part of the description: a line between them. */
   .chapters {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: var(--border-width) solid var(--color-divider);
   }
 
   h2 {
@@ -104,7 +109,11 @@
     line-height: var(--line-height-tight);
   }
 
-  span {
+  .count {
+    color: var(--color-text-secondary);
+  }
+
+  .at {
     color: var(--color-link);
     font-size: var(--font-size-xs);
     font-variant-numeric: tabular-nums;
