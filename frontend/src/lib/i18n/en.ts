@@ -543,7 +543,6 @@ export const en = {
   'dashboard.unlisted': 'Unlisted',
   'dashboard.retryLater': 'Retry later',
   'dashboard.notChecked': 'Not checked',
-  'dashboard.goToChannel': 'Go to channel',
   'youTubeState.notChecked': 'Not checked',
   'youTubeState.onYouTube': 'On YouTube',
   'youTubeState.unlisted': 'Unlisted',

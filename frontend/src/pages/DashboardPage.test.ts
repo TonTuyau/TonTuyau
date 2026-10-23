@@ -223,7 +223,8 @@ describe('DashboardPage', () => {
       ]),
     )
     expect(await screen.findByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
-    expect(screen.getByRole('link', { name: 'Go to channel Atelier Bois' })).toHaveAttribute('href', '/channel/UCsmall')
+    // 2.1.1: no "Go to channel" any more; its admin page has "Open in TonTuyau".
+    expect(screen.queryByRole('link', { name: /Go to channel/ })).not.toBeInTheDocument()
   })
 
   it('loads the next channels as asked, after the first page', async () => {
