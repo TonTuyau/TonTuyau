@@ -21,7 +21,7 @@
   import { api, ApiError } from '../lib/api/client'
   import type { AdminChannel, AdminVideo, RunTask, Tasks } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
-  import { formatAge, formatDate, formatNumber } from '../lib/format'
+  import { formatAge, formatBytes, formatDate, formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import { Pager, Remote } from '../lib/remote.svelte'
   import { router } from '../lib/router/router.svelte'
@@ -144,6 +144,8 @@
   {:else if channel.data}
     {@const data = channel.data}
     {@const card = data.channel}
+    <!-- 2.2.0 mockup: its files' sizes by type, which the API doesn't give yet (docs/PLAN_2.2.0.md). -->
+    {@const size = (data as typeof data & { size?: { videos: number; shorts: number; streams: number } }).size}
     <header>
       <Avatar src={card.thumbnailUrl} versions={card.thumbnails} size="lg" />
       <div class="names">
@@ -205,6 +207,27 @@
               )}
             </dd>
           </div>
+          {#if size}
+            <div>
+              <dt>{t('channelAdmin.size')}</dt>
+              <dd>
+                <b>{formatBytes(size.videos + size.shorts + size.streams, i18n.lang)}</b>
+                <!-- By type, the types it has files of. -->
+                <span class="sizes">
+                  {(
+                    [
+                      ['type.video', size.videos],
+                      ['type.short', size.shorts],
+                      ['type.stream', size.streams],
+                    ] as const
+                  )
+                    .filter(([, bytes]) => bytes > 0)
+                    .map(([label, bytes]) => `${t(label)} ${formatBytes(bytes, i18n.lang)}`)
+                    .join(' · ')}
+                </span>
+              </dd>
+            </div>
+          {/if}
         </dl>
         <div class="actions">
           <Button variant="primary" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>
@@ -484,6 +507,11 @@
     justify-content: flex-end;
     align-items: center;
     font-size: var(--font-size-md);
+  }
+
+  .sizes {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
   }
 
   .states dd.zero {

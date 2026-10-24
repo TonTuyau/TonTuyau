@@ -8,18 +8,17 @@
     disk: { total: number; free: number } | null
     /** TonTuyau's videos on it, by type: their files' sizes, and how many. */
     types: { type: VideoType; bytes: number; count: number }[]
-    /** TonTuyau's own data, on its volumes: the images, the database, the search index. */
-    data: { art: number; database: number; index: number }
+    /** The YouTube page's threshold: under this many bytes free, the zone warns (2.2.0 plan, question 3); 0: never. */
+    minFree: number
+    /** Below the threshold, the downloads don't run (the other setting); false: they go on, only the warning. */
+    holdDownloads: boolean
   }
-
-  /** Under this share of the disk free, the zone warns. */
-  export const LOW_FREE_SHARE = 0.1
 </script>
 
 <script lang="ts">
   // The dashboard's storage zone (2.2.0 mockup): the free space of the videos folder's disk first, then the disk as a
   // bar (TonTuyau's videos by type, the disk's other files, the free space), each part with its size and its share of
-  // the disk, and TonTuyau's own data on its volumes in a line under it. Few free: the zone says so.
+  // the disk. Under the YouTube page's threshold, it warns, and says whether the downloads wait.
   import type { VideoType } from '../lib/api/types'
   import { formatBytes } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
@@ -36,7 +35,7 @@
   // The whole: the disk when it's known, else TonTuyau's videos alone.
   const whole = $derived(storage.disk?.total ?? videos)
   const other = $derived(storage.disk ? Math.max(0, storage.disk.total - storage.disk.free - videos) : 0)
-  const low = $derived(storage.disk !== null && storage.disk.free / storage.disk.total < LOW_FREE_SHARE)
+  const low = $derived(storage.disk !== null && storage.minFree > 0 && storage.disk.free < storage.minFree)
   const share = (value: number) => (whole > 0 ? value / whole : 0)
   /** A share of the disk; a part too small to show as one: "< 0.1%". */
   const shareText = (value: number) =>
@@ -55,7 +54,9 @@
       <small>{t('storage.of', { total: bytes(storage.disk.total) })}</small>
     </p>
     {#if low}
-      <p class="warning" role="status">{t('storage.low')}</p>
+      <p class="warning" role="status">
+        {t(storage.holdDownloads ? 'storage.lowHeld' : 'storage.low', { threshold: bytes(storage.minFree) })}
+      </p>
     {/if}
   {:else}
     <p class="big">
@@ -106,14 +107,6 @@
       </div>
     {/if}
   </dl>
-
-  <p class="data">
-    {t('storage.data', {
-      art: bytes(storage.data.art),
-      database: bytes(storage.data.database),
-      index: bytes(storage.data.index),
-    })}
-  </p>
 </section>
 
 <style>
@@ -221,13 +214,6 @@
     width: var(--space-3);
     height: var(--space-3);
     border-radius: var(--radius-sm);
-  }
-
-  .data {
-    padding-top: var(--space-3);
-    border-top: var(--border-width) solid var(--color-divider);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-xs);
   }
 
   .video {

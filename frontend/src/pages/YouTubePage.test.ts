@@ -213,6 +213,9 @@ describe('YouTubePage', () => {
         comments: 'top',
         downloadFormat: 'bestvideo[height<=1080]+bestaudio/best',
         defaultTabs: { videos: true, shorts: false, streams: true },
+        // 2.2.0 mockup: the disk space settings, their defaults.
+        minFreeGb: 50,
+        holdBelowMinFree: true,
       },
     ])
   })
