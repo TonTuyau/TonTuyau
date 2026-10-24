@@ -89,7 +89,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
     /// <summary>
     /// Columns: key, title, channel (a channel key), type (video/short/stream), published (ISO date), views,
     /// duration (seconds), tags, description, youtube (TonTuyau's state: not checked, on YouTube, retry later, gone),
-    /// file (extension), codecs (e.g. <c>av1+opus</c>).
+    /// file (extension), codecs (e.g. <c>av1+opus</c>), size (the file's, in bytes; 1000 by default).
     /// Thumbnails are copied; media files are not (see the "on the media share" step).
     /// </summary>
     [Given("the videos:")]
@@ -114,7 +114,7 @@ public sealed class LibrarySteps(ScenarioState state) : IDisposable
                 Get(row, "published") is { } published ? Date(published) : DefaultPublished,
                 DefaultPublished.AddDays(30),
                 TimeSpan.FromSeconds(Number(Get(row, "duration") ?? "600")),
-                1000,
+                (long)Number(Get(row, "size") ?? "1000"),
                 $"{channel.Id}/{id}.{extension}",
                 false,
                 $"/cache/videos/{id[0]}/{id}.jpg",

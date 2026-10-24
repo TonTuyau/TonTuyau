@@ -9,6 +9,7 @@ namespace TonTuyau.Application.Dashboard;
 /// <param name="RetryLater">Its videos whose last check had no answer to trust (1.5).</param>
 /// <param name="NotChecked">Its videos TonTuyau hasn't asked YouTube about yet (1.5).</param>
 /// <param name="Total">Videos, shorts and streams together.</param>
+/// <param name="Size">Its files' sizes together, in bytes (2.2.0).</param>
 public sealed record ChannelTotalsView(
     string Id,
     string Name,
@@ -19,4 +20,5 @@ public sealed record ChannelTotalsView(
     long Unlisted,
     long RetryLater,
     long NotChecked,
-    long Total);
+    long Total,
+    long Size = 0);

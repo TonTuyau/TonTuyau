@@ -17,7 +17,7 @@ namespace TonTuyau.Api.Controllers;
 public sealed class AdminController(DashboardService dashboard) : ControllerBase
 {
     private const string ChannelSorts =
-        "name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default).";
+        "name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default) | size.";
 
     /// <summary>The dashboard: the library's totals and play time.</summary>
     [HttpGet("dashboard")]

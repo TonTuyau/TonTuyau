@@ -246,6 +246,8 @@ public sealed class ImportHistoryTests
     {
         DashboardService service = new(
             _store,
+            new FakeDiskSpace(),
+            new FakeYouTubeSettings(),
             new ImportHistoryRequestValidator(),
             ValidOptions.Create(),
             new FakeTimeProvider(now ?? Now));

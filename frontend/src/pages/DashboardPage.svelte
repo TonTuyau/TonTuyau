@@ -5,7 +5,7 @@
   // (their own calls too, a page at a time: ChannelTable). A 401 means the session ended meanwhile: the shell then goes
   // to the login page.
   import ChannelTable from '../components/ChannelTable.svelte'
-  import StorageCard, { type Storage } from '../components/StorageCard.svelte'
+  import StorageCard from '../components/StorageCard.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import ImportChart, { type ImportScale } from '../components/ImportChart.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -75,7 +75,6 @@
     <ErrorState error={remote.error} onretry={() => remote.retry()} />
   {:else if remote.data}
     {@const data = remote.data}
-    {@const storage = (data as Dashboard & { storage?: Storage }).storage}
     <dl class="totals">
       <div class="total">
         <dt>{t('dashboard.channels')}</dt>
@@ -161,10 +160,7 @@
       </section>
     </div>
 
-    <!-- 2.2.0 mockup: the storage, which the API doesn't give yet (the mock does; docs/PLAN_2.2.0.md). -->
-    {#if storage}
-      <StorageCard {storage} />
-    {/if}
+    <StorageCard storage={data.storage} />
 
     <ChannelTable count={data.totals.channels} />
   {/if}

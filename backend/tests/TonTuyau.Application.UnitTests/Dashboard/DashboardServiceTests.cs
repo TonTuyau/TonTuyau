@@ -15,6 +15,7 @@ public sealed class DashboardServiceTests
     private static readonly DateTimeOffset Start = new(2026, 10, 1, 9, 0, 0, TimeSpan.Zero);
 
     private readonly FakeStore _store = new();
+    private readonly FakeDiskSpace _disk = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -63,6 +64,58 @@ public sealed class DashboardServiceTests
 
         Assert.Equal(TimeSpan.Zero, playTime.Total);
         Assert.All(playTime.Types, t => Assert.Equal((0L, 0.0, TimeSpan.Zero), (t.Count, t.Share, t.Average)));
+    }
+
+    [Fact]
+    public async Task The_storage_is_the_disk_and_the_videos_sizes_by_type_every_type_with_the_threshold()
+    {
+        _disk.Space = new DiskSpace(1_000_000_000_000, 412_000_000_000);
+        _store.Stats = new LibraryStats(
+            [
+                new TypeStats(VideoType.Stream, 4, TimeSpan.FromHours(10), 238_000_000_000),
+                Type(VideoType.Video, 60, 30),
+            ],
+            0,
+            new Dictionary<string, ChannelStats>());
+
+        StorageView storage = (await Service().GetAsync(Ct)).Storage;
+
+        Assert.Equal(new DiskSpace(1_000_000_000_000, 412_000_000_000), storage.Disk);
+        Assert.Equal(
+            [
+                new TypeStorageView(VideoType.Video, 0, 60),
+                new TypeStorageView(VideoType.Short, 0, 0),
+                new TypeStorageView(VideoType.Stream, 238_000_000_000, 4),
+            ],
+            storage.Types);
+        // The defaults: a warning under 50 GB, the downloads held then.
+        Assert.Equal((50_000_000_000L, true), (storage.MinFree, storage.HoldDownloads));
+    }
+
+    [Fact]
+    public async Task A_disk_that_doesnt_say_is_no_disk()
+    {
+        Assert.Null((await Service().GetAsync(Ct)).Storage.Disk);
+    }
+
+    [Fact]
+    public async Task The_channels_sort_by_their_files_sizes_together()
+    {
+        GivenThreeChannels();
+        _store.Stats = _store.Stats with
+        {
+            Channels = new Dictionary<string, ChannelStats>
+            {
+                ["a"] = new(new TypeCounts(3, 1, 0), 1, 0, 0, 2, 0, new TypeCounts(3_000, 40, 0)),
+                ["c"] = new(new TypeCounts(10, 0, 2), 4, 0, 0, 0, 5, new TypeCounts(1_000, 0, 500)),
+            },
+        };
+
+        ResultPage<ChannelTotalsView> page = await Service().ListChannelsAsync(
+            new DashboardChannelsRequest(null, "size", null, null, null, null),
+            Ct);
+
+        Assert.Equal([("a", 3_040L), ("c", 1_500L), ("b", 0L)], page.Items.Select(c => (c.Id, c.Size)));
     }
 
     [Fact]
@@ -159,7 +212,7 @@ public sealed class DashboardServiceTests
     public async Task An_unknown_sort_or_order_is_refused()
     {
         ValidationException error = await Assert.ThrowsAsync<ValidationException>(
-            () => Service().ListChannelsAsync(Request() with { Sort = "size", Order = "up", Size = 0 }, Ct));
+            () => Service().ListChannelsAsync(Request() with { Sort = "weight", Order = "up", Size = 0 }, Ct));
 
         Assert.Equal(["sort", "order", "size"], error.Errors.Select(e => e.Field));
     }
@@ -215,6 +268,8 @@ public sealed class DashboardServiceTests
     private DashboardService Service() =>
         new(
             _store,
+            _disk,
+            new FakeYouTubeSettings(),
             new ImportHistoryRequestValidator(),
             ValidOptions.Create(),
             new FakeTimeProvider(Start));

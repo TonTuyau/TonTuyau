@@ -12,6 +12,9 @@ public sealed class ScenarioState : IDisposable
     /// <summary>Service replacements for this scenario (e.g. shorter lock leases), applied when the backend starts.</summary>
     public List<Action<IServiceCollection>> ServiceOverrides { get; } = [];
 
+    /// <summary>The videos folder's disk the backend sees (2.2.0): roomy unless the scenario says otherwise.</summary>
+    public FakeDiskSpace Disk { get; } = new();
+
     /// <summary>The last exception a When step caught, for Then steps to inspect.</summary>
     public Exception? Error { get; set; }
 
@@ -60,7 +63,7 @@ public sealed class ScenarioState : IDisposable
 
     /// <summary>The backend under test, created on first use with the scenario's settings.</summary>
     public TonTuyauFactory Backend =>
-        _factory ??= new TonTuyauFactory(Settings.ToConfiguration(), ServiceOverrides, ImportsAtStartup);
+        _factory ??= new TonTuyauFactory(Settings.ToConfiguration(), ServiceOverrides, Disk, ImportsAtStartup);
 
     /// <summary>The scenario's temporary folders: deleted once its backend has stopped (it may write to them).</summary>
     public List<string> TempFolders { get; } = [];

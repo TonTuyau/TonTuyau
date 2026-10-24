@@ -115,6 +115,7 @@ export function channelTotals(overrides: Partial<ChannelTotals> = {}): ChannelTo
     retryLater: 5,
     notChecked: 0,
     total: 134,
+    size: 412_500_000_000,
     ...overrides,
   }
 }
@@ -131,6 +132,16 @@ export function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         { type: 'short', count: 1231, seconds: 36_000, share: 0.01, averageSeconds: 29 },
         { type: 'stream', count: 574, seconds: 1_044_000, share: 0.29, averageSeconds: 7200 },
       ],
+    },
+    storage: {
+      disk: { total: 4e12, free: 1.2e12 },
+      types: [
+        { type: 'video', bytes: 1.9e12, count: 5583 },
+        { type: 'short', bytes: 25e9, count: 1231 },
+        { type: 'stream', bytes: 0.7e12, count: 574 },
+      ],
+      minFree: 50e9,
+      holdDownloads: true,
     },
     ...overrides,
   }

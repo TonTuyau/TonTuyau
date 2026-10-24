@@ -2,6 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using TonTuyau.Application.Comments;
 using TonTuyau.Application.Configuration;
@@ -50,6 +51,9 @@ public static class SearchStoreServiceCollectionExtensions
         services.AddSingleton<IArtResizer>(sp => new SkiaArtResizer(sp.GetRequiredService<FileArtStore>()));
         services.AddSingleton<IMediaLibrary>(
             sp => new MediaLibrary(sp.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot));
+        services.AddSingleton<IDiskSpace>(sp => new MediaDiskSpace(
+            sp.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot,
+            sp.GetRequiredService<ILogger<MediaDiskSpace>>()));
         services.AddHostedService<IndexInitializer>();
         // What a refresh learned (1.5), in the library's rows in PostgreSQL.
         services.AddSingleton<IYouTubeFactsSource, YouTubeFactsSource>();

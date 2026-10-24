@@ -27,6 +27,14 @@ namespace TonTuyau.Application.YouTube;
 /// The tabs a channel added is subscribed to when none is named (2.0, B6: "Add a channel", the browser extension); null:
 /// the three (<see cref="NewChannelTabs"/>).
 /// </param>
+/// <param name="MinFreeGb">
+/// The disk space (2.2.0): under this many GB free on the videos folder's disk, the dashboard warns (50 by default; 0:
+/// never).
+/// </param>
+/// <param name="HoldBelowMinFree">
+/// Below <paramref name="MinFreeGb"/>, the downloads don't run (2.2.0, on by default): a download asked for is refused,
+/// a sync going on waits on hold.
+/// </param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
@@ -36,8 +44,15 @@ public sealed record YouTubeSettings(
     DateTimeOffset? ChangedAt,
     string DownloadFormat = YouTubeSettings.DefaultDownloadFormat,
     int SyncEveryMinutes = YouTubeSettings.DefaultSyncEveryMinutes,
-    ChannelTabs? DefaultTabs = null)
+    ChannelTabs? DefaultTabs = null,
+    int MinFreeGb = YouTubeSettings.DefaultMinFreeGb,
+    bool HoldBelowMinFree = true)
 {
+    public const int DefaultMinFreeGb = 50;
+
+    /// <summary>A petabyte: a bigger threshold is a typo.</summary>
+    public const int MaxMinFreeGb = 1_000_000;
+
     /// <summary>A format longer than this isn't one (yt-dlp's are a few dozen characters).</summary>
     public const int MaxDownloadFormatLength = 200;
 

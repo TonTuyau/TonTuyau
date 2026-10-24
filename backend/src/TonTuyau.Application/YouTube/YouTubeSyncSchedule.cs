@@ -14,6 +14,7 @@ public sealed class YouTubeSyncSchedule(
     ITaskRepository runs,
     ISubscriptionStore subscriptions,
     IYouTubeSettingsRepository settings,
+    DownloadSpace space,
     TimeProvider clock)
 {
     /// <returns>When it's due next; null when it's by hand only (0 minutes).</returns>
@@ -25,7 +26,10 @@ public sealed class YouTubeSyncSchedule(
     }
 
     /// <summary>Asks for the incremental sync when it's due.</summary>
-    /// <returns>The run asked for; null when it isn't due, or nothing is subscribed to.</returns>
+    /// <returns>
+    /// The run asked for; null when it isn't due, nothing is subscribed to, or the downloads wait for disk space (2.2.0:
+    /// it's asked for once there's room, the next look after).
+    /// </returns>
     public async Task<StartedRun?> QueueIfDueAsync(CancellationToken cancellationToken)
     {
         YouTubeSettings read = await settings.GetAsync(cancellationToken).ConfigureAwait(false);
@@ -33,7 +37,8 @@ public sealed class YouTubeSyncSchedule(
         if (Next(read, last) is not { } due
             || due > clock.GetUtcNow()
             || last?.Outcome is SyncOutcome.Queued or SyncOutcome.Running or SyncOutcome.OnHold
-            || (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Count == 0)
+            || (await subscriptions.ListAsync(cancellationToken).ConfigureAwait(false)).Count == 0
+            || await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false) is not null)
         {
             return null;
         }

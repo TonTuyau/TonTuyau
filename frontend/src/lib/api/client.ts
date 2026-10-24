@@ -392,8 +392,8 @@ export const api = {
     comments: YouTubeCommentsChoice,
     downloadFormat: string,
     defaultTabs: ChannelTabs,
-    // 2.2.0 mockup (docs/PLAN_2.2.0.md): the disk space settings, not in the API yet (the mock keeps them).
-    space?: { minFreeGb: number; holdBelowMinFree: boolean },
+    // 2.2.0: the disk space settings.
+    space: { minFreeGb: number; holdBelowMinFree: boolean },
   ): Promise<YouTubeSettings> {
     return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs, ...space })
   },

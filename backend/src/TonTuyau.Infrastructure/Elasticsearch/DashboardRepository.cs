@@ -27,6 +27,7 @@ internal sealed class DashboardRepository(
     private const string ByType = "by_type";
     private const string ByChannel = "by_channel";
     private const string Duration = "duration";
+    private const string Bytes = "bytes";
     private const string Gone = "gone";
     private const string Private = "private";
     private const string Unlisted = "unlisted";
@@ -99,6 +100,7 @@ internal sealed class DashboardRepository(
                 Aggregations = new Dictionary<string, Aggregation>
                 {
                     [Duration] = new SumAggregation { Field = Infer.Field<VideoDocument>(v => v.DurationSeconds) },
+                    [Bytes] = new SumAggregation { Field = Infer.Field<VideoDocument>(v => v.MediaSize) },
                 },
             },
             [Gone] = new Aggregation { Filter = GoneQuery },
@@ -115,7 +117,14 @@ internal sealed class DashboardRepository(
                 },
                 Aggregations = new Dictionary<string, Aggregation>
                 {
-                    [ByType] = new TermsAggregation { Field = Infer.Field<VideoDocument>(v => v.Type), Size = types },
+                    [ByType] = new Aggregation
+                    {
+                        Terms = new TermsAggregation { Field = Infer.Field<VideoDocument>(v => v.Type), Size = types },
+                        Aggregations = new Dictionary<string, Aggregation>
+                        {
+                            [Bytes] = new SumAggregation { Field = Infer.Field<VideoDocument>(v => v.MediaSize) },
+                        },
+                    },
                     [Gone] = new Aggregation { Filter = GoneQuery },
                     [Private] = new Aggregation { Filter = PrivateQuery },
                     [Unlisted] = new Aggregation { Filter = UnlistedQuery },
@@ -137,15 +146,21 @@ internal sealed class DashboardRepository(
             .Select(b => new TypeStats(
                 DocumentMapper.ParseType((string)b.Key.Value!),
                 b.DocCount,
-                TimeSpan.FromSeconds(b.Aggregations?.GetSum(Duration)?.Value ?? 0)))
+                TimeSpan.FromSeconds(b.Aggregations?.GetSum(Duration)?.Value ?? 0),
+                (long)(b.Aggregations?.GetSum(Bytes)?.Value ?? 0)))
             .ToArray();
         Dictionary<string, ChannelStats> byChannel = new(StringComparer.Ordinal);
         if (channelIds.Count > 0)
         {
             foreach (StringTermsBucket channel in Buckets(result, ByChannel))
             {
-                Dictionary<string, long> counts = Buckets(channel.Aggregations, ByType)
+                IReadOnlyCollection<StringTermsBucket> channelTypes = Buckets(channel.Aggregations, ByType);
+                Dictionary<string, long> counts = channelTypes
                     .ToDictionary(b => (string)b.Key.Value!, b => b.DocCount, StringComparer.Ordinal);
+                Dictionary<string, long> sizes = channelTypes.ToDictionary(
+                    b => (string)b.Key.Value!,
+                    b => (long)(b.Aggregations?.GetSum(Bytes)?.Value ?? 0),
+                    StringComparer.Ordinal);
                 byChannel[(string)channel.Key.Value!] = new ChannelStats(
                     new TypeCounts(
                         counts.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Video)),
@@ -155,7 +170,11 @@ internal sealed class DashboardRepository(
                     channel.Aggregations?.GetFilter(Private)?.DocCount ?? 0,
                     channel.Aggregations?.GetFilter(Unlisted)?.DocCount ?? 0,
                     channel.Aggregations?.GetFilter(RetryLater)?.DocCount ?? 0,
-                    channel.Aggregations?.GetFilter(NotChecked)?.DocCount ?? 0);
+                    channel.Aggregations?.GetFilter(NotChecked)?.DocCount ?? 0,
+                    new TypeCounts(
+                        sizes.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Video)),
+                        sizes.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Short)),
+                        sizes.GetValueOrDefault(DocumentMapper.TypeName(VideoType.Stream))));
             }
         }
 

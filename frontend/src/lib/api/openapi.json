@@ -381,7 +381,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default).",
+            "description": "name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default) | size.",
             "schema": {
               "enum": [
                 "name",
@@ -393,7 +393,8 @@
                 "unlisted",
                 "retryLater",
                 "notChecked",
-                "total"
+                "total",
+                "size"
               ],
               "type": "string"
             }
@@ -3568,7 +3569,7 @@
   "components": {
     "schemas": {
       "AdminChannelResponse": {
-        "required": ["channel", "youTube", "videos", "subscription"],
+        "required": ["channel", "youTube", "videos", "subscription", "size"],
         "type": "object",
         "properties": {
           "channel": {
@@ -3589,6 +3590,9 @@
                 "$ref": "#/components/schemas/SubscriptionResponse"
               }
             ]
+          },
+          "size": {
+            "$ref": "#/components/schemas/VideoCounts"
           }
         }
       },
@@ -3772,7 +3776,8 @@
           "unlisted",
           "retryLater",
           "notChecked",
-          "total"
+          "total",
+          "size"
         ],
         "type": "object",
         "properties": {
@@ -3815,6 +3820,10 @@
             "format": "int64"
           },
           "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
             "type": "integer",
             "format": "int64"
           }
@@ -3968,7 +3977,7 @@
         }
       },
       "DashboardResponse": {
-        "required": ["lastSync", "totals", "playTime"],
+        "required": ["lastSync", "totals", "playTime", "storage"],
         "type": "object",
         "properties": {
           "lastSync": {
@@ -3980,6 +3989,9 @@
           },
           "playTime": {
             "$ref": "#/components/schemas/PlayTime"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/Storage"
           }
         }
       },
@@ -4646,6 +4658,49 @@
           }
         }
       },
+      "Storage": {
+        "required": ["disk", "types", "minFree", "holdDownloads"],
+        "type": "object",
+        "properties": {
+          "disk": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StorageDisk"
+              }
+            ]
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypeStorage"
+            }
+          },
+          "minFree": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "holdDownloads": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StorageDisk": {
+        "required": ["total", "free"],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "free": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "SubscriptionRequest": {
         "required": ["videos", "shorts", "streams"],
         "type": "object",
@@ -4842,6 +4897,23 @@
             "format": "double"
           },
           "averageSeconds": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TypeStorage": {
+        "required": ["type", "bytes", "count"],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/VideoType"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "count": {
             "type": "integer",
             "format": "int64"
           }
@@ -5180,6 +5252,13 @@
                 "$ref": "#/components/schemas/ChannelTabsRequest"
               }
             ]
+          },
+          "minFreeGb": {
+            "type": ["null", "integer"],
+            "format": "int32"
+          },
+          "holdBelowMinFree": {
+            "type": ["null", "boolean"]
           }
         }
       },
@@ -5192,6 +5271,8 @@
           "syncEveryMinutes",
           "downloadFormat",
           "defaultTabs",
+          "minFreeGb",
+          "holdBelowMinFree",
           "changedBy",
           "changedAt"
         ],
@@ -5221,6 +5302,13 @@
           },
           "defaultTabs": {
             "$ref": "#/components/schemas/ChannelTabsResponse"
+          },
+          "minFreeGb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holdBelowMinFree": {
+            "type": "boolean"
           },
           "changedBy": {
             "type": ["null", "string"]

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The mock's admin side (2.1.0): enough of the admin API, shaped as the contract says, to review the admin pages.
+// The mock's admin side (2.1.0, 2.2.0): enough of the admin API, shaped as the contract says, to review the admin pages.
 import { describe, expect, it } from 'vitest'
 import type { AdminChannel, ChannelTotals, Dashboard, Page, Run, Subscription, Tasks } from '../src/lib/api/types.ts'
 import { adminMockState, handleAdmin } from './admin.ts'
@@ -43,6 +43,22 @@ describe('the admin mock', () => {
     expect(dashboard.totals.channels).toBe(db.channels.length)
     expect(dashboard.totals.videos + dashboard.totals.shorts + dashboard.totals.streams).toBe(db.videos.length)
     expect(channels.items.reduce((sum, row) => sum + row.total, 0)).toBe(db.videos.length)
+    // 2.2.0: the storage and the channels' sizes, from the fixtures' file sizes.
+    const bytes = db.videos.reduce((sum, video) => sum + video.fileSize, 0)
+    expect(dashboard.storage.types.reduce((sum, type) => sum + type.bytes, 0)).toBe(bytes)
+    expect(channels.items.reduce((sum, row) => sum + row.size, 0)).toBe(bytes)
+  })
+
+  it('holds the YouTube syncs on an almost full disk, saying why as the backend does (2.2.0)', () => {
+    const { state, call } = setup()
+    state.loggedIn = true
+    state.disk = 'low'
+
+    const sync = call<Tasks>('GET', '/api/admin/tasks').body.tasks.find((task) => task.task === 'youTubeSync')
+
+    expect(sync?.unavailable).toBe(
+      "Under 50 GB free on the videos folder's disk (40 GB): the downloads wait until space is freed (the YouTube page sets it).",
+    )
   })
 
   it('keeps what an action changed: a subscription, a run started', () => {

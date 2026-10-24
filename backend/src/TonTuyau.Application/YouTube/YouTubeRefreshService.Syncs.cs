@@ -80,8 +80,14 @@ public sealed partial class YouTubeRefreshService
     /// one that listed it, or the failure before.
     /// </summary>
     /// <exception cref="YouTubeDownloadException">Not downloaded: recorded, and noted.</exception>
+    /// <exception cref="DiskSpaceLowException">Under the disk space threshold, set to wait (2.2.0): not begun.</exception>
     private async Task<string?> DownloadOneAsync(string videoId, YouTubeSettings read, RunContext context)
     {
+        if (await space.WhyWaitAsync(context.CancellationToken).ConfigureAwait(false) is { } wait)
+        {
+            throw new DiskSpaceLowException(wait);
+        }
+
         _listed.TryRemove(videoId, out (string ChannelId, string? Title) listed);
         // Already there with its file (alpha.5): another channel's sync downloaded it since it was listed, or a failure
         // tried again was downloaded meanwhile. Not again: the download would replace the file with the same.

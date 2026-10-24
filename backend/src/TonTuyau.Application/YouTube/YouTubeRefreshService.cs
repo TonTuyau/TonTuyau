@@ -49,6 +49,7 @@ public sealed partial class YouTubeRefreshService(
     IDownloadFailureStore downloadFailures,
     ISyncStateStore state,
     StreamingService streaming,
+    DownloadSpace space,
     TimeProvider clock,
     ILogger<YouTubeRefreshService> logger)
 {
@@ -541,6 +542,13 @@ public sealed partial class YouTubeRefreshService(
                     return false;
                 }
             }
+            catch (DiskSpaceLowException ex)
+            {
+                // 2.2.0: under the disk space threshold, the download not begun: read again when the run resumes.
+                context.Count(_ => before);
+                HoldForSpace([.. work.Skip(index)], ex.Message, read.HoldMinutes, context);
+                return false;
+            }
             catch (Exception) when (!stopping.IsCancellationRequested && HoldRequestedBy() is { } by)
             {
                 context.Count(_ => before);
@@ -565,6 +573,21 @@ public sealed partial class YouTubeRefreshService(
             CultureInfo.InvariantCulture,
             $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: YouTube refused ({reason}). It resumes by itself at {resumeAt:HH:mm} UTC, or with Resume now."));
         LogHeld(context.Run.Id, reason, resumeAt, left.Length);
+    }
+
+    /// <summary>
+    /// The disk space is under the threshold (2.2.0): the run waits, on hold, from <paramref name="left"/>; resumed by
+    /// itself after the cool-down, it holds again while there isn't room.
+    /// </summary>
+    private void HoldForSpace(string[] left, string why, int minutes, RunContext context)
+    {
+        DateTimeOffset now = clock.GetUtcNow();
+        DateTimeOffset resumeAt = now.AddMinutes(minutes);
+        context.Update(r => r with { Outcome = SyncOutcome.OnHold, ResumeAt = resumeAt, Remaining = left });
+        context.Note(string.Create(
+            CultureInfo.InvariantCulture,
+            $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: {why} It tries again by itself at {resumeAt:HH:mm} UTC, or with Resume now."));
+        LogHeldForSpace(context.Run.Id, resumeAt, left.Length);
     }
 
     private void HoldByHand(string[] left, string by, RunContext context)
@@ -593,6 +616,16 @@ public sealed partial class YouTubeRefreshService(
     /// <exception cref="SyncRefusedException">Why it can't run.</exception>
     public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
+        // The downloads (2.2.0): under the disk space threshold, set to wait, none starts.
+        if (mode is SyncMode.DownloadVideo
+                or SyncMode.YouTubeSync
+                or SyncMode.YouTubeFullSync
+                or SyncMode.RetryDownloads
+            && await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false) is { } wait)
+        {
+            throw new SyncRefusedException(wait);
+        }
+
         // A sync of every subscription, a refresh of everything: nothing to check (none is nothing to do).
         if (mode is SyncMode.YouTubeSync or SyncMode.RefreshAll
             || (mode == SyncMode.YouTubeFullSync && target.Length == 0))
@@ -1362,6 +1395,11 @@ public sealed partial class YouTubeRefreshService(
         Level = LogLevel.Warning,
         Message = "Refresh {RunId} on hold: YouTube refused ({Reason}). It resumes at {ResumeAt}, {Left} left to read.")]
     private partial void LogHeld(string runId, string reason, DateTimeOffset resumeAt, int left);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Run {RunId} on hold: under the disk space threshold. It tries again at {ResumeAt}, {Left} left.")]
+    private partial void LogHeldForSpace(string runId, DateTimeOffset resumeAt, int left);
 
     [LoggerMessage(
         Level = LogLevel.Warning,

@@ -63,6 +63,22 @@ describe('DashboardPage', () => {
     expect(card.getByText('29%, 2 h 00 min on average')).toBeInTheDocument()
   })
 
+  it('shows the storage the API gives: the disk, the videos by type, under the threshold a warning', async () => {
+    fakeApi({
+      '/api/admin/dashboard': dashboard({
+        storage: { ...dashboard().storage, disk: { total: 4e12, free: 30e9 } },
+      }),
+      [CHANNELS]: page(dashboardChannels()),
+    })
+    render(DashboardPage)
+
+    const zone = within(await screen.findByRole('region', { name: 'Storage' }))
+    expect(zone.getByText('30 GB free')).toBeInTheDocument()
+    expect(zone.getByRole('status')).toHaveTextContent(
+      "Under 50 GB free: the downloads don't run until space is freed.",
+    )
+  })
+
   it('asks for the last month by default, a bar per day, empty ones too, the step and counts on hover', async () => {
     const api = fakeApi({
       '/api/admin/dashboard': dashboard(),
@@ -214,14 +230,19 @@ describe('DashboardPage', () => {
     await user.click(screen.getByRole('button', { name: /Channel/ }))
     await user.click(within(screen.getByRole('table', { name: 'Channels' })).getByRole('button', { name: 'Shorts' }))
 
+    // 2.2.0: the size of its files, sortable too.
+    await user.click(within(screen.getByRole('table', { name: 'Channels' })).getByRole('button', { name: 'Size' }))
+
     await vi.waitFor(() =>
       expect(asked()).toEqual([
         'sort=total&order=desc',
         'sort=name&order=asc',
         'sort=name&order=desc',
         'sort=shorts&order=desc',
+        'sort=size&order=desc',
       ]),
     )
+    expect(within(screen.getByRole('table', { name: 'Channels' })).getAllByText('412.5 GB')).not.toHaveLength(0)
     expect(await screen.findByRole('link', { name: 'Atelier Bois' })).toHaveAttribute('href', '/admin/channels/UCsmall')
     // 2.1.1: no "Go to channel" any more; its admin page has "Open in TonTuyau".
     expect(screen.queryByRole('link', { name: /Go to channel/ })).not.toBeInTheDocument()

@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte'
-import StorageCard, { type Storage } from './StorageCard.svelte'
+import type { Storage } from '../lib/api/types'
+import StorageCard from './StorageCard.svelte'
 
 const GB = 1e9
 
@@ -17,7 +18,7 @@ function storage(overrides: Partial<Storage> = {}): Storage {
   }
 }
 
-describe('StorageCard (2.2.0 mockup)', () => {
+describe('StorageCard (2.2.0)', () => {
   it("says the disk's free space, then each part with its size and its share of the disk", () => {
     render(StorageCard, { storage: storage() })
 

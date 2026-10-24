@@ -1,4 +1,5 @@
 using TonTuyau.Application.Browse;
+using TonTuyau.Application.Dashboard;
 using TonTuyau.Application.Library;
 using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
@@ -10,11 +11,13 @@ namespace TonTuyau.Application.ChannelAdmin;
 /// <summary>
 /// A channel's admin page (1.5): the channel as TonTuyau knows it on YouTube, how many of its videos are in each
 /// state, and its videos with theirs (latest published first, filtered by state or words). Refreshing them is a task
-/// (<see cref="Tasks.TaskService"/>). Its subscription (2.0, B4) is set here: subscribed, its tabs, unsubscribed.
+/// (<see cref="Tasks.TaskService"/>). Its subscription (2.0, B4) is set here: subscribed, its tabs, unsubscribed. Its
+/// files' sizes by type (2.2.0) are counted as the dashboard counts them.
 /// </summary>
 public sealed class ChannelAdminService(
     IChannelRepository channels,
     IVideoRepository videos,
+    IDashboardRepository stats,
     ISubscriptionStore subscriptions,
     IDownloadFailureStore downloadFailures,
     CardBuilder cards,
@@ -45,11 +48,13 @@ public sealed class ChannelAdminService(
         ChannelSubscription? subscription = await subscriptions
             .GetAsync(id, cancellationToken)
             .ConfigureAwait(false);
+        LibraryStats library = await stats.GetLibraryStatsAsync([id], cancellationToken).ConfigureAwait(false);
         return new ChannelAdminView(
             card[0],
             channel.YouTube,
             Enum.GetValues<YouTubeState>().ToDictionary(s => s, s => counted.GetValueOrDefault(s)),
-            subscription);
+            subscription,
+            library.Channels.GetValueOrDefault(id)?.Sizes ?? TypeCounts.None);
     }
 
     /// <summary>

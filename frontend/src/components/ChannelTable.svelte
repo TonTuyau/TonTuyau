@@ -1,6 +1,6 @@
 <script lang="ts">
   // The dashboard's channels: their videos, shorts, streams, those gone from YouTube, private, unlisted, to retry or
-  // not checked yet (1.5; each count not 0 in its state's colour), the total, and (2.2.0 mockup) the size of its files.
+  // not checked yet (1.5; each count not 0 in its state's colour), the total, and (2.2.0) the size of its files.
   // Its name opens its admin page. Sorted by a column's button (again: the other way), filtered by name (accents
   // and case ignored, once typing pauses) and to the channels with videos gone from YouTube. Loaded like a channel's
   // videos on its admin page (alpha.3): the API filters, sorts and sends a page at a time, the next one as it comes
@@ -24,11 +24,7 @@
 
   const SEARCH_AFTER = 300
 
-  /** 2.2.0 mockup: the size of a channel's files, which the API doesn't give yet (docs/PLAN_2.2.0.md). */
-  type Sort = DashboardChannelSort | 'size'
-  type Row = ChannelTotals & { size?: number }
-
-  const columns: { key: Sort; label: TextKey }[] = [
+  const columns: { key: DashboardChannelSort; label: TextKey }[] = [
     { key: 'name', label: 'dashboard.channel' },
     { key: 'videos', label: 'type.video' },
     { key: 'shorts', label: 'type.short' },
@@ -42,8 +38,8 @@
     { key: 'size', label: 'dashboard.size' },
   ]
 
-  const channels = new Pager<Row>()
-  let sort = $state<Sort>('total')
+  const channels = new Pager<ChannelTotals>()
+  let sort = $state<DashboardChannelSort>('total')
   let ascending = $state(false)
   let onlyGone = $state(false)
   let typed = $state('')
@@ -57,7 +53,7 @@
   $effect(() => {
     const query = {
       q: words || undefined,
-      sort: sort as DashboardChannelSort,
+      sort,
       order: ascending ? ('asc' as const) : ('desc' as const),
       gone: onlyGone || undefined,
     }
@@ -70,7 +66,7 @@
     }
   })
 
-  function sortBy(column: Sort) {
+  function sortBy(column: DashboardChannelSort) {
     if (sort === column) {
       ascending = !ascending
     } else {
@@ -151,7 +147,7 @@
             <td class="num">{@render stateCount('retryLater', channel.retryLater)}</td>
             <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
             <td class="num"><b>{number(channel.total)}</b></td>
-            <td class="num">{channel.size === undefined ? '' : formatBytes(channel.size, i18n.lang)}</td>
+            <td class="num">{formatBytes(channel.size, i18n.lang)}</td>
           </tr>
         {:else}
           <tr>

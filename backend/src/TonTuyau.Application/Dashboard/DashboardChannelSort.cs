@@ -13,6 +13,9 @@ public enum DashboardChannelSort
     RetryLater,
     NotChecked,
     Total,
+
+    /// <summary>Its files' sizes together (2.2.0).</summary>
+    Size,
 }
 
 public enum SortDirection

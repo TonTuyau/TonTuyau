@@ -93,3 +93,13 @@ public interface IMediaLibrary
     /// <summary>Deletes a download's folder and whatever is left in it; nothing when it's gone already.</summary>
     void RemoveDownloadFolder(string folder);
 }
+
+/// <summary>The disk the videos folder is on (2.2.0), as its file system says: its size and what's free, in bytes.</summary>
+public sealed record DiskSpace(long Total, long Free);
+
+/// <summary>Reads the videos folder's disk (2.2.0: the dashboard's storage, the downloads' threshold).</summary>
+public interface IDiskSpace
+{
+    /// <returns>Null when the file system doesn't say (a share that doesn't, a folder gone).</returns>
+    DiskSpace? Read();
+}

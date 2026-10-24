@@ -3,18 +3,23 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using TonTuyau.Api.Hosting;
+using TonTuyau.Application.Configuration;
+using TonTuyau.Application.Sync;
 using TonTuyau.TubeArchivist;
 using YouTubeServices = TonTuyau.YouTube.ServiceCollectionExtensions;
 
 namespace TonTuyau.IntegrationTests.Support;
 
 /// <summary>Runs the real backend in-process with the settings (and service overrides) given by the scenario.</summary>
+/// <param name="disk">The videos folder's disk it sees (2.2.0), instead of the machine's.</param>
 /// <param name="importsAtStartup">Whether it keeps its TubeArchivist import at startup (<see cref="ImportAtStartup"/>).</param>
 public sealed class TonTuyauFactory(
     IReadOnlyDictionary<string, string?> settings,
     IReadOnlyList<Action<IServiceCollection>> overrides,
+    FakeDiskSpace disk,
     bool importsAtStartup = false) : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -38,6 +43,11 @@ public sealed class TonTuyauFactory(
             services
                 .AddHttpClient(YouTubeServices.ImagesClientName)
                 .ConfigurePrimaryHttpMessageHandler(() => new OutsideRedirect("YouTube's pictures", fake: null));
+            services.Replace(ServiceDescriptor.Singleton<IDiskSpace>(provider =>
+            {
+                disk.Root = provider.GetRequiredService<TonTuyauOptions>().Storage.MediaRoot;
+                return disk;
+            }));
             ServiceDescriptor? startupImport = services.FirstOrDefault(
                 d => d.ImplementationType == typeof(ImportAtStartup));
             if (!importsAtStartup && startupImport is not null)
