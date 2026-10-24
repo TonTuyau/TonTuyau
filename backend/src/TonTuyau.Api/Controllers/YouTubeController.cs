@@ -118,6 +118,8 @@ public sealed class YouTubeController(
                 request.SyncEveryMinutes,
                 request.DownloadFormat,
                 request.DefaultTabs?.ToTabs("defaultTabs"),
+                request.MinFreeGb,
+                request.HoldBelowMinFree,
                 Account(),
                 cancellationToken)
             .ConfigureAwait(false);

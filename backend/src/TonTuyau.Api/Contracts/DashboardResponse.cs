@@ -9,10 +9,12 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="LastSync">
 /// When the latest run that added videos finished (an import or a download, alpha.8); null when none did.
 /// </param>
+/// <param name="Storage">The videos folder's disk and what the videos take of it (contract v2.12).</param>
 public sealed record DashboardResponse(
     DateTime? LastSync,
     LibraryTotals Totals,
-    PlayTime PlayTime)
+    PlayTime PlayTime,
+    Storage Storage)
 {
     public static explicit operator DashboardResponse(DashboardView view)
     {
@@ -20,6 +22,7 @@ public sealed record DashboardResponse(
         return new DashboardResponse(
             view.LastSync?.UtcDateTime,
             (LibraryTotals)view.Totals,
-            (PlayTime)view.PlayTime);
+            (PlayTime)view.PlayTime,
+            (Storage)view.Storage);
     }
 }

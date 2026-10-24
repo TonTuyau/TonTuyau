@@ -23,6 +23,10 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
     /// further: a format that picks nothing fails the download, saying why); absent: the one kept.
     /// </param>
     /// <param name="defaultTabs">The tabs a channel added gets when none is named (B6), at least one; absent: kept.</param>
+    /// <param name="minFreeGb">
+    /// The disk space (2.2.0): under this many GB free, a warning (0 or more; 0: never); absent: the one kept.
+    /// </param>
+    /// <param name="holdBelowMinFree">Below it, the downloads don't run (2.2.0); absent: kept.</param>
     /// <param name="by">The admin changing them.</param>
     /// <exception cref="ValidationException">A setting is missing or out of bounds.</exception>
     public async Task<YouTubeSettings> SaveAsync(
@@ -33,6 +37,8 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         int? syncEveryMinutes,
         string? downloadFormat,
         ChannelTabs? defaultTabs,
+        int? minFreeGb,
+        bool? holdBelowMinFree,
         string by,
         CancellationToken cancellationToken)
     {
@@ -76,6 +82,11 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
                 $"must be yt-dlp's format, on one line, 1 to {YouTubeSettings.MaxDownloadFormatLength} characters.");
         }
 
+        if (minFreeGb is < 0 or > YouTubeSettings.MaxMinFreeGb)
+        {
+            errors.Add("minFreeGb", $"must be 0 (never) to {YouTubeSettings.MaxMinFreeGb} GB.");
+        }
+
         if (defaultTabs is { Any: false })
         {
             errors.Add("defaultTabs", "at least one tab: videos, shorts or streams.");
@@ -93,6 +104,8 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
             SyncEveryMinutes = syncEveryMinutes ?? current.SyncEveryMinutes,
             DownloadFormat = format ?? current.DownloadFormat,
             DefaultTabs = defaultTabs ?? current.DefaultTabs,
+            MinFreeGb = minFreeGb ?? current.MinFreeGb,
+            HoldBelowMinFree = holdBelowMinFree ?? current.HoldBelowMinFree,
             ChangedBy = by,
             ChangedAt = clock.GetUtcNow(),
         };

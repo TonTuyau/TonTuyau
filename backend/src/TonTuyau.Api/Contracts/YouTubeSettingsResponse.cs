@@ -18,6 +18,11 @@ namespace TonTuyau.Api.Contracts;
 /// What a download asks yt-dlp for (contract v2.5), in its syntax (<c>bestvideo+bestaudio</c> by default).
 /// </param>
 /// <param name="DefaultTabs">The tabs a channel added gets when none is named (contract v2.5): the three by default.</param>
+/// <param name="MinFreeGb">
+/// The disk space (contract v2.12): under this many GB free on the videos folder's disk, a warning (50 by default; 0:
+/// never).
+/// </param>
+/// <param name="HoldBelowMinFree">Below it, the downloads don't run (contract v2.12; true by default).</param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
 public sealed record YouTubeSettingsResponse(
     YouTubeCommentsChoice Comments,
@@ -27,6 +32,8 @@ public sealed record YouTubeSettingsResponse(
     int SyncEveryMinutes,
     string DownloadFormat,
     ChannelTabsResponse DefaultTabs,
+    int MinFreeGb,
+    bool HoldBelowMinFree,
     string? ChangedBy,
     DateTime? ChangedAt)
 {
@@ -41,6 +48,8 @@ public sealed record YouTubeSettingsResponse(
             settings.SyncEveryMinutes,
             settings.DownloadFormat,
             (ChannelTabsResponse)settings.NewChannelTabs,
+            settings.MinFreeGb,
+            settings.HoldBelowMinFree,
             settings.ChangedBy,
             settings.ChangedAt?.UtcDateTime);
     }

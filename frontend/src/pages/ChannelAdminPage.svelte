@@ -144,8 +144,7 @@
   {:else if channel.data}
     {@const data = channel.data}
     {@const card = data.channel}
-    <!-- 2.2.0 mockup: its files' sizes by type, which the API doesn't give yet (docs/PLAN_2.2.0.md). -->
-    {@const size = (data as typeof data & { size?: { videos: number; shorts: number; streams: number } }).size}
+    {@const size = data.size}
     <header>
       <Avatar src={card.thumbnailUrl} versions={card.thumbnails} size="lg" />
       <div class="names">
@@ -207,27 +206,25 @@
               )}
             </dd>
           </div>
-          {#if size}
-            <div>
-              <dt>{t('channelAdmin.size')}</dt>
-              <dd>
-                <b>{formatBytes(size.videos + size.shorts + size.streams, i18n.lang)}</b>
-                <!-- By type, the types it has files of. -->
-                <span class="sizes">
-                  {(
-                    [
-                      ['type.video', size.videos],
-                      ['type.short', size.shorts],
-                      ['type.stream', size.streams],
-                    ] as const
-                  )
-                    .filter(([, bytes]) => bytes > 0)
-                    .map(([label, bytes]) => `${t(label)} ${formatBytes(bytes, i18n.lang)}`)
-                    .join(' · ')}
-                </span>
-              </dd>
-            </div>
-          {/if}
+          <div>
+            <dt>{t('channelAdmin.size')}</dt>
+            <dd>
+              <b>{formatBytes(size.videos + size.shorts + size.streams, i18n.lang)}</b>
+              <!-- By type, the types it has files of. -->
+              <span class="sizes">
+                {(
+                  [
+                    ['type.video', size.videos],
+                    ['type.short', size.shorts],
+                    ['type.stream', size.streams],
+                  ] as const
+                )
+                  .filter(([, bytes]) => bytes > 0)
+                  .map(([label, bytes]) => `${t(label)} ${formatBytes(bytes, i18n.lang)}`)
+                  .join(' · ')}
+              </span>
+            </dd>
+          </div>
         </dl>
         <div class="actions">
           <Button variant="primary" disabled={pending} onclick={() => void refresh('refreshChannel', card.id)}>

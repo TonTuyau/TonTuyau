@@ -14,6 +14,11 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="DefaultTabs">
 /// The tabs a channel added gets when none is named (contract v2.5), each one given, at least one true; absent: kept.
 /// </param>
+/// <param name="MinFreeGb">
+/// The disk space (contract v2.12): under this many GB free on the videos folder's disk, a warning, 0 (never) to
+/// 1,000,000; absent: kept.
+/// </param>
+/// <param name="HoldBelowMinFree">Below it, the downloads don't run (contract v2.12); absent: kept.</param>
 public sealed record YouTubeSettingsRequest(
     string? Comments,
     int? CommentsMax,
@@ -21,4 +26,6 @@ public sealed record YouTubeSettingsRequest(
     int? HoldMinutes,
     int? SyncEveryMinutes,
     string? DownloadFormat = null,
-    ChannelTabsRequest? DefaultTabs = null);
+    ChannelTabsRequest? DefaultTabs = null,
+    int? MinFreeGb = null,
+    bool? HoldBelowMinFree = null);

@@ -21,6 +21,7 @@ public sealed class TaskService(
     SyncService sync,
     YouTubeRefreshService refresh,
     YouTubeSyncSchedule schedule,
+    DownloadSpace space,
     IValidator<RunListRequest> runListValidator,
     IValidator<RunLogRequest> runLogValidator,
     TimeProvider clock)
@@ -45,6 +46,8 @@ public sealed class TaskService(
             .GetLockAsync(cancellationToken)
             .ConfigureAwait(false);
         string? runningHere = runner.RunningId;
+        // The downloads waiting for disk space (2.2.0): the syncs can't start, and say why.
+        string? wait = await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false);
         TaskView import = new(
             SyncMode.Import,
             await LatestAsync(SyncMode.Import, runningHere, cancellationToken).ConfigureAwait(false),
@@ -52,12 +55,12 @@ public sealed class TaskService(
         TaskView youTubeSync = new(
             SyncMode.YouTubeSync,
             await LatestAsync(SyncMode.YouTubeSync, runningHere, cancellationToken).ConfigureAwait(false),
-            null,
+            wait,
             await schedule.NextAsync(cancellationToken).ConfigureAwait(false));
         TaskView youTubeFullSync = new(
             SyncMode.YouTubeFullSync,
             await LatestAsync(SyncMode.YouTubeFullSync, runningHere, cancellationToken).ConfigureAwait(false),
-            null);
+            wait);
         TaskView refreshAll = new(
             SyncMode.RefreshAll,
             await LatestAsync(SyncMode.RefreshAll, runningHere, cancellationToken).ConfigureAwait(false),

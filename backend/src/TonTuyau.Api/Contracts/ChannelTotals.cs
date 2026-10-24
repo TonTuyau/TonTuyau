@@ -10,6 +10,7 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="RetryLater">Its videos whose last check had no answer to trust (1.5).</param>
 /// <param name="NotChecked">Its videos TonTuyau hasn't asked YouTube about yet (1.5).</param>
 /// <param name="Total">Videos, shorts and streams together.</param>
+/// <param name="Size">Its files' sizes together, in bytes (contract v2.12).</param>
 public sealed record ChannelTotals(
     string Id,
     string Name,
@@ -21,7 +22,8 @@ public sealed record ChannelTotals(
     long Unlisted,
     long RetryLater,
     long NotChecked,
-    long Total)
+    long Total,
+    long Size)
 {
     public static explicit operator ChannelTotals(ChannelTotalsView view)
     {
@@ -38,6 +40,7 @@ public sealed record ChannelTotals(
             view.Unlisted,
             view.RetryLater,
             view.NotChecked,
-            view.Total);
+            view.Total,
+            view.Size);
     }
 }

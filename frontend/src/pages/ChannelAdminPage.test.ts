@@ -14,6 +14,7 @@ const channel = (overrides: Partial<AdminChannel> = {}): AdminChannel => ({
   youTube: { state: 'onYouTube', checkedAt: '2026-10-12T08:00:00Z', reason: null, refreshedAt: '2026-10-12T08:00:00Z' },
   videos: { notChecked: 4, onYouTube: 100, unlisted: 6, private: 2, retryLater: 9, gone: 21 },
   subscription: null,
+  size: { videos: 125_500_000_000, shorts: 0, streams: 2_300_000_000 },
   ...overrides,
 })
 
@@ -71,6 +72,16 @@ describe('ChannelAdminPage', () => {
     expect(second).toHaveTextContent('Gone')
     expect(second).toHaveTextContent('removed by the uploader')
     expect(screen.getByText('134 videos')).toBeInTheDocument()
+  })
+
+  it('says the size of its files, in all and by the types it has files of (2.2.0)', async () => {
+    routes()
+    render(ChannelAdminPage, { id })
+
+    const size = (await screen.findByText('Size', { selector: 'dt' })).nextElementSibling
+    expect(size).toHaveTextContent('127.8 GB')
+    expect(size).toHaveTextContent('Videos 125.5 GB · Streams 2.3 GB')
+    expect(size).not.toHaveTextContent('Shorts')
   })
 
   it('keeps the explanations behind each zone\'s "?"', async () => {

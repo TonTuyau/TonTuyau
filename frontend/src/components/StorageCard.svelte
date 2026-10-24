@@ -1,25 +1,9 @@
-<script lang="ts" module>
-  /**
-   * The storage the dashboard shows (2.2.0, a mockup: the API doesn't give it yet; docs/PLAN_2.2.0.md proposes
-   * `storage` in GET /api/admin/dashboard). Sizes in bytes.
-   */
-  export interface Storage {
-    /** The disk the videos folder is on; null when it can't be read (a share that doesn't say). */
-    disk: { total: number; free: number } | null
-    /** TonTuyau's videos on it, by type: their files' sizes, and how many. */
-    types: { type: VideoType; bytes: number; count: number }[]
-    /** The YouTube page's threshold: under this many bytes free, the zone warns (2.2.0 plan, question 3); 0: never. */
-    minFree: number
-    /** Below the threshold, the downloads don't run (the other setting); false: they go on, only the warning. */
-    holdDownloads: boolean
-  }
-</script>
-
 <script lang="ts">
-  // The dashboard's storage zone (2.2.0 mockup): the free space of the videos folder's disk first, then the disk as a
+  // The dashboard's storage zone (2.2.0): the free space of the videos folder's disk first, then the disk as a
   // bar (TonTuyau's videos by type, the disk's other files, the free space), each part with its size and its share of
-  // the disk. Under the YouTube page's threshold, it warns, and says whether the downloads wait.
-  import type { VideoType } from '../lib/api/types'
+  // the disk. Under the YouTube page's threshold (0: never), it warns, and says whether the downloads wait. A disk that
+  // doesn't say its free space (a share): TonTuyau's videos alone.
+  import type { Storage, VideoType } from '../lib/api/types'
   import { formatBytes } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import type { TextKey } from '../lib/i18n/types'

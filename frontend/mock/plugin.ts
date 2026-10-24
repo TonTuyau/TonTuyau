@@ -189,7 +189,7 @@ function controlPage(state: State, url: URL): MockResponse {
 <p>Scenario: ${link('scenario=normal', 'normal')} ${link('scenario=empty', 'empty library')} ${link('scenario=error', 'every /api call fails (500)')}
 ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('scenario=offline', 'no answer at all (connection dropped)')}</p>
 <p>Admin: <b>${state.admin.loggedIn ? 'logged in as admin' : 'logged out'}</b> ${link('admin=on', 'log in as admin')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>)</p>
-<p>Disk (2.2.0 mockup, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
+<p>Disk (2.2.0, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>
 <p><a href="/">← back to the app</a></p>`
   return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body }

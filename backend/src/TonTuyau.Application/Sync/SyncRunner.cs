@@ -121,7 +121,9 @@ public sealed partial class SyncRunner(
     /// <param name="channelId">
     /// The full sync of this channel alone ("Download everything" on its page); null: of every subscribed channel.
     /// </param>
-    /// <exception cref="SyncRefusedException">TonTuyau isn't subscribed to that channel.</exception>
+    /// <exception cref="SyncRefusedException">
+    /// TonTuyau isn't subscribed to that channel; or the disk space is under the threshold, set to wait (2.2.0).
+    /// </exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public async Task<StartedRun> StartYouTubeSyncAsync(
         bool full,
@@ -130,15 +132,12 @@ public sealed partial class SyncRunner(
         string? channelId = null)
     {
         SyncMode mode = full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync;
-        if (channelId is not null)
+        if (channelId is not null && !full)
         {
-            if (!full)
-            {
-                throw new ArgumentException("Only the full sync is of one channel.", nameof(channelId));
-            }
-
-            await refresh.CheckAsync(mode, channelId, CancellationToken.None).ConfigureAwait(false);
+            throw new ArgumentException("Only the full sync is of one channel.", nameof(channelId));
         }
+
+        await refresh.CheckAsync(mode, channelId ?? "", CancellationToken.None).ConfigureAwait(false);
 
         return await QueueAsync(mode, channelId, trigger, startedBy).ConfigureAwait(false);
     }

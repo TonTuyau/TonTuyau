@@ -2,8 +2,8 @@
   // The YouTube page's download settings (2.0, B6): the format a download asks yt-dlp for, in its own syntax (checked
   // here for one line, not empty, not too long; a format that picks nothing fails the download, saying why), and the
   // tabs a channel added gets when none is named ("Add a channel", the browser extension). Saved apart from the reading
-  // settings (which stay as they are); onsaved: the page reads them again. 2.2.0 mockup (docs/PLAN_2.2.0.md): the disk
-  // space, under which the dashboard warns, and whether the downloads then run; the API doesn't have them yet.
+  // settings (which stay as they are); onsaved: the page reads them again. 2.2.0: the disk space, under which the
+  // dashboard warns, and whether the downloads then run.
   import { api, ApiError } from '../lib/api/client'
   import type { ChannelTabs, YouTubeSettings } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -11,18 +11,15 @@
   import Button from './Button.svelte'
   import HelpButton from './HelpButton.svelte'
 
-  /** 2.2.0 mockup: the disk space settings, which the API doesn't give yet. */
-  type Settings = YouTubeSettings & { minFreeGb?: number; holdBelowMinFree?: boolean }
-
-  let { current, onsaved }: { current: Settings; onsaved: () => Promise<void> } = $props()
+  let { current, onsaved }: { current: YouTubeSettings; onsaved: () => Promise<void> } = $props()
 
   const MAX_FORMAT = 200
 
   // The form follows what's saved, until it's changed here (each change a new value).
   let format = $derived(current.downloadFormat)
   let tabs = $derived<ChannelTabs>({ ...current.defaultTabs })
-  let minFree = $derived<number | null>(current.minFreeGb ?? 50)
-  let hold = $derived(current.holdBelowMinFree ?? true)
+  let minFree = $derived<number | null>(current.minFreeGb)
+  let hold = $derived(current.holdBelowMinFree)
   let minFreeInvalid = $state(false)
   let formatInvalid = $state(false)
   let pending = $state(false)
@@ -120,9 +117,9 @@
   </form>
   <p class="hint">
     {t('youTube.downloads.saved', { format: current.downloadFormat, tabs: tabsText(current.defaultTabs) })}
-    {(current.minFreeGb ?? 50) > 0
-      ? t((current.holdBelowMinFree ?? true) ? 'youTube.downloads.savedHold' : 'youTube.downloads.savedWarn', {
-          gb: current.minFreeGb ?? 50,
+    {current.minFreeGb > 0
+      ? t(current.holdBelowMinFree ? 'youTube.downloads.savedHold' : 'youTube.downloads.savedWarn', {
+          gb: current.minFreeGb,
         })
       : t('youTube.downloads.savedNever')}
   </p>
@@ -196,7 +193,7 @@
     gap: var(--space-2);
   }
 
-  /* The disk space (2.2.0 mockup): the threshold on a line, the switch under it. */
+  /* The disk space (2.2.0): the threshold on a line, the switch under it. */
   .space {
     flex-direction: column;
     gap: var(--space-2);

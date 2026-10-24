@@ -376,7 +376,7 @@ export interface paths {
         query?: {
           /** @description Words of the channel's name, accents and case ignored, 1–100 characters. */
           q?: string
-          /** @description name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default). */
+          /** @description name | videos | shorts | streams | gone | private | unlisted | retryLater | notChecked | total (default) | size. */
           sort?:
             | 'name'
             | 'videos'
@@ -388,6 +388,7 @@ export interface paths {
             | 'retryLater'
             | 'notChecked'
             | 'total'
+            | 'size'
           /** @description asc | desc; default: asc for name, desc for a count. */
           order?: 'asc' | 'desc'
           /** @description true: only the channels with videos gone from YouTube. */
@@ -3715,6 +3716,7 @@ export interface components {
       youTube: components['schemas']['YouTubeStatusResponse']
       videos: components['schemas']['YouTubeStateCounts']
       subscription: null | components['schemas']['SubscriptionResponse']
+      size: components['schemas']['VideoCounts']
     }
     AdminVideoResponse: {
       video: components['schemas']['VideoCard']
@@ -3786,6 +3788,8 @@ export interface components {
       notChecked: number
       /** Format: int64 */
       total: number
+      /** Format: int64 */
+      size: number
     }
     Chapter: {
       /** Format: double */
@@ -3845,6 +3849,7 @@ export interface components {
       lastSync: null | string
       totals: components['schemas']['LibraryTotals']
       playTime: components['schemas']['PlayTime']
+      storage: components['schemas']['Storage']
     }
     DownloadFailureResponse: {
       videoId: string
@@ -4075,6 +4080,19 @@ export interface components {
     SendCookieRequest: {
       cookies: null | string
     }
+    Storage: {
+      disk: null | components['schemas']['StorageDisk']
+      types: components['schemas']['TypeStorage'][]
+      /** Format: int64 */
+      minFree: number
+      holdDownloads: boolean
+    }
+    StorageDisk: {
+      /** Format: int64 */
+      total: number
+      /** Format: int64 */
+      free: number
+    }
     SubscriptionRequest: {
       videos: null | boolean
       shorts: null | boolean
@@ -4148,6 +4166,13 @@ export interface components {
       share: number
       /** Format: int64 */
       averageSeconds: number
+    }
+    TypeStorage: {
+      type: components['schemas']['VideoType']
+      /** Format: int64 */
+      bytes: number
+      /** Format: int64 */
+      count: number
     }
     VideoCard: {
       id: string
@@ -4250,6 +4275,9 @@ export interface components {
       syncEveryMinutes: null | number
       downloadFormat?: null | string
       defaultTabs?: null | components['schemas']['ChannelTabsRequest']
+      /** Format: int32 */
+      minFreeGb?: null | number
+      holdBelowMinFree?: null | boolean
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
@@ -4263,6 +4291,9 @@ export interface components {
       syncEveryMinutes: number
       downloadFormat: string
       defaultTabs: components['schemas']['ChannelTabsResponse']
+      /** Format: int32 */
+      minFreeGb: number
+      holdBelowMinFree: boolean
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string

@@ -79,6 +79,12 @@ export type ImportPeriod = NonNullable<QueryOf<'/api/admin/dashboard/imports'>['
 
 export type TypePlayTime = Schemas['TypePlayTime']
 
+/**
+ * The dashboard's storage (2.2.0): the videos folder's disk (null when it doesn't say), the videos' files by type, and
+ * the YouTube page's threshold, in bytes.
+ */
+export type Storage = Schemas['Storage']
+
 export type ChannelTotals = Schemas['ChannelTotals']
 
 /**

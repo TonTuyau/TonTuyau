@@ -2,7 +2,7 @@
 Feature: A channel's admin page
   GET /api/admin/channels/{id} and /api/admin/channels/{id}/videos (contract v1.12, TonTuyau 1.5): the channel and its
   videos as TonTuyau knows them on YouTube (not checked, on YouTube, retry later, gone), latest published first, by
-  state or by words. Refreshing them is a task. An admin's session only.
+  state or by words, and (2.2.0) the sizes of its files by type. Refreshing them is a task. An admin's session only.
 
   Background:
     Given the channels:
@@ -10,11 +10,11 @@ Feature: A channel's admin page
       | tomcooks | Tom Cooks | on YouTube |
       | zeste    | Zeste     |            |
     And the videos:
-      | key     | title                      | channel  | type  | published  | youtube     |
-      | huiles  | Les huiles de cuisson      | tomcooks | video | 2026-09-01 | on YouTube  |
-      | poulet  | Le poulet rôti du dimanche | tomcooks | video | 2026-09-03 | gone        |
-      | morteau | La saucisse de Morteau     | tomcooks | short | 2026-09-05 | retry later |
-      | creme   | Crème brûlée               | tomcooks | video | 2026-09-07 |             |
+      | key     | title                      | channel  | type  | published  | youtube     | size      |
+      | huiles  | Les huiles de cuisson      | tomcooks | video | 2026-09-01 | on YouTube  | 300000000 |
+      | poulet  | Le poulet rôti du dimanche | tomcooks | video | 2026-09-03 | gone        | 200000000 |
+      | morteau | La saucisse de Morteau     | tomcooks | short | 2026-09-05 | retry later | 15000000  |
+      | creme   | Crème brûlée               | tomcooks | video | 2026-09-07 |             | 100000000 |
 
   Scenario: Nobody logged in gets a 401
     When I request "/api/admin/channels/{channel:tomcooks}" with my session
@@ -27,11 +27,13 @@ Feature: A channel's admin page
     And I request "/api/admin/channels/{channel:tomcooks}" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
-    And the answer has exactly the fields "channel, youTube, videos, subscription"
+    And the answer has exactly the fields "channel, youTube, videos, subscription, size"
     And "channel.name" is "Tom Cooks"
     And "channel.videoCounts.videos" is "3"
     And "youTube.state" is "onYouTube"
     And 'videos' is '{"notChecked":1,"onYouTube":1,"unlisted":0,"private":0,"retryLater":1,"gone":1}'
+    # 2.2.0: its files' sizes, by type.
+    And 'size' is '{"videos":600000000,"shorts":15000000,"streams":0}'
 
   Scenario: Its videos, latest published first, each with its state on YouTube
     When I log in as the admin

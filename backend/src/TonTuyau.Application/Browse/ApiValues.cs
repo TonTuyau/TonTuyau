@@ -169,6 +169,7 @@ public static class ApiValues
         ["retryLater"] = DashboardChannelSort.RetryLater,
         ["notChecked"] = DashboardChannelSort.NotChecked,
         ["total"] = DashboardChannelSort.Total,
+        ["size"] = DashboardChannelSort.Size,
     };
 
     public static readonly Table<SortDirection> SortDirections = new()
