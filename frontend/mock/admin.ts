@@ -171,6 +171,8 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
       holdMinutes: 60,
       syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
+      // 2.2.0 mockup: the disk space settings.
+      ...{ minFreeGb: 50, holdBelowMinFree: true },
       defaultTabs: allTabs,
       changedBy: null,
       changedAt: null,
@@ -247,13 +249,36 @@ const TB = 1e12
  * 2.2.0 mockup (docs/PLAN_2.2.0.md): the storage, from the fixtures' file sizes; the disk 1 TB, 412 GB free (or almost
  * full, or not saying, as /__mock sets it); TonTuyau's own data made up.
  */
+/** 2.2.0 mockup: the disk space settings, kept with the others (not in the API's type yet). */
+function space(state: AdminMockState): { minFreeGb: number; holdBelowMinFree: boolean } {
+  const settings = state.settings as YouTubeSettings & { minFreeGb?: number; holdBelowMinFree?: boolean }
+  return { minFreeGb: settings.minFreeGb ?? 50, holdBelowMinFree: settings.holdBelowMinFree ?? true }
+}
+
+/** The disk's free space, as /__mock sets it; null when it doesn't say. */
+const freeOf = (state: AdminMockState) =>
+  state.disk === 'unknown' ? null : state.disk === 'low' ? 0.04 * TB : 0.412 * TB
+
+/** Downloads don't run (2.2.0 plan): under the threshold, the switch on. */
+function held(state: AdminMockState): boolean {
+  const free = freeOf(state)
+  const { minFreeGb, holdBelowMinFree } = space(state)
+  return holdBelowMinFree && minFreeGb > 0 && free !== null && free < minFreeGb * 1e9
+}
+
 function storage(db: MockDb, state: AdminMockState) {
   const types = (['video', 'short', 'stream'] as const).map((type) => {
     const own = db.videos.filter((video) => video.type === type)
     return { type, bytes: own.reduce((sum, video) => sum + video.fileSize, 0), count: own.length }
   })
-  const disk = state.disk === 'unknown' ? null : { total: TB, free: state.disk === 'low' ? 0.04 * TB : 0.412 * TB }
-  return { disk, types, data: { art: 6.1e9, database: 1.24e9, index: 3.4e9 } }
+  const free = freeOf(state)
+  const { minFreeGb, holdBelowMinFree } = space(state)
+  return {
+    disk: free === null ? null : { total: TB, free },
+    types,
+    minFree: minFreeGb * 1e9,
+    holdDownloads: holdBelowMinFree,
+  }
 }
 
 function dashboard(db: MockDb, state: AdminMockState): Dashboard {
@@ -322,7 +347,12 @@ function tasks(state: AdminMockState, now: number): Tasks {
     tasks: (['import', 'youTubeSync', 'youTubeFullSync', 'refreshAll'] as const).map((task) => ({
       task,
       lastRun: last(task),
-      unavailable: task === 'import' ? 'TubeArchivist isn’t set (TONTUYAU_TA_URL, TONTUYAU_TA_TOKEN).' : null,
+      unavailable:
+        task === 'import'
+          ? 'TubeArchivist isn’t set (TONTUYAU_TA_URL, TONTUYAU_TA_TOKEN).'
+          : (task === 'youTubeSync' || task === 'youTubeFullSync') && held(state)
+            ? `Under ${space(state).minFreeGb} GB free on the videos folder’s disk: the downloads wait until space is freed (the YouTube page sets it).`
+            : null,
       next: task === 'youTubeSync' ? new Date(now + state.settings.syncEveryMinutes * 60_000).toISOString() : null,
     })),
     onHold: state.runs.filter((run) => run.state === 'onHold'),
@@ -482,6 +512,14 @@ export function handleAdmin(
           gone: counts('gone'),
         },
         subscription: state.subscriptions.get(channel.id) ?? null,
+        // 2.2.0 mockup: its files' sizes by type.
+        ...{
+          size: {
+            videos: own.filter((video) => video.type === 'video').reduce((sum, video) => sum + video.fileSize, 0),
+            shorts: own.filter((video) => video.type === 'short').reduce((sum, video) => sum + video.fileSize, 0),
+            streams: own.filter((video) => video.type === 'stream').reduce((sum, video) => sum + video.fileSize, 0),
+          },
+        },
       }
       return { status: 200, body: answer }
     }

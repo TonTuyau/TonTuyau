@@ -11,7 +11,8 @@ function storage(overrides: Partial<Storage> = {}): Storage {
       { type: 'short', bytes: 0.34 * GB, count: 41 },
       { type: 'stream', bytes: 238 * GB, count: 28 },
     ],
-    data: { art: 6.1 * GB, database: 1.24 * GB, index: 3.4 * GB },
+    minFree: 50 * GB,
+    holdDownloads: true,
     ...overrides,
   }
 }
@@ -28,14 +29,25 @@ describe('StorageCard (2.2.0 mockup)', () => {
     expect(zone).toHaveTextContent('Shorts 41 files 340 MB < 0.1%')
     // The disk's other files: what isn't TonTuyau's nor free.
     expect(zone).toHaveTextContent('Other files on the disk 224.2 GB 22.4%')
-    expect(zone).toHaveTextContent('images 6.1 GB · database 1.2 GB · search index 3.4 GB')
     expect(within(zone).queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('warns when less than a tenth of the disk is free', () => {
+  it("warns under the YouTube page's threshold, saying the downloads wait when they're set to", () => {
     render(StorageCard, { storage: storage({ disk: { total: 1000 * GB, free: 40 * GB } }) })
 
-    expect(screen.getByRole('status')).toHaveTextContent('Little space left on the disk')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Under 50 GB free: the downloads don't run until space is freed.",
+    )
+  })
+
+  it('warns only, when the downloads are set to go on; never at a threshold of 0', () => {
+    const low = { total: 1000 * GB, free: 40 * GB }
+    const { unmount } = render(StorageCard, { storage: storage({ disk: low, holdDownloads: false }) })
+    expect(screen.getByRole('status')).toHaveTextContent('Under 50 GB free: the next downloads may not fit.')
+    unmount()
+
+    render(StorageCard, { storage: storage({ disk: low, minFree: 0 }) })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it("shows TonTuyau's videos alone when the disk doesn't say its free space", () => {
