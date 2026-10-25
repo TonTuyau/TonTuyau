@@ -69,6 +69,12 @@ public sealed class DownloadSteps(ScenarioState state, YouTubeSteps youTube, Aut
     public Task Download(string target) =>
         auth.PostWithSession($"/api/admin/tasks/downloadVideo/runs?target={Uri.EscapeDataString(target)}");
 
+    [When("I download {string} with the format {string} with my session")]
+    public Task DownloadWithFormat(string target, string format) =>
+        auth.PostWithSession(
+            $"/api/admin/tasks/downloadVideo/runs?target={Uri.EscapeDataString(target)}"
+                + $"&format={Uri.EscapeDataString(format)}");
+
     [Then("the video {string} has the file TonTuyau downloaded, and is still TubeArchivist's")]
     public async Task DownloadedFile(string name)
     {

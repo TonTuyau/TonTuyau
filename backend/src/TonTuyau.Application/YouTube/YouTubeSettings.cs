@@ -63,6 +63,14 @@ public sealed record YouTubeSettings(
 
     public const string DefaultDownloadFormat = "bestvideo+bestaudio";
 
+    /// <summary>What yt-dlp's format must be, said the same wherever one is given.</summary>
+    public static readonly string DownloadFormatRule =
+        $"must be yt-dlp's format, on one line, 1 to {MaxDownloadFormatLength} characters.";
+
+    /// <summary>Whether a format, trimmed, can be one: on one line, 1 to <see cref="MaxDownloadFormatLength"/> long.</summary>
+    public static bool IsDownloadFormat(string format) =>
+        format.Length is > 0 and <= MaxDownloadFormatLength && !format.Any(char.IsControl);
+
     public const int DefaultSyncEveryMinutes = 6 * 60;
 
     /// <summary>A week: a longer wait is better done by hand.</summary>

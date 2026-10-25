@@ -213,6 +213,12 @@ public sealed record SyncRun
     /// </summary>
     public int? SkipReadDays { get; init; }
 
+    /// <summary>
+    /// A download (2.2, "Try again" with a format): yt-dlp's format for this video this once; null: the YouTube
+    /// settings' one.
+    /// </summary>
+    public string? DownloadFormat { get; init; }
+
     /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
     public ChannelTabs? Tabs { get; init; }
 

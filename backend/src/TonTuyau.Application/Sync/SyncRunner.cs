@@ -80,16 +80,23 @@ public sealed partial class SyncRunner(
     /// </summary>
     /// <param name="target">The video's or channel's YouTube id.</param>
     /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <param name="downloadFormat">A download (2.2): yt-dlp's format this once; null: the YouTube settings' one.</param>
     /// <exception cref="SyncRefusedException">Not one of the library (a refresh), one of it already (a download).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public async Task<StartedRun> StartRefreshAsync(
         SyncMode mode,
         string target,
         SyncTrigger trigger,
-        string? startedBy = null)
+        string? startedBy = null,
+        string? downloadFormat = null)
     {
+        if (downloadFormat is not null && mode != SyncMode.DownloadVideo)
+        {
+            throw new ArgumentException("Only a download takes a format.", nameof(downloadFormat));
+        }
+
         await refresh.CheckAsync(mode, target, CancellationToken.None).ConfigureAwait(false);
-        return await QueueAsync(mode, target, trigger, startedBy).ConfigureAwait(false);
+        return await QueueAsync(mode, target, trigger, startedBy, downloadFormat: downloadFormat).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -243,7 +250,8 @@ public sealed partial class SyncRunner(
         SyncTrigger trigger,
         string? startedBy,
         ChannelTabs? tabs = null,
-        int? skipReadDays = null)
+        int? skipReadDays = null,
+        string? downloadFormat = null)
     {
         TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset now = clock.GetUtcNow();
@@ -258,6 +266,7 @@ public sealed partial class SyncRunner(
             Target = target,
             Tabs = tabs,
             SkipReadDays = skipReadDays,
+            DownloadFormat = downloadFormat,
             Outcome = SyncOutcome.Queued,
         };
         lock (_gate)

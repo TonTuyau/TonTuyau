@@ -1028,11 +1028,13 @@ public sealed partial class YouTubeRefreshService(
     {
         CancellationToken ct = context.CancellationToken;
         string folder = media.NewDownloadFolder(videoId);
+        // "Try again" with a format (2.2): the run's, this once.
+        string format = context.Run.DownloadFormat ?? read.DownloadFormat;
         try
         {
-            LogDownloading(videoId, read.DownloadFormat);
+            LogDownloading(videoId, format);
             YouTubeLookup<YouTubeDownload> lookup = await youTube
-                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, read.RetryWithoutCookie, ct)
+                .DownloadVideoAsync(videoId, format, folder, read.RetryWithoutCookie, ct)
                 .ConfigureAwait(false);
             if (lookup.Answer == YouTubeAnswer.Refused)
             {

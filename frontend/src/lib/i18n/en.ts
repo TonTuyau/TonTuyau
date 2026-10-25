@@ -580,6 +580,8 @@ export const en = {
     "Videos the YouTube syncs listed and couldn't download, with why. After 3 failures the regular sync leaves one; Try again, Download everything and the full sync still try it.",
   'failed.tryAll': 'Try them all again',
   'failed.tryAgain': 'Try again',
+  'failed.format': "yt-dlp's format for this try",
+  'failed.formatHint': "The video's formats are listed in the failed run's log.",
   'failed.asked': 'Asked: it runs when its turn comes.',
   'failed.video': 'Video',
   'failed.reason': 'Why',

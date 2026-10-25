@@ -2783,6 +2783,14 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

@@ -115,6 +115,25 @@ Feature: Downloading a video from YouTube
     And the media folder has the file of the video "omega-04" with 4096 bytes
     And the video "omega-04" and its channel "omega" are TonTuyau's own
 
+  Scenario: Try again with a format: this download takes it, the YouTube page's stays as it was
+    Given YouTube has the video "omega-07": the title "Au format choisi", 5 views
+    When I download "omega-07___" with the format "  398+251  " with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "398+251" for the video "omega-07"
+    Given YouTube has the video "omega-08": the title "Au format de la page", 5 views
+    When I download "omega-08___" with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "bestvideo+bestaudio" for the video "omega-08"
+
+  Scenario: A format given this once that is blank counts as none: the YouTube page's
+    Given YouTube has the video "omega-09": the title "Au format vide", 5 views
+    When I download "omega-09___" with the format "   " with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "bestvideo+bestaudio" for the video "omega-09"
+
   Scenario: From the Tasks page, a video of the library with its file is refused
     When I download "alpha-01___" with my session
     Then the response status is 409
