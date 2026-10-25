@@ -74,6 +74,13 @@ internal static class Problems
     public static ProblemDetails NotLoggedIn() =>
         Of(StatusCodes.Status401Unauthorized, "not-logged-in", "Not logged in", "Nobody is logged in.");
 
+    /// <summary>The LDAP directory can't be reached (2.3.0): a directory account's password change waits.</summary>
+    public static ProblemDetails DirectoryUnavailable(string why) => Of(
+        StatusCodes.Status503ServiceUnavailable,
+        "directory-unavailable",
+        "The directory doesn't answer",
+        $"The LDAP directory can't be reached: {why} Try again later.");
+
     /// <summary>The library for logged-in accounts only (2.3.0), asked without a session.</summary>
     public static ProblemDetails AccountsOnly() => Of(
         StatusCodes.Status401Unauthorized,

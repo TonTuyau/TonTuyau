@@ -68,13 +68,14 @@ describe('the admin area', () => {
     expect(api.requests('/api/admin/dashboard')).toHaveLength(0)
   })
 
-  it('leads an admin to the accounts (2.3.0)', async () => {
+  it('leads an admin to the accounts and the LDAP directory (2.3.0)', async () => {
     fakeApi({ '/api/auth/me': loggedIn(), '/api/admin/dashboard': dashboard() })
     goTo('/admin')
     render(App)
 
     const nav = await screen.findByRole('navigation', { name: 'Administration' })
     expect(within(nav).getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/admin/accounts')
+    expect(within(nav).getByRole('link', { name: 'LDAP' })).toHaveAttribute('href', '/admin/ldap')
   })
 
   it('goes to the login page when the session ended meanwhile (the API answers 401)', async () => {

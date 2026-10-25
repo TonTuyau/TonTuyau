@@ -1,7 +1,7 @@
 // @vitest-environment node
 // The mock's accounts (2.3.0): logging in, the roles, the admin's changes and one's own password, as contract v2.13.
 import { describe, expect, it } from 'vitest'
-import type { Account, Me } from '../src/lib/api/types.ts'
+import type { Account, LdapSettings, LdapTest, Me } from '../src/lib/api/types.ts'
 import { accountsMockState, handleAccounts, logInAs } from './accounts.ts'
 
 const NOW = Date.parse('2026-10-26T08:00:00Z')
@@ -23,7 +23,7 @@ describe('the accounts mock', () => {
 
     expect(login('admin', 'wrong')).toBe(401)
     expect(login('invité', 'invité')).toBe(401) // disabled
-    expect(login('marie', 'marie')).toBe(401) // the directory's
+    expect(login('marie', 'wrong')).toBe(401) // the directory's, a wrong password
     expect(login('camille', 'camille')).toBe(204)
     expect(call<Me>('GET', '/api/auth/me').body).toEqual({
       username: 'camille',
@@ -74,15 +74,43 @@ describe('the accounts mock', () => {
   it('says whether the library is for accounts only, and lets an admin set it', () => {
     const { state, call } = setup()
 
-    expect(call('GET', '/api/auth/access').body).toEqual({ accountsOnly: false })
+    expect(call('GET', '/api/auth/access').body).toMatchObject({ accountsOnly: false })
     logInAs(state, 'admin')
     expect(call('PUT', '/api/admin/settings/access', {}).status).toBe(400)
     expect(call('PUT', '/api/admin/settings/access', { accountsOnly: true }).body).toMatchObject({
       accountsOnly: true,
       changedBy: 'admin',
     })
-    expect(call('GET', '/api/auth/access').body).toEqual({ accountsOnly: true })
+    expect(call('GET', '/api/auth/access').body).toMatchObject({ accountsOnly: true })
     logInAs(state, 'user')
     expect(call('PUT', '/api/admin/settings/access', { accountsOnly: false }).status).toBe(403)
+  })
+
+  it('logs a directory account in by its filters, and changes its password in the directory', () => {
+    const { state, call, login } = setup()
+
+    expect(login('zoe', 'zoe')).toBe(401) // in no group
+    expect(login('camille', 'camille')).toBe(204) // the local account, not the directory's
+    expect(call<Me>('GET', '/api/auth/me').body.source).toBe('local')
+    expect(login('paul', 'paul')).toBe(204)
+    expect(call<Me>('GET', '/api/auth/me').body).toMatchObject({ role: 'admin', source: 'ldap' })
+    expect(call('PUT', '/api/auth/me/password', { current: 'paul', password: 'nouveau mot' }).status).toBe(204)
+    expect(login('paul', 'nouveau mot')).toBe(204)
+    state.ldapUp = false
+    expect(login('marie', 'marie')).toBe(401)
+  })
+
+  it('tests the LDAP settings, each test on its own, and lists the names that clash', () => {
+    const { state, call } = setup()
+    logInAs(state, 'admin')
+    const settings = call<LdapSettings>('GET', '/api/admin/settings/ldap').body
+    const test = (body: object) =>
+      call<LdapTest>('POST', '/api/admin/settings/ldap/test', { ...settings, ...body }).body
+
+    expect(settings.clashes).toEqual(['camille'])
+    expect(test({ test: 'admins' }).found?.accounts.map((found) => found.username)).toEqual(['paul'])
+    expect(test({ test: 'users' }).found?.accounts.find((found) => found.username === 'camille')?.clash).toBe(true)
+    expect(test({ test: 'name', username: 'marie' }).user).toMatchObject({ role: 'user', refused: null })
+    expect(call('GET', '/api/auth/access').body).toMatchObject({ passwordResetUrl: settings.passwordResetUrl })
   })
 })

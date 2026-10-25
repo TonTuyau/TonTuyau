@@ -6,7 +6,7 @@ import { createReadStream, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Connect, Plugin } from 'vite'
-import { logInAs, sessionAccount } from './accounts.ts'
+import { directory, logInAs, sessionAccount } from './accounts.ts'
 import { adminMockState, handleAdmin, type AdminMockState } from './admin.ts'
 import { artFor } from './art.ts'
 import { emptyDb, fixturesDir, loadDb, type MockDb, type VideoFixture } from './db.ts'
@@ -173,6 +173,10 @@ function controlPage(state: State, url: URL): MockResponse {
   if (url.searchParams.get('user') === 'on') {
     logInAs(state.admin.accounts, 'user')
   }
+  const ldap = url.searchParams.get('ldap')
+  if (ldap === 'up' || ldap === 'down') {
+    state.admin.accounts.ldapUp = ldap === 'up'
+  }
   const only = url.searchParams.get('private')
   if (only === 'on' || only === 'off') {
     state.admin.accounts.access = { ...state.admin.accounts.access, accountsOnly: only === 'on' }
@@ -199,6 +203,8 @@ function controlPage(state: State, url: URL): MockResponse {
 ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('scenario=offline', 'no answer at all (connection dropped)')}</p>
 <p>Account: <b>${describeSession(state)}</b> ${link('admin=on', 'log in as admin')} ${link('user=on', 'log in as a user')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>, <a href="/account">My account</a>)</p>
 <p>Log in yourself with a local account: admin or camille (the password is the name).</p>
+<p>LDAP directory (2.3.0): <b>${state.admin.accounts.ldapUp ? 'answering' : 'down'}</b> ${link('ldap=up', 'answering')} ${link('ldap=down', 'down')}<br>
+Its people (password = the name): ${directory.map((person) => `${person.uid} (${person.groups.map((group) => group.split(',')[0]).join(', ') || 'no group'})`).join(', ')}. camille clashes: a local account has that name.</p>
 <p>Who can watch (2.3.0): <b>${state.admin.accounts.access.accountsOnly ? 'logged-in accounts only' : 'everyone'}</b> ${link('private=on', 'accounts only')} ${link('private=off', 'everyone')}</p>
 <p>Disk (2.2.0, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>

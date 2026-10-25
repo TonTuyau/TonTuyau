@@ -24,6 +24,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 
     public DbSet<AccessSettingsRow> AccessSettings => Set<AccessSettingsRow>();
 
+    public DbSet<LdapSettingsRow> LdapSettings => Set<LdapSettingsRow>();
+
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public DbSet<RunLogRow> RunLogLines => Set<RunLogRow>();
@@ -101,6 +103,29 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             access.Property(a => a.AccountsOnly).HasColumnName("accounts_only");
             access.Property(a => a.ChangedBy).HasColumnName("changed_by");
             access.Property(a => a.ChangedAt).HasColumnName("changed_at");
+        });
+        modelBuilder.Entity<LdapSettingsRow>(ldap =>
+        {
+            ldap.ToTable("ldap_settings");
+            ldap
+                .Property(l => l.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            ldap.Property(l => l.Enabled).HasColumnName("enabled");
+            ldap.Property(l => l.Url).HasColumnName("url");
+            ldap.Property(l => l.StartTls).HasColumnName("start_tls");
+            ldap.Property(l => l.CaCertificate).HasColumnName("ca_certificate");
+            ldap.Property(l => l.BindDn).HasColumnName("bind_dn");
+            ldap.Property(l => l.BindPassword).HasColumnName("bind_password");
+            ldap.Property(l => l.BaseDn).HasColumnName("base_dn");
+            ldap.Property(l => l.UidAttribute).HasColumnName("uid_attribute");
+            ldap.Property(l => l.UsernameAttribute).HasColumnName("username_attribute");
+            ldap.Property(l => l.UsersFilter).HasColumnName("users_filter");
+            ldap.Property(l => l.AdminsFilter).HasColumnName("admins_filter");
+            ldap.Property(l => l.PasswordAttribute).HasColumnName("password_attribute");
+            ldap.Property(l => l.PasswordResetUrl).HasColumnName("password_reset_url");
+            ldap.Property(l => l.ChangedBy).HasColumnName("changed_by");
+            ldap.Property(l => l.ChangedAt).HasColumnName("changed_at");
         });
         modelBuilder.Entity<DataProtectionKey>(key =>
         {

@@ -144,6 +144,15 @@ public static class ApiValues
         ["user"] = AccountRole.User,
     };
 
+    /// <summary>The LDAP page's tests (2.3.0), each on its own.</summary>
+    public static readonly Table<LdapTestKind> LdapTestKinds = new()
+    {
+        ["connection"] = LdapTestKind.Connection,
+        ["admins"] = LdapTestKind.Admins,
+        ["users"] = LdapTestKind.Users,
+        ["name"] = LdapTestKind.Name,
+    };
+
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()
     {
         ["browserExtension"] = ApiKeyKind.BrowserExtension,

@@ -1,8 +1,8 @@
 <script lang="ts">
-  // /account (2.3.0): the logged-in account's own page, from the account menu. Its name, role and where it's from; a
-  // local account changes its password (the current one, the new one twice: its other sessions end within minutes,
-  // this one stays); a directory account is told the directory changes it. Nobody logged in: the login page, then
-  // back here.
+  // /account (2.3.0): the logged-in account's own page, from the account menu. Its name, role and where it's from; it
+  // changes its password (the current one, the new one twice: its other sessions end within minutes, this one stays):
+  // a local account's here, a directory one's in the directory (the service account changes it there, for everything
+  // that uses the directory). Nobody logged in: the login page, then back here.
   import Button from '../components/Button.svelte'
   import { api, ApiError } from '../lib/api/client'
   import { auth } from '../lib/auth.svelte'
@@ -87,36 +87,35 @@
       </dl>
     </section>
 
-    {#if auth.source === 'ldap'}
-      <p class="note">{t('myAccount.ldap')}</p>
-    {:else}
-      <form class="card" {onsubmit} novalidate aria-labelledby="{uid}-password">
-        <h2 id="{uid}-password">{t('myAccount.password')}</h2>
-        <!-- The name, for the browser's password manager. -->
-        <input class="visually-hidden" autocomplete="username" value={auth.username} readonly tabindex="-1" />
-        <div class="field">
-          <label for="{uid}-current">{t('myAccount.current')}</label>
-          <input id="{uid}-current" type="password" bind:value={current} autocomplete="current-password" />
-        </div>
-        <div class="field">
-          <label for="{uid}-new">{t('accounts.newPassword')}</label>
-          <input id="{uid}-new" type="password" bind:value={password} autocomplete="new-password" />
-        </div>
-        <div class="field">
-          <label for="{uid}-again">{t('accounts.passwordAgain')}</label>
-          <input id="{uid}-again" type="password" bind:value={again} autocomplete="new-password" />
-        </div>
-        <div>
-          <Button type="submit" variant="primary" disabled={saving}>{t('myAccount.change')}</Button>
-        </div>
-        {#if problem}
-          <p class="refused" role="alert">{problem}</p>
-        {/if}
-        {#if done}
-          <p class="done" role="status">{t('myAccount.changed')}</p>
-        {/if}
-      </form>
-    {/if}
+    <form class="card" {onsubmit} novalidate aria-labelledby="{uid}-password">
+      <h2 id="{uid}-password">{t('myAccount.password')}</h2>
+      {#if auth.source === 'ldap'}
+        <p class="note">{t('myAccount.ldap')}</p>
+      {/if}
+      <!-- The name, for the browser's password manager. -->
+      <input class="visually-hidden" autocomplete="username" value={auth.username} readonly tabindex="-1" />
+      <div class="field">
+        <label for="{uid}-current">{t('myAccount.current')}</label>
+        <input id="{uid}-current" type="password" bind:value={current} autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label for="{uid}-new">{t('accounts.newPassword')}</label>
+        <input id="{uid}-new" type="password" bind:value={password} autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="{uid}-again">{t('accounts.passwordAgain')}</label>
+        <input id="{uid}-again" type="password" bind:value={again} autocomplete="new-password" />
+      </div>
+      <div>
+        <Button type="submit" variant="primary" disabled={saving}>{t('myAccount.change')}</Button>
+      </div>
+      {#if problem}
+        <p class="refused" role="alert">{problem}</p>
+      {/if}
+      {#if done}
+        <p class="done" role="status">{t('myAccount.changed')}</p>
+      {/if}
+    </form>
   {/if}
 </div>
 

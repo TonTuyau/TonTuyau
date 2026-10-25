@@ -5,6 +5,10 @@ import type {
   AccessSettings,
   Account,
   AccountChange,
+  LdapSettings,
+  LdapSettingsChange,
+  LdapTest,
+  LdapTestRequest,
   AdminChannel,
   AdminVideo,
   ApiKey,
@@ -449,6 +453,20 @@ export const api = {
 
   saveAccessSettings(accountsOnly: boolean): Promise<AccessSettings> {
     return putFor('/api/admin/settings/access', { accountsOnly })
+  },
+
+  /** The LDAP directory (2.3.0): its settings, never the service account's password. */
+  ldapSettings(signal?: AbortSignal): Promise<LdapSettings> {
+    return get('/api/admin/settings/ldap', {}, signal)
+  },
+
+  saveLdapSettings(settings: LdapSettingsChange): Promise<LdapSettings> {
+    return putFor('/api/admin/settings/ldap', settings)
+  },
+
+  /** One test of the settings as typed (not saved): the connection, a filter, or a name. */
+  testLdap(request: LdapTestRequest): Promise<LdapTest> {
+    return postFor('/api/admin/settings/ldap/test', request)
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

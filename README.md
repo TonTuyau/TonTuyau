@@ -321,6 +321,14 @@ last enabled local admin stays, and nobody disables nor deletes their own accoun
 on **My account** (the account menu). A session is checked against its account every 5 minutes: an account disabled,
 deleted, or whose role or password changed, is logged out then.
 
+**An LDAP directory** (2.3.0, the admin's **LDAP** page: LLDAP, OpenLDAP…), set as Jellyfin's LDAP plugin is (its
+values copy over): a service account, the base DN, the UID and username attributes, a users filter and an admins filter
+(e.g. `(memberof=cn=tontuyau,ou=groups,dc=example,dc=com)`). A name that isn't a local account's then logs in with its
+directory password: an admin if the admins filter finds it, a user if the users filter does. Its role is read again at
+each login and every few minutes; it changes its password on My account (the service account changes it in the
+directory: on LLDAP, put it in `lldap_password_manager`). The page tests the connection, each filter and a name on
+their own, and lists the local names the directory has too (only the local account logs in with such a name).
+
 **Who can watch** (2.3.0, the Accounts page): everyone who reaches TonTuyau (the default: browsing needs no login), or
 the logged-in accounts only. Then anyone else sees the login page, and the API, thumbnails, videos and streams answer
 only to a session; the browser extension's API key and `/health` keep working.

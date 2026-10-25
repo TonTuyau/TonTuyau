@@ -85,6 +85,26 @@ export type Access = Schemas['AccessResponse']
 /** `GET/PUT /api/admin/settings/access` (2.3.0): who can watch, who set it and when. */
 export type AccessSettings = Schemas['AccessSettingsResponse']
 
+/**
+ * `GET /api/admin/settings/ldap` (2.3.0): the LDAP directory, as Jellyfin's LDAP plugin takes it. The service account's
+ * password never comes back (`bindPasswordSet` says whether one is stored).
+ */
+export type LdapSettings = Schemas['LdapSettingsResponse']
+
+/** `PUT /api/admin/settings/ldap` (2.3.0): what the page edits; `bindPassword` absent keeps the one stored. */
+export type LdapSettingsChange = Omit<LdapSettings, 'bindPasswordSet' | 'clashes' | 'changedBy' | 'changedAt'> & {
+  bindPassword?: string
+}
+
+/** The LDAP page's tests (2.3.0), each on its own. */
+export type LdapTestKind = 'connection' | 'admins' | 'users' | 'name'
+
+/** `POST /api/admin/settings/ldap/test` (2.3.0): the settings as typed (not saved), the test, the name for `name`. */
+export type LdapTestRequest = LdapSettingsChange & { test: LdapTestKind; username?: string }
+
+/** What one test found: the connection, who a filter finds (`found`), or a name looked up (`user`). */
+export type LdapTest = Schemas['LdapTestResponse']
+
 /** `GET /api/admin/dashboard` (1.2): the library's totals and play time, and every channel. */
 export type Dashboard = Schemas['DashboardResponse']
 

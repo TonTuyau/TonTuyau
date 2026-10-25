@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TonTuyau.Application.Accounts;
 using TonTuyau.Application.Browse;
 using TonTuyau.Application.Media;
 using TonTuyau.Application.Validation;
@@ -40,6 +41,10 @@ internal sealed partial class ErrorMiddleware(RequestDelegate next, ILogger<Erro
         catch (ConflictException ex)
         {
             await WriteAsync(context, Problems.Conflict(ex.Message)).ConfigureAwait(false);
+        }
+        catch (LdapUnavailableException ex)
+        {
+            await WriteAsync(context, Problems.DirectoryUnavailable(ex.Message)).ConfigureAwait(false);
         }
         catch (YtdlpInstallException ex)
         {

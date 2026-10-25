@@ -3150,6 +3150,165 @@
         }
       }
     },
+    "/api/admin/settings/ldap": {
+      "get": {
+        "tags": ["Settings"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LdapSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LdapSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LdapSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LdapSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings/ldap/test": {
+      "post": {
+        "tags": ["Settings"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LdapTestRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LdapTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LdapTestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/tasks": {
       "get": {
         "tags": ["Tasks"],
@@ -4000,11 +4159,14 @@
   "components": {
     "schemas": {
       "AccessResponse": {
-        "required": ["accountsOnly"],
+        "required": ["accountsOnly", "passwordResetUrl"],
         "type": "object",
         "properties": {
           "accountsOnly": {
             "type": "boolean"
+          },
+          "passwordResetUrl": {
+            "type": ["null", "string"]
           }
         }
       },
@@ -4697,6 +4859,269 @@
       "ImportStep": {
         "enum": ["run", "day", "week", "month"],
         "type": "string"
+      },
+      "LdapFoundAccountResponse": {
+        "required": ["username", "displayName", "clash"],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": ["null", "string"]
+          },
+          "clash": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LdapFoundResponse": {
+        "required": ["total", "accounts"],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LdapFoundAccountResponse"
+            }
+          }
+        }
+      },
+      "LdapSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "url": {
+            "type": ["null", "string"]
+          },
+          "startTls": {
+            "type": "boolean",
+            "default": false
+          },
+          "caCertificate": {
+            "type": ["null", "string"]
+          },
+          "bindDn": {
+            "type": ["null", "string"]
+          },
+          "bindPassword": {
+            "type": ["null", "string"]
+          },
+          "baseDn": {
+            "type": ["null", "string"]
+          },
+          "uidAttribute": {
+            "type": ["null", "string"]
+          },
+          "usernameAttribute": {
+            "type": ["null", "string"]
+          },
+          "usersFilter": {
+            "type": ["null", "string"]
+          },
+          "adminsFilter": {
+            "type": ["null", "string"]
+          },
+          "passwordAttribute": {
+            "type": ["null", "string"]
+          },
+          "passwordResetUrl": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "LdapSettingsResponse": {
+        "required": [
+          "enabled",
+          "url",
+          "startTls",
+          "caCertificate",
+          "bindDn",
+          "bindPasswordSet",
+          "baseDn",
+          "uidAttribute",
+          "usernameAttribute",
+          "usersFilter",
+          "adminsFilter",
+          "passwordAttribute",
+          "passwordResetUrl",
+          "clashes",
+          "changedBy",
+          "changedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "startTls": {
+            "type": "boolean"
+          },
+          "caCertificate": {
+            "type": ["null", "string"]
+          },
+          "bindDn": {
+            "type": "string"
+          },
+          "bindPasswordSet": {
+            "type": "boolean"
+          },
+          "baseDn": {
+            "type": "string"
+          },
+          "uidAttribute": {
+            "type": "string"
+          },
+          "usernameAttribute": {
+            "type": "string"
+          },
+          "usersFilter": {
+            "type": "string"
+          },
+          "adminsFilter": {
+            "type": "string"
+          },
+          "passwordAttribute": {
+            "type": "string"
+          },
+          "passwordResetUrl": {
+            "type": ["null", "string"]
+          },
+          "clashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "changedBy": {
+            "type": ["null", "string"]
+          },
+          "changedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
+      "LdapTestRequest": {
+        "type": "object",
+        "properties": {
+          "test": {
+            "type": ["null", "string"]
+          },
+          "username": {
+            "type": ["null", "string"]
+          },
+          "url": {
+            "type": ["null", "string"]
+          },
+          "startTls": {
+            "type": "boolean",
+            "default": false
+          },
+          "caCertificate": {
+            "type": ["null", "string"]
+          },
+          "bindDn": {
+            "type": ["null", "string"]
+          },
+          "bindPassword": {
+            "type": ["null", "string"]
+          },
+          "baseDn": {
+            "type": ["null", "string"]
+          },
+          "uidAttribute": {
+            "type": ["null", "string"]
+          },
+          "usernameAttribute": {
+            "type": ["null", "string"]
+          },
+          "usersFilter": {
+            "type": ["null", "string"]
+          },
+          "adminsFilter": {
+            "type": ["null", "string"]
+          },
+          "passwordAttribute": {
+            "type": ["null", "string"]
+          },
+          "passwordResetUrl": {
+            "type": ["null", "string"]
+          }
+        }
+      },
+      "LdapTestResponse": {
+        "required": ["connected", "error", "found", "user"],
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": ["null", "string"]
+          },
+          "found": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LdapFoundResponse"
+              }
+            ]
+          },
+          "user": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LdapTestUserResponse"
+              }
+            ]
+          }
+        }
+      },
+      "LdapTestUserResponse": {
+        "required": ["dn", "displayName", "user", "admin", "role", "refused"],
+        "type": "object",
+        "properties": {
+          "dn": {
+            "type": ["null", "string"]
+          },
+          "displayName": {
+            "type": ["null", "string"]
+          },
+          "user": {
+            "type": "boolean"
+          },
+          "admin": {
+            "type": "boolean"
+          },
+          "role": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccountRole"
+              }
+            ]
+          },
+          "refused": {
+            "type": ["null", "string"]
+          }
+        }
       },
       "LibraryOrigin": {
         "enum": ["tubeArchivist", "tonTuyau"],

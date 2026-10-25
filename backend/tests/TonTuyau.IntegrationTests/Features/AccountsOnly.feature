@@ -17,7 +17,7 @@ Feature: A library for its accounts only
 
   Scenario: Open by default: anyone watches
     When I request "/api/auth/access"
-    Then the answer has exactly the fields "accountsOnly"
+    Then the answer has exactly the fields "accountsOnly, passwordResetUrl"
     And "accountsOnly" is "false"
     When I request "/api/videos/{video:huiles}"
     Then the response status is 200

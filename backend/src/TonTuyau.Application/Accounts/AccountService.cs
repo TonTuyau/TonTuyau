@@ -11,12 +11,16 @@ namespace TonTuyau.Application.Accounts;
 /// The accounts' rules: the first account at the first start, the password check at login, and (2.3.0) the admin's
 /// accounts page (local accounts made, their role and password changed, disabled, deleted), one's own password, and
 /// a session checked again. The last enabled local admin stays (with the directory down or misconfigured, it still
-/// logs in), and nobody disables nor deletes their own account. The database calls are
-/// <see cref="IAccountRepository"/>'s.
+/// logs in), and nobody disables nor deletes their own account. A name that isn't a local account's logs in from the
+/// LDAP directory when it's on (its row made at its first login, its role the directory's filters', read again at
+/// each login and session check); a name both local and the directory's is the local account's only. The database
+/// calls are <see cref="IAccountRepository"/>'s, the directory's <see cref="ILdapDirectory"/>'s.
 /// </summary>
 public sealed partial class AccountService(
     IAccountRepository accounts,
     IPasswordHasher hasher,
+    LdapService ldap,
+    ILdapDirectory directory,
     TonTuyauOptions options,
     TimeProvider clock,
     ILogger<AccountService> logger)
@@ -67,8 +71,8 @@ public sealed partial class AccountService(
     }
 
     /// <summary>
-    /// The account these credentials open (its last login set to now), or null for any refusal: a disabled account, or
-    /// one of the directory (its password isn't TonTuyau's), too.
+    /// The account these credentials open (its last login set to now), or null for any refusal: a disabled account
+    /// too. A name that isn't a local account's is the directory's, when it's on.
     /// </summary>
     public async Task<Account?> LoginAsync(string? username, string? password, CancellationToken cancellationToken)
     {
@@ -81,14 +85,99 @@ public sealed partial class AccountService(
             : null;
         // Always one check, even for a refusal decided already: the same cost whatever the reason.
         bool valid = hasher.Verify(password ?? "", account?.PasswordHash ?? _unknownUserHash.Value);
-        if (account is null || !valid || account.Disabled || account.Source != AccountSource.Local)
+        if (account?.Source == AccountSource.Local)
+        {
+            return !valid || account.Disabled
+                ? null
+                : await LoggedInAsync(account, cancellationToken).ConfigureAwait(false);
+        }
+
+        return wellFormed
+            ? await LoginFromDirectoryAsync(username!, password!, cancellationToken).ConfigureAwait(false)
+            : null;
+    }
+
+    /// <summary>
+    /// A login from the directory (2.3.0): the account found, a filter finding it, its password right, its name no
+    /// local account's; its row made or brought up to date (its name, its role: a new role, a new stamp).
+    /// </summary>
+    private async Task<Account?> LoginFromDirectoryAsync(
+        string username,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        LdapSettings settings = await ldap.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (!settings.Enabled)
         {
             return null;
         }
 
+        try
+        {
+            LdapMatch? match = await ldap.MatchAsync(settings, username, cancellationToken).ConfigureAwait(false);
+            if (match?.Role is not AccountRole role)
+            {
+                return null;
+            }
+
+            string name = match.Person.Username;
+            Account? existing = await accounts.FindByUsernameAsync(name, cancellationToken).ConfigureAwait(false);
+            bool clash = existing?.Source == AccountSource.Local
+                || (existing is null && await accounts.NameTakenAsync(name, cancellationToken).ConfigureAwait(false));
+            if (clash)
+            {
+                LogClash(name);
+                return null;
+            }
+
+            bool right = await directory
+                .CheckPasswordAsync(settings, match.Person.Dn, password, cancellationToken)
+                .ConfigureAwait(false);
+            if (!right || existing?.Disabled == true)
+            {
+                return null;
+            }
+
+            Account account = existing is null
+                ? await accounts
+                    .AddAsync(Directory(match.Person, role), cancellationToken)
+                    .ConfigureAwait(false)
+                : await UpToDateAsync(existing, match.Person, role, cancellationToken).ConfigureAwait(false);
+            return await LoggedInAsync(account, cancellationToken).ConfigureAwait(false);
+        }
+        catch (LdapUnavailableException ex)
+        {
+            LogDirectoryUnavailable(ex.Message);
+            return null;
+        }
+    }
+
+    private async Task<Account> LoggedInAsync(Account account, CancellationToken cancellationToken)
+    {
         DateTimeOffset now = clock.GetUtcNow();
         await accounts.SetLastLoginAsync(account.Id, now, cancellationToken).ConfigureAwait(false);
         return account with { LastLoginAt = now };
+    }
+
+    /// <summary>A directory account's row with its name and role as the directory says them now.</summary>
+    private async Task<Account> UpToDateAsync(
+        Account account,
+        LdapPerson person,
+        AccountRole role,
+        CancellationToken cancellationToken)
+    {
+        Account current = account with
+        {
+            DisplayName = person.DisplayName,
+            Role = role,
+            Stamp = role == account.Role ? account.Stamp : NewStamp(),
+        };
+        if (current != account)
+        {
+            await accounts.UpdateAsync(current, cancellationToken).ConfigureAwait(false);
+        }
+
+        return current;
     }
 
     /// <summary>
@@ -98,7 +187,47 @@ public sealed partial class AccountService(
     public async Task<Account?> SessionAsync(int id, string? stamp, CancellationToken cancellationToken)
     {
         Account? account = await accounts.FindAsync(id, cancellationToken).ConfigureAwait(false);
-        return account is null || account.Disabled || stamp is null || account.Stamp != stamp ? null : account;
+        if (account is null || account.Disabled || stamp is null || account.Stamp != stamp)
+        {
+            return null;
+        }
+
+        return account.Source == AccountSource.Ldap
+            ? await DirectorySessionAsync(account, cancellationToken).ConfigureAwait(false)
+            : account;
+    }
+
+    /// <summary>
+    /// A directory account's session (2.3.0): the directory asked again. Off, or not finding it in a filter any more:
+    /// it ends; a new role: the row takes it, and the session ends (logged in again, it has it). The directory not
+    /// answering keeps it.
+    /// </summary>
+    private async Task<Account?> DirectorySessionAsync(Account account, CancellationToken cancellationToken)
+    {
+        LdapSettings settings = await ldap.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (!settings.Enabled)
+        {
+            return null;
+        }
+
+        try
+        {
+            LdapMatch? match = await ldap
+                .MatchAsync(settings, account.Username, cancellationToken)
+                .ConfigureAwait(false);
+            if (match?.Role is not AccountRole role)
+            {
+                return null;
+            }
+
+            Account current = await UpToDateAsync(account, match.Person, role, cancellationToken).ConfigureAwait(false);
+            return current.Stamp == account.Stamp ? current : null;
+        }
+        catch (LdapUnavailableException ex)
+        {
+            LogDirectoryUnavailable(ex.Message);
+            return account;
+        }
     }
 
     public Task<Account?> FindAsync(int id, CancellationToken cancellationToken) =>
@@ -141,6 +270,11 @@ public sealed partial class AccountService(
         if (await accounts.NameTakenAsync(name, cancellationToken).ConfigureAwait(false))
         {
             throw new ConflictException($"An account is already called “{name}”.");
+        }
+
+        if (await DirectoryHasAsync(name, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ConflictException($"The directory has “{name}”: a local account can't have its name too.");
         }
 
         Account account = await accounts
@@ -236,12 +370,16 @@ public sealed partial class AccountService(
     }
 
     /// <summary>
-    /// A local account changes its own password (2.3.0, My account), the current one first. Its other sessions end at
-    /// their next check; the caller keeps its own with the account given back (its new stamp).
+    /// An account changes its own password (2.3.0, My account), the current one first: a local account's here, a
+    /// directory one's in the directory (changed by its service account). Its other sessions end at their next check;
+    /// the caller keeps its own with the account given back (its new stamp).
     /// </summary>
     /// <exception cref="NotFoundException">The account is gone.</exception>
     /// <exception cref="ValidationException">The current password is wrong; the new one too short or too long.</exception>
-    /// <exception cref="ConflictException">A directory account: its password is the directory's.</exception>
+    /// <exception cref="ConflictException">
+    /// A directory account while the directory is off or no longer has it, or the directory refusing the change.
+    /// </exception>
+    /// <exception cref="LdapUnavailableException">The directory can't be reached.</exception>
     public async Task<Account> ChangeOwnPasswordAsync(
         int id,
         string? current,
@@ -249,9 +387,10 @@ public sealed partial class AccountService(
         CancellationToken cancellationToken)
     {
         Account account = await accounts.FindAsync(id, cancellationToken).ConfigureAwait(false) ?? throw NotFound(id);
-        if (account.Source != AccountSource.Local)
+        if (account.Source == AccountSource.Ldap)
         {
-            throw new ConflictException("Your account is the directory's: its password is changed there.");
+            return await ChangeDirectoryPasswordAsync(account, current, password, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         ValidationErrors errors = new();
@@ -270,6 +409,87 @@ public sealed partial class AccountService(
         LogOwnPassword(changed.Username);
         return changed;
     }
+
+    private async Task<Account> ChangeDirectoryPasswordAsync(
+        Account account,
+        string? current,
+        string? password,
+        CancellationToken cancellationToken)
+    {
+        LdapSettings settings = await ldap.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (!settings.Enabled)
+        {
+            throw new ConflictException("The directory is off: your password can't be changed from TonTuyau now.");
+        }
+
+        ValidationErrors errors = new();
+        CheckPassword(errors, "password", password);
+        errors.ThrowIfAny(RequestRules.Subject);
+        LdapPerson person = await directory
+            .FindUserAsync(settings, account.Username, filter: null, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new ConflictException($"The directory no longer has “{account.Username}”.");
+        bool currentRight = !string.IsNullOrEmpty(current)
+            && current.Length <= MaxPasswordLength
+            && await directory
+                .CheckPasswordAsync(settings, person.Dn, current, cancellationToken)
+                .ConfigureAwait(false);
+        if (!currentRight)
+        {
+            throw new ValidationException(RequestRules.Subject, [new ValidationError("current", "is wrong.")]);
+        }
+
+        try
+        {
+            await directory
+                .ChangePasswordAsync(settings, person.Dn, current!, password!, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (LdapRefusedException ex)
+        {
+            throw new ConflictException($"The directory refused the new password: {ex.Message}", ex);
+        }
+
+        Account changed = account with { Stamp = NewStamp() };
+        await accounts.UpdateAsync(changed, cancellationToken).ConfigureAwait(false);
+        LogOwnPassword(changed.Username);
+        return changed;
+    }
+
+    /// <summary>Whether the directory (on) has this name; it can't be asked: no (logged).</summary>
+    private async Task<bool> DirectoryHasAsync(string username, CancellationToken cancellationToken)
+    {
+        LdapSettings settings = await ldap.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (!settings.Enabled)
+        {
+            return false;
+        }
+
+        try
+        {
+            return await directory
+                .FindUserAsync(settings, username, filter: null, cancellationToken)
+                .ConfigureAwait(false) is not null;
+        }
+        catch (LdapUnavailableException ex)
+        {
+            LogDirectoryUnavailable(ex.Message);
+            return false;
+        }
+    }
+
+    private Account Directory(LdapPerson person, AccountRole role) =>
+        new(
+            0,
+            person.Username,
+            person.DisplayName,
+            role,
+            AccountSource.Ldap,
+            Disabled: false,
+            PasswordHash: null,
+            NewStamp(),
+            clock.GetUtcNow(),
+            LastLoginAt: null);
 
     private Account Local(string username, string password, AccountRole role) =>
         new(
@@ -337,4 +557,12 @@ public sealed partial class AccountService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Username} changed their password.")]
     private partial void LogOwnPassword(string username);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Refused a directory login as {Username}: a local account has that name.")]
+    private partial void LogClash(string username);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The LDAP directory can't be asked: {Why}")]
+    private partial void LogDirectoryUnavailable(string why);
 }
