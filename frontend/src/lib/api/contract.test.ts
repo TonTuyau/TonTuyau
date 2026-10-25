@@ -98,6 +98,7 @@ const contract: Endpoint[] = [
     params: { q: { kind: 'text', min: 1, max: 100 }, size: size(20) },
   },
   { doc: '/api/auth/me', path: /^\/api\/auth\/me$/, params: {} },
+  { doc: '/api/auth/access', path: /^\/api\/auth\/access$/, params: {} },
   { doc: '/api/admin/dashboard', path: /^\/api\/admin\/dashboard$/, params: {} },
   {
     doc: '/api/admin/dashboard/channels',
@@ -254,7 +255,8 @@ function answer(url: URL): unknown {
   }
   if (path === '/api/videos') return pageOf(url, card(url))
   // Logged in, so that the admin area asks for its dashboard too.
-  if (path === '/api/auth/me') return { username: 'admin' }
+  if (path === '/api/auth/me') return { username: 'admin', displayName: null, role: 'admin', source: 'local' }
+  if (path === '/api/auth/access') return { accountsOnly: false }
   if (path === '/api/admin/dashboard') return dashboard()
   if (path === '/api/admin/dashboard/channels') return page(dashboardChannels())
   if (path === '/api/admin/dashboard/imports') return importHistory()

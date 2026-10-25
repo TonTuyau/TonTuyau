@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
-import type { Account } from '../lib/api/types'
+import type { AccessSettings, Account } from '../lib/api/types'
 import { auth } from '../lib/auth.svelte'
 import { fakeApi, goTo, problemResponse } from '../test/fakeApi'
 import AccountsPage from './AccountsPage.svelte'
@@ -22,6 +22,8 @@ const accounts = (): Account[] => [
   account({ id: 2, username: 'camille', role: 'user', lastLoginAt: null }),
   account({ id: 4, username: 'marie', displayName: 'Marie Dubois', role: 'user', source: 'ldap' }),
 ]
+
+const everyone: AccessSettings = { accountsOnly: false, changedBy: null, changedAt: null }
 
 /** The table's row of an account. */
 const rowOf = (name: string) =>
@@ -51,7 +53,7 @@ describe('AccountsPage (2.3.0)', () => {
   })
 
   it('lists the accounts: role, where from, state, last login; the last local admin and one’s own stay', async () => {
-    fakeApi({ '/api/admin/accounts': accounts() })
+    fakeApi({ '/api/admin/accounts': accounts(), '/api/admin/settings/access': everyone })
     render(AccountsPage)
 
     await screen.findByRole('table', { name: 'The accounts' })
@@ -78,6 +80,7 @@ describe('AccountsPage (2.3.0)', () => {
 
   it('keeps the last local admin even when it isn’t one’s own account', async () => {
     fakeApi({
+      '/api/admin/settings/access': everyone,
       '/api/admin/accounts': [
         account({ id: 9, username: 'root' }),
         account({ id: 1, username: 'admin', role: 'user' }),
@@ -95,6 +98,7 @@ describe('AccountsPage (2.3.0)', () => {
     const sent: { method: string; body: unknown }[] = []
     let list = accounts()
     fakeApi({
+      '/api/admin/settings/access': everyone,
       '/api/admin/accounts': route(
         () => list,
         sent,
@@ -135,6 +139,7 @@ describe('AccountsPage (2.3.0)', () => {
   it('says why a name is refused (taken, whatever the case)', async () => {
     const user = userEvent.setup()
     fakeApi({
+      '/api/admin/settings/access': everyone,
       '/api/admin/accounts': (_url: URL, init?: RequestInit) =>
         init?.method === 'POST' ? problemResponse(409, 'An account is already called “Camille”.') : accounts(),
     })
@@ -154,6 +159,7 @@ describe('AccountsPage (2.3.0)', () => {
     const user = userEvent.setup()
     const sent: { method: string; body: unknown }[] = []
     fakeApi({
+      '/api/admin/settings/access': everyone,
       '/api/admin/accounts': accounts(),
       '/api/admin/accounts/2': route(accounts, sent, () => account({ id: 2, username: 'camille' })),
     })
@@ -180,5 +186,28 @@ describe('AccountsPage (2.3.0)', () => {
         { method: 'DELETE', body: undefined },
       ]),
     )
+  })
+
+  it('opens the library to accounts only, and says who changed it', async () => {
+    const user = userEvent.setup()
+    const sent: { method: string; body: unknown }[] = []
+    fakeApi({
+      '/api/admin/accounts': accounts(),
+      '/api/admin/settings/access': route(
+        () => everyone,
+        sent,
+        () => ({ accountsOnly: true, changedBy: 'admin', changedAt: '2026-10-25T09:00:00Z' }),
+      ),
+    })
+    render(AccountsPage)
+
+    const accountsOnly = await screen.findByRole('radio', { name: /Only logged-in accounts/ })
+    expect(screen.getByRole('radio', { name: /Everyone who reaches TonTuyau/ })).toBeChecked()
+    await user.click(accountsOnly)
+
+    expect(await screen.findByText(/^Changed .* · admin$/)).toBeInTheDocument()
+    expect(sent).toEqual([{ method: 'PUT', body: { accountsOnly: true } }])
+    expect(accountsOnly).toBeChecked()
+    expect(auth.accountsOnly).toBe(true)
   })
 })

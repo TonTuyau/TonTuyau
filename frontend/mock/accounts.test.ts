@@ -70,4 +70,19 @@ describe('the accounts mock', () => {
     expect(login('camille', 'camille')).toBe(401)
     expect(login('camille', 'nouveau mot')).toBe(204)
   })
+
+  it('says whether the library is for accounts only, and lets an admin set it', () => {
+    const { state, call } = setup()
+
+    expect(call('GET', '/api/auth/access').body).toEqual({ accountsOnly: false })
+    logInAs(state, 'admin')
+    expect(call('PUT', '/api/admin/settings/access', {}).status).toBe(400)
+    expect(call('PUT', '/api/admin/settings/access', { accountsOnly: true }).body).toMatchObject({
+      accountsOnly: true,
+      changedBy: 'admin',
+    })
+    expect(call('GET', '/api/auth/access').body).toEqual({ accountsOnly: true })
+    logInAs(state, 'user')
+    expect(call('PUT', '/api/admin/settings/access', { accountsOnly: false }).status).toBe(403)
+  })
 })

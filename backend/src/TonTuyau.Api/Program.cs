@@ -61,6 +61,8 @@ app.UseStatusCodePages(context => Problems.WriteAsync(
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+// 2.3.0: a library for logged-in accounts only closes to anyone else.
+app.UseMiddleware<AccountsOnlyGate>();
 
 // The OpenAPI document (/openapi/v1.json) is what the front generates its types from; the Scalar UI to try the
 // API (/scalar) is for development only (R2-25).

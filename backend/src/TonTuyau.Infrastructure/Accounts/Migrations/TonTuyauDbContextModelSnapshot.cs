@@ -45,6 +45,29 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("data_protection_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Accounts.AccessSettingsRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AccountsOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("accounts_only");
+
+                    b.Property<DateTimeOffset?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("changed_by");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("access_settings", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.Accounts.AccountRow", b =>
                 {
                     b.Property<int>("Id")

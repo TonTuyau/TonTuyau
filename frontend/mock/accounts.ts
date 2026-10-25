@@ -1,6 +1,6 @@
-// The mock's accounts (2.3.0): logging in as a local account, the roles, the admin's accounts page and one's own
-// password, as contract v2.13 says. In memory, for the dev server only.
-import type { Account, AccountChange, Me, NewAccount, Role } from '../src/lib/api/types.ts'
+// The mock's accounts (2.3.0): logging in as a local account, the roles, the admin's accounts page, one's own
+// password, and who can watch, as contract v2.13 says. In memory, for the dev server only.
+import type { Access, AccessSettings, Account, AccountChange, Me, NewAccount, Role } from '../src/lib/api/types.ts'
 
 export interface MockAnswer {
   status: number
@@ -17,6 +17,8 @@ export interface AccountsMockState {
   nextId: number
   /** The account logged in, or null. */
   session: number | null
+  /** Who can watch (`/__mock?private=on`: the logged-in accounts only). */
+  access: AccessSettings
 }
 
 const unauthorized: MockAnswer = { status: 401, body: problem(401, 'Not logged in', 'Nobody is logged in.') }
@@ -58,6 +60,7 @@ export function accountsMockState(now: number = Date.now()): AccountsMockState {
     ],
     nextId: 5,
     session: null,
+    access: { accountsOnly: false, changedBy: null, changedAt: null },
   }
 }
 
@@ -161,7 +164,7 @@ function change(
 }
 
 /**
- * Answers /api/auth/* and /api/admin/accounts; null for any other path. The admin paths need an admin's session (401
+ * Answers /api/auth/*, /api/admin/accounts and /api/admin/settings/access; null for any other path. The admin paths need an admin's session (401
  * nobody, 403 a user), as the backend's.
  */
 export function handleAccounts(
@@ -174,6 +177,9 @@ export function handleAccounts(
   const path = url.pathname.replace(/\/+$/, '')
   const current = sessionAccount(state)
   if (path === '/api/auth/me' && method === 'GET') return current ? { status: 200, body: me(current) } : unauthorized
+  if (path === '/api/auth/access') {
+    return { status: 200, body: { accountsOnly: state.access.accountsOnly } satisfies Access }
+  }
   if (path === '/api/auth/login' && method === 'POST') return login(state, body, now)
   if (path === '/api/auth/logout' && method === 'POST') {
     state.session = null
@@ -183,9 +189,21 @@ export function handleAccounts(
     return current ? changeOwnPassword(state, current, body) : unauthorized
   }
 
-  if (path !== '/api/admin/accounts' && !path.startsWith('/api/admin/accounts/')) return null
+  const ours =
+    path === '/api/admin/accounts' || path.startsWith('/api/admin/accounts/') || path === '/api/admin/settings/access'
+  if (!ours) return null
   if (!current) return unauthorized
   if (current.role !== 'admin') return { status: 403, body: problem(403, 'Forbidden', 'This is for admins.') }
+
+  if (path === '/api/admin/settings/access' && method === 'GET') return { status: 200, body: state.access }
+  if (path === '/api/admin/settings/access' && method === 'PUT') {
+    const { accountsOnly } = (body ?? {}) as Partial<Access>
+    if (typeof accountsOnly !== 'boolean') {
+      return { status: 400, body: problem(400, 'Invalid request', 'accountsOnly: is required: true or false.') }
+    }
+    state.access = { accountsOnly, changedBy: current.username, changedAt: new Date(now).toISOString() }
+    return { status: 200, body: state.access }
+  }
 
   if (path === '/api/admin/accounts' && method === 'GET') {
     return { status: 200, body: [...state.list].sort((a, b) => a.username.localeCompare(b.username)).map(view) }

@@ -676,7 +676,20 @@ export const fr: Dictionary = {
   'login.refused': "Nom d'utilisateur ou mot de passe incorrect.",
   'login.tooMany': 'Trop de tentatives. Réessayez dans une minute.',
 
-  // 2.3.0: accounts and roles.
+  // 2.3.0: accounts and roles; a library for accounts only.
+  'login.accountsOnly': 'Ce TonTuyau est réservé à ses comptes : connectez-vous pour regarder.',
+  'accounts.access': 'Qui peut regarder',
+  'accounts.access.hint':
+    'Tous ceux qui atteignent TonTuyau, ou seulement les comptes connectés : les autres voient alors la page de connexion, et les vidéos, miniatures et flux ne répondent qu’à une session.',
+  'accounts.access.keys':
+    'Les clés d’API de l’extension de navigateur continuent de fonctionner, et /health reste ouvert pour Docker.',
+  'accounts.access.everyone': 'Tous ceux qui atteignent TonTuyau',
+  'accounts.access.everyone.what':
+    'Pas de connexion pour regarder, comme jusqu’ici ; l’administration demande un admin.',
+  'accounts.access.accountsOnly': 'Seulement les comptes connectés',
+  'accounts.access.accountsOnly.what':
+    'Les autres voient la page de connexion : rien de la bibliothèque, pas même une miniature.',
+  'accounts.access.default': 'Tout le monde, par défaut.',
   'myAccount.ldap': 'Votre compte est celui de l’annuaire : son mot de passe se change là-bas.',
   'account.mine': 'Mon compte',
   'admin.accounts': 'Comptes',

@@ -1,5 +1,6 @@
 <script lang="ts">
-  // The admin's accounts (2.3.0). A new local account (a name, its password twice, a role). The accounts, local or
+  // The admin's accounts (2.3.0). Who can watch: everyone who reaches TonTuyau, or the logged-in accounts only (at
+  // once, saying who set it and when). A new local account (a name, its password twice, a role). The accounts, local or
   // from the directory: their role, where they're from, their last login, enabled or not; a local one gets a new role
   // or a new password; any can be disabled, enabled again, deleted (asked first). The last enabled local admin can't
   // be demoted, disabled nor deleted, nor can one's own account: the page says so instead of offering it. A change
@@ -9,9 +10,9 @@
   import HelpButton from '../components/HelpButton.svelte'
   import Skeleton from '../components/Skeleton.svelte'
   import { api, ApiError } from '../lib/api/client'
-  import type { Account, AccountChange, Role } from '../lib/api/types'
+  import type { AccessSettings, Account, AccountChange, Role } from '../lib/api/types'
   import { auth } from '../lib/auth.svelte'
-  import { formatAge } from '../lib/format'
+  import { formatAge, formatDateTime } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { Remote } from '../lib/remote.svelte'
   import { pageTitle } from '../lib/title.svelte'
@@ -21,13 +22,33 @@
   const MIN_PASSWORD = 8
 
   const accounts = new Remote<Account[]>()
+  const access = new Remote<AccessSettings>()
   $effect(() => accounts.run((signal) => api.accounts(signal)))
+  $effect(() => access.run((signal) => api.accessSettings(signal)))
 
   $effect(() => {
-    if (accounts.error?.status === 401) {
+    if (accounts.error?.status === 401 || access.error?.status === 401) {
       auth.expired()
     }
   })
+
+  // ---------------------------------------------------------------- who can watch
+
+  let savingAccess = $state(false)
+  let accessRefused = $state<string | null>(null)
+
+  async function setAccountsOnly(accountsOnly: boolean) {
+    savingAccess = true
+    accessRefused = null
+    try {
+      access.data = await api.saveAccessSettings(accountsOnly)
+      auth.accountsOnly = accountsOnly
+    } catch (error) {
+      accessRefused = t('accounts.refused', { reason: reasonOf(error) })
+    } finally {
+      savingAccess = false
+    }
+  }
 
   // ---------------------------------------------------------------- a new local account
 
@@ -145,6 +166,57 @@
   <header>
     <h1>{t('admin.accounts')}</h1>
   </header>
+
+  <section class="card" aria-labelledby="{uid}-access">
+    <div class="head">
+      <h2 id="{uid}-access">{t('accounts.access')}</h2>
+      <HelpButton zone={t('accounts.access')}>
+        <p>{t('accounts.access.hint')}</p>
+        <p>{t('accounts.access.keys')}</p>
+      </HelpButton>
+    </div>
+    {#if access.status === 'error' && access.error}
+      <ErrorState error={access.error} onretry={() => access.retry()} />
+    {:else if access.data}
+      {@const settings = access.data}
+      <div class="choices" role="radiogroup" aria-labelledby="{uid}-access">
+        <label class="choice">
+          <input
+            type="radio"
+            name="{uid}-access"
+            checked={!settings.accountsOnly}
+            disabled={savingAccess}
+            onchange={() => void setAccountsOnly(false)}
+          />
+          <span>
+            <b>{t('accounts.access.everyone')}</b>
+            <small>{t('accounts.access.everyone.what')}</small>
+          </span>
+        </label>
+        <label class="choice">
+          <input
+            type="radio"
+            name="{uid}-access"
+            checked={settings.accountsOnly}
+            disabled={savingAccess}
+            onchange={() => void setAccountsOnly(true)}
+          />
+          <span>
+            <b>{t('accounts.access.accountsOnly')}</b>
+            <small>{t('accounts.access.accountsOnly.what')}</small>
+          </span>
+        </label>
+      </div>
+      {#if accessRefused}
+        <p class="refused" role="alert">{accessRefused}</p>
+      {/if}
+      <small>
+        {settings.changedAt && settings.changedBy
+          ? t('accounts.changed', { date: formatDateTime(settings.changedAt, i18n.lang), by: settings.changedBy })
+          : t('accounts.access.default')}
+      </small>
+    {/if}
+  </section>
 
   <form class="card" onsubmit={oncreate} novalidate aria-labelledby="{uid}-new">
     <div class="head">
@@ -402,6 +474,26 @@
     background: var(--color-bg-elevated);
   }
 
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .choice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--color-text);
+    font-size: var(--font-size-md);
+  }
+
+  .choice input {
+    height: auto;
+    margin-top: var(--space-1);
+  }
+
+  .choice span,
   .block {
     display: flex;
     flex-direction: column;

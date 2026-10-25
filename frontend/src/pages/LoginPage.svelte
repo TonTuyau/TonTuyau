@@ -2,7 +2,8 @@
   // /login?next=…: username, password (an eye shows it as typed, alpha.3), "Stay logged in" (30 days instead of 8
   // hours). Every refusal shows the same
   // message: nothing tells whether the name exists. Once logged in (or if already), back to `next` when it's a page
-  // of this site, else home.
+  // of this site, else home. 2.3.0: when the library is for accounts only, the app shows it in place of any page
+  // (`gate`), saying so; once logged in, that page shows.
   import Button from '../components/Button.svelte'
   import Icon from '../components/Icon.svelte'
   import Logo from '../components/Logo.svelte'
@@ -12,6 +13,8 @@
   import { router } from '../lib/router/router.svelte'
   import { href, safeNext } from '../lib/router/routes'
   import { pageTitle } from '../lib/title.svelte'
+
+  let { gate = false }: { gate?: boolean } = $props()
 
   let username = $state('')
   let password = $state('')
@@ -55,7 +58,10 @@
     const outcome = await auth.login(username, password, remember)
     busy = false
     if (outcome === 'ok') {
-      router.navigate(next, { replace: true })
+      // Gated, the page asked for shows by itself once logged in.
+      if (router.route.name === 'login') {
+        router.navigate(next, { replace: true })
+      }
       return
     }
     result = outcome
@@ -67,6 +73,9 @@
   <form class="card" {onsubmit}>
     <div class="brand"><Logo /></div>
     <h1>{t('login.title')}</h1>
+    {#if gate || auth.accountsOnly}
+      <p class="gate"><Icon name="lock" />{t('login.accountsOnly')}</p>
+    {/if}
 
     {#if message}
       <p class="message" role="alert">{message}</p>
@@ -116,7 +125,11 @@
     </label>
 
     <div class="actions">
-      <a class="back" href={href.home()}>{t('login.back')}</a>
+      {#if !(gate || auth.accountsOnly)}
+        <a class="back" href={href.home()}>{t('login.back')}</a>
+      {:else}
+        <span></span>
+      {/if}
       <Button type="submit" variant="primary" disabled={busy}>{t('login.submit')}</Button>
     </div>
   </form>
@@ -138,6 +151,14 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .gate {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
   }
 
   .brand {

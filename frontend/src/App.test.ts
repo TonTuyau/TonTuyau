@@ -24,17 +24,51 @@ describe('App shell', () => {
     render(App)
 
     await screen.findByText('The library is empty')
-    expect(api.calls.map((url) => url.pathname).sort()).toEqual(['/api/auth/me', '/api/home'])
+    // 2.3.0: and, once, whether the library is for accounts only.
+    expect(api.calls.map((url) => url.pathname).sort()).toEqual(['/api/auth/access', '/api/auth/me', '/api/home'])
   })
 
-  it('shows the not-found page for an unknown URL, asking the API nothing but who is logged in', () => {
+  it('shows the not-found page for an unknown URL, asking the API nothing but who is logged in', async () => {
     const api = fakeApi({})
     goTo('/no/such/page/here')
 
     render(App)
 
-    expect(screen.getByText("This page isn't available")).toBeInTheDocument()
-    expect(api.calls.map((url) => url.pathname)).toEqual(['/api/auth/me'])
+    expect(await screen.findByText("This page isn't available")).toBeInTheDocument()
+    expect(api.calls.map((url) => url.pathname).sort()).toEqual(['/api/auth/access', '/api/auth/me'])
+  })
+
+  it('shows nobody logged in the login page in place of any page when the library is for accounts only (2.3.0)', async () => {
+    let session = false
+    const api = fakeApi({
+      '/api/auth/access': { accountsOnly: true },
+      '/api/auth/me': () =>
+        session
+          ? { username: 'camille', displayName: null, role: 'user', source: 'local' }
+          : problemResponse(401, 'Nobody is logged in.', 'Not logged in'),
+      '/api/auth/login': () => {
+        session = true
+        return new Response(null, { status: 204 })
+      },
+      '/api/channels': { items: [], nextCursor: null, total: 0 },
+    })
+    goTo('/channels')
+    const user = userEvent.setup()
+    render(App)
+
+    expect(await screen.findByText('This TonTuyau is for its accounts: log in to watch.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Back to TonTuyau' })).toBeNull()
+    expect(screen.queryByRole('search')).toBeNull()
+    expect(api.requests('/api/channels')).toHaveLength(0)
+
+    await user.type(screen.getByLabelText('Username'), 'camille')
+    await user.type(screen.getByLabelText('Password'), 'camille')
+    await user.click(screen.getByRole('button', { name: 'Log in' }))
+
+    // The page asked for, once logged in, at the same address.
+    expect(await screen.findByRole('heading', { name: 'Channels', level: 1 })).toBeInTheDocument()
+    expect(location.pathname).toBe('/channels')
+    expect(api.requests('/api/channels').length).toBeGreaterThan(0)
   })
 
   it('logs in from the top bar and comes back to the same page, logged in', async () => {

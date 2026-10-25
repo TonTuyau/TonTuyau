@@ -40,8 +40,8 @@ same watch page, the same search, on your computer and your phone.
   imports its whole library (read-only), then you can shut it down.
 - 🔌 **One click from YouTube.** With [LaPompe](#-lapompe-the-browser-extension), an "Add to TonTuyau" button sits
   next to Subscribe on YouTube itself.
-- 🔒 **Yours.** No sign-up, no tracking, no cloud ([privacy](PRIVACY.md)). Browsing needs no login; one admin account
-  runs the library, from a dashboard, a Tasks page and a command line.
+- 🔒 **Yours.** No sign-up, no tracking, no cloud ([privacy](PRIVACY.md)). Browsing needs no login, or only your
+  accounts watch; admins run the library, from a dashboard, a Tasks page and a command line.
 
 ## A look around
 
@@ -308,9 +308,9 @@ page, not in `.env`.
 
 ## Logging in
 
-Browsing needs no login. At its first start (no account yet) the backend creates the admin, `TONTUYAU_ADMIN_USER`
-with `TONTUYAU_ADMIN_PASSWORD`; later starts never read them again. Passwords are stored as OWASP recommends (Argon2id,
-19 MiB, 2 passes, a random salt each).
+Browsing needs no login, unless the library is for accounts only (below). At its first start (no account yet) the
+backend creates the admin, `TONTUYAU_ADMIN_USER` with `TONTUYAU_ADMIN_PASSWORD`; later starts never read them again.
+Passwords are stored as OWASP recommends (Argon2id, 19 MiB, 2 passes, a random salt each).
 
 **Log in** (top right) opens a session: an HttpOnly, SameSite=Strict, Secure cookie, valid 8 hours and renewed while
 in use, or 30 days with "Stay logged in". A restart keeps everyone logged in.
@@ -320,6 +320,10 @@ in use, or 30 days with "Stay logged in". A restart keeps everyone logged in.
 last enabled local admin stays, and nobody disables nor deletes their own account. Each one changes its own password
 on **My account** (the account menu). A session is checked against its account every 5 minutes: an account disabled,
 deleted, or whose role or password changed, is logged out then.
+
+**Who can watch** (2.3.0, the Accounts page): everyone who reaches TonTuyau (the default: browsing needs no login), or
+the logged-in accounts only. Then anyone else sees the login page, and the API, thumbnails, videos and streams answer
+only to a session; the browser extension's API key and `/health` keep working.
 
 - **HTTPS**: the cookie is `Secure`, so browsers only keep it over HTTPS (and on `localhost`). Over plain `http://` on
   the LAN, set `TONTUYAU_COOKIE_SECURE=false`.
