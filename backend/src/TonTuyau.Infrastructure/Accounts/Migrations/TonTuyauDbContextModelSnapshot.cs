@@ -58,23 +58,53 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("disabled");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Stamp")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("stamp");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("username");
 
+                    b.Property<string>("UsernameKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("username_key");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.HasIndex("UsernameKey")
                         .IsUnique();
 
                     b.ToTable("accounts", (string)null);

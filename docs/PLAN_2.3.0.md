@@ -96,8 +96,8 @@ Accounts: users besides the admins, from an LDAP directory or made by hand, and 
 ## Delivery
 
 1. The mockup (this branch), reviewed.
-2. Then three PRs into `release/2.3.0`, an alpha after each: **roles, local accounts and My account**; **accounts
-   only**; **LDAP**.
+2. Then three PRs into `release/2.3.0`, an alpha after each: **roles, local accounts and My account**
+   (`work/2.3.0-accounts`, done: contract v2.13); **accounts only**; **LDAP**.
 
 ## Open (to see on the mockup)
 

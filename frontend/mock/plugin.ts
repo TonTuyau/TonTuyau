@@ -6,6 +6,7 @@ import { createReadStream, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Connect, Plugin } from 'vite'
+import { logInAs, sessionAccount } from './accounts.ts'
 import { adminMockState, handleAdmin, type AdminMockState } from './admin.ts'
 import { artFor } from './art.ts'
 import { emptyDb, fixturesDir, loadDb, type MockDb, type VideoFixture } from './db.ts'
@@ -166,7 +167,11 @@ function controlPage(state: State, url: URL): MockResponse {
   }
   const admin = url.searchParams.get('admin')
   if (admin === 'on' || admin === 'off') {
-    state.admin.loggedIn = admin === 'on'
+    logInAs(state.admin.accounts, admin === 'on' ? 'admin' : null)
+  }
+  // 2.3.0: a user's session.
+  if (url.searchParams.get('user') === 'on') {
+    logInAs(state.admin.accounts, 'user')
   }
   const disk = url.searchParams.get('disk')
   if (disk === 'normal' || disk === 'low' || disk === 'unknown') {
@@ -188,11 +193,17 @@ function controlPage(state: State, url: URL): MockResponse {
   }</p>
 <p>Scenario: ${link('scenario=normal', 'normal')} ${link('scenario=empty', 'empty library')} ${link('scenario=error', 'every /api call fails (500)')}
 ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('scenario=offline', 'no answer at all (connection dropped)')}</p>
-<p>Admin: <b>${state.admin.loggedIn ? 'logged in as admin' : 'logged out'}</b> ${link('admin=on', 'log in as admin')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>)</p>
+<p>Account: <b>${describeSession(state)}</b> ${link('admin=on', 'log in as admin')} ${link('user=on', 'log in as a user')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>, <a href="/account">My account</a>)</p>
+<p>Log in yourself with a local account: admin or camille (the password is the name).</p>
 <p>Disk (2.2.0, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>
 <p><a href="/">← back to the app</a></p>`
   return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body }
+}
+
+function describeSession(state: State): string {
+  const account = sessionAccount(state.admin.accounts)
+  return account === null ? 'logged out' : `${account.username} (${account.role}, ${account.source})`
 }
 
 export function createMockMiddleware(state: State): Connect.NextHandleFunction {

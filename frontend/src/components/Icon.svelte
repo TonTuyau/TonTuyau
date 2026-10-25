@@ -53,6 +53,9 @@
     down: 'arrow_downward',
     playerLarge: 'fit_page_width',
     playerSmall: 'width_normal',
+    // 2.3.0: the accounts; the admin pages refused to a user.
+    accounts: 'group',
+    lock: 'lock',
   } as const
 
   export type IconName = keyof typeof symbols

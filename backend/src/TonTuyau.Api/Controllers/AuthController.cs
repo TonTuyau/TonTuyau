@@ -1,7 +1,6 @@
-using System.Globalization;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using TonTuyau.Api.Contracts;
@@ -51,20 +50,15 @@ public sealed partial class AuthController(
             return new ProblemResult(Problems.LoginRefused());
         }
 
-        ClaimsIdentity identity = new(
-            [
-                new Claim(ClaimTypes.NameIdentifier, account.Id.ToString(CultureInfo.InvariantCulture)),
-                new Claim(ClaimTypes.Name, account.Username),
-            ],
-            CookieAuthenticationDefaults.AuthenticationScheme);
         AuthenticationProperties properties = new()
         {
             // A persistent cookie survives closing the browser; otherwise it's a session cookie (8 h at most).
             IsPersistent = request.Remember,
             ExpiresUtc = request.Remember ? clock.GetUtcNow() + AuthServices.RememberedLifetime : null,
         };
+        Sessions.MarkChecked(properties, clock.GetUtcNow());
         await HttpContext
-            .SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), properties)
+            .SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Sessions.PrincipalOf(account), properties)
             .ConfigureAwait(false);
         LogLoggedIn(account.Username);
         return NoContent();
@@ -81,14 +75,56 @@ public sealed partial class AuthController(
         return NoContent();
     }
 
-    /// <summary>Who is logged in, or 401.</summary>
+    /// <summary>Who is logged in (2.3.0: with the role, where from, the directory's name), or 401.</summary>
     [HttpGet("me")]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
-    public IActionResult Me() =>
-        User.Identity is { IsAuthenticated: true, Name: { } username }
-            ? Ok(new MeResponse(username))
-            : new ProblemResult(Problems.NotLoggedIn());
+    public async Task<IActionResult> MeAsync(CancellationToken cancellationToken)
+    {
+        // A session only (an API key has no account); its cookie was checked against the account a moment ago at most.
+        int? id = User.Identity?.AuthenticationType == CookieAuthenticationDefaults.AuthenticationScheme
+            ? Sessions.AccountIdOf(User)
+            : null;
+        Account? account = id is null
+            ? null
+            : await accounts.FindAsync(id.Value, cancellationToken).ConfigureAwait(false);
+        return account is null ? new ProblemResult(Problems.NotLoggedIn()) : Ok((MeResponse)account);
+    }
+
+    /// <summary>
+    /// A local account changes its own password (2.3.0, My account): 204, and this session goes on (the account's other
+    /// sessions end at their next check). 400 when the current password is wrong or the new one doesn't fit; 409 for a
+    /// directory account.
+    /// </summary>
+    [HttpPut("me/password")]
+    [Authorize(Policy = AuthServices.AccountPolicy)]
+    [Consumes("application/json")]
+    [RequestSizeLimit(MaxLoginBytes)]
+    [EnableRateLimiting(AuthServices.PasswordRateLimit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<IActionResult> ChangePasswordAsync(
+        ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        int id = Sessions.AccountIdOf(User) ?? throw new InvalidOperationException("A session without an account.");
+        Account account = await accounts
+            .ChangeOwnPasswordAsync(id, request.Current, request.Password, cancellationToken)
+            .ConfigureAwait(false);
+        // This session goes on, with the new stamp; as long-lived as it was.
+        AuthenticateResult current = await HttpContext
+            .AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme)
+            .ConfigureAwait(false);
+        AuthenticationProperties properties = current.Properties ?? new AuthenticationProperties();
+        Sessions.MarkChecked(properties, clock.GetUtcNow());
+        await HttpContext
+            .SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Sessions.PrincipalOf(account), properties)
+            .ConfigureAwait(false);
+        return NoContent();
+    }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Username} logged in.")]
     private partial void LogLoggedIn(string username);

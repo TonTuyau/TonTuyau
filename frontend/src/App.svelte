@@ -16,6 +16,7 @@
   import FeedPage from './pages/FeedPage.svelte'
   import HomePage from './pages/HomePage.svelte'
   import LoginPage from './pages/LoginPage.svelte'
+  import MyAccountPage from './pages/MyAccountPage.svelte'
   import NotFoundPage from './pages/NotFoundPage.svelte'
   import SearchPage from './pages/SearchPage.svelte'
   import ShortsPage from './pages/ShortsPage.svelte'
@@ -129,6 +130,8 @@
         <SearchPage />
       {:else if route.name === 'login'}
         <LoginPage />
+      {:else if route.name === 'account'}
+        <MyAccountPage />
       {:else}
         <NotFoundPage />
       {/if}

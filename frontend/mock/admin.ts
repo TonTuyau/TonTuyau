@@ -25,10 +25,12 @@ import type {
   YtdlpState,
   YtdlpVersions,
 } from '../src/lib/api/types.ts'
+import { accountsMockState, handleAccounts, sessionAccount, type AccountsMockState } from './accounts.ts'
 import type { ChannelFixture, MockDb, VideoFixture } from './db.ts'
 
 export interface AdminMockState {
-  loggedIn: boolean
+  /** 2.3.0: the accounts, who's logged in (mock/accounts.ts). */
+  accounts: AccountsMockState
   /** 2.2.0: the videos folder's disk, as /__mock sets it: roomy, almost full, or not saying. */
   disk: 'normal' | 'low' | 'unknown'
   runs: Run[]
@@ -150,7 +152,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
     }
   })
   return {
-    loggedIn: false,
+    accounts: accountsMockState(now),
     disk: 'normal',
     runs,
     keys: [
@@ -407,21 +409,14 @@ export function handleAdmin(
 ): AdminAnswer | null {
   const path = url.pathname.replace(/\/+$/, '')
   const params = url.searchParams
-  if (path === '/api/auth/me') {
-    return state.loggedIn
-      ? { status: 200, body: { username: 'admin' } }
-      : { status: 401, body: { title: 'Not logged in', status: 401, detail: 'Nobody is logged in.' } }
-  }
-  if (path === '/api/auth/login' && method === 'POST') {
-    state.loggedIn = true
-    return { status: 204 }
-  }
-  if (path === '/api/auth/logout' && method === 'POST') {
-    state.loggedIn = false
-    return { status: 204 }
-  }
+  const accounts = handleAccounts(state.accounts, method, url, body, now)
+  if (accounts !== null) return accounts
   if (!path.startsWith('/api/admin/')) return null
-  if (!state.loggedIn) return { status: 401, body: { title: 'Not logged in', status: 401, detail: 'Log in first.' } }
+  // 2.3.0: the admin API is an admin's (a user's session: 403).
+  const account = sessionAccount(state.accounts)
+  if (account === null) return { status: 401, body: { title: 'Not logged in', status: 401, detail: 'Log in first.' } }
+  if (account.role !== 'admin')
+    return { status: 403, body: { title: 'Admins only', status: 403, detail: 'This is for admins.' } }
 
   const [resource, id, sub] = path.split('/').slice(3).map(decodeURIComponent)
   const channel = id ? db.channels.find((candidate) => candidate.id === id) : undefined

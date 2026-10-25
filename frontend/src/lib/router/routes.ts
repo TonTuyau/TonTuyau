@@ -4,7 +4,10 @@ import type { VideoType } from '../api/types'
 
 export type ChannelTab = 'videos' | 'shorts' | 'streams'
 
-/** The admin area's pages (1.4: the Tasks page, a run's page; 1.5: YouTube, the API keys, a channel's page). */
+/**
+ * The admin area's pages (1.4: the Tasks page, a run's page; 1.5: YouTube, the API keys, a channel's page; 2.3.0: the
+ * accounts).
+ */
 export type AdminRoute =
   | { page: 'dashboard' }
   | { page: 'tasks' }
@@ -12,6 +15,7 @@ export type AdminRoute =
   | { page: 'youTube' }
   | { page: 'apiKeys' }
   | { page: 'channel'; id: string }
+  | { page: 'accounts' }
 
 export type Route =
   | { name: 'home' }
@@ -22,6 +26,7 @@ export type Route =
   | { name: 'shorts'; id: string }
   | { name: 'results' }
   | { name: 'login' }
+  | { name: 'account' }
   | ({ name: 'admin' } & AdminRoute)
   | { name: 'notFound' }
 
@@ -76,6 +81,9 @@ export function matchRoute(pathname: string): Route {
   if (first === 'login' && second === undefined) {
     return { name: 'login' }
   }
+  if (first === 'account' && second === undefined) {
+    return { name: 'account' }
+  }
   if (first === 'admin' && second === undefined) {
     return { name: 'admin', page: 'dashboard' }
   }
@@ -87,6 +95,9 @@ export function matchRoute(pathname: string): Route {
   }
   if (first === 'admin' && second === 'api-keys' && parts.length === 2) {
     return { name: 'admin', page: 'apiKeys' }
+  }
+  if (first === 'admin' && second === 'accounts' && parts.length === 2) {
+    return { name: 'admin', page: 'accounts' }
   }
   if (first === 'admin' && second === 'runs' && third !== undefined && rest.length === 0) {
     const id = decode(third)
@@ -147,6 +158,10 @@ export const href = {
   adminYouTube: (): string => '/admin/youtube',
   /** The admin's API keys (1.5). */
   adminApiKeys: (): string => '/admin/api-keys',
+  /** The accounts (2.3.0). */
+  adminAccounts: (): string => '/admin/accounts',
+  /** The logged-in account's own page (2.3.0): its password. */
+  account: (): string => '/account',
   /** A channel's admin page (1.5): its state on YouTube, its videos', the refreshes. */
   adminChannel: (id: string): string => `/admin/channels/${encodeURIComponent(id)}`,
 }

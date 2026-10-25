@@ -61,8 +61,23 @@ export type Suggestions = Schemas['SuggestResponse']
 /** `POST /api/auth/login`'s body (1.2): `remember` is "Stay logged in" (30 days instead of 8 hours). */
 export type LoginRequest = Schemas['LoginRequest']
 
-/** `GET /api/auth/me`: who is logged in (a 401 when nobody is). */
+/** `GET /api/auth/me`: who is logged in (a 401 when nobody is); 2.3.0: the role, where from, the directory's name. */
 export type Me = Schemas['MeResponse']
+
+/** An account's role (2.3.0): an admin (everything), or a user (watches the library). */
+export type Role = Schemas['AccountRole']
+
+/** Where an account is from (2.3.0): made here, or the LDAP directory's. */
+export type AccountSource = Schemas['AccountSource']
+
+/** `GET /api/admin/accounts` (2.3.0): each account, never its password. */
+export type Account = Schemas['AccountResponse']
+
+/** `POST /api/admin/accounts` (2.3.0): a local account. */
+export type NewAccount = Schemas['NewAccountRequest']
+
+/** `PUT /api/admin/accounts/{id}` (2.3.0): what changes (a directory account: `disabled` only). */
+export type AccountChange = Schemas['AccountChangeRequest']
 
 /** `GET /api/admin/dashboard` (1.2): the library's totals and play time, and every channel. */
 export type Dashboard = Schemas['DashboardResponse']

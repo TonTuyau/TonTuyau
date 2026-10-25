@@ -66,11 +66,27 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             account.ToTable("accounts");
             account.Property(a => a.Id).HasColumnName("id");
             account.Property(a => a.Username).HasColumnName("username");
+            account.Property(a => a.UsernameKey).HasColumnName("username_key");
+            account.Property(a => a.DisplayName).HasColumnName("display_name");
+            // 2.3.0: the accounts made before are local admins, as they were.
+            account
+                .Property(a => a.Role)
+                .HasColumnName("role")
+                .HasConversion<string>();
+            account
+                .Property(a => a.Source)
+                .HasColumnName("source")
+                .HasConversion<string>();
+            account.Property(a => a.Disabled).HasColumnName("disabled");
             account.Property(a => a.PasswordHash).HasColumnName("password_hash");
+            account.Property(a => a.Stamp).HasColumnName("stamp");
             account.Property(a => a.CreatedAt).HasColumnName("created_at");
             account.Property(a => a.LastLoginAt).HasColumnName("last_login_at");
             account
                 .HasIndex(a => a.Username)
+                .IsUnique();
+            account
+                .HasIndex(a => a.UsernameKey)
                 .IsUnique();
         });
         modelBuilder.Entity<DataProtectionKey>(key =>
