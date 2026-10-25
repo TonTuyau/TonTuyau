@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The admin's LDAP directory (2.3.0 mockup, docs/PLAN_2.3.0.md): on or off; the server (its URL, StartTLS, a CA
+  // The admin's LDAP directory (2.3.0): on or off; the server (its URL, StartTLS, a CA
   // certificate for a directory with its own); the service account that finds the users (its password written, never
   // shown back: left empty, the one stored stays); the accounts as Jellyfin's LDAP plugin takes them (the base DN, the
   // uid and username attributes, the users filter and the admins filter: the same values copy over); the password

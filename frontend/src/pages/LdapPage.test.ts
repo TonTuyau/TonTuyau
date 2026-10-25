@@ -34,7 +34,7 @@ function ldapRoute(current: LdapSettings, sent: unknown[]) {
   }
 }
 
-describe('LdapPage (2.3.0 mockup)', () => {
+describe('LdapPage (2.3.0)', () => {
   beforeEach(() => goTo('/admin/ldap'))
 
   it('shows the settings saved, the service account’s password never, and the names that clash', async () => {
