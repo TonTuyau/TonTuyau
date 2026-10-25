@@ -90,7 +90,7 @@ internal static class AuthServices
     }
 
     /// <summary>Logged in with the session (an account, an admin or a user): not an API key.</summary>
-    private static bool IsAccount(ClaimsPrincipal user) =>
+    public static bool IsAccount(ClaimsPrincipal user) =>
         user.Identity?.IsAuthenticated == true && !user.HasClaim(c => c.Type == ApiKeyAuthenticationHandler.KindClaim);
 
     /// <summary>An admin's session (2.3.0: the role in it).</summary>

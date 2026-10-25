@@ -662,7 +662,17 @@ export const en = {
   'login.refused': 'Wrong username or password.',
   'login.tooMany': 'Too many attempts. Try again in a minute.',
 
-  // 2.3.0: accounts and roles.
+  // 2.3.0: accounts and roles; a library for accounts only.
+  'login.accountsOnly': 'This TonTuyau is for its accounts: log in to watch.',
+  'accounts.access': 'Who can watch',
+  'accounts.access.hint':
+    'Everyone who reaches TonTuyau, or only the logged-in accounts: then anyone else sees the login page, and the videos, thumbnails and streams answer only to a session.',
+  'accounts.access.keys': "The browser extension's API keys keep working, and /health stays open for Docker.",
+  'accounts.access.everyone': 'Everyone who reaches TonTuyau',
+  'accounts.access.everyone.what': 'No login to watch, as until now; the administration needs an admin.',
+  'accounts.access.accountsOnly': 'Only logged-in accounts',
+  'accounts.access.accountsOnly.what': 'Anyone else sees the login page: nothing of the library, not even a thumbnail.',
+  'accounts.access.default': 'Everyone, as by default.',
   'myAccount.ldap': "Your account is the directory's: its password is changed there.",
   'account.mine': 'My account',
   'admin.accounts': 'Accounts',

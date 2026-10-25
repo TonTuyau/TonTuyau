@@ -1139,6 +1139,23 @@
         }
       }
     },
+    "/api/auth/access": {
+      "get": {
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/me/password": {
       "put": {
         "tags": ["Auth"],
@@ -3036,6 +3053,103 @@
         }
       }
     },
+    "/api/admin/settings/access": {
+      "get": {
+        "tags": ["Settings"],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/tasks": {
       "get": {
         "tags": ["Tasks"],
@@ -3885,6 +3999,40 @@
   },
   "components": {
     "schemas": {
+      "AccessResponse": {
+        "required": ["accountsOnly"],
+        "type": "object",
+        "properties": {
+          "accountsOnly": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AccessSettingsRequest": {
+        "required": ["accountsOnly"],
+        "type": "object",
+        "properties": {
+          "accountsOnly": {
+            "type": ["null", "boolean"]
+          }
+        }
+      },
+      "AccessSettingsResponse": {
+        "required": ["accountsOnly", "changedBy", "changedAt"],
+        "type": "object",
+        "properties": {
+          "accountsOnly": {
+            "type": "boolean"
+          },
+          "changedBy": {
+            "type": ["null", "string"]
+          },
+          "changedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        }
+      },
       "AccountChangeRequest": {
         "type": "object",
         "properties": {
@@ -5901,6 +6049,9 @@
     },
     {
       "name": "Search"
+    },
+    {
+      "name": "Settings"
     },
     {
       "name": "Tasks"

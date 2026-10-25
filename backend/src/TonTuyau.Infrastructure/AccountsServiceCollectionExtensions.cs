@@ -22,6 +22,8 @@ public static class AccountsServiceCollectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
         services.AddScoped<AccountService>();
+        services.AddSingleton<IAccessSettingsRepository, AccessSettingsRepository>();
+        services.AddSingleton<AccessService>();
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
         services.AddScoped<ApiKeyService>();
         services.AddScoped<IYouTubeCookieRepository, YouTubeCookieRepository>();

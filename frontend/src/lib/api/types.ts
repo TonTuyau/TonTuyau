@@ -79,6 +79,12 @@ export type NewAccount = Schemas['NewAccountRequest']
 /** `PUT /api/admin/accounts/{id}` (2.3.0): what changes (a directory account: `disabled` only). */
 export type AccountChange = Schemas['AccountChangeRequest']
 
+/** `GET /api/auth/access` (2.3.0), open to anyone: whether the library is for logged-in accounts only. */
+export type Access = Schemas['AccessResponse']
+
+/** `GET/PUT /api/admin/settings/access` (2.3.0): who can watch, who set it and when. */
+export type AccessSettings = Schemas['AccessSettingsResponse']
+
 /** `GET /api/admin/dashboard` (1.2): the library's totals and play time, and every channel. */
 export type Dashboard = Schemas['DashboardResponse']
 

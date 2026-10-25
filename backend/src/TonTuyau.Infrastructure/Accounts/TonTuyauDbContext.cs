@@ -22,6 +22,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 {
     public DbSet<AccountRow> Accounts => Set<AccountRow>();
 
+    public DbSet<AccessSettingsRow> AccessSettings => Set<AccessSettingsRow>();
+
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public DbSet<RunLogRow> RunLogLines => Set<RunLogRow>();
@@ -88,6 +90,17 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             account
                 .HasIndex(a => a.UsernameKey)
                 .IsUnique();
+        });
+        modelBuilder.Entity<AccessSettingsRow>(access =>
+        {
+            access.ToTable("access_settings");
+            access
+                .Property(a => a.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            access.Property(a => a.AccountsOnly).HasColumnName("accounts_only");
+            access.Property(a => a.ChangedBy).HasColumnName("changed_by");
+            access.Property(a => a.ChangedAt).HasColumnName("changed_at");
         });
         modelBuilder.Entity<DataProtectionKey>(key =>
         {

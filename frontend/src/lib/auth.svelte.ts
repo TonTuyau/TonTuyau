@@ -1,6 +1,7 @@
-// Who is logged in (1.2), with the role (2.3.0: an admin, or a user who watches). Browsing needs no login. The session
-// is an HttpOnly cookie the page never sees: the app asks /api/auth/me once at start (a 401 means nobody), and the login
-// page and the account menu change it.
+// Who is logged in (1.2), with the role (2.3.0: an admin, or a user who watches). The session is an HttpOnly cookie
+// the page never sees: the app asks /api/auth/me once at start (a 401 means nobody), and the login page and the account
+// menu change it. It also asks whether the library is for logged-in accounts only (2.3.0): then nobody logged in sees
+// the login page instead of any page.
 import { ApiError, api } from './api/client'
 import type { AccountSource, Me, Role } from './api/types'
 
@@ -15,18 +16,26 @@ class Auth {
   displayName = $state<string | null>(null)
   role = $state<Role | null>(null)
   source = $state<AccountSource | null>(null)
+  /** The library is for logged-in accounts only; false until known (and when the backend can't be reached). */
+  accountsOnly = $state(false)
   #loading: Promise<void> | null = null
 
   get isAdmin(): boolean {
     return this.role === 'admin'
   }
 
-  /** Asks the backend who is logged in, once. Any failure counts as "nobody". */
+  /** Asks the backend who is logged in, and whether the library is for accounts only, once. Any failure: nobody. */
   load(): Promise<void> {
-    this.#loading ??= api.me().then(
-      (me) => this.#set(me),
-      () => this.#set(null),
-    )
+    this.#loading ??= Promise.all([
+      api.me().then(
+        (me) => this.#set(me),
+        () => this.#set(null),
+      ),
+      api.access().then(
+        (access) => (this.accountsOnly = access.accountsOnly === true),
+        () => undefined,
+      ),
+    ]).then(() => undefined)
     return this.#loading
   }
 
@@ -66,6 +75,7 @@ class Auth {
     this.displayName = null
     this.role = null
     this.source = null
+    this.accountsOnly = false
     this.#loading = null
   }
 

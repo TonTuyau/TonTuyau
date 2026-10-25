@@ -1,6 +1,7 @@
 <script lang="ts">
   // The shell: top bar, the left guide (expanded / mini rail / drawer) or, on phones, the bottom bar,
-  // and the page for the current URL. The admin area (1.2) has its own shell.
+  // and the page for the current URL. The admin area (1.2) has its own shell. 2.3.0: a library for accounts only shows
+  // nobody logged in the login page in place of any page; the page waits until it's known who is logged in.
   import AdminShell from './components/AdminShell.svelte'
   import BottomNav from './components/BottomNav.svelte'
   import Logo from './components/Logo.svelte'
@@ -97,6 +98,10 @@
 <a class="skip" href="#main">{t('a11y.skipToContent')}</a>
 {#if route.name === 'admin'}
   <AdminShell {route} />
+{:else if auth.accountsOnly && auth.status === 'anonymous'}
+  <main id="main" tabindex="-1">
+    <LoginPage gate />
+  </main>
 {:else}
   <TopBar {onmenu} menu={!phone} />
 
@@ -114,7 +119,9 @@
     {/if}
 
     <main id="main" tabindex="-1">
-      {#if route.name === 'home'}
+      {#if auth.status === 'unknown'}
+        <!-- Who is logged in, and whether the library is for accounts only, first. -->
+      {:else if route.name === 'home'}
         <HomePage />
       {:else if route.name === 'feed'}
         <FeedPage type={route.type} />

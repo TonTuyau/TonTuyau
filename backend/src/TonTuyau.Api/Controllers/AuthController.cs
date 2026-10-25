@@ -19,6 +19,7 @@ namespace TonTuyau.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed partial class AuthController(
     AccountService accounts,
+    AccessService access,
     ClientAddresses clients,
     TimeProvider clock,
     ILogger<AuthController> logger) : ControllerBase
@@ -89,6 +90,15 @@ public sealed partial class AuthController(
             ? null
             : await accounts.FindAsync(id.Value, cancellationToken).ConfigureAwait(false);
         return account is null ? new ProblemResult(Problems.NotLoggedIn()) : Ok((MeResponse)account);
+    }
+
+    /// <summary>Whether the library is for logged-in accounts only (2.3.0), open to anyone: the page shows the login then.</summary>
+    [HttpGet("access")]
+    [ProducesResponseType<AccessResponse>(StatusCodes.Status200OK)]
+    public async Task<AccessResponse> AccessAsync(CancellationToken cancellationToken)
+    {
+        AccessSettings settings = await access.GetAsync(cancellationToken).ConfigureAwait(false);
+        return new AccessResponse(settings.AccountsOnly);
     }
 
     /// <summary>

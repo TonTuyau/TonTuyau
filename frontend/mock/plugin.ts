@@ -169,9 +169,13 @@ function controlPage(state: State, url: URL): MockResponse {
   if (admin === 'on' || admin === 'off') {
     logInAs(state.admin.accounts, admin === 'on' ? 'admin' : null)
   }
-  // 2.3.0: a user's session.
+  // 2.3.0: a user's session; a library for accounts only.
   if (url.searchParams.get('user') === 'on') {
     logInAs(state.admin.accounts, 'user')
+  }
+  const only = url.searchParams.get('private')
+  if (only === 'on' || only === 'off') {
+    state.admin.accounts.access = { ...state.admin.accounts.access, accountsOnly: only === 'on' }
   }
   const disk = url.searchParams.get('disk')
   if (disk === 'normal' || disk === 'low' || disk === 'unknown') {
@@ -195,6 +199,7 @@ function controlPage(state: State, url: URL): MockResponse {
 ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('scenario=offline', 'no answer at all (connection dropped)')}</p>
 <p>Account: <b>${describeSession(state)}</b> ${link('admin=on', 'log in as admin')} ${link('user=on', 'log in as a user')} ${link('admin=off', 'log out')} (then <a href="/admin">the admin pages</a>, <a href="/account">My account</a>)</p>
 <p>Log in yourself with a local account: admin or camille (the password is the name).</p>
+<p>Who can watch (2.3.0): <b>${state.admin.accounts.access.accountsOnly ? 'logged-in accounts only' : 'everyone'}</b> ${link('private=on', 'accounts only')} ${link('private=off', 'everyone')}</p>
 <p>Disk (2.2.0, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>
 <p><a href="/">← back to the app</a></p>`
@@ -206,6 +211,18 @@ function describeSession(state: State): string {
   return account === null ? 'logged out' : `${account.username} (${account.role}, ${account.source})`
 }
 
+/** 2.3.0: a library for accounts only answers 401 to anyone else, the pictures and the files too (AccountsOnlyGate). */
+function closed(state: State, path: string): boolean {
+  const open = ['/api/auth/', '/api/admin/', '/api/extension/']
+  return (
+    state.admin.accounts.access.accountsOnly &&
+    sessionAccount(state.admin.accounts) === null &&
+    ((path.startsWith('/api/') && !open.some((prefix) => path.startsWith(prefix))) ||
+      path.startsWith('/art/') ||
+      path.startsWith('/media/'))
+  )
+}
+
 export function createMockMiddleware(state: State): Connect.NextHandleFunction {
   return (req, res, next) => {
     const url = new URL(req.url ?? '/', 'http://mock.local')
@@ -214,6 +231,9 @@ export function createMockMiddleware(state: State): Connect.NextHandleFunction {
     try {
       if (path === '/__mock') {
         send(res, controlPage(state, url))
+      } else if (closed(state, path)) {
+        const detail = 'This TonTuyau is for its accounts: log in to watch.'
+        send(res, problemResponse({ title: 'Not logged in', status: 401, detail }), head)
       } else if (path.startsWith('/api/') && state.scenario === 'offline') {
         // What a dead server or a lost network looks like to fetch(): the connection just ends.
         setTimeout(() => req.socket.destroy(), state.delayMs)

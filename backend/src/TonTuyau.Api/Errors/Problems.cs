@@ -74,6 +74,13 @@ internal static class Problems
     public static ProblemDetails NotLoggedIn() =>
         Of(StatusCodes.Status401Unauthorized, "not-logged-in", "Not logged in", "Nobody is logged in.");
 
+    /// <summary>The library for logged-in accounts only (2.3.0), asked without a session.</summary>
+    public static ProblemDetails AccountsOnly() => Of(
+        StatusCodes.Status401Unauthorized,
+        "accounts-only",
+        "Not logged in",
+        "This TonTuyau is for its accounts: log in to watch.");
+
     public static ProblemDetails Unexpected() => Of(
         StatusCodes.Status500InternalServerError,
         "internal",

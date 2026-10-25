@@ -1,6 +1,8 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  Access,
+  AccessSettings,
   Account,
   AccountChange,
   AdminChannel,
@@ -229,6 +231,11 @@ export const api = {
     return post('/api/auth/logout')
   },
 
+  /** Whether the library is for logged-in accounts only (2.3.0), open to anyone. */
+  access(): Promise<Access> {
+    return get('/api/auth/access')
+  },
+
   /** A local account changes its own password (2.3.0): 400 when the current one is wrong, 409 for a directory one. */
   changeMyPassword(current: string, password: string): Promise<void> {
     return put('/api/auth/me/password', { current, password })
@@ -433,6 +440,15 @@ export const api = {
 
   deleteAccount(id: number): Promise<void> {
     return remove(`/api/admin/accounts/${id}`)
+  },
+
+  /** Who can watch (2.3.0): everyone, or the logged-in accounts only. */
+  accessSettings(signal?: AbortSignal): Promise<AccessSettings> {
+    return get('/api/admin/settings/access', {}, signal)
+  },
+
+  saveAccessSettings(accountsOnly: boolean): Promise<AccessSettings> {
+    return putFor('/api/admin/settings/access', { accountsOnly })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */
