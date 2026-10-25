@@ -74,6 +74,31 @@ Feature: Downloading a video from YouTube
       | "bestvideo\nbestaudio"     |
       | "<201 characters>"         |
 
+  Scenario: Signed in, the format matching none: downloaded again at once without the cookie
+    Given YouTube has the video "omega-10": the title "Sans cookie", 8 views
+    And YouTube, signed in, says of the video "omega-10": "ERROR: [youtube] omega-10___: Requested format is not available. Use --list-formats for a list of available formats"
+    And I sent the YouTube cookie "SIGNED_IN" with my session
+    When I download "omega-10___" with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And the media folder has the file of the video "omega-10" with 4096 bytes
+    And the last run's log has, in order, lines with:
+      | level       | text                                                   |
+      | information | Requested format is not available                      |
+      | information | matched none of omega-10___'s: tried again without it  |
+
+  Scenario: Signed in, the format matching none, the retry without the cookie turned off: the download fails
+    Given YouTube has the video "omega-11": the title "Avec cookie seulement", 8 views
+    And YouTube, signed in, says of the video "omega-11": "ERROR: [youtube] omega-11___: Requested format is not available. Use --list-formats for a list of available formats"
+    And I sent the YouTube cookie "SIGNED_IN" with my session
+    When I send the YouTube settings '{"comments": "off", "retryWithoutCookie": false}' with my session
+    Then the response status is 200
+    And "retryWithoutCookie" is "false"
+    When I download "omega-11___" with my session
+    Then the response status is 202
+    And the latest run ends failed within 30 seconds
+    And TonTuyau doesn't have the video "omega-11"
+
   Scenario: A video of the library isn't downloaded again
     When I run "tontuyau youtube download alpha-01___"
     Then the command exits with code 4

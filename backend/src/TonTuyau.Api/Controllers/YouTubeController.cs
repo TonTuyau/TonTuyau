@@ -120,6 +120,7 @@ public sealed class YouTubeController(
                 request.DefaultTabs?.ToTabs("defaultTabs"),
                 request.MinFreeGb,
                 request.HoldBelowMinFree,
+                request.RetryWithoutCookie,
                 Account(),
                 cancellationToken)
             .ConfigureAwait(false);
