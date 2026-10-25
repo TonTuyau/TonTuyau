@@ -599,6 +599,8 @@ export const fr: Dictionary = {
     "Les vidéos que les synchronisations YouTube ont listées sans pouvoir les télécharger, avec la raison. Après 3 échecs, la synchronisation régulière en laisse une ; Réessayer, Tout télécharger et la synchronisation complète l'essaient encore.",
   'failed.tryAll': 'Tout réessayer',
   'failed.tryAgain': 'Réessayer',
+  'failed.format': 'Format yt-dlp pour cet essai',
+  'failed.formatHint': 'Les formats de la vidéo sont listés dans le journal du run qui a échoué.',
   'failed.asked': 'Demandé : ça tourne à son tour.',
   'failed.video': 'Vidéo',
   'failed.reason': 'Raison',

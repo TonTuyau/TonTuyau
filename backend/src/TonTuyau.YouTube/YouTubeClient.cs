@@ -165,6 +165,11 @@ internal sealed partial class YouTubeClient(
 
         if (run.Failure is not null)
         {
+            if (YtdlpErrors.FormatUnavailable(run.Failure.Value.Reason))
+            {
+                await LogFormatsAsync(videoId, format, cancellationToken).ConfigureAwait(false);
+            }
+
             return new YouTubeLookup<YouTubeDownload>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
         }
 
@@ -195,6 +200,64 @@ internal sealed partial class YouTubeClient(
             TypeOf(info),
             TracksOf(info));
         return new YouTubeLookup<YouTubeDownload>(YouTubeAnswer.Found, download, null);
+    }
+
+    /// <summary>
+    /// The formats YouTube offers for the video, as yt-dlp's <c>--list-formats</c> table, in the run's log: what the
+    /// admin's format can be changed to when it matched none of them. With a cookie, listed signed in with it, then
+    /// without it: signed in, YouTube can keep its formats from yt-dlp but one, so the log shows both.
+    /// </summary>
+    private async Task LogFormatsAsync(string videoId, string format, CancellationToken cancellationToken)
+    {
+        bool signedIn = await LogFormatsAsync(videoId, format, signedIn: true, cancellationToken).ConfigureAwait(false);
+        if (signedIn)
+        {
+            await LogFormatsAsync(videoId, format, signedIn: false, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <returns>Whether yt-dlp was given the cookie (there's one, and <paramref name="signedIn"/>).</returns>
+    private async Task<bool> LogFormatsAsync(
+        string videoId,
+        string format,
+        bool signedIn,
+        CancellationToken cancellationToken)
+    {
+        List<string> lines = [];
+        YtdlpRun run = await RunDirectAsync(
+            [
+                "--ignore-config",
+                "--no-cache-dir",
+                "--color",
+                "never",
+                "--no-playlist",
+                "--list-formats",
+                $"https://www.youtube.com/watch?v={videoId}",
+            ],
+            CallTimeout,
+            cancellationToken,
+            line =>
+            {
+                lines.Add(line);
+                return false;
+            },
+            signedIn)
+            .ConfigureAwait(false);
+        // Said only when there's a cookie (the list without it comes after the one with it): else, a single list.
+        string how = run.SignedIn ? " signed in with the YouTube cookie"
+            : !signedIn ? " without the YouTube cookie"
+            : "";
+        // The table, from its heading on: the "[youtube] Downloading…" lines before it say nothing.
+        int heading = lines.FindIndex(l => l.StartsWith("[info] Available formats", StringComparison.Ordinal));
+        if (run.Failure is not null || heading < 0)
+        {
+            LogFormatsNotListed(videoId, how, run.Failure?.Reason ?? "yt-dlp printed no table.");
+            return run.SignedIn;
+        }
+
+        string table = string.Join('\n', lines.Skip(heading + 1));
+        LogFormats(videoId, format, how, table);
+        return run.SignedIn;
     }
 
     /// <remarks>
@@ -840,6 +903,14 @@ internal sealed partial class YouTubeClient(
         Level = LogLevel.Information,
         Message = "Signed in with the YouTube cookie, the format {Format} matched none of {Id}'s: tried again without it.")]
     private partial void LogRetryingWithoutCookie(string id, string format);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "The format {Format} matched none of {Id}'s; its formats{How} are:\n{Formats}")]
+    private partial void LogFormats(string id, string format, string how, string formats);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Id}'s formats{How} couldn't be listed: {Reason}")]
+    private partial void LogFormatsNotListed(string id, string how, string reason);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "yt-dlp (download): {Line}")]
     private partial void LogDownloadLine(string line);

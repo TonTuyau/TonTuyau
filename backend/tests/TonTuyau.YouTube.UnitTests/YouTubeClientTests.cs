@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Application.YouTube;
@@ -18,7 +19,8 @@ public sealed class YouTubeClientTests
         string ytdlp = "fake-yt-dlp.sh",
         string deno = "fake-deno.sh",
         string? cookie = null,
-        YtdlpTempFolders? temp = null)
+        YtdlpTempFolders? temp = null,
+        ILogger<YouTubeClient>? logger = null)
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -33,7 +35,7 @@ public sealed class YouTubeClientTests
             new YtdlpLocator(options.YouTube.YtdlpPath),
             new FixedCookieSource(cookie),
             temp ?? new YtdlpTempFolders(NullLogger<YtdlpTempFolders>.Instance),
-            NullLogger<YouTubeClient>.Instance);
+            logger ?? NullLogger<YouTubeClient>.Instance);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -246,6 +248,68 @@ public sealed class YouTubeClientTests
         YouTubeVideo video = (await Client().GetVideoAsync("NoComment01", null, Token)).Item!;
 
         Assert.Empty(video.Chapters);
+    }
+
+    [Fact]
+    public async Task A_format_matching_none_of_the_videos_logs_the_formats_it_has()
+    {
+        ListLogger<YouTubeClient> logger = new();
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        YouTubeLookup<YouTubeDownload> lookup = await Client(logger: logger)
+            .DownloadVideoAsync("NoFormat001", "bv*[vcodec^=av01]+ba", folder, retryWithoutCookie: true, Token);
+
+        Assert.Equal(YouTubeAnswer.CheckFailed, lookup.Answer);
+        Assert.StartsWith("Requested format is not available", lookup.Reason, StringComparison.Ordinal);
+        string formats = Assert.Single(logger.Messages, m => m.StartsWith("The format ", StringComparison.Ordinal));
+        Assert.StartsWith(
+            "The format bv*[vcodec^=av01]+ba matched none of NoFormat001's; its formats are:\nID ",
+            formats,
+            StringComparison.Ordinal);
+        Assert.Contains("247 webm  1280x720", formats, StringComparison.Ordinal);
+        Assert.DoesNotContain("[youtube]", formats, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task With_a_cookie_the_formats_are_listed_signed_in_then_without_it()
+    {
+        ListLogger<YouTubeClient> logger = new();
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        await Client(cookie: SignedIn, logger: logger)
+            .DownloadVideoAsync("NoFormat002", "bv*[vcodec^=av01]+ba", folder, retryWithoutCookie: false, Token);
+
+        string[] formats = [.. logger.Messages.Where(m => m.StartsWith("The format ", StringComparison.Ordinal))];
+        Assert.Equal(2, formats.Length);
+        Assert.StartsWith(
+            "The format bv*[vcodec^=av01]+ba matched none of NoFormat002's; its formats signed in with the YouTube "
+                + "cookie are:\nID ",
+            formats[0],
+            StringComparison.Ordinal);
+        Assert.Contains("18  mp4   360x640", formats[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("247 webm", formats[0], StringComparison.Ordinal);
+        Assert.StartsWith(
+            "The format bv*[vcodec^=av01]+ba matched none of NoFormat002's; its formats without the YouTube cookie "
+                + "are:\nID ",
+            formats[1],
+            StringComparison.Ordinal);
+        Assert.Contains("247 webm  1280x720", formats[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Another_download_failure_lists_no_formats()
+    {
+        ListLogger<YouTubeClient> logger = new();
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        await Client(logger: logger)
+            .DownloadVideoAsync("Unavail0001", "bv*+ba", folder, retryWithoutCookie: true, Token);
+
+        Assert.DoesNotContain(
+            File.ReadAllLines(Path.Combine(Fixtures, "calls.log")),
+            l => l.Contains("--list-formats", StringComparison.Ordinal)
+                && l.Contains("Unavail0001", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Messages, m => m.StartsWith("The format ", StringComparison.Ordinal));
     }
 
     [Fact]

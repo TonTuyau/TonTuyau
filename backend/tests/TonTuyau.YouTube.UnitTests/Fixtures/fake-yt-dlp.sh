@@ -37,6 +37,16 @@ fi
 if [[ -f "$here/$id.sleep" ]]; then
   sleep "$(cat "$here/$id.sleep")"
 fi
+# Asked for the formats (--list-formats): <id>.formats on stdout; given the cookie, <id>.signed-in.formats if there's
+# one (2.3.0: signed in, YouTube can keep its formats from yt-dlp).
+if [[ "$*" == *--list-formats* && -n "$cookies" && -f "$here/$id.signed-in.formats" ]]; then
+  cat "$here/$id.signed-in.formats"
+  exit 0
+fi
+if [[ "$*" == *--list-formats* && -f "$here/$id.formats" ]]; then
+  cat "$here/$id.formats"
+  exit 0
+fi
 # Given the cookie, <id>.signed-in.err on stderr (2.3.0: signed in, YouTube can keep its formats from yt-dlp).
 if [[ -n "$cookies" && -f "$here/$id.signed-in.err" ]]; then
   cat "$here/$id.signed-in.err" >&2

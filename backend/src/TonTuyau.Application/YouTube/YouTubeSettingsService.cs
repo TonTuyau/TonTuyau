@@ -76,14 +76,9 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         }
 
         string? format = downloadFormat?.Trim();
-        if (format is not null
-            && (format.Length == 0
-                || format.Length > YouTubeSettings.MaxDownloadFormatLength
-                || format.Any(char.IsControl)))
+        if (format is not null && !YouTubeSettings.IsDownloadFormat(format))
         {
-            errors.Add(
-                "downloadFormat",
-                $"must be yt-dlp's format, on one line, 1 to {YouTubeSettings.MaxDownloadFormatLength} characters.");
+            errors.Add("downloadFormat", YouTubeSettings.DownloadFormatRule);
         }
 
         if (minFreeGb is < 0 or > YouTubeSettings.MaxMinFreeGb)

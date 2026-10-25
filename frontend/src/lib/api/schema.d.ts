@@ -3453,6 +3453,8 @@ export interface paths {
           tabs?: string
           /** @description refreshAll only: skip what was read in the last this many days, 0 to 365 (7). */
           days?: number
+          /** @description downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one). */
+          format?: string
         }
         header?: never
         path: {
