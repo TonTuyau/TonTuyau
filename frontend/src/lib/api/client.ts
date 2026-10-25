@@ -394,8 +394,16 @@ export const api = {
     defaultTabs: ChannelTabs,
     // 2.2.0: the disk space settings.
     space: { minFreeGb: number; holdBelowMinFree: boolean },
+    // 2.2.1: a format matching none with the YouTube cookie, tried again without it.
+    retryWithoutCookie: boolean,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs, ...space })
+    return putFor('/api/admin/youtube/settings', {
+      comments,
+      downloadFormat,
+      defaultTabs,
+      ...space,
+      retryWithoutCookie,
+    })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

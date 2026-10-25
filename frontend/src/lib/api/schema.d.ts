@@ -4278,6 +4278,7 @@ export interface components {
       /** Format: int32 */
       minFreeGb?: null | number
       holdBelowMinFree?: null | boolean
+      retryWithoutCookie?: null | boolean
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
@@ -4294,6 +4295,7 @@ export interface components {
       /** Format: int32 */
       minFreeGb: number
       holdBelowMinFree: boolean
+      retryWithoutCookie: boolean
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string

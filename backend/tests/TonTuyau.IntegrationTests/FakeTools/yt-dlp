@@ -3,7 +3,8 @@
 # reads: they answer a cookie holding SIGNED_IN; BOT_CHECK gets a bot check; anything else, or no cookie, is refused.
 # A video or channel is answered from the scenario's answers/ folder, next to this program (a link to it):
 # <id>.json is its metadata, <id>.err what yt-dlp says when it fails. A download writes a 4 KiB file. A channel's
-# tab is listed from <channel id>.<tab>.jsonl (2.0).
+# tab is listed from <channel id>.<tab>.jsonl (2.0). <id>.signed-in.err is what a download given the cookie gets
+# (2.2.1: signed in, YouTube can keep its formats from yt-dlp).
 if [[ "$*" == *--version* ]]; then
   echo "2026.08.19"
   exit 0
@@ -52,6 +53,10 @@ if [[ "$*" == *--write-info-json* ]]; then
     if [[ "${args[$i]}" == "--paths" && "${args[$((i + 1))]}" == home:* ]]; then folder="${args[$((i + 1))]#home:}"; fi
     if [[ "${args[$i]}" == "--format" ]]; then format="${args[$((i + 1))]}"; fi
   done
+  if [[ -n "$cookies" && -f "$answers/$id.signed-in.err" ]]; then
+    cat "$answers/$id.signed-in.err" >&2
+    exit 1
+  fi
   if [[ -f "$answers/$id.err" ]]; then
     cat "$answers/$id.err" >&2
     exit 1

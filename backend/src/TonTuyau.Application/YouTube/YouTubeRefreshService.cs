@@ -1032,7 +1032,7 @@ public sealed partial class YouTubeRefreshService(
         {
             LogDownloading(videoId, read.DownloadFormat);
             YouTubeLookup<YouTubeDownload> lookup = await youTube
-                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, ct)
+                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, read.RetryWithoutCookie, ct)
                 .ConfigureAwait(false);
             if (lookup.Answer == YouTubeAnswer.Refused)
             {

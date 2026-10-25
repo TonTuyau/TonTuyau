@@ -37,6 +37,11 @@ fi
 if [[ -f "$here/$id.sleep" ]]; then
   sleep "$(cat "$here/$id.sleep")"
 fi
+# Given the cookie, <id>.signed-in.err on stderr (2.2.1: signed in, YouTube can keep its formats from yt-dlp).
+if [[ -n "$cookies" && -f "$here/$id.signed-in.err" ]]; then
+  cat "$here/$id.signed-in.err" >&2
+  exit 1
+fi
 if [[ -f "$here/$id.json" ]]; then
   cat "$here/$id.json"
   exit 0

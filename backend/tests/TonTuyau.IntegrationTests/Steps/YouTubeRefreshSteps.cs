@@ -156,6 +156,13 @@ public sealed class YouTubeRefreshSteps(YouTubeSteps youTube, AuthSteps auth)
     public Task VideoFails(string name, string error) =>
         File.WriteAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".err"), error);
 
+    /// <summary>What a download given the YouTube cookie gets (2.2.1); without it, the video's other answers.</summary>
+    [Given("YouTube, signed in, says of the video {string}: {string}")]
+    public Task VideoFailsSignedIn(string name, string error) =>
+        File.WriteAllTextAsync(
+            Path.Combine(youTube.Answers, FakeTubeArchivist.VideoId(name) + ".signed-in.err"),
+            error);
+
     [Given("YouTube says of the channel {string}: {string}")]
     public Task ChannelFails(string name, string error) =>
         File.WriteAllTextAsync(Path.Combine(youTube.Answers, FakeTubeArchivist.ChannelId(name) + ".err"), error);

@@ -5259,6 +5259,9 @@
           },
           "holdBelowMinFree": {
             "type": ["null", "boolean"]
+          },
+          "retryWithoutCookie": {
+            "type": ["null", "boolean"]
           }
         }
       },
@@ -5273,6 +5276,7 @@
           "defaultTabs",
           "minFreeGb",
           "holdBelowMinFree",
+          "retryWithoutCookie",
           "changedBy",
           "changedAt"
         ],
@@ -5308,6 +5312,9 @@
             "format": "int32"
           },
           "holdBelowMinFree": {
+            "type": "boolean"
+          },
+          "retryWithoutCookie": {
             "type": "boolean"
           },
           "changedBy": {

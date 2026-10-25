@@ -281,6 +281,9 @@ export const en = {
   'youTube.downloads.formatHint':
     "In yt-dlp's own syntax: bestvideo+bestaudio (the best of each, the default), bestvideo[height<=1080]+bestaudio, or with a fallback after a slash: …/best. A format that picks nothing fails the download, saying why.",
   'youTube.downloads.format.invalid': "yt-dlp's format, on one line: 1 to 200 characters.",
+  'youTube.downloads.retryWithoutCookie': "If the format isn't available with the YouTube cookie, try again without it",
+  'youTube.downloads.retryWithoutCookieHint':
+    'Signed in with the cookie, YouTube can give yt-dlp a single format (a 360p one): the download is then done again at once without the cookie. The cookie is still tried first (members-only, age-restricted videos).',
   'youTube.downloads.tabs': 'Tabs of a channel added',
   'youTube.downloads.saved': 'Downloads ask for {format}; a channel added gets: {tabs}.',
   'youTube.sync': 'The YouTube sync',

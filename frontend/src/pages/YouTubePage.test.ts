@@ -58,6 +58,7 @@ function routes(given: Record<string, unknown> = {}) {
       defaultTabs: { videos: true, shorts: true, streams: true },
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     },
@@ -80,6 +81,7 @@ describe('YouTubePage', () => {
       defaultTabs: { videos: true, shorts: true, streams: true },
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     }
@@ -130,6 +132,7 @@ describe('YouTubePage', () => {
       defaultTabs: { videos: true, shorts: true, streams: true },
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     }
@@ -183,6 +186,7 @@ describe('YouTubePage', () => {
       defaultTabs: { videos: true, shorts: true, streams: true },
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     }
@@ -221,11 +225,54 @@ describe('YouTubePage', () => {
         comments: 'top',
         downloadFormat: 'bestvideo[height<=1080]+bestaudio/best',
         defaultTabs: { videos: true, shorts: false, streams: true },
-        // 2.2.0: the disk space settings, as they were.
+        // 2.2.0: the disk space settings, as they were; 2.2.1: the retry without the cookie, as it was.
         minFreeGb: 50,
         holdBelowMinFree: true,
+        retryWithoutCookie: true,
       },
     ])
+  })
+
+  it('turns off trying a download again without the YouTube cookie', async () => {
+    const user = userEvent.setup()
+    const sent: Partial<YouTubeSettings>[] = []
+    let saved: YouTubeSettings = {
+      comments: 'off',
+      commentsMax: 500,
+      pauseSeconds: 10,
+      holdMinutes: 60,
+      syncEveryMinutes: 360,
+      downloadFormat: 'bestvideo+bestaudio',
+      defaultTabs: { videos: true, shorts: true, streams: true },
+      minFreeGb: 50,
+      holdBelowMinFree: true,
+      retryWithoutCookie: true,
+      changedBy: null,
+      changedAt: null,
+    }
+    routes({
+      '/api/admin/youtube/settings': (_url: URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as Partial<YouTubeSettings>
+          sent.push(body)
+          saved = { ...saved, ...body }
+        }
+        return saved
+      },
+    })
+    render(YouTubePage)
+
+    const card = await screen.findByRole('region', { name: 'Downloading' })
+    const retry = within(card).getByRole('checkbox', {
+      name: "If the format isn't available with the YouTube cookie, try again without it",
+    })
+    expect(retry).toBeChecked()
+    await user.click(retry)
+    await user.click(within(card).getByRole('button', { name: 'Save' }))
+
+    await vi.waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0]?.retryWithoutCookie).toBe(false)
+    await vi.waitFor(() => expect(retry).not.toBeChecked())
   })
 
   it('runs the YouTube sync every few minutes or hours, or on demand only at 0, checked first', async () => {
@@ -241,6 +288,7 @@ describe('YouTubePage', () => {
       defaultTabs: { videos: true, shorts: true, streams: true },
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     }
@@ -309,6 +357,7 @@ describe('YouTubePage', () => {
               defaultTabs: { videos: true, shorts: true, streams: true },
               minFreeGb: 50,
               holdBelowMinFree: true,
+              retryWithoutCookie: true,
               changedBy: null,
               changedAt: null,
             },

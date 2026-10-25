@@ -128,6 +128,7 @@ internal sealed partial class YouTubeClient(
         string videoId,
         string format,
         string folder,
+        bool retryWithoutCookie,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(videoId);
@@ -151,6 +152,17 @@ internal sealed partial class YouTubeClient(
         }
 
         YtdlpRun run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken).ConfigureAwait(false);
+        // Signed in, YouTube can keep its formats from yt-dlp but one (a token it asks for): signed out, it gives them.
+        if (retryWithoutCookie
+            && run.SignedIn
+            && run.Failure is { } signedIn
+            && YtdlpErrors.FormatUnavailable(signedIn.Reason))
+        {
+            LogRetryingWithoutCookie(videoId, format);
+            run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken, signedIn: false)
+                .ConfigureAwait(false);
+        }
+
         if (run.Failure is not null)
         {
             return new YouTubeLookup<YouTubeDownload>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
@@ -560,13 +572,15 @@ internal sealed partial class YouTubeClient(
     /// Given each line yt-dlp writes (a listing, B5); true: enough, yt-dlp is stopped and the run counts as done. Null:
     /// its output isn't read.
     /// </param>
+    /// <param name="signedIn">False: without the cookie, even when there's one (2.2.1).</param>
     private async Task<YtdlpRun> RunDirectAsync(
         IReadOnlyList<string> arguments,
         TimeSpan limit,
         CancellationToken cancellationToken,
-        Func<string, bool>? output = null)
+        Func<string, bool>? output = null,
+        bool signedIn = true)
     {
-        string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
+        string? cookie = signedIn ? await cookies.GetAsync(cancellationToken).ConfigureAwait(false) : null;
         if (cookie is null)
         {
             return await RunProcessAsync(arguments, limit, output, cancellationToken).ConfigureAwait(false);
@@ -576,8 +590,9 @@ internal sealed partial class YouTubeClient(
         try
         {
             await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
-            return await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
+            YtdlpRun run = await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
                 .ConfigureAwait(false);
+            return run with { SignedIn = true };
         }
         finally
         {
@@ -790,16 +805,26 @@ internal sealed partial class YouTubeClient(
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp ended without leaving {Id}'s file and metadata.")]
     private partial void LogNoDownload(string id);
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Signed in with the YouTube cookie, the format {Format} matched none of {Id}'s: tried again without it.")]
+    private partial void LogRetryingWithoutCookie(string id, string format);
+
     [LoggerMessage(Level = LogLevel.Debug, Message = "yt-dlp (download): {Line}")]
     private partial void LogDownloadLine(string line);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp answered, but not with {Id}'s metadata.")]
     private partial void LogUnexpectedAnswer(string id);
 
-    /// <summary>A run's output, or why it failed; <see cref="Silent"/>: it failed without an error line.</summary>
+    /// <summary>
+    /// A run's output, or why it failed; <see cref="Silent"/>: it failed without an error line; <see cref="SignedIn"/>:
+    /// it was given the cookie.
+    /// </summary>
     private readonly record struct YtdlpRun(string Output, (YouTubeAnswer Answer, string Reason)? Failure)
     {
         public bool Silent { get; init; }
+
+        public bool SignedIn { get; init; }
 
         public static YtdlpRun Failed(YouTubeAnswer answer, string reason) => new("", (answer, reason));
     }

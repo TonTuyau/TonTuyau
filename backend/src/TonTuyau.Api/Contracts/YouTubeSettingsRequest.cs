@@ -19,6 +19,10 @@ namespace TonTuyau.Api.Contracts;
 /// 1,000,000; absent: kept.
 /// </param>
 /// <param name="HoldBelowMinFree">Below it, the downloads don't run (contract v2.12); absent: kept.</param>
+/// <param name="RetryWithoutCookie">
+/// A download whose format matched none with the YouTube cookie is tried again without it (contract v2.13); absent:
+/// kept.
+/// </param>
 public sealed record YouTubeSettingsRequest(
     string? Comments,
     int? CommentsMax,
@@ -28,4 +32,5 @@ public sealed record YouTubeSettingsRequest(
     string? DownloadFormat = null,
     ChannelTabsRequest? DefaultTabs = null,
     int? MinFreeGb = null,
-    bool? HoldBelowMinFree = null);
+    bool? HoldBelowMinFree = null,
+    bool? RetryWithoutCookie = null);

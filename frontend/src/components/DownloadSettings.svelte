@@ -3,7 +3,8 @@
   // here for one line, not empty, not too long; a format that picks nothing fails the download, saying why), and the
   // tabs a channel added gets when none is named ("Add a channel", the browser extension). Saved apart from the reading
   // settings (which stay as they are); onsaved: the page reads them again. 2.2.0: the disk space, under which the
-  // dashboard warns, and whether the downloads then run.
+  // dashboard warns, and whether the downloads then run. 2.2.1: whether a download whose format matched none with the
+  // YouTube cookie is tried again without it.
   import { api, ApiError } from '../lib/api/client'
   import type { ChannelTabs, YouTubeSettings } from '../lib/api/types'
   import { t } from '../lib/i18n/i18n.svelte'
@@ -20,6 +21,7 @@
   let tabs = $derived<ChannelTabs>({ ...current.defaultTabs })
   let minFree = $derived<number | null>(current.minFreeGb)
   let hold = $derived(current.holdBelowMinFree)
+  let retryWithoutCookie = $derived(current.retryWithoutCookie)
   let minFreeInvalid = $state(false)
   let formatInvalid = $state(false)
   let pending = $state(false)
@@ -43,6 +45,7 @@
         typed,
         { ...tabs },
         { minFreeGb: minFree, holdBelowMinFree: hold },
+        retryWithoutCookie,
       )
     } catch (error) {
       refused = t('youTube.refused', {
@@ -63,6 +66,8 @@
       <dl>
         <dt>{t('youTube.downloads.format')}</dt>
         <dd>{t('youTube.downloads.formatHint')}</dd>
+        <dt>{t('youTube.downloads.retryWithoutCookie')}</dt>
+        <dd>{t('youTube.downloads.retryWithoutCookieHint')}</dd>
       </dl>
     </HelpButton>
   </div>
@@ -81,6 +86,9 @@
         <small id="{uid}-format-invalid" class="invalid" role="alert">{t('youTube.downloads.format.invalid')}</small>
       {/if}
     </label>
+    <label class="tab"
+      ><input type="checkbox" bind:checked={retryWithoutCookie} />{t('youTube.downloads.retryWithoutCookie')}</label
+    >
     <fieldset>
       <legend>{t('youTube.downloads.tabs')}</legend>
       {#each channelTabs as tab (tab)}

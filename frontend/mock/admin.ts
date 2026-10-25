@@ -175,6 +175,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
       defaultTabs: allTabs,
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     },

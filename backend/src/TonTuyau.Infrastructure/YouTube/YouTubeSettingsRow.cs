@@ -42,6 +42,9 @@ public sealed class YouTubeSettingsRow
     /// <summary>Below <see cref="MinFreeGb"/>, the downloads don't run (2.2.0).</summary>
     public bool HoldBelowMinFree { get; set; } = true;
 
+    /// <summary>A download's format matching none with the cookie: tried again without it (2.2.1).</summary>
+    public bool RetryWithoutCookie { get; set; } = true;
+
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -56,6 +59,7 @@ public sealed class YouTubeSettingsRow
             row.SyncEveryMinutes,
             new ChannelTabs(row.DefaultVideos, row.DefaultShorts, row.DefaultStreams),
             row.MinFreeGb,
-            row.HoldBelowMinFree);
+            row.HoldBelowMinFree,
+            row.RetryWithoutCookie);
     }
 }

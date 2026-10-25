@@ -96,6 +96,7 @@ public sealed class YouTubeToolsInUseTests
             string videoId,
             string format,
             string folder,
+            bool retryWithoutCookie,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

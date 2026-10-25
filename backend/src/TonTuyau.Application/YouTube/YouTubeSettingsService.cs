@@ -27,6 +27,9 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
     /// The disk space (2.2.0): under this many GB free, a warning (0 or more; 0: never); absent: the one kept.
     /// </param>
     /// <param name="holdBelowMinFree">Below it, the downloads don't run (2.2.0); absent: kept.</param>
+    /// <param name="retryWithoutCookie">
+    /// A download's format matching none with the cookie: tried again without it (2.2.1); absent: kept.
+    /// </param>
     /// <param name="by">The admin changing them.</param>
     /// <exception cref="ValidationException">A setting is missing or out of bounds.</exception>
     public async Task<YouTubeSettings> SaveAsync(
@@ -39,6 +42,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
         ChannelTabs? defaultTabs,
         int? minFreeGb,
         bool? holdBelowMinFree,
+        bool? retryWithoutCookie,
         string by,
         CancellationToken cancellationToken)
     {
@@ -106,6 +110,7 @@ public sealed class YouTubeSettingsService(IYouTubeSettingsRepository settings, 
             DefaultTabs = defaultTabs ?? current.DefaultTabs,
             MinFreeGb = minFreeGb ?? current.MinFreeGb,
             HoldBelowMinFree = holdBelowMinFree ?? current.HoldBelowMinFree,
+            RetryWithoutCookie = retryWithoutCookie ?? current.RetryWithoutCookie,
             ChangedBy = by,
             ChangedAt = clock.GetUtcNow(),
         };

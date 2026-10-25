@@ -109,6 +109,13 @@ internal static class YtdlpErrors
     public static bool DidntAnswer(string reason) =>
         NotAnAnswer.Any(w => reason.Contains(w, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// The format asked for matched none of the video's (bestvideo, a height, a codec YouTube doesn't give); signed in,
+    /// YouTube can give yt-dlp a single format.
+    /// </summary>
+    public static bool FormatUnavailable(string reason) =>
+        reason.Contains("Requested format is not available", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>"ERROR: [youtube] k3Fq8xZ0aQw: Private video. …" → "Private video. …".</summary>
     private static string Clean(string line)
     {

@@ -187,6 +187,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultMinFreeGb)
                 .HasSentinel(-1);
             settings.Property(s => s.HoldBelowMinFree).HasColumnName("hold_below_min_free");
+            // 2.2.1: a switch as the one above, the migration fills the row there with true.
+            settings.Property(s => s.RetryWithoutCookie).HasColumnName("retry_without_cookie");
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {
