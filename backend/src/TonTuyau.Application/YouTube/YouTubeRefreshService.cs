@@ -1350,7 +1350,8 @@ public sealed partial class YouTubeRefreshService(
             or ValidationException
             or YouTubeDownloadException
             or ChannelNotAddedException
-        || ex.InnerException is DbException;
+        // A cancel a library wraps (2.3.0: the Elasticsearch client's) is a cancel too.
+        || ex.InnerException is DbException or OperationCanceledException;
 
     /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
     [LoggerMessage(Level = LogLevel.Information, Message = "Downloading {VideoId} (format {Format}).")]
