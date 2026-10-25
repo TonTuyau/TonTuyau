@@ -272,6 +272,15 @@ export const fr: Dictionary = {
   'youTube.downloads': 'Téléchargement',
   'youTube.downloads.intro': "Comment TonTuyau télécharge une vidéo, et ce qu'une chaîne ajoutée télécharge.",
   'youTube.downloads.format': 'Format',
+  'youTube.downloads.space': 'Espace disque',
+  'youTube.downloads.minFree': 'Prévenir sous',
+  'youTube.downloads.minFreeUnit': 'Go libres sur le disque du dossier des vidéos (0 : jamais)',
+  'youTube.downloads.minFree.invalid': 'Un nombre entier de Go, 0 ou plus.',
+  'youTube.downloads.hold':
+    'En dessous, ne pas lancer les téléchargements (les synchronisations YouTube, Télécharger une vidéo, Réessayer)',
+  'youTube.downloads.savedHold': 'Sous {gb} Go libres, un avertissement, et les téléchargements attendent.',
+  'youTube.downloads.savedWarn': 'Sous {gb} Go libres, un avertissement ; les téléchargements continuent.',
+  'youTube.downloads.savedNever': "Pas d'avertissement sur l'espace disque.",
   'youTube.downloads.formatHint':
     'Dans la syntaxe de yt-dlp : bestvideo+bestaudio (le meilleur de chacun, par défaut), bestvideo[height<=1080]+bestaudio, ou avec un repli après une barre : …/best. Un format qui ne choisit rien fait échouer le téléchargement, en disant pourquoi.',
   'youTube.downloads.format.invalid': 'Le format de yt-dlp, sur une ligne : 1 à 200 caractères.',
@@ -569,6 +578,7 @@ export const fr: Dictionary = {
   'channelAdmin.checked': 'vérifiée {when}',
   'channelAdmin.subscribers': 'Abonnés',
   'channelAdmin.inTonTuyau': 'Dans TonTuyau',
+  'channelAdmin.size': 'Taille',
   'channelAdmin.refreshChannel': 'Actualiser la chaîne',
   'channelAdmin.refreshAll': 'Actualiser la chaîne et ses vidéos',
   'channelAdmin.refreshHint':
@@ -640,6 +650,18 @@ export const fr: Dictionary = {
   'dashboard.search': 'Rechercher une chaîne',
   'dashboard.channel': 'Chaîne',
   'dashboard.total': 'Total',
+  'dashboard.size': 'Taille',
+  'storage.title': 'Stockage',
+  'storage.hint':
+    "Le disque du dossier des vidéos, et ce qui le remplit : les vidéos de TonTuyau par type, les autres fichiers du disque (pas à TonTuyau), l'espace libre. La page YouTube règle quand il prévient, et si les téléchargements attendent alors.",
+  'storage.free': '{free} libres',
+  'storage.of': 'sur {total}, sur le disque du dossier des vidéos',
+  'storage.low': 'Moins de {threshold} libres : les prochains téléchargements pourraient ne pas tenir.',
+  'storage.lowHeld':
+    "Moins de {threshold} libres : les téléchargements ne se lancent pas tant que de l'espace n'est pas libéré.",
+  'storage.unknownDisk': 'de vidéos (le disque du dossier des vidéos ne dit pas son espace libre)',
+  'storage.other': 'Autres fichiers du disque',
+  'storage.freeLabel': 'Libre',
   'dashboard.noChannel': 'Aucune chaîne',
 
   'help.label': 'Aide : {zone}',
@@ -662,6 +684,7 @@ export const fr: Dictionary = {
   'count.videos': { one: '{count} vidéo', other: '{count} vidéos' },
   'count.shorts': { one: '{count} short', other: '{count} shorts' },
   'count.streams': { one: '{count} live', other: '{count} lives' },
+  'storage.count': { one: '{count} fichier', other: '{count} fichiers' },
   'count.channels': { one: '{count} chaîne', other: '{count} chaînes' },
   'count.results': { one: '{count} résultat', other: '{count} résultats' },
   'count.likes': { one: '{count} « J’aime »', other: '{count} « J’aime »' },

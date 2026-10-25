@@ -744,9 +744,19 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasDefaultValue("bestvideo+bestaudio")
                         .HasColumnName("download_format");
 
+                    b.Property<bool>("HoldBelowMinFree")
+                        .HasColumnType("boolean")
+                        .HasColumnName("hold_below_min_free");
+
                     b.Property<int>("HoldMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("hold_minutes");
+
+                    b.Property<int>("MinFreeGb")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("min_free_gb");
 
                     b.Property<int>("PauseSeconds")
                         .HasColumnType("integer")

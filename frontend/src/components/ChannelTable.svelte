@@ -1,14 +1,14 @@
 <script lang="ts">
   // The dashboard's channels: their videos, shorts, streams, those gone from YouTube, private, unlisted, to retry or
-  // not checked yet (1.5; each count not 0 in its state's colour), and the total. Its name opens its admin page;
-  // "Go to channel" its page in TonTuyau. Sorted by a column's button (again: the other way), filtered by name (accents
+  // not checked yet (1.5; each count not 0 in its state's colour), the total, and (2.2.0) the size of its files.
+  // Its name opens its admin page. Sorted by a column's button (again: the other way), filtered by name (accents
   // and case ignored, once typing pauses) and to the channels with videos gone from YouTube. Loaded like a channel's
   // videos on its admin page (alpha.3): the API filters, sorts and sends a page at a time, the next one as it comes
   // into view. A 401 ends the session.
   import type { ChannelTotals, DashboardChannelSort, YouTubeState } from '../lib/api/types'
   import { api } from '../lib/api/client'
   import { auth } from '../lib/auth.svelte'
-  import { formatNumber } from '../lib/format'
+  import { formatBytes, formatNumber } from '../lib/format'
   import { i18n, t, tp } from '../lib/i18n/i18n.svelte'
   import type { TextKey } from '../lib/i18n/types'
   import { Pager } from '../lib/remote.svelte'
@@ -35,6 +35,7 @@
     { key: 'retryLater', label: 'dashboard.retryLater' },
     { key: 'notChecked', label: 'dashboard.notChecked' },
     { key: 'total', label: 'dashboard.total' },
+    { key: 'size', label: 'dashboard.size' },
   ]
 
   const channels = new Pager<ChannelTotals>()
@@ -146,6 +147,7 @@
             <td class="num">{@render stateCount('retryLater', channel.retryLater)}</td>
             <td class="num" class:zero={channel.notChecked === 0}>{number(channel.notChecked)}</td>
             <td class="num"><b>{number(channel.total)}</b></td>
+            <td class="num">{formatBytes(channel.size, i18n.lang)}</td>
           </tr>
         {:else}
           <tr>

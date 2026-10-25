@@ -392,8 +392,10 @@ export const api = {
     comments: YouTubeCommentsChoice,
     downloadFormat: string,
     defaultTabs: ChannelTabs,
+    // 2.2.0: the disk space settings.
+    space: { minFreeGb: number; holdBelowMinFree: boolean },
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs })
+    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs, ...space })
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

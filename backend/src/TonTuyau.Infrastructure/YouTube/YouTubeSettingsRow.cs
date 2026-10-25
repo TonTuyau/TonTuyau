@@ -36,6 +36,12 @@ public sealed class YouTubeSettingsRow
 
     public bool DefaultStreams { get; set; } = true;
 
+    /// <summary>The disk space (2.2.0): under this many GB free, a warning; 0: never.</summary>
+    public int MinFreeGb { get; set; } = YouTubeSettings.DefaultMinFreeGb;
+
+    /// <summary>Below <see cref="MinFreeGb"/>, the downloads don't run (2.2.0).</summary>
+    public bool HoldBelowMinFree { get; set; } = true;
+
     public static explicit operator YouTubeSettings(YouTubeSettingsRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -48,6 +54,8 @@ public sealed class YouTubeSettingsRow
             row.ChangedAt,
             row.DownloadFormat,
             row.SyncEveryMinutes,
-            new ChannelTabs(row.DefaultVideos, row.DefaultShorts, row.DefaultStreams));
+            new ChannelTabs(row.DefaultVideos, row.DefaultShorts, row.DefaultStreams),
+            row.MinFreeGb,
+            row.HoldBelowMinFree);
     }
 }

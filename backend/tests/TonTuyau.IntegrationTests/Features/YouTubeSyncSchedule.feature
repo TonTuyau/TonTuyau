@@ -3,6 +3,7 @@ Feature: The incremental YouTube sync, every few minutes or hours
   The incremental YouTube sync runs by itself (2.0, B5) at an interval in minutes (2.1.0: it was hours), 6 hours by
   default, a YouTube setting (0: by hand only): asked for that long after the last one was, at once when none ever ran,
   while TonTuyau is subscribed to a channel. The backend looks every minute. The Tasks page says when it runs next.
+  Under the disk space threshold (2.2.0, set to wait), it waits, and runs once there's room.
 
   Background:
     Given the clock shows "2026-10-20T08:00:00Z"
@@ -48,6 +49,15 @@ Feature: The incremental YouTube sync, every few minutes or hours
     Then the history has 0 runs of "youTubeSync" for 3 seconds
     When I request "/api/admin/tasks" with my session
     Then "tasks[1].next" is null
+
+  Scenario: Under the disk space threshold it waits, and runs once there's room
+    Given the videos folder's disk has 40 GB free of 1000 GB
+    When the clock moves on 1 minutes
+    Then the history has 0 runs of "youTubeSync" for 3 seconds
+    Given the videos folder's disk has 900 GB free of 1000 GB
+    When the clock moves on 1 minutes
+    Then the history has 1 run of "youTubeSync" within 10 seconds
+    And the latest run ends succeeded within 30 seconds
 
   Scenario Outline: The interval is from 0 minutes to a week
     When I send the YouTube settings '{"comments": "off", "syncEveryMinutes": <minutes>}' with my session

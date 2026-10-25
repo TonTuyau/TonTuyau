@@ -179,6 +179,14 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             settings.Property(s => s.DefaultVideos).HasColumnName("default_videos");
             settings.Property(s => s.DefaultShorts).HasColumnName("default_shorts");
             settings.Property(s => s.DefaultStreams).HasColumnName("default_streams");
+            // 2.2.0: the disk space. 0 is a value (never), not "unset"; a switch without a database default, as the
+            // tabs: the migration fills the rows there with true.
+            settings
+                .Property(s => s.MinFreeGb)
+                .HasColumnName("min_free_gb")
+                .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultMinFreeGb)
+                .HasSentinel(-1);
+            settings.Property(s => s.HoldBelowMinFree).HasColumnName("hold_below_min_free");
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {

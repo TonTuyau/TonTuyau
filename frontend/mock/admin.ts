@@ -15,6 +15,7 @@ import type {
   Run,
   RunLog,
   RunTask,
+  Storage,
   Subscription,
   Tasks,
   VideoCard,
@@ -28,6 +29,8 @@ import type { ChannelFixture, MockDb, VideoFixture } from './db.ts'
 
 export interface AdminMockState {
   loggedIn: boolean
+  /** 2.2.0: the videos folder's disk, as /__mock sets it: roomy, almost full, or not saying. */
+  disk: 'normal' | 'low' | 'unknown'
   runs: Run[]
   keys: ApiKey[]
   settings: YouTubeSettings
@@ -148,6 +151,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
   })
   return {
     loggedIn: false,
+    disk: 'normal',
     runs,
     keys: [
       {
@@ -169,6 +173,8 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
       syncEveryMinutes: 360,
       downloadFormat: 'bestvideo+bestaudio',
       defaultTabs: allTabs,
+      minFreeGb: 50,
+      holdBelowMinFree: true,
       changedBy: null,
       changedAt: null,
     },
@@ -233,6 +239,38 @@ function totals(db: MockDb, channel: ChannelFixture): ChannelTotals {
     retryLater: states('retryLater'),
     notChecked: states('notChecked'),
     total: own.length,
+    size: own.reduce((sum, video) => sum + video.fileSize, 0),
+  }
+}
+
+const TB = 1e12
+
+/** The disk's free space (2.2.0), as /__mock sets it: 412 GB of 1 TB, almost full, or null when it doesn't say. */
+const freeOf = (state: AdminMockState) =>
+  state.disk === 'unknown' ? null : state.disk === 'low' ? 0.04 * TB : 0.412 * TB
+
+/** Why the downloads don't run, as the backend says it (DownloadSpace): under the threshold, the switch on; or null. */
+function heldBecause(state: AdminMockState): string | null {
+  const free = freeOf(state)
+  const { minFreeGb, holdBelowMinFree } = state.settings
+  return holdBelowMinFree && minFreeGb > 0 && free !== null && free < minFreeGb * 1e9
+    ? `Under ${minFreeGb} GB free on the videos folder's disk (${Math.floor(free / 1e8) / 10} GB): the downloads wait until space is freed (the YouTube page sets it).`
+    : null
+}
+
+/** The dashboard's storage (2.2.0): the fixtures' file sizes by type, on the disk /__mock sets. */
+function storage(db: MockDb, state: AdminMockState): Storage {
+  const types = (['video', 'short', 'stream'] as const).map((type) => {
+    const own = db.videos.filter((video) => video.type === type)
+    return { type, bytes: own.reduce((sum, video) => sum + video.fileSize, 0), count: own.length }
+  })
+  const free = freeOf(state)
+  const { minFreeGb, holdBelowMinFree } = state.settings
+  return {
+    disk: free === null ? null : { total: TB, free },
+    types,
+    minFree: minFreeGb * 1e9,
+    holdDownloads: holdBelowMinFree,
   }
 }
 
@@ -263,6 +301,7 @@ function dashboard(db: MockDb, state: AdminMockState): Dashboard {
         }
       }),
     },
+    storage: storage(db, state),
   }
 }
 
@@ -301,7 +340,12 @@ function tasks(state: AdminMockState, now: number): Tasks {
     tasks: (['import', 'youTubeSync', 'youTubeFullSync', 'refreshAll'] as const).map((task) => ({
       task,
       lastRun: last(task),
-      unavailable: task === 'import' ? 'TubeArchivist isn’t set (TONTUYAU_TA_URL, TONTUYAU_TA_TOKEN).' : null,
+      unavailable:
+        task === 'import'
+          ? 'TubeArchivist isn’t set (TONTUYAU_TA_URL, TONTUYAU_TA_TOKEN).'
+          : task === 'youTubeSync' || task === 'youTubeFullSync'
+            ? heldBecause(state)
+            : null,
       next: task === 'youTubeSync' ? new Date(now + state.settings.syncEveryMinutes * 60_000).toISOString() : null,
     })),
     onHold: state.runs.filter((run) => run.state === 'onHold'),
@@ -388,7 +432,19 @@ export function handleAdmin(
     const rows = db.channels
       .map((candidate) => totals(db, candidate))
       .filter((row) => row.name.toLowerCase().includes(q) && (params.get('gone') !== 'true' || row.gone > 0))
-      .sort((a, b) => b.total - a.total)
+      .sort((a, b) => {
+        // Any column, as the backend sorts them (2.2.0: the size too); names A to Z, numbers biggest first.
+        const key = params.get('sort') ?? 'total'
+        const value = (row: ChannelTotals): number | string =>
+          key === 'name'
+            ? row.name.toLowerCase()
+            : key in row.counts
+              ? row.counts[key as keyof ChannelTotals['counts']]
+              : ((row as unknown as Record<string, number>)[key] ?? 0)
+        const [x, y] = [value(a), value(b)]
+        const order = x < y ? -1 : x > y ? 1 : 0
+        return params.get('order') === 'asc' ? order : -order
+      })
     return { status: 200, body: page(rows) }
   }
   if (resource === 'dashboard' && id === 'imports') {
@@ -449,6 +505,12 @@ export function handleAdmin(
           gone: counts('gone'),
         },
         subscription: state.subscriptions.get(channel.id) ?? null,
+        // 2.2.0: its files' sizes by type.
+        size: {
+          videos: own.filter((video) => video.type === 'video').reduce((sum, video) => sum + video.fileSize, 0),
+          shorts: own.filter((video) => video.type === 'short').reduce((sum, video) => sum + video.fileSize, 0),
+          streams: own.filter((video) => video.type === 'stream').reduce((sum, video) => sum + video.fileSize, 0),
+        },
       }
       return { status: 200, body: answer }
     }

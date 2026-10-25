@@ -7,15 +7,19 @@ using TonTuyau.Application.Paging;
 using TonTuyau.Application.Store;
 using TonTuyau.Application.Sync;
 using TonTuyau.Application.Validation;
+using TonTuyau.Application.YouTube;
 
 namespace TonTuyau.Application.Dashboard;
 
 /// <summary>
-/// The admin dashboard: the library's totals, its play time, its channels (a page at a time), and the import history
-/// of a period. Elasticsearch counts (<see cref="IDashboardRepository"/>); this adds them up, divides and picks.
+/// The admin dashboard: the library's totals, its play time, its storage (2.2.0: the videos folder's disk, what the
+/// videos take of it), its channels (a page at a time, each with its size), and the import history of a period.
+/// Elasticsearch counts (<see cref="IDashboardRepository"/>); this adds them up, divides and picks.
 /// </summary>
 public sealed class DashboardService(
     IDashboardRepository store,
+    IDiskSpace disk,
+    IYouTubeSettingsRepository settings,
     IValidator<ImportHistoryRequest> importsValidator,
     TonTuyauOptions options,
     TimeProvider clock)
@@ -37,11 +41,25 @@ public sealed class DashboardService(
         SyncRun? lastAddition = await store
             .GetLatestAdditionAsync(cancellationToken)
             .ConfigureAwait(false);
+        YouTubeSettings read = await settings.GetAsync(cancellationToken).ConfigureAwait(false);
         return new DashboardView(
             lastAddition?.FinishedAt,
             Totals(channels.Count, stats),
-            PlayTime(stats));
+            PlayTime(stats),
+            Storage(stats, read));
     }
+
+    /// <summary>The videos folder's disk, read now, and the videos' sizes by type (every type, 0 when none).</summary>
+    private StorageView Storage(LibraryStats stats, YouTubeSettings read) =>
+        new(
+            disk.Read(),
+            [
+                .. Types.Select(type => stats.Types.FirstOrDefault(s => s.Type == type) is { } counted
+                    ? new TypeStorageView(type, counted.Bytes, counted.Count)
+                    : new TypeStorageView(type, 0, 0)),
+            ],
+            read.MinFreeGb * DownloadSpace.BytesPerGb,
+            read.HoldBelowMinFree);
 
     /// <summary>
     /// A page of the channels with their counts (alpha.3): those whose name has the words (accents and case
@@ -152,6 +170,7 @@ public sealed class DashboardService(
             ChannelStats counted = stats.Channels.GetValueOrDefault(c.Id)
                 ?? new ChannelStats(TypeCounts.None, 0, 0, 0, 0, 0);
             TypeCounts counts = counted.Counts;
+            TypeCounts sizes = counted.Sizes ?? TypeCounts.None;
             return new ChannelTotalsView(
                 c.Id,
                 c.Name,
@@ -162,7 +181,8 @@ public sealed class DashboardService(
                 counted.Unlisted,
                 counted.RetryLater,
                 counted.NotChecked,
-                counts.Videos + counts.Shorts + counts.Streams);
+                counts.Videos + counts.Shorts + counts.Streams,
+                sizes.Videos + sizes.Shorts + sizes.Streams);
         });
 
     /// <summary>By the column, then by name (A to Z, accents and case ignored) and id: the same order every time.</summary>
@@ -198,6 +218,7 @@ public sealed class DashboardService(
         DashboardChannelSort.RetryLater => channel.RetryLater,
         DashboardChannelSort.NotChecked => channel.NotChecked,
         DashboardChannelSort.Total => channel.Total,
+        DashboardChannelSort.Size => channel.Size,
         _ => throw new ArgumentOutOfRangeException(nameof(sort), sort, "Not a count."),
     };
 

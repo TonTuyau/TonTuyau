@@ -5,6 +5,7 @@
   // (their own calls too, a page at a time: ChannelTable). A 401 means the session ended meanwhile: the shell then goes
   // to the login page.
   import ChannelTable from '../components/ChannelTable.svelte'
+  import StorageCard from '../components/StorageCard.svelte'
   import ErrorState from '../components/ErrorState.svelte'
   import ImportChart, { type ImportScale } from '../components/ImportChart.svelte'
   import Skeleton from '../components/Skeleton.svelte'
@@ -158,6 +159,8 @@
         {/if}
       </section>
     </div>
+
+    <StorageCard storage={data.storage} />
 
     <ChannelTable count={data.totals.channels} />
   {/if}
