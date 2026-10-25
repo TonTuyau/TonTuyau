@@ -40,7 +40,7 @@ describe('AccountMenu (the top bar)', () => {
     )
   })
 
-  it('shows the initial of whoever is logged in, and a menu with the name and Log out', async () => {
+  it('shows the initial of whoever is logged in, and a menu with the name, My account and Log out', async () => {
     const posts = backend(asAdmin())
     await auth.load()
     const user = userEvent.setup()
@@ -52,6 +52,8 @@ describe('AccountMenu (the top bar)', () => {
 
     await user.click(trigger)
     expect(screen.getByRole('menu', { name: 'admin' })).toHaveTextContent('admin')
+    expect(screen.getByRole('menuitem', { name: 'My account' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
     expect(screen.getByRole('menuitem', { name: 'Administration' })).toHaveFocus()
     await user.keyboard('{ArrowDown}')
     const logout = screen.getByRole('menuitem', { name: 'Log out' })

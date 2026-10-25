@@ -315,6 +315,12 @@ with `TONTUYAU_ADMIN_PASSWORD`; later starts never read them again. Passwords ar
 **Log in** (top right) opens a session: an HttpOnly, SameSite=Strict, Secure cookie, valid 8 hours and renewed while
 in use, or 30 days with "Stay logged in". A restart keeps everyone logged in.
 
+**Accounts** (2.3.0): an admin makes more on the admin's **Accounts** page, each an **admin** (everything) or a
+**user** (watches the library, no administration), and can change their role or password, disable or delete them. The
+last enabled local admin stays, and nobody disables nor deletes their own account. Each one changes its own password
+on **My account** (the account menu). A session is checked against its account every 5 minutes: an account disabled,
+deleted, or whose role or password changed, is logged out then.
+
 - **HTTPS**: the cookie is `Secure`, so browsers only keep it over HTTPS (and on `localhost`). Over plain `http://` on
   the LAN, set `TONTUYAU_COOKIE_SECURE=false`.
 - **Password guessing**: 5 attempts a minute per client address, then 429. Behind a reverse proxy, name it in

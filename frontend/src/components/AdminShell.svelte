@@ -1,6 +1,7 @@
 <script lang="ts">
   // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), YouTube and
-  // API keys (1.5), Back to TonTuyau), for a logged-in account only: anyone else goes to the login page, and comes back here once logged in.
+  // API keys (1.5), Accounts (2.3.0), Back to TonTuyau), for a logged-in admin only: anyone else goes
+  // to the login page, and comes back here once logged in; a user (not an admin) is told these pages are for admins.
   // The menu: full or icons only with the ☰, remembered (wide screens); icons only under 900 px, the ☰ opening it for
   // the visit; on phones a row of links, no ☰, that scrolls sideways by itself when wider than the screen.
   import { adminGuide } from '../lib/adminGuide.svelte'
@@ -8,6 +9,7 @@
   import { t } from '../lib/i18n/i18n.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href, type AdminRoute } from '../lib/router/routes'
+  import AccountsPage from '../pages/AccountsPage.svelte'
   import ApiKeysPage from '../pages/ApiKeysPage.svelte'
   import ChannelAdminPage from '../pages/ChannelAdminPage.svelte'
   import DashboardPage from '../pages/DashboardPage.svelte'
@@ -73,7 +75,15 @@
   }
 </script>
 
-{#if auth.status === 'authenticated'}
+{#if auth.status === 'authenticated' && !auth.isAdmin}
+  <div class="denied">
+    <Logo />
+    <Icon name="lock" />
+    <h1>{t('admin.forAdmins')}</h1>
+    <p>{t('admin.forAdminsHint', { user: auth.displayName ?? auth.username ?? '' })}</p>
+    <a href={href.home()}>{t('admin.back')}</a>
+  </div>
+{:else if auth.status === 'authenticated'}
   <header class="topbar">
     <div class="start">
       {#if !phone}
@@ -135,6 +145,15 @@
         <Icon name="key" filled={section === 'apiKeys'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.apiKeys')}</span>
       </a>
+      <a
+        class="item"
+        href={href.adminAccounts()}
+        aria-current={section === 'accounts' ? 'page' : undefined}
+        title={full ? undefined : t('admin.accounts')}
+      >
+        <Icon name="accounts" filled={section === 'accounts'} />
+        <span class="label" class:visually-hidden={!full}>{t('admin.accounts')}</span>
+      </a>
       <a class="item back" href={href.home()} title={full ? undefined : t('admin.back')}>
         <Icon name="back" />
         <span class="label" class:visually-hidden={!full}>{t('admin.back')}</span>
@@ -152,6 +171,8 @@
         <ApiKeysPage />
       {:else if route.page === 'channel'}
         <ChannelAdminPage id={route.id} />
+      {:else if route.page === 'accounts'}
+        <AccountsPage />
       {:else}
         <DashboardPage />
       {/if}
@@ -160,6 +181,30 @@
 {/if}
 
 <style>
+  .denied {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: var(--login-width);
+    margin: 0 auto;
+    padding: var(--space-12) var(--space-4);
+    text-align: center;
+  }
+
+  .denied h1 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .denied p {
+    color: var(--color-text-secondary);
+  }
+
+  .denied a {
+    color: var(--color-link);
+  }
+
   .topbar {
     position: sticky;
     top: 0;

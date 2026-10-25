@@ -1,3 +1,4 @@
+using TonTuyau.Application.Accounts;
 using TonTuyau.Application.ApiKeys;
 using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
@@ -134,6 +135,13 @@ public static class ApiValues
         ["off"] = YouTubeCommentsChoice.Off,
         ["top"] = YouTubeCommentsChoice.Top,
         ["all"] = YouTubeCommentsChoice.All,
+    };
+
+    /// <summary>An account's role (2.3.0).</summary>
+    public static readonly Table<AccountRole> AccountRoles = new()
+    {
+        ["admin"] = AccountRole.Admin,
+        ["user"] = AccountRole.User,
     };
 
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()

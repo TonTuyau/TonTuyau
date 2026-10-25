@@ -1,6 +1,8 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  Account,
+  AccountChange,
   AdminChannel,
   AdminVideo,
   ApiKey,
@@ -21,6 +23,7 @@ import type {
   ImportPeriod,
   LoginRequest,
   Me,
+  NewAccount,
   Page,
   ProblemDetails,
   Run,
@@ -153,6 +156,15 @@ async function putFor<T>(path: string, body: unknown): Promise<T> {
 }
 
 /** A DELETE (1.5: an API key, the YouTube cookie): 204, no body. */
+/** A PUT of JSON whose answer has no body (204). */
+async function put(path: string, body: unknown): Promise<void> {
+  await send(path, {
+    method: 'PUT',
+    headers: { accept: 'application/json', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 async function remove(path: string): Promise<void> {
   await send(path, { method: 'DELETE', headers: { accept: 'application/json' } })
 }
@@ -215,6 +227,11 @@ export const api = {
 
   logout(): Promise<void> {
     return post('/api/auth/logout')
+  },
+
+  /** A local account changes its own password (2.3.0): 400 when the current one is wrong, 409 for a directory one. */
+  changeMyPassword(current: string, password: string): Promise<void> {
+    return put('/api/auth/me/password', { current, password })
   },
 
   /** The admin dashboard (1.2): 401 when nobody is logged in. */
@@ -396,6 +413,26 @@ export const api = {
     space: { minFreeGb: number; holdBelowMinFree: boolean },
   ): Promise<YouTubeSettings> {
     return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs, ...space })
+  },
+
+  // 2.3.0: the accounts (an admin's).
+
+  accounts(signal?: AbortSignal): Promise<Account[]> {
+    return get('/api/admin/accounts', {}, signal)
+  },
+
+  /** A local account: 409 when the name is taken (whatever the case). */
+  createAccount(account: NewAccount): Promise<Account> {
+    return postFor('/api/admin/accounts', account)
+  },
+
+  /** 409 for the last enabled local admin, one's own account disabled, a directory account's role or password. */
+  changeAccount(id: number, change: AccountChange): Promise<Account> {
+    return putFor(`/api/admin/accounts/${id}`, change)
+  },
+
+  deleteAccount(id: number): Promise<void> {
+    return remove(`/api/admin/accounts/${id}`)
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

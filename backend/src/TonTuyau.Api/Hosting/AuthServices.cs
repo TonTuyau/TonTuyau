@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using TonTuyau.Api.Errors;
+using TonTuyau.Application.Accounts;
 using TonTuyau.Application.ApiKeys;
+using TonTuyau.Application.Browse;
 using TonTuyau.Application.Configuration;
 using TonTuyau.Infrastructure;
 using TonTuyau.Infrastructure.Accounts;
@@ -20,6 +22,9 @@ internal static class AuthServices
 {
     public const string LoginRateLimit = "login";
 
+    /// <summary>One's own password changed (2.3.0): its current password guessed, as a login's; counted apart.</summary>
+    public const string PasswordRateLimit = "password";
+
     /// <summary>The default scheme: a request with a Bearer header is an API key's, any other the session cookie's.</summary>
     public const string SessionOrApiKey = "SessionOrApiKey";
 
@@ -28,6 +33,11 @@ internal static class AuthServices
     /// Every other <c>[Authorize]</c> endpoint takes the default policy: a logged-in admin only, never a key.
     /// </summary>
     public const string BrowserExtensionPolicy = "BrowserExtension";
+
+    /// <summary>
+    /// The policy of what any logged-in account may do (2.3.0: its own password), an admin or a user; never a key.
+    /// </summary>
+    public const string AccountPolicy = "Account";
     public const string CookieName = "tontuyau_session";
     public const int LoginAttemptsPerMinute = 5;
     public static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(8);
@@ -57,14 +67,16 @@ internal static class AuthServices
         services
             .AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
             .Configure<TonTuyauOptions>(ConfigureCookie);
-        // Default deny for keys: [Authorize] alone is an admin's session; an endpoint open to a kind of key says so.
+        // Default deny for keys and (2.3.0) users: [Authorize] alone is an admin's session; an endpoint open to a kind
+        // of key, or to any account, says so.
         AuthorizationPolicy adminOnly = new AuthorizationPolicyBuilder()
             .RequireAssertion(context => IsAdmin(context.User))
             .Build();
         services
             .AddAuthorizationBuilder()
             .SetDefaultPolicy(adminOnly)
-            .AddPolicy(BrowserExtensionPolicy, policy => policy.RequireAssertion(IsAdminOrBrowserExtension));
+            .AddPolicy(BrowserExtensionPolicy, policy => policy.RequireAssertion(IsAdminOrBrowserExtension))
+            .AddPolicy(AccountPolicy, policy => policy.RequireAssertion(context => IsAccount(context.User)));
 
         // Guessing passwords: a few attempts per minute and client address, then 429 (as ProblemDetails, by the
         // status code pages).
@@ -72,13 +84,18 @@ internal static class AuthServices
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             o.AddPolicy(LoginRateLimit, PerClientAddress);
+            o.AddPolicy(PasswordRateLimit, PerClientAddress);
         });
         return services;
     }
 
-    /// <summary>Logged in with the session (an account): not an API key.</summary>
-    private static bool IsAdmin(ClaimsPrincipal user) =>
+    /// <summary>Logged in with the session (an account, an admin or a user): not an API key.</summary>
+    private static bool IsAccount(ClaimsPrincipal user) =>
         user.Identity?.IsAuthenticated == true && !user.HasClaim(c => c.Type == ApiKeyAuthenticationHandler.KindClaim);
+
+    /// <summary>An admin's session (2.3.0: the role in it).</summary>
+    private static bool IsAdmin(ClaimsPrincipal user) =>
+        IsAccount(user) && user.IsInRole(ApiValues.AccountRoles.NameOf(AccountRole.Admin));
 
     private static bool IsAdminOrBrowserExtension(AuthorizationHandlerContext context) =>
         IsAdmin(context.User) || IsKeyOfKind(context.User, ApiKeyKind.BrowserExtension);
@@ -121,6 +138,9 @@ internal static class AuthServices
         // 8 hours, renewed while in use; "Stay logged in" makes it 30 days (AuthController).
         cookie.ExpireTimeSpan = SessionLifetime;
         cookie.SlidingExpiration = true;
+
+        // 2.3.0: checked against its account every few minutes (Sessions).
+        cookie.Events.OnValidatePrincipal = Sessions.ValidateAsync;
 
         // An API answers 401 / 403, not the cookie handler's redirect to a login page: the front has its own.
         cookie.Events.OnRedirectToLogin = context => Problems.WriteAsync(context.HttpContext, Problems.NotLoggedIn());

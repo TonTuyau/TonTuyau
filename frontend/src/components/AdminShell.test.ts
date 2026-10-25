@@ -53,6 +53,30 @@ describe('the admin area', () => {
     expect(api.requests('/api/admin/dashboard')).toHaveLength(1)
   })
 
+  it('tells a user (not an admin) these pages are for admins, asking the admin API nothing (2.3.0)', async () => {
+    const api = fakeApi({
+      '/api/auth/me': { username: 'camille', displayName: null, role: 'user', source: 'local' },
+      '/api/admin/dashboard': dashboard(),
+    })
+    goTo('/admin')
+    render(App)
+
+    expect(await screen.findByRole('heading', { name: 'These pages are for admins' })).toBeInTheDocument()
+    expect(screen.getByText(/^camille, your account watches the library/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to TonTuyau' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('navigation', { name: 'Administration' })).toBeNull()
+    expect(api.requests('/api/admin/dashboard')).toHaveLength(0)
+  })
+
+  it('leads an admin to the accounts (2.3.0)', async () => {
+    fakeApi({ '/api/auth/me': loggedIn(), '/api/admin/dashboard': dashboard() })
+    goTo('/admin')
+    render(App)
+
+    const nav = await screen.findByRole('navigation', { name: 'Administration' })
+    expect(within(nav).getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/admin/accounts')
+  })
+
   it('goes to the login page when the session ended meanwhile (the API answers 401)', async () => {
     fakeApi({
       '/api/auth/me': loggedIn(),
