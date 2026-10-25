@@ -77,7 +77,7 @@ public sealed partial class YouTubeRefreshService
 
     /// <summary>
     /// Downloads a video (<see cref="DownloadVideoAsync"/>); a failure is recorded (B5) when its channel is known: the
-    /// one that listed it, or the failure before.
+    /// one that listed it, the failure before, the library's, or (2.3.0) the one YouTube says.
     /// </summary>
     /// <exception cref="YouTubeDownloadException">Not downloaded: recorded, and noted.</exception>
     /// <exception cref="DiskSpaceLowException">Under the disk space threshold, set to wait (2.2.0): not begun.</exception>
@@ -113,17 +113,24 @@ public sealed partial class YouTubeRefreshService
         {
             CancellationToken ct = context.CancellationToken;
             DownloadFailure? before = await downloadFailures.GetAsync(videoId, ct).ConfigureAwait(false);
-            // The channel that listed it, or the one of its failure before; none: "Download a video" of one that never
-            // failed, the run fails, saying why.
-            string? channelId = listed.ChannelId ?? before?.ChannelId;
-            if (channelId is null)
+            // The channel that listed it, the one of its failure before, the library's (its file missing), or (2.3.0:
+            // "Download a video" of one that never failed) the one YouTube says; none (gone, private…): the run fails,
+            // saying why, not recorded.
+            (string ChannelId, string? Title)? owner = listed.ChannelId is not null
+                ? listed
+                : before is not null
+                    ? (before.ChannelId, listed.Title)
+                    : stored is not null
+                        ? (stored.Video.ChannelId, stored.Video.Title)
+                        : await OwnerOnYouTubeAsync(videoId, ct).ConfigureAwait(false);
+            if (owner is null)
             {
                 throw;
             }
 
             string reason = ex.Reason.Length > 0 ? ex.Reason : ex.Message;
             DownloadFailure failure = await downloadFailures
-                .RecordAsync(videoId, channelId, listed.Title, reason, clock.GetUtcNow(), ct)
+                .RecordAsync(videoId, owner.Value.ChannelId, owner.Value.Title, reason, clock.GetUtcNow(), ct)
                 .ConfigureAwait(false);
             string name = failure.Title is null ? videoId : $"\"{failure.Title}\" ({videoId})";
             string why = reason.TrimEnd('.');
@@ -132,6 +139,18 @@ public sealed partial class YouTubeRefreshService
                 : $"{name} not downloaded: {why}. Failed {failure.Tries} time(s).");
             throw;
         }
+    }
+
+    /// <summary>
+    /// A video's channel and title as YouTube says them (2.3.0), for the failure of a download nothing listed: null when
+    /// YouTube doesn't give them (gone, private, no answer).
+    /// </summary>
+    private async Task<(string ChannelId, string? Title)?> OwnerOnYouTubeAsync(string videoId, CancellationToken ct)
+    {
+        YouTubeLookup<YouTubeVideo> lookup = await youTube
+            .GetVideoAsync(videoId, comments: null, ct)
+            .ConfigureAwait(false);
+        return lookup is { Answer: YouTubeAnswer.Found, Item: { } video } ? (video.ChannelId, video.Title) : null;
     }
 
     /// <summary>

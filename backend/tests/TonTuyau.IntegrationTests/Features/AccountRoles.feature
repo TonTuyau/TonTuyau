@@ -9,6 +9,8 @@ Feature: Accounts and roles
 
   Background:
     Given the clock shows "2026-10-26T08:00:00Z"
+    # Its indices made first: the library's pages are asked for below.
+    And the backend is ready
     And I logged in as the admin
 
   Scenario: Who is logged in says the role and where the account is from
