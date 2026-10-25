@@ -15,6 +15,8 @@ public sealed class AccountServiceTests
 
     private readonly FakeAccounts _accounts = new();
     private readonly FakeHasher _hasher = new();
+    private readonly FakeLdapSettings _ldap = new();
+    private readonly FakeDirectory _directory = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -96,7 +98,7 @@ public sealed class AccountServiceTests
     }
 
     [Fact]
-    public async Task A_disabled_account_or_a_directory_one_is_refused_at_login_after_the_same_one_check()
+    public async Task A_disabled_account_or_a_directory_one_with_the_directory_off_is_refused_after_one_check()
     {
         Account camille = _accounts.Add("camille", "hash:s3cret") with { Disabled = true };
         _accounts.Replace(camille);
@@ -243,7 +245,7 @@ public sealed class AccountServiceTests
     }
 
     [Fact]
-    public async Task A_directory_account_doesnt_change_its_password_here_yet()
+    public async Task A_directory_account_doesnt_change_its_password_while_the_directory_is_off()
     {
         Account marie = _accounts.Add("marie", null) with { Source = AccountSource.Ldap };
         _accounts.Replace(marie);
@@ -267,9 +269,155 @@ public sealed class AccountServiceTests
 
     private Account Admin() => _accounts.Add("admin", "hash:s3cret", AccountRole.Admin);
 
+    // ---------------------------------------------------------------- 2.3.0: the LDAP directory
+
+    /// <summary>The directory on: marie a user, paul an admin (both filters), zoe in none.</summary>
+    private void DirectoryOn()
+    {
+        _ldap.Saved = FakeLdapSettings.On;
+        _directory.Add("marie", "Marie Dubois", "marie-password", FakeLdapSettings.Users);
+        _directory.Add("paul", "Paul Martin", "paul-password", FakeLdapSettings.Users, FakeLdapSettings.Admins);
+        _directory.Add("zoe", "Zoé Bernard", "zoe-password");
+    }
+
+    [Fact]
+    public async Task Off_the_directory_isnt_asked()
+    {
+        _directory.Add("marie", "Marie Dubois", "marie-password", FakeLdapSettings.Users);
+
+        Assert.Null(await Service().LoginAsync("marie", "marie-password", Ct));
+    }
+
+    [Fact]
+    public async Task A_directory_login_makes_its_row_with_its_name_and_the_role_its_filters_give()
+    {
+        DirectoryOn();
+
+        Account? marie = await Service().LoginAsync("marie", "marie-password", Ct);
+        Account? paul = await Service().LoginAsync("paul", "paul-password", Ct);
+
+        Assert.NotNull(marie);
+        Assert.Equal(
+            ("Marie Dubois", AccountRole.User, AccountSource.Ldap),
+            (marie.DisplayName, marie.Role, marie.Source));
+        Assert.Null(marie.PasswordHash);
+        Assert.Equal(Now, marie.LastLoginAt);
+        Assert.Equal(AccountRole.Admin, paul?.Role);
+        Assert.Equal(2, _accounts.All.Count(a => a.Source == AccountSource.Ldap));
+    }
+
+    [Theory]
+    [InlineData("marie", "wrong")]
+    [InlineData("zoe", "zoe-password")]
+    [InlineData("nobody", "x")]
+    public async Task A_wrong_password_or_an_account_no_filter_finds_is_refused(string username, string password)
+    {
+        DirectoryOn();
+
+        Assert.Null(await Service().LoginAsync(username, password, Ct));
+        Assert.DoesNotContain(_accounts.All, a => a.Source == AccountSource.Ldap);
+    }
+
+    [Fact]
+    public async Task A_name_both_local_and_the_directorys_is_the_local_accounts_only()
+    {
+        DirectoryOn();
+        _accounts.Add("marie", "hash:local-password");
+
+        Assert.Null(await Service().LoginAsync("marie", "marie-password", Ct));
+        Assert.Equal(AccountSource.Local, (await Service().LoginAsync("marie", "local-password", Ct))?.Source);
+    }
+
+    [Fact]
+    public async Task A_disabled_directory_account_is_refused_and_a_down_directory_logs_nobody_in()
+    {
+        DirectoryOn();
+        Account marie = (await Service().LoginAsync("marie", "marie-password", Ct))!;
+        _accounts.Replace(marie with { Disabled = true });
+
+        Assert.Null(await Service().LoginAsync("marie", "marie-password", Ct));
+        _directory.Down = true;
+        Assert.Null(await Service().LoginAsync("paul", "paul-password", Ct));
+    }
+
+    [Fact]
+    public async Task A_directory_session_follows_the_directory_its_role_or_its_filters_or_it_ends()
+    {
+        DirectoryOn();
+        Account marie = (await Service().LoginAsync("marie", "marie-password", Ct))!;
+        Assert.NotNull(await Service().SessionAsync(marie.Id, marie.Stamp, Ct));
+
+        // Not answering: kept.
+        _directory.Down = true;
+        Assert.NotNull(await Service().SessionAsync(marie.Id, marie.Stamp, Ct));
+        _directory.Down = false;
+
+        // Made an admin: the row takes it, the session ends (logged in again, it's an admin).
+        _directory.Filters("marie", FakeLdapSettings.Users, FakeLdapSettings.Admins);
+        Assert.Null(await Service().SessionAsync(marie.Id, marie.Stamp, Ct));
+        Account admin = _accounts.All.Single(a => a.Username == "marie");
+        Assert.Equal(AccountRole.Admin, admin.Role);
+        Assert.NotNull(await Service().SessionAsync(admin.Id, admin.Stamp, Ct));
+
+        // Out of the groups, or the directory turned off: ended.
+        _directory.Filters("marie");
+        Assert.Null(await Service().SessionAsync(admin.Id, admin.Stamp, Ct));
+        _directory.Filters("marie", FakeLdapSettings.Users, FakeLdapSettings.Admins);
+        _ldap.Saved = _ldap.Saved with { Enabled = false };
+        Assert.Null(await Service().SessionAsync(admin.Id, admin.Stamp, Ct));
+    }
+
+    [Fact]
+    public async Task A_local_account_cant_take_a_name_the_directory_has_unless_it_cant_be_asked()
+    {
+        DirectoryOn();
+
+        await Assert.ThrowsAsync<ConflictException>(
+            () => Service().CreateAsync("Marie", "un long mot", "user", "admin", Ct));
+        _directory.Down = true;
+        Assert.Equal("marie", (await Service().CreateAsync("marie", "un long mot", "user", "admin", Ct)).Username);
+    }
+
+    [Fact]
+    public async Task A_directory_account_changes_its_password_in_the_directory_its_current_one_first()
+    {
+        DirectoryOn();
+        Account marie = (await Service().LoginAsync("marie", "marie-password", Ct))!;
+        const string Dn = "uid=marie,ou=people,dc=example,dc=com";
+
+        ValidationException wrong = await Assert.ThrowsAsync<ValidationException>(
+            () => Service().ChangeOwnPasswordAsync(marie.Id, "nope", "nouveau mot", Ct));
+        Account changed = await Service().ChangeOwnPasswordAsync(marie.Id, "marie-password", "nouveau mot", Ct);
+
+        Assert.Equal(["current"], wrong.Errors.Select(e => e.Field));
+        Assert.Equal("nouveau mot", _directory.Passwords[Dn]);
+        Assert.NotEqual(marie.Stamp, changed.Stamp);
+        Assert.Null(changed.PasswordHash);
+    }
+
+    [Fact]
+    public async Task The_directory_refusing_the_new_password_says_why()
+    {
+        DirectoryOn();
+        Account marie = (await Service().LoginAsync("marie", "marie-password", Ct))!;
+        _directory.RefuseChange = "Insufficient Access Rights";
+
+        ConflictException refused = await Assert.ThrowsAsync<ConflictException>(
+            () => Service().ChangeOwnPasswordAsync(marie.Id, "marie-password", "nouveau mot", Ct));
+
+        Assert.Contains("Insufficient Access Rights", refused.Message, StringComparison.Ordinal);
+    }
+
     private AccountService Service(string adminPassword = "unused") => new(
         _accounts,
         _hasher,
+        new LdapService(
+            _ldap,
+            _directory,
+            _accounts,
+            new FakeTimeProvider(Now),
+            NullLogger<LdapService>.Instance),
+        _directory,
         ValidOptions.Create() with { Accounts = new AccountOptions("admin", adminPassword, CookieSecure: true) },
         new FakeTimeProvider(Now),
         NullLogger<AccountService>.Instance);

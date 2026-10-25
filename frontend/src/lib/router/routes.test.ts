@@ -32,7 +32,7 @@ describe('routes', () => {
     ['/admin/runs/%E0%A4%A', { name: 'notFound' }],
     ['/admin/users', { name: 'notFound' }],
     ['/admin/accounts', { name: 'admin', page: 'accounts' }],
-    ['/admin/ldap', { name: 'notFound' }],
+    ['/admin/ldap', { name: 'admin', page: 'ldap' }],
     ['/admin/accounts/3', { name: 'notFound' }],
     ['/account', { name: 'account' }],
     ['/account/password', { name: 'notFound' }],

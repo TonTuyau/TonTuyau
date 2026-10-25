@@ -1,6 +1,19 @@
-// The mock's accounts (2.3.0): logging in as a local account, the roles, the admin's accounts page, one's own
-// password, and who can watch, as contract v2.13 says. In memory, for the dev server only.
-import type { Access, AccessSettings, Account, AccountChange, Me, NewAccount, Role } from '../src/lib/api/types.ts'
+// The mock's accounts (2.3.0): logging in as a local account or as one of a fake LDAP directory's, the roles, the
+// admin's accounts page, one's own password, who can watch, and the LDAP page (its settings, its tests), as contract
+// v2.13 says. In memory, for the dev server only.
+import type {
+  Access,
+  AccessSettings,
+  Account,
+  AccountChange,
+  LdapSettings,
+  LdapSettingsChange,
+  LdapTest,
+  LdapTestRequest,
+  Me,
+  NewAccount,
+  Role,
+} from '../src/lib/api/types.ts'
 
 export interface MockAnswer {
   status: number
@@ -12,6 +25,27 @@ interface MockAccount extends Account {
   password: string | null
 }
 
+/** One of the fake directory's people: its password, and the groups it's in. */
+interface DirectoryPerson {
+  uid: string
+  cn: string
+  groups: string[]
+}
+
+// As the user's own LLDAP is set (its defaults kept): the users in ou=people, two groups.
+const BASE = 'dc=example,dc=com'
+const ADMINS = `cn=tontuyau_admin,ou=groups,${BASE}`
+const USERS = `cn=tontuyau,ou=groups,${BASE}`
+
+/** The fake directory: an admin, two users, someone in no group, and a name a local account has too. */
+export const directory: readonly DirectoryPerson[] = [
+  { uid: 'paul', cn: 'Paul Martin', groups: [ADMINS] },
+  { uid: 'marie', cn: 'Marie Dubois', groups: [USERS] },
+  { uid: 'lucas', cn: 'Lucas Petit', groups: [USERS] },
+  { uid: 'zoe', cn: 'Zoé Bernard', groups: [] },
+  { uid: 'camille', cn: 'Camille Leroy', groups: [USERS] },
+]
+
 export interface AccountsMockState {
   list: MockAccount[]
   nextId: number
@@ -19,6 +53,11 @@ export interface AccountsMockState {
   session: number | null
   /** Who can watch (`/__mock?private=on`: the logged-in accounts only). */
   access: AccessSettings
+  ldap: LdapSettings
+  /** The fake directory answers (`/__mock?ldap=down`: it doesn't). */
+  ldapUp: boolean
+  /** Its people's passwords (the name, at first), as they change them from My account. */
+  directoryPasswords: Record<string, string>
 }
 
 const unauthorized: MockAnswer = { status: 401, body: problem(401, 'Not logged in', 'Nobody is logged in.') }
@@ -61,6 +100,26 @@ export function accountsMockState(now: number = Date.now()): AccountsMockState {
     nextId: 5,
     session: null,
     access: { accountsOnly: false, changedBy: null, changedAt: null },
+    ldap: {
+      enabled: true,
+      url: 'ldap://ldap.example.com:3890',
+      startTls: false,
+      caCertificate: null,
+      bindDn: `uid=tontuyau,ou=people,${BASE}`,
+      bindPasswordSet: true,
+      baseDn: `ou=people,${BASE}`,
+      uidAttribute: 'uid',
+      usernameAttribute: 'cn',
+      usersFilter: `(memberof=${USERS})`,
+      adminsFilter: `(memberof=${ADMINS})`,
+      passwordAttribute: 'userPassword',
+      passwordResetUrl: 'http://ldap.example.com:17170/$username/password',
+      clashes: [],
+      changedBy: 'admin',
+      changedAt: ago(5),
+    },
+    ldapUp: true,
+    directoryPasswords: Object.fromEntries(directory.map((person) => [person.uid, person.uid])),
   }
 }
 
@@ -94,15 +153,117 @@ const me = (account: Account): Me => ({
   source: account.source,
 })
 
+/** A DN as compared: lower case, no space after the commas (`ou=groups, dc=example` is the same DN). */
+const dnOf = (text: string) =>
+  text
+    .trim()
+    .toLowerCase()
+    .replace(/\s*,\s*/g, ',')
+
+/**
+ * Whether a filter matches a person: the mock knows `(memberof=<group DN>)`, alone or in `(|…)` / `(&…)`; any other
+ * filter matches nobody (a real directory would know it).
+ */
+function matches(filter: string, person: DirectoryPerson): boolean {
+  const text = filter.trim()
+  const member = /^\(memberof=([^()]+)\)$/i.exec(text)
+  if (member) return person.groups.some((group) => dnOf(group) === dnOf(member[1] ?? ''))
+  const both = /^\(([|&])((?:\([^()]+\))+)\)$/.exec(text)
+  if (!both) return false
+  const parts = both[2]?.match(/\([^()]+\)/g) ?? []
+  return both[1] === '|' ? parts.some((part) => matches(part, person)) : parts.every((part) => matches(part, person))
+}
+
+/** The role a directory person gets from the filters (the admins filter first); null: refused. */
+function roleOf(person: DirectoryPerson, settings: Pick<LdapSettings, 'adminsFilter' | 'usersFilter'>): Role | null {
+  if (matches(settings.adminsFilter, person)) return 'admin'
+  return matches(settings.usersFilter, person) ? 'user' : null
+}
+
+const localHas = (state: AccountsMockState, name: string) =>
+  state.list.some((a) => a.source === 'local' && a.username.toLowerCase() === name.toLowerCase())
+
 function login(state: AccountsMockState, body: unknown, now: number): MockAnswer {
   const { username, password } = (body ?? {}) as { username?: string; password?: string }
-  const account = state.list.find((a) => a.source === 'local' && a.username === username)
-  if (!account || account.disabled || account.password !== password) {
-    return { status: 401, body: problem(401, 'Login refused', 'Wrong username or password.') }
+  const refused: MockAnswer = { status: 401, body: problem(401, 'Login refused', 'Wrong username or password.') }
+  const local = state.list.find((a) => a.source === 'local' && a.username === username)
+  if (local) {
+    if (local.disabled || local.password !== password) return refused
+    local.lastLoginAt = new Date(now).toISOString()
+    state.session = local.id
+    return { status: 204 }
   }
+  // The directory: on, answering, the person there with that password, a filter finding it, no local name.
+  const person = directory.find((candidate) => candidate.uid === username)
+  if (!state.ldap.enabled || !state.ldapUp || !person || !password) return refused
+  if (state.directoryPasswords[person.uid] !== password || localHas(state, person.uid)) return refused
+  const role = roleOf(person, state.ldap)
+  if (role === null) return refused
+  let account = state.list.find((a) => a.source === 'ldap' && a.username === person.uid)
+  if (!account) {
+    account = {
+      id: state.nextId++,
+      username: person.uid,
+      displayName: person.cn,
+      role,
+      source: 'ldap',
+      disabled: false,
+      createdAt: new Date(now).toISOString(),
+      lastLoginAt: null,
+      password: null,
+    }
+    state.list.push(account)
+  }
+  if (account.disabled) return refused
+  account.role = role
   account.lastLoginAt = new Date(now).toISOString()
   state.session = account.id
   return { status: 204 }
+}
+
+/** The local accounts whose name the directory has too. */
+const clashes = (state: AccountsMockState) =>
+  state.ldap.enabled
+    ? state.list
+        .filter((a) => a.source === 'local' && directory.some((p) => p.uid === a.username))
+        .map((a) => a.username)
+    : []
+
+function test(state: AccountsMockState, request: LdapTestRequest): LdapTest {
+  const none = { found: null, user: null }
+  if (!state.ldapUp) return { connected: false, error: `${request.url}: no answer (timed out after 5 s).`, ...none }
+  if (!request.bindPassword && !state.ldap.bindPasswordSet) {
+    return { connected: false, error: 'the service account has no password.', ...none }
+  }
+  const connected = { connected: true, error: null }
+  if (request.test === 'admins' || request.test === 'users') {
+    const filter = request.test === 'admins' ? request.adminsFilter : request.usersFilter
+    const people = directory.filter((person) => matches(filter, person))
+    const accounts = people.map((p) => ({ username: p.uid, displayName: p.cn, clash: localHas(state, p.uid) }))
+    return { ...connected, found: { total: people.length, accounts }, user: null }
+  }
+  if (request.test !== 'name') return { ...connected, ...none }
+  const person = directory.find((candidate) => candidate.uid === request.username)
+  if (!person) {
+    const refused = 'no such name under the base DN.'
+    return {
+      ...connected,
+      found: null,
+      user: { dn: null, displayName: null, user: false, admin: false, role: null, refused },
+    }
+  }
+  const found = {
+    dn: `uid=${person.uid},${request.baseDn}`,
+    displayName: person.cn,
+    user: matches(request.usersFilter, person),
+    admin: matches(request.adminsFilter, person),
+  }
+  if (localHas(state, person.uid)) {
+    return { ...connected, found: null, user: { ...found, role: null, refused: 'a local account has that name.' } }
+  }
+  const role = roleOf(person, request)
+  const refused = role === null ? 'neither the users filter nor the admins filter finds it.' : null
+  return { ...connected, found: null, user: { ...found, role, refused } }
 }
 
 /** The last enabled local admin: it can't be demoted, disabled nor deleted. */
@@ -117,10 +278,18 @@ function changeOwnPassword(state: AccountsMockState, current: Account, body: unk
   const { current: typed, password } = (body ?? {}) as { current?: string; password?: string }
   if (!own) return unauthorized
   if (own.source !== 'local') {
-    return {
-      status: 409,
-      body: problem(409, 'Conflict', "Your account is the directory's: its password is changed there."),
+    // A directory account: its current password checked, then the service account changes it in the directory.
+    if (!state.ldapUp) {
+      return { status: 503, body: problem(503, "The directory doesn't answer", 'Try again later.') }
     }
+    if (state.directoryPasswords[own.username] !== typed) {
+      return {
+        status: 400,
+        body: { ...problem(400, 'Invalid request', 'current: is wrong.'), errors: { current: ['is wrong.'] } },
+      }
+    }
+    state.directoryPasswords[own.username] = password ?? ''
+    return { status: 204 }
   }
   if (own.password !== typed) {
     return {
@@ -178,7 +347,8 @@ export function handleAccounts(
   const current = sessionAccount(state)
   if (path === '/api/auth/me' && method === 'GET') return current ? { status: 200, body: me(current) } : unauthorized
   if (path === '/api/auth/access') {
-    return { status: 200, body: { accountsOnly: state.access.accountsOnly } satisfies Access }
+    const passwordResetUrl = state.ldap.enabled ? state.ldap.passwordResetUrl : null
+    return { status: 200, body: { accountsOnly: state.access.accountsOnly, passwordResetUrl } satisfies Access }
   }
   if (path === '/api/auth/login' && method === 'POST') return login(state, body, now)
   if (path === '/api/auth/logout' && method === 'POST') {
@@ -190,11 +360,28 @@ export function handleAccounts(
   }
 
   const ours =
-    path === '/api/admin/accounts' || path.startsWith('/api/admin/accounts/') || path === '/api/admin/settings/access'
+    path === '/api/admin/accounts' || path.startsWith('/api/admin/accounts/') || path.startsWith('/api/admin/settings/')
   if (!ours) return null
   if (!current) return unauthorized
   if (current.role !== 'admin') return { status: 403, body: problem(403, 'Forbidden', 'This is for admins.') }
 
+  if (path === '/api/admin/settings/ldap' && method === 'GET') {
+    return { status: 200, body: { ...state.ldap, clashes: clashes(state) } }
+  }
+  if (path === '/api/admin/settings/ldap' && method === 'PUT') {
+    const { bindPassword, ...change } = (body ?? {}) as LdapSettingsChange
+    state.ldap = {
+      ...state.ldap,
+      ...change,
+      bindPasswordSet: state.ldap.bindPasswordSet || (bindPassword ?? '') !== '',
+      changedBy: current.username,
+      changedAt: new Date(now).toISOString(),
+    }
+    return { status: 200, body: { ...state.ldap, clashes: clashes(state) } }
+  }
+  if (path === '/api/admin/settings/ldap/test' && method === 'POST') {
+    return { status: 200, body: test(state, (body ?? {}) as LdapTestRequest) }
+  }
   if (path === '/api/admin/settings/access' && method === 'GET') return { status: 200, body: state.access }
   if (path === '/api/admin/settings/access' && method === 'PUT') {
     const { accountsOnly } = (body ?? {}) as Partial<Access>

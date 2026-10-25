@@ -6,7 +6,7 @@ export type ChannelTab = 'videos' | 'shorts' | 'streams'
 
 /**
  * The admin area's pages (1.4: the Tasks page, a run's page; 1.5: YouTube, the API keys, a channel's page; 2.3.0: the
- * accounts).
+ * accounts, the LDAP directory).
  */
 export type AdminRoute =
   | { page: 'dashboard' }
@@ -16,6 +16,7 @@ export type AdminRoute =
   | { page: 'apiKeys' }
   | { page: 'channel'; id: string }
   | { page: 'accounts' }
+  | { page: 'ldap' }
 
 export type Route =
   | { name: 'home' }
@@ -99,6 +100,9 @@ export function matchRoute(pathname: string): Route {
   if (first === 'admin' && second === 'accounts' && parts.length === 2) {
     return { name: 'admin', page: 'accounts' }
   }
+  if (first === 'admin' && second === 'ldap' && parts.length === 2) {
+    return { name: 'admin', page: 'ldap' }
+  }
   if (first === 'admin' && second === 'runs' && third !== undefined && rest.length === 0) {
     const id = decode(third)
     return id === null ? { name: 'notFound' } : { name: 'admin', page: 'run', id }
@@ -160,6 +164,8 @@ export const href = {
   adminApiKeys: (): string => '/admin/api-keys',
   /** The accounts (2.3.0). */
   adminAccounts: (): string => '/admin/accounts',
+  /** The LDAP directory (2.3.0). */
+  adminLdap: (): string => '/admin/ldap',
   /** The logged-in account's own page (2.3.0): its password. */
   account: (): string => '/account',
   /** A channel's admin page (1.5): its state on YouTube, its videos', the refreshes. */

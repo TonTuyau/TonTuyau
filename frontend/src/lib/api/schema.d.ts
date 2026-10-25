@@ -3220,6 +3220,177 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/settings/ldap': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['LdapSettingsResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['LdapSettingsRequest']
+          'application/*+json': components['schemas']['LdapSettingsRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['LdapSettingsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/settings/ldap/test': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['LdapTestRequest']
+          'application/*+json': components['schemas']['LdapTestRequest']
+        }
+      }
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['LdapTestResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/tasks': {
     parameters: {
       query?: never
@@ -4172,6 +4343,7 @@ export interface components {
   schemas: {
     AccessResponse: {
       accountsOnly: boolean
+      passwordResetUrl: null | string
     }
     AccessSettingsRequest: {
       accountsOnly: null | boolean
@@ -4407,6 +4579,83 @@ export interface components {
     }
     /** @enum {string} */
     ImportStep: 'run' | 'day' | 'week' | 'month'
+    LdapFoundAccountResponse: {
+      username: string
+      displayName: null | string
+      clash: boolean
+    }
+    LdapFoundResponse: {
+      /** Format: int32 */
+      total: number
+      accounts: components['schemas']['LdapFoundAccountResponse'][]
+    }
+    LdapSettingsRequest: {
+      /** @default false */
+      enabled: boolean
+      url?: null | string
+      /** @default false */
+      startTls: boolean
+      caCertificate?: null | string
+      bindDn?: null | string
+      bindPassword?: null | string
+      baseDn?: null | string
+      uidAttribute?: null | string
+      usernameAttribute?: null | string
+      usersFilter?: null | string
+      adminsFilter?: null | string
+      passwordAttribute?: null | string
+      passwordResetUrl?: null | string
+    }
+    LdapSettingsResponse: {
+      enabled: boolean
+      url: string
+      startTls: boolean
+      caCertificate: null | string
+      bindDn: string
+      bindPasswordSet: boolean
+      baseDn: string
+      uidAttribute: string
+      usernameAttribute: string
+      usersFilter: string
+      adminsFilter: string
+      passwordAttribute: string
+      passwordResetUrl: null | string
+      clashes: string[]
+      changedBy: null | string
+      /** Format: date-time */
+      changedAt: null | string
+    }
+    LdapTestRequest: {
+      test?: null | string
+      username?: null | string
+      url?: null | string
+      /** @default false */
+      startTls: boolean
+      caCertificate?: null | string
+      bindDn?: null | string
+      bindPassword?: null | string
+      baseDn?: null | string
+      uidAttribute?: null | string
+      usernameAttribute?: null | string
+      usersFilter?: null | string
+      adminsFilter?: null | string
+      passwordAttribute?: null | string
+      passwordResetUrl?: null | string
+    }
+    LdapTestResponse: {
+      connected: boolean
+      error: null | string
+      found: null | components['schemas']['LdapFoundResponse']
+      user: null | components['schemas']['LdapTestUserResponse']
+    }
+    LdapTestUserResponse: {
+      dn: null | string
+      displayName: null | string
+      user: boolean
+      admin: boolean
+      role: null | components['schemas']['AccountRole']
+      refused: null | string
+    }
     /** @enum {string} */
     LibraryOrigin: 'tubeArchivist' | 'tonTuyau'
     LibraryTotals: {

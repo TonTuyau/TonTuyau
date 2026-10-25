@@ -18,6 +18,8 @@ class Auth {
   source = $state<AccountSource | null>(null)
   /** The library is for logged-in accounts only; false until known (and when the backend can't be reached). */
   accountsOnly = $state(false)
+  /** The directory's page for a forgotten password (`$username`: the name typed), or null. */
+  passwordResetUrl = $state<string | null>(null)
   #loading: Promise<void> | null = null
 
   get isAdmin(): boolean {
@@ -32,7 +34,10 @@ class Auth {
         () => this.#set(null),
       ),
       api.access().then(
-        (access) => (this.accountsOnly = access.accountsOnly === true),
+        (access) => {
+          this.accountsOnly = access.accountsOnly === true
+          this.passwordResetUrl = access.passwordResetUrl ?? null
+        },
         () => undefined,
       ),
     ]).then(() => undefined)
@@ -76,6 +81,7 @@ class Auth {
     this.role = null
     this.source = null
     this.accountsOnly = false
+    this.passwordResetUrl = null
     this.#loading = null
   }
 

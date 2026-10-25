@@ -676,7 +676,89 @@ export const fr: Dictionary = {
   'login.refused': "Nom d'utilisateur ou mot de passe incorrect.",
   'login.tooMany': 'Trop de tentatives. Réessayez dans une minute.',
 
-  // 2.3.0: accounts and roles; a library for accounts only.
+  // 2.3.0: accounts and roles; a library for accounts only; the LDAP directory.
+  'ldap.test.hint':
+    'Chaque test essaie les réglages tels que saisis plus haut, sans les enregistrer, à part : la connexion, qui chaque filtre trouve, un nom cherché. Aucun mot de passe n’est demandé : le compte de service fait la lecture.',
+  'ldap.test.username': 'Un nom',
+  'ldap.test.connection': 'La connexion',
+  'ldap.test.connection.what': 'Le serveur répond, et le compte de service se connecte.',
+  'ldap.test.admins': 'Le filtre des admins',
+  'ldap.test.admins.what':
+    'Qui il trouve : ils se connectent comme admins. Un nom marqué « nom local » est en conflit avec un compte local et ne peut pas se connecter.',
+  'ldap.test.users': 'Le filtre des utilisateurs',
+  'ldap.test.users.what':
+    'Qui il trouve : ils se connectent comme utilisateurs, sauf si le filtre des admins les trouve aussi.',
+  'ldap.test.name': 'Un nom',
+  'ldap.test.name.what': 'Ce que TonTuyau ferait de ce compte à la connexion : trouvé ou non, chaque filtre, son rôle.',
+  'ldap.test.nameRequired': 'Saisissez un nom à chercher.',
+  'ldap.test.clash': 'nom local',
+  'ldap.test.more': 'et {count} de plus',
+  'ldap.hint.filters':
+    'Un compte que le filtre des utilisateurs trouve se connecte comme utilisateur, un que le filtre des admins trouve comme admin ; tout autre compte de l’annuaire est refusé. Les valeurs du plugin LDAP de Jellyfin se recopient telles quelles.',
+  'ldap.baseDn': 'DN de base',
+  'ldap.uidAttribute': 'Attribut UID',
+  'ldap.uidAttribute.what': 'Le nom saisi à la connexion (uid) : le nom du compte dans TonTuyau.',
+  'ldap.usernameAttribute': 'Attribut du nom',
+  'ldap.usernameAttribute.what': 'Le nom affiché (cn).',
+  'ldap.usersFilter': 'Filtre des utilisateurs',
+  'ldap.usersFilter.what':
+    'Qui peut se connecter, par exemple les membres d’un groupe : (memberof=cn=tontuyau,ou=groups,dc=example,dc=com).',
+  'ldap.adminsFilter': 'Filtre des admins',
+  'ldap.adminsFilter.what': 'Les comptes qui se connectent comme admins.',
+  'ldap.filterInvalid': 'Un filtre s’écrit entre parenthèses, par exemple (memberof=…).',
+  'ldap.passwords': 'Mots de passe',
+  'ldap.passwords.what':
+    'Un compte de l’annuaire change son mot de passe dans Mon compte : TonTuyau vérifie l’actuel, puis le compte de service le change (l’opération Password Modify de l’annuaire, ou cet attribut à défaut). Le compte de service a besoin de ce droit : sur LLDAP, le groupe lldap_password_manager.',
+  'ldap.passwordAttribute': 'Attribut du mot de passe',
+  'ldap.passwordResetUrl': 'Adresse de réinitialisation du mot de passe (facultative)',
+  'ldap.passwordResetUrl.what':
+    'La page de l’annuaire pour un mot de passe oublié, en lien sur la page de connexion ; $username représente le nom saisi.',
+  'ldap.resetUrlInvalid': 'L’adresse de réinitialisation est une adresse http:// ou https://.',
+  'ldap.test.matches': 'Correspond',
+  'ldap.test.matchesNot': 'Ne correspond pas',
+  'login.forgot': 'Mot de passe oublié ?',
+  'admin.ldap': 'LDAP',
+  'ldap.title': 'L’annuaire',
+  'ldap.hint':
+    'TonTuyau demande à un annuaire LDAP (OpenLDAP, LLDAP…) qui peut se connecter : son compte de service trouve le nom saisi, puis l’annuaire vérifie lui-même le mot de passe saisi. TonTuyau ne le garde jamais.',
+  'ldap.hint.clash':
+    'Un nom à la fois local et dans l’annuaire est refusé côté annuaire : renommez ou supprimez l’un des deux.',
+  'ldap.enabled': 'Se connecter avec l’annuaire',
+  'ldap.enabled.what': 'Désactivé : seuls les comptes locaux se connectent ; les réglages restent.',
+  'ldap.server': 'Serveur',
+  'ldap.url': 'URL',
+  'ldap.urlInvalid': 'L’URL est ldap://hôte:port ou ldaps://hôte:port.',
+  'ldap.startTls': 'StartTLS',
+  'ldap.startTls.what': 'Chiffre une connexion ldap:// avant tout envoi (ldaps:// est déjà chiffré).',
+  'ldap.caCertificate': 'Certificat de l’autorité (PEM)',
+  'ldap.caCertificate.what':
+    'Pour un annuaire dont le certificat est signé par votre propre autorité ; vide : celles du système.',
+  'ldap.serviceAccount': 'Compte de service',
+  'ldap.serviceAccount.what':
+    'Le compte avec lequel TonTuyau lit l’annuaire : il trouve les comptes et vérifie les filtres, et change un mot de passe quand son propriétaire le demande (voir Mots de passe).',
+  'ldap.bindDn': 'DN de connexion',
+  'ldap.bindPassword': 'Mot de passe',
+  'ldap.bindPassword.kept': 'Enregistré : vide le garde',
+  'ldap.users': 'Utilisateurs',
+  'ldap.missing': 'Nécessaire pour utiliser l’annuaire : {fields}.',
+  'ldap.save': 'Enregistrer',
+  'ldap.saved': 'Enregistré : l’annuaire sert dès la prochaine connexion.',
+  'ldap.savedOff': 'Enregistré : seuls les comptes locaux se connectent.',
+  'ldap.refused': 'Ça n’a pas marché : {reason}',
+  'ldap.changed': 'Modifié le {date} · {by}',
+  'ldap.never': 'Jamais réglé.',
+  'ldap.clashes':
+    'Ces comptes locaux ont un nom que l’annuaire a aussi : {names}. Ceux de l’annuaire ne peuvent pas se connecter tant que l’un des deux n’est pas renommé ou supprimé.',
+  'ldap.test': 'Tester',
+  'ldap.test.run': 'Tester',
+  'ldap.test.what': 'Rien n’est enregistré, et personne n’est connecté.',
+  'ldap.test.connected': 'Connecté, le compte de service reconnu.',
+  'ldap.test.notConnected': 'Connexion impossible : {error}',
+  'ldap.test.dn': 'Trouvé',
+  'ldap.test.notFound': 'Pas trouvé',
+  'ldap.test.verdict': 'À la connexion',
+  'ldap.test.role': 'Se connecte comme {role}',
+  'ldap.test.refusedAs': 'Refusé : {reason}',
   'login.accountsOnly': 'Ce TonTuyau est réservé à ses comptes : connectez-vous pour regarder.',
   'accounts.access': 'Qui peut regarder',
   'accounts.access.hint':
@@ -690,7 +772,8 @@ export const fr: Dictionary = {
   'accounts.access.accountsOnly.what':
     'Les autres voient la page de connexion : rien de la bibliothèque, pas même une miniature.',
   'accounts.access.default': 'Tout le monde, par défaut.',
-  'myAccount.ldap': 'Votre compte est celui de l’annuaire : son mot de passe se change là-bas.',
+  'myAccount.ldap':
+    'Votre compte est celui de l’annuaire : le nouveau mot de passe est changé dans l’annuaire, pour tout ce qui l’utilise.',
   'account.mine': 'Mon compte',
   'admin.accounts': 'Comptes',
   'admin.forAdmins': 'Ces pages sont réservées aux admins',
@@ -779,4 +862,5 @@ export const fr: Dictionary = {
   'dashboard.newVideos': { one: '{count} nouvelle vidéo', other: '{count} nouvelles vidéos' },
   'dashboard.shown': { one: '{shown} sur {count} chaîne', other: '{shown} sur {count} chaînes' },
   'runs.count': { one: '{count} exécution', other: '{count} exécutions' },
+  'ldap.test.accounts': { one: '{count} compte', other: '{count} comptes' },
 }

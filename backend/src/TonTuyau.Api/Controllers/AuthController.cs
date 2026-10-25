@@ -20,6 +20,7 @@ namespace TonTuyau.Api.Controllers;
 public sealed partial class AuthController(
     AccountService accounts,
     AccessService access,
+    LdapService ldap,
     ClientAddresses clients,
     TimeProvider clock,
     ILogger<AuthController> logger) : ControllerBase
@@ -98,7 +99,8 @@ public sealed partial class AuthController(
     public async Task<AccessResponse> AccessAsync(CancellationToken cancellationToken)
     {
         AccessSettings settings = await access.GetAsync(cancellationToken).ConfigureAwait(false);
-        return new AccessResponse(settings.AccountsOnly);
+        LdapSettings directory = await ldap.GetAsync(cancellationToken).ConfigureAwait(false);
+        return new AccessResponse(settings.AccountsOnly, directory.Enabled ? directory.PasswordResetUrl : null);
     }
 
     /// <summary>

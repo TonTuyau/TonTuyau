@@ -1,6 +1,6 @@
 <script lang="ts">
   // The admin area (1.2), YouTube Studio style: its own top bar and a left menu (Dashboard, Tasks (1.4), YouTube and
-  // API keys (1.5), Accounts (2.3.0), Back to TonTuyau), for a logged-in admin only: anyone else goes
+  // API keys (1.5), Accounts and LDAP (2.3.0), Back to TonTuyau), for a logged-in admin only: anyone else goes
   // to the login page, and comes back here once logged in; a user (not an admin) is told these pages are for admins.
   // The menu: full or icons only with the ☰, remembered (wide screens); icons only under 900 px, the ☰ opening it for
   // the visit; on phones a row of links, no ☰, that scrolls sideways by itself when wider than the screen.
@@ -13,6 +13,7 @@
   import ApiKeysPage from '../pages/ApiKeysPage.svelte'
   import ChannelAdminPage from '../pages/ChannelAdminPage.svelte'
   import DashboardPage from '../pages/DashboardPage.svelte'
+  import LdapPage from '../pages/LdapPage.svelte'
   import RunPage from '../pages/RunPage.svelte'
   import TasksPage from '../pages/TasksPage.svelte'
   import YouTubePage from '../pages/YouTubePage.svelte'
@@ -154,6 +155,15 @@
         <Icon name="accounts" filled={section === 'accounts'} />
         <span class="label" class:visually-hidden={!full}>{t('admin.accounts')}</span>
       </a>
+      <a
+        class="item"
+        href={href.adminLdap()}
+        aria-current={section === 'ldap' ? 'page' : undefined}
+        title={full ? undefined : t('admin.ldap')}
+      >
+        <Icon name="directory" filled={section === 'ldap'} />
+        <span class="label" class:visually-hidden={!full}>{t('admin.ldap')}</span>
+      </a>
       <a class="item back" href={href.home()} title={full ? undefined : t('admin.back')}>
         <Icon name="back" />
         <span class="label" class:visually-hidden={!full}>{t('admin.back')}</span>
@@ -173,6 +183,8 @@
         <ChannelAdminPage id={route.id} />
       {:else if route.page === 'accounts'}
         <AccountsPage />
+      {:else if route.page === 'ldap'}
+        <LdapPage />
       {:else}
         <DashboardPage />
       {/if}

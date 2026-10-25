@@ -97,7 +97,8 @@ Accounts: users besides the admins, from an LDAP directory or made by hand, and 
 
 1. The mockup (this branch), reviewed.
 2. Then three PRs into `release/2.3.0`, an alpha after each: **roles, local accounts and My account**
-   (`work/2.3.0-accounts`, done: contract v2.13); **accounts only** (`work/2.3.0-accounts-only`, done); **LDAP**.
+   (`work/2.3.0-accounts`, done: contract v2.13); **accounts only** (`work/2.3.0-accounts-only`, done); **LDAP**
+   (`work/2.3.0-ldap`, done: tested against LLDAP 0.5.0 in a container, the user's version).
    No alpha in between (the user, 2026-10-26): one tag once all three are in.
 
 ## Open (to see on the mockup)

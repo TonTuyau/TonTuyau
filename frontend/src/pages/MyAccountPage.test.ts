@@ -63,13 +63,16 @@ describe('MyAccountPage (2.3.0)', () => {
     expect(sent).toEqual([])
   })
 
-  it('tells a directory account its password is the directory’s, without a form', async () => {
-    await as(marie)
+  it('changes a directory account’s password in the directory, saying so; a wrong current one is refused', async () => {
+    const sent = await as(marie, () => problemResponse(400, 'current: is wrong.'))
     render(MyAccountPage)
 
     expect(screen.getByText('Marie Dubois')).toBeInTheDocument()
-    expect(screen.getByText("Your account is the directory's: its password is changed there.")).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Change it' })).toBeNull()
+    expect(screen.getByText(/the new password is changed in the directory/)).toBeInTheDocument()
+    await change('pas le bon', 'un long mot')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('current: is wrong.')
+    expect(sent).toEqual([{ current: 'pas le bon', password: 'un long mot' }])
   })
 
   it('sends nobody logged in to the login page, then back here', async () => {

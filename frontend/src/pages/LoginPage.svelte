@@ -3,7 +3,8 @@
   // hours). Every refusal shows the same
   // message: nothing tells whether the name exists. Once logged in (or if already), back to `next` when it's a page
   // of this site, else home. 2.3.0: when the library is for accounts only, the app shows it in place of any page
-  // (`gate`), saying so; once logged in, that page shows.
+  // (`gate`), saying so; once logged in, that page shows. The LDAP directory's page for a forgotten password, when
+  // the LDAP page sets one: linked once a name is typed (it goes in the address).
   import Button from '../components/Button.svelte'
   import Icon from '../components/Icon.svelte'
   import Logo from '../components/Logo.svelte'
@@ -24,6 +25,11 @@
   let result = $state<Exclude<LoginResult, 'ok'> | null>(null)
   let usernameInput: HTMLInputElement | undefined = $state()
 
+  const resetHref = $derived(
+    auth.passwordResetUrl && username.trim() !== ''
+      ? auth.passwordResetUrl.replaceAll('$username', encodeURIComponent(username.trim()))
+      : null,
+  )
   const next = $derived(safeNext(router.query.get('next')))
   const message = $derived(
     result === null
@@ -119,6 +125,9 @@
         <Icon name={passwordShown ? 'visibilityOff' : 'visibility'} />
       </button>
     </div>
+    {#if resetHref}
+      <a class="forgot" href={resetHref} target="_blank" rel="noreferrer noopener">{t('login.forgot')}</a>
+    {/if}
     <label class="remember">
       <input type="checkbox" bind:checked={remember} name="remember" />
       <span>{t('login.remember')}</span>
@@ -151,6 +160,12 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .forgot {
+    align-self: flex-start;
+    color: var(--color-link);
+    font-size: var(--font-size-sm);
   }
 
   .gate {
