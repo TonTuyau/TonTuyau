@@ -183,10 +183,12 @@
           {t('run.queued', { position: run.position ?? '–' })}
           {#if run.left > 0}{t('run.queuedToResume', { left: formatNumber(run.left, i18n.lang) })}{/if}
         </p>
-        <Button onclick={() => void runNow(run.id)}>{t('tasks.queue.runNow')}</Button>
-        {#if run.cancellable}
-          <Button onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
-        {/if}
+        <div class="buttons">
+          <Button onclick={() => void runNow(run.id)}>{t('tasks.queue.runNow')}</Button>
+          {#if run.cancellable}
+            <Button onclick={() => void cancel(run.id)}>{t('task.cancelRun')}</Button>
+          {/if}
+        </div>
       </div>
     {/if}
     {#if running && run.cancellable}
@@ -374,6 +376,13 @@
   }
 
   .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .buttons {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
