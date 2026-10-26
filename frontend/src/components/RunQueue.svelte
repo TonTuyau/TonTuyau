@@ -1,8 +1,9 @@
 <script lang="ts">
   // The run queue (2.0) on the Tasks page: the runs waiting their turn, in the order they start, each with who asked
-  // and when, and Cancel. While a run is on hold, the queue waits with it: said above the list.
+  // and when, Run now (2.3.0) and Cancel. While a run YouTube refused is on hold, the queue waits for it (the next runs
+  // would be refused too): said above the list. A run held by hand or for disk space lets it go on (2.3.0).
   import type { Run } from '../lib/api/types'
-  import { formatAge, formatDateTime } from '../lib/format'
+  import { formatAge, formatDateTime, formatNumber } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { href } from '../lib/router/routes'
   import { startedBy } from '../lib/runs'
@@ -11,16 +12,21 @@
   let {
     queue,
     onHold,
+    queueWaitsFor,
     now,
+    onrunnow,
     oncancel,
   }: {
     queue: Run[]
     onHold: Run[]
+    /** The run on hold the queue waits for (YouTube refused it), or null. */
+    queueWaitsFor: string | null
     now: number
+    onrunnow: (runId: string) => Promise<void>
     oncancel: (runId: string) => Promise<void>
   } = $props()
 
-  const held = $derived(onHold[0] ?? null)
+  const held = $derived(onHold.find((run) => run.id === queueWaitsFor) ?? null)
   const uid = $props.id()
 </script>
 
@@ -28,7 +34,7 @@
   <section class="queue" aria-labelledby="{uid}-title">
     {#if held}
       <p class="held" role="status">
-        {t('tasks.queue.held', { task: t(`task.${held.task}`) })}
+        {t('tasks.queue.waitsForYouTube', { task: t(`task.${held.task}`) })}
         <a href={href.adminRun(held.id)}>{held.target ?? held.id}</a>
       </p>
     {/if}
@@ -54,12 +60,19 @@
               {#if run.target}<code>{run.target}</code>{/if}
             </a>
             <small>
+              {#if run.left > 0}
+                <!-- A run held, back in the queue (2.3.0): its turn resumes it where it stopped. -->
+                {t('tasks.queue.resumes', { left: formatNumber(run.left, i18n.lang) })} ·
+              {/if}
               {t('tasks.queue.asked', {
                 by: startedBy(run),
                 ago: formatAge(run.queuedAt ?? run.startedAt, i18n.lang, new Date(now)),
               })}
             </small>
-            <Button onclick={() => void oncancel(run.id)}>{t('task.cancel')}</Button>
+            <div class="actions">
+              <Button onclick={() => void onrunnow(run.id)}>{t('tasks.queue.runNow')}</Button>
+              <Button onclick={() => void oncancel(run.id)}>{t('task.cancel')}</Button>
+            </div>
           </li>
         {/each}
       </ol>
@@ -129,6 +142,12 @@
     align-items: center;
   }
 
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
   .position {
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
@@ -156,10 +175,12 @@
 
   @media (max-width: 40rem) {
     li {
-      grid-template-columns: var(--space-4) minmax(0, 1fr) auto;
+      grid-template-columns: var(--space-4) minmax(0, 1fr);
+      row-gap: var(--space-1);
     }
 
-    li small {
+    li small,
+    .actions {
       grid-column: 2;
     }
   }

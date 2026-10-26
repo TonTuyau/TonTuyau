@@ -460,22 +460,31 @@ export const en = {
   'run.state.onHold': 'On hold',
   'run.state.queued': 'Waiting',
   'tasks.queue': 'Waiting',
-  'tasks.queue.order': 'One at a time, in this order',
+  'tasks.queue.order':
+    'One at a time, in this order. Run now puts one first: a refresh going on is held for it, and goes on right after.',
   'tasks.queue.onHoldUntil': 'On hold until {at}',
   'tasks.queue.onHold': 'On hold',
-  'tasks.queue.held': 'The queue is on hold: {task} is on hold. It goes on once that run resumes or is canceled.',
+  'tasks.queue.waitsForYouTube':
+    'The queue waits: YouTube refused {task}, and would refuse the next runs too. It goes on once that run resumes or is canceled; Run now starts one anyway.',
+  'tasks.queue.runNow': 'Run now',
+  'tasks.queue.runNowRefused': 'Not run now: {reason}',
+  'tasks.queue.resumes': 'Held, resumes here: {left} left',
   'tasks.queue.asked': '{by} · {ago}',
   'task.addToQueue': 'Add to the queue',
   'task.waitsItsTurn': 'A run is going on: this one waits its turn.',
   'run.queued': '#{position} in line. It starts by itself when its turn comes.',
+  'run.queuedToResume': 'Held, it resumes where it stopped: {left} left.',
   'run.result.queued': 'Waiting, #{position} in line',
   'run.result.onHold': 'On hold until {at}: {read} read, {left} left',
-  'hold.text': '{read} read, {left} left. YouTube refused on {at}; it resumes by itself on {resume}, or now.',
+  'hold.text':
+    '{read} read, {left} left. YouTube refused on {at}; it resumes by itself on {resume}, or now. The queue waits for it.',
   'hold.resume': 'Resume now',
   'hold.cancel': 'Cancel it',
   'hold.resumeRefused': 'Not resumed: {reason}',
   'hold.textByHand':
-    '{read} read, {left} left. Put on hold by hand on {at}; it waits for you: Resume now, or cancel it.',
+    '{read} read, {left} left. Put on hold by hand on {at}; it waits for you: Resume now, or cancel it. The queue goes on meanwhile.',
+  'hold.textDisk':
+    '{read} read, {left} left. Too little disk space on {at}; it tries again on {resume}, or now. The queue goes on meanwhile.',
   'hold.put': 'Put on hold',
   'hold.confirmTitle': 'Put this refresh on hold?',
   'hold.confirm':

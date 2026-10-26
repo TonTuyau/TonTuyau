@@ -3476,6 +3476,63 @@
         }
       }
     },
+    "/api/admin/runs/{id}/run-now": {
+      "post": {
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/runs/{id}/hold": {
       "post": {
         "tags": ["Tasks"],
@@ -4739,6 +4796,9 @@
           }
         }
       },
+      "HoldReason": {
+        "enum": ["youTube", "hand", "diskSpace", null]
+      },
       "HomeResponse": {
         "required": ["sections"],
         "type": "object",
@@ -5536,6 +5596,8 @@
           "target",
           "tabs",
           "resumeAt",
+          "heldFor",
+          "firstAt",
           "left",
           "indexRebuild",
           "notes",
@@ -5594,6 +5656,20 @@
             ]
           },
           "resumeAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "heldFor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HoldReason"
+              }
+            ]
+          },
+          "firstAt": {
             "type": ["null", "string"],
             "format": "date-time"
           },
@@ -5798,7 +5874,7 @@
         }
       },
       "TasksResponse": {
-        "required": ["lock", "runningHere", "tasks", "onHold", "queue"],
+        "required": ["lock", "runningHere", "tasks", "onHold", "queue", "queueWaitsFor"],
         "type": "object",
         "properties": {
           "lock": {
@@ -5831,6 +5907,9 @@
             "items": {
               "$ref": "#/components/schemas/RunResponse"
             }
+          },
+          "queueWaitsFor": {
+            "type": ["null", "string"]
           }
         }
       },

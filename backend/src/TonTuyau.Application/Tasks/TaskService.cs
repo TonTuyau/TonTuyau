@@ -67,12 +67,14 @@ public sealed class TaskService(
             null);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
+        SyncRun? refusing = await runner.YouTubeRefusingAsync().ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
             [import, youTubeSync, youTubeFullSync, refreshAll],
             [.. onHold.Select(r => new RunView(r, Cancellable: true))],
-            [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))]);
+            [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))],
+            refusing?.Id);
     }
 
     /// <exception cref="ValidationException">The request isn't valid.</exception>
@@ -252,11 +254,10 @@ public sealed class TaskService(
             : "This run is over.");
     }
 
-    /// <summary>Resumes a refresh on hold now (1.5), instead of at the end of its cool-down: the run, going on again.</summary>
-    /// <param name="account">Who asks: the run's notes say it.</param>
-    /// <exception cref="NotFoundException">No such run.</exception>
-    /// <exception cref="ConflictException">It isn't on hold, or a run is going on.</exception>
-    /// <summary>Puts the refresh going on here on hold by hand (1.5): it waits for Resume now.</summary>
+    /// <summary>
+    /// Puts the refresh going on here on hold by hand (1.5): it waits for Resume now, and the queue goes on meanwhile
+    /// (2.3.0).
+    /// </summary>
     /// <exception cref="NotFoundException">No such run.</exception>
     /// <exception cref="ConflictException">Not a refresh, over, or going on in another process.</exception>
     public async Task<RunView> HoldAsync(string id, string account, CancellationToken cancellationToken)
@@ -268,26 +269,56 @@ public sealed class TaskService(
         }
 
         throw new ConflictException(
-            run.Mode is not (SyncMode.RefreshVideo
-                or SyncMode.RefreshChannel
-                or SyncMode.RefreshChannelVideos
-                or SyncMode.DownloadVideo)
-                ? "Only a refresh or a download can be put on hold: the other runs can be canceled."
+            run.Mode is SyncMode.Import or SyncMode.IndexRebuild
+                ? "An import or an index rebuild can't be put on hold: it can be canceled."
                 : run.Outcome == SyncOutcome.Running
                 ? "This run goes on in another process (the command line): stop it there."
                 : "This run isn't going on.");
     }
 
+    /// <summary>
+    /// Resumes a refresh on hold now (1.5), instead of at the end of its cool-down: the run, going on again. While
+    /// another run goes on (2.3.0), it goes back in the queue, first: it goes on once that one ends.
+    /// </summary>
+    /// <param name="account">Who asks: the run's notes say it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It isn't on hold.</exception>
     public async Task<RunView> ResumeAsync(string id, string account, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
         try
         {
-            await runner.StartResumeAsync(run.Id, SyncTrigger.Admin, account).ConfigureAwait(false);
+            try
+            {
+                await runner.StartResumeAsync(run.Id, SyncTrigger.Admin, account).ConfigureAwait(false);
+            }
+            catch (SyncBusyException)
+            {
+                // Another run goes on: this one waits for it, first in the queue.
+                await refresh.BackInQueueAsync(run.Id, account, cancellationToken).ConfigureAwait(false);
+            }
         }
-        catch (SyncBusyException ex)
+        catch (SyncRefusedException ex)
         {
             throw new ConflictException(ex.Message, ex);
+        }
+
+        return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs a queued run now (2.3.0): first in the queue; the refresh going on here, if any, is put on hold to let it
+    /// go, and goes on right after it.
+    /// </summary>
+    /// <param name="account">Who asks: the runs' notes say it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It isn't queued.</exception>
+    public async Task<RunView> RunNowAsync(string id, string account, CancellationToken cancellationToken)
+    {
+        SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await runner.RunNowAsync(run.Id, account, cancellationToken).ConfigureAwait(false);
         }
         catch (SyncRefusedException ex)
         {

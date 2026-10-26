@@ -82,6 +82,19 @@ public enum SyncTrigger
     Extension,
 }
 
+/// <summary>Why a run is on hold (2.3.0): only YouTube refusing makes the queue wait.</summary>
+public enum HoldReason
+{
+    /// <summary>YouTube refused (a bot check, too many requests): the next runs would be too; the queue waits.</summary>
+    YouTube,
+
+    /// <summary>Put on hold by hand: it waits for Resume now; the queue goes on meanwhile.</summary>
+    Hand,
+
+    /// <summary>Under the disk space threshold (2.2.0): it tries again after the cool-down; the queue goes on.</summary>
+    DiskSpace,
+}
+
 public enum SyncOutcome
 {
     Running,
@@ -221,6 +234,24 @@ public sealed record SyncRun
 
     /// <summary>A refresh on hold (1.5): the channels and videos left to read, in order (the one refused first).</summary>
     public IReadOnlyList<string> Remaining { get; init; } = [];
+
+    /// <summary>
+    /// Why it's on hold (2.3.0); null otherwise, and for a run held before 2.3.0 (taken for YouTube's: the queue waits).
+    /// </summary>
+    public HoldReason? HeldFor { get; init; }
+
+    /// <summary>
+    /// Queued (2.3.0): when it was asked to go first (Run now; Resume now while another run goes on). The runs asked to
+    /// go first start before the others, the latest asked first; null: its turn, first come first served.
+    /// </summary>
+    public DateTimeOffset? FirstAt { get; init; }
+
+    /// <summary>
+    /// Queued with what it has left to read (<see cref="Remaining"/>, 2.3.0): a run on hold put back in the queue
+    /// (Resume now while another run goes on; Run now of another task while it went on); its turn resumes it.
+    /// </summary>
+    /// <remarks>A method, not a property: only what it's made of is written with the run.</remarks>
+    public bool IsResuming() => Outcome == SyncOutcome.Queued && Remaining.Count > 0;
 
     public SyncCounts Counts { get; init; } = new();
 

@@ -306,9 +306,20 @@ export const api = {
     return postFor(`/api/admin/runs/${segment(id)}/hold`)
   },
 
-  /** Resumes a refresh on hold now (1.5): the same run goes on where it stopped. 409 when it isn't on hold, or busy. */
+  /**
+   * Resumes a refresh on hold now (1.5): the same run goes on where it stopped; while another run goes on (2.3.0), back
+   * in the queue, first. 409 when it isn't on hold.
+   */
   resumeRun(id: string): Promise<Run> {
     return postFor(`/api/admin/runs/${segment(id)}/resume`)
+  },
+
+  /**
+   * Runs a queued run now (2.3.0): first in the queue; the refresh going on is held to let it go, and goes on right
+   * after it. 409 when it isn't queued.
+   */
+  runNow(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/run-now`)
   },
 
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */

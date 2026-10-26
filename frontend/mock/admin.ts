@@ -92,6 +92,8 @@ function makeRun(task: RunTask, overrides: Partial<Run>, now: number): Run {
     target: null,
     tabs: null,
     resumeAt: null,
+    heldFor: null,
+    firstAt: null,
     left: 0,
     indexRebuild: false,
     notes: [],
@@ -351,7 +353,80 @@ function tasks(state: AdminMockState, now: number): Tasks {
       next: task === 'youTubeSync' ? new Date(now + state.settings.syncEveryMinutes * 60_000).toISOString() : null,
     })),
     onHold: state.runs.filter((run) => run.state === 'onHold'),
-    queue: state.runs.filter((run) => run.state === 'queued'),
+    queue: queueOf(state),
+    // 2.3.0: only a run YouTube refused holds the queue (a run of before then says no reason: YouTube's).
+    queueWaitsFor:
+      state.runs.find((run) => run.state === 'onHold' && (run.heldFor === null || run.heldFor === 'youTube'))?.id ??
+      null,
+  }
+}
+
+/** The queued runs in the backend's order (2.3.0): the ones asked to go first, the latest asked first; then as asked. */
+function queueOf(state: AdminMockState): Run[] {
+  return state.runs
+    .filter((run) => run.state === 'queued')
+    .sort(
+      (a, b) =>
+        (b.firstAt ?? '').localeCompare(a.firstAt ?? '') ||
+        a.startedAt.localeCompare(b.startedAt) ||
+        a.id.localeCompare(b.id),
+    )
+    .map((run, index) => Object.assign(run, { position: index + 1 }))
+}
+
+/**
+ * The Tasks page busy (2.3.0, /__mock?queue=…): a refresh of everything going on, two runs waiting, and a run on hold,
+ * YouTube having refused it (the queue waits for it) or held by hand (the queue goes on).
+ */
+export function seedQueue(state: AdminMockState, held: 'youTube' | 'hand' | 'none', now: number = Date.now()): void {
+  state.runs = state.runs.filter((run) => !['running', 'queued', 'onHold'].includes(run.state))
+  const minutesAgo = (minutes: number) => new Date(now - minutes * 60_000).toISOString()
+  const counts = { ...noCounts, videosRead: 412, channelsRead: 18 }
+  state.runs.push(
+    makeRun(
+      'refreshAll',
+      { id: 'run-refreshAll-busy', state: 'running', startedAt: minutesAgo(52), finishedAt: null, counts },
+      now,
+    ),
+  )
+  if (held !== 'none') {
+    state.runs.push(
+      makeRun(
+        'youTubeFullSync',
+        {
+          id: 'run-youTubeFullSync-held',
+          state: 'onHold',
+          startedAt: minutesAgo(180),
+          finishedAt: minutesAgo(70),
+          heldFor: held,
+          resumeAt: held === 'youTube' ? new Date(now + 40 * 60_000).toISOString() : null,
+          left: 1874,
+          counts: { ...noCounts, videosRead: 126, created: 126 },
+          notes: [held === 'youTube' ? 'YouTube refused (HTTP Error 429).' : 'Put on hold by admin.'],
+          cancellable: true,
+        },
+        now,
+      ),
+    )
+  }
+  for (const [minutes, target] of [
+    [30, 'dQw4w9WgXcQ'],
+    [12, '@LinusTechTips'],
+  ] as const) {
+    state.runs.push(
+      makeRun(
+        target.startsWith('@') ? 'addChannel' : 'downloadVideo',
+        {
+          id: `run-queued-${minutes}`,
+          state: 'queued',
+          startedAt: minutesAgo(minutes),
+          finishedAt: null,
+          target,
+          cancellable: true,
+        },
+        now,
+      ),
+    )
   }
 }
 
@@ -389,6 +464,11 @@ function failures(db: MockDb, channelId: string, now: number): DownloadFailure[]
 const notFound = (detail: string): AdminAnswer => ({
   status: 404,
   body: { type: 'https://tontuyau/errors/not-found', title: 'Not found', status: 404, detail },
+})
+
+const conflict = (detail: string): AdminAnswer => ({
+  status: 409,
+  body: { type: 'https://tontuyau/errors/conflict', title: 'Conflict', status: 409, detail },
 })
 
 function page<T>(items: T[]) {
@@ -470,8 +550,34 @@ export function handleAdmin(
     if (!run) return notFound(`No run ${id}.`)
     if (sub === undefined) return { status: 200, body: run }
     if (sub === 'log') return { status: 200, body: log(run) }
+    if (method === 'POST' && sub === 'run-now') {
+      if (run.state !== 'queued') return conflict(`The run ${run.id} doesn't wait in the queue.`)
+      // As the backend: it goes first; the run going on is held for it, back in the queue right after it.
+      const going = state.runs.find((candidate) => candidate.state === 'running')
+      const asked = new Date().toISOString()
+      if (going) {
+        Object.assign(going, { state: 'queued', firstAt: asked, left: Math.max(going.left, 1) })
+        Object.assign(run, { state: 'running', firstAt: null, position: null, finishedAt: null })
+      } else {
+        Object.assign(run, { state: 'running', position: null })
+      }
+      return { status: 202, body: run }
+    }
+    if (method === 'POST' && sub === 'resume' && run.state === 'onHold') {
+      // 2.3.0: while another run goes on, back in the queue, first.
+      const busy = state.runs.some((candidate) => candidate.state === 'running')
+      Object.assign(
+        run,
+        busy
+          ? { state: 'queued', firstAt: new Date().toISOString(), heldFor: null, resumeAt: null }
+          : { state: 'running', heldFor: null, resumeAt: null },
+      )
+      queueOf(state)
+      return { status: 202, body: run }
+    }
     if (method === 'POST' && (sub === 'cancel' || sub === 'resume' || sub === 'hold')) {
       run.state = sub === 'cancel' ? 'canceled' : sub === 'hold' ? 'onHold' : 'succeeded'
+      if (sub === 'hold') Object.assign(run, { heldFor: 'hand', resumeAt: null })
       return { status: 200, body: run }
     }
   }

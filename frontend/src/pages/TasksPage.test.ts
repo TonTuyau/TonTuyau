@@ -277,24 +277,84 @@ describe('TasksPage', () => {
     vi.useRealTimers()
   })
 
-  it('says the queue waits while a run is on hold', async () => {
+  it('says the queue waits for a run YouTube refused, not for one held by hand or for disk space (2.3.0)', async () => {
     const held = run({
       id: 'run-20261016T140200Z-7c31aa',
       task: 'refreshChannelVideos',
       state: 'onHold',
       target: 'UCunderTheCity',
       resumeAt: '2026-10-16T15:20:00Z',
+      heldFor: 'youTube',
       cancellable: true,
     })
     const waiting = run({ id: 'run-20261016T141000Z-bbbbbb', state: 'queued', position: 1, finishedAt: null })
-    fakeApi({ '/api/admin/tasks': tasks({ onHold: [held], queue: [waiting] }), '/api/admin/runs': page([waiting]) })
-    render(TasksPage)
+    fakeApi({
+      '/api/admin/tasks': tasks({ onHold: [held], queue: [waiting], queueWaitsFor: held.id }),
+      '/api/admin/runs': page([waiting]),
+    })
+    const { unmount } = render(TasksPage)
 
     const queue = await screen.findByRole('region', { name: 'Waiting · 1' })
     expect(within(queue).getByRole('status')).toHaveTextContent(
-      'The queue is on hold: Refresh a channel and its videos is on hold.',
+      'The queue waits: YouTube refused Refresh a channel and its videos, and would refuse the next runs too.',
     )
     expect(queue).toHaveTextContent(/On hold until/)
+    expect(screen.getByRole('region', { name: 'On hold' })).toHaveTextContent('The queue waits for it.')
+    unmount()
+
+    for (const [heldFor, text] of [
+      ['hand', 'Put on hold by hand on'],
+      ['diskSpace', 'Too little disk space on'],
+    ] as const) {
+      fakeApi({
+        '/api/admin/tasks': tasks({ onHold: [{ ...held, heldFor }], queue: [waiting], queueWaitsFor: null }),
+        '/api/admin/runs': page([waiting]),
+      })
+      const rendered = render(TasksPage)
+      const goesOn = await screen.findByRole('region', { name: 'Waiting · 1' })
+      expect(within(goesOn).queryByRole('status')).toBeNull()
+      expect(goesOn).toHaveTextContent('One at a time, in this order')
+      const bar = screen.getByRole('region', { name: 'On hold' })
+      expect(bar).toHaveTextContent(text)
+      expect(bar).toHaveTextContent('The queue goes on meanwhile.')
+      rendered.unmount()
+    }
+  })
+
+  it('runs a queued run now; says why when it’s refused; a run held back in the queue says what it has left', async () => {
+    const user = userEvent.setup()
+    const back = run({
+      id: 'run-20261016T140200Z-7c31aa',
+      task: 'youTubeFullSync',
+      state: 'queued',
+      position: 1,
+      left: 1874,
+      firstAt: '2026-10-16T15:00:00Z',
+      finishedAt: null,
+      cancellable: true,
+    })
+    const waiting = run({ id: 'run-20261016T141000Z-bbbbbb', state: 'queued', position: 2, finishedAt: null })
+    const api = fakeApi({
+      '/api/admin/tasks': tasks({ queue: [back, waiting] }),
+      '/api/admin/runs': page([waiting, back]),
+      [`/api/admin/runs/${waiting.id}/run-now`]: { ...waiting, position: 1 },
+      [`/api/admin/runs/${back.id}/run-now`]: problemResponse(409, `The run ${back.id} doesn't wait in the queue.`),
+    })
+    render(TasksPage)
+
+    const queue = await screen.findByRole('region', { name: 'Waiting · 2' })
+    const [first, second] = within(queue).getAllByRole('listitem')
+    if (!first || !second) throw new Error('Two runs wait.')
+    expect(first).toHaveTextContent('Full YouTube sync')
+    expect(first).toHaveTextContent('Held, resumes here: 1,874 left')
+    expect(second).not.toHaveTextContent('Held')
+
+    await user.click(within(second).getByRole('button', { name: 'Run now' }))
+    await vi.waitFor(() => expect(api.requests(`/api/admin/runs/${waiting.id}/run-now`)).toHaveLength(1))
+    expect(location.pathname).toBe('/admin/tasks')
+
+    await user.click(within(first).getByRole('button', { name: 'Run now' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(`Not run now: The run ${back.id} doesn't wait`)
   })
 
   it('speaks French', async () => {
@@ -566,7 +626,7 @@ describe('TasksPage', () => {
       expect(api.requests(`/api/admin/runs/${held.id}/resume`)).toHaveLength(1)
     })
 
-    it('lets a run on hold be resumed or canceled while others wait behind it, not while another goes on', async () => {
+    it('lets a run on hold be resumed or canceled, while others wait behind it or another goes on (2.3.0)', async () => {
       const held = run({ id: 'run-20261016T140200Z-7c31aa', task: 'youTubeSync', state: 'onHold', cancellable: true })
       const waiting = run({ id: 'run-20261016T150000Z-1a2b3c', task: 'refreshVideo', state: 'queued', position: 1 })
       fakeApi({
@@ -580,6 +640,7 @@ describe('TasksPage', () => {
       expect(within(bar).getByRole('button', { name: 'Cancel it' })).toBeEnabled()
       unmount()
 
+      // Another run going on: Resume now puts it back in the queue, first.
       fakeApi({
         '/api/admin/tasks': tasks({
           onHold: [held],
@@ -589,7 +650,7 @@ describe('TasksPage', () => {
       })
       render(TasksPage)
       const busyBar = await screen.findByRole('region', { name: 'On hold' })
-      expect(within(busyBar).getByRole('button', { name: 'Resume now' })).toBeDisabled()
+      expect(within(busyBar).getByRole('button', { name: 'Resume now' })).toBeEnabled()
     })
 
     it('says why a start was refused', async () => {

@@ -160,8 +160,9 @@ public sealed partial class SyncRunner(
         StartAsync((progress, token) => refresh.ResumeAsync(runId, trigger, by, progress, token));
 
     /// <summary>
-    /// Starts the next queued run when this backend runs none, the lock is free, and no run is on hold; then the next
-    /// one again when that one was over at once (canceled meanwhile, refused).
+    /// Starts the next queued run when this backend runs none, the lock is free, and YouTube isn't refusing (a run on
+    /// hold for that, 2.3.0: one held by hand or for disk space lets the queue go on); then the next one again when
+    /// that one was over at once (canceled meanwhile, refused).
     /// </summary>
     public async Task TryStartNextAsync()
     {
@@ -219,7 +220,13 @@ public sealed partial class SyncRunner(
             {
                 Outcome = SyncOutcome.Canceled,
                 FinishedAt = clock.GetUtcNow(),
-                Notes = [.. queued.Notes, $"Canceled by {by} while it waited in the queue: it didn't start."],
+                Notes =
+                [
+                    .. queued.Notes,
+                    queued.IsResuming()
+                        ? $"Canceled by {by} while it waited in the queue: it won't resume."
+                        : $"Canceled by {by} while it waited in the queue: it didn't start.",
+                ],
             };
             await state.SaveRunAsync(canceled, cancellationToken).ConfigureAwait(false);
             using (logger.BeginScope(new RunLogScope(runId)))
@@ -293,19 +300,86 @@ public sealed partial class SyncRunner(
 
         // A lease run out (a crashed process) is free: the run starting takes it over.
         if (await state.GetLockAsync(CancellationToken.None).ConfigureAwait(false) is { } held
-                && held.LeaseUntil > clock.GetUtcNow()
-            || (await runs.GetOnHoldRunsAsync(CancellationToken.None).ConfigureAwait(false)).Count > 0)
+            && held.LeaseUntil > clock.GetUtcNow())
         {
             return null;
         }
 
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(CancellationToken.None).ConfigureAwait(false);
-        return queue.Count > 0 ? queue[0] : null;
+        if (queue.Count == 0)
+        {
+            return null;
+        }
+
+        // YouTube refusing (2.3.0): the next runs would be too, they wait; but what an admin asked to run now.
+        return queue[0].FirstAt is null && await YouTubeRefusingAsync().ConfigureAwait(false) is not null
+            ? null
+            : queue[0];
+    }
+
+    /// <summary>
+    /// The run on hold because YouTube refused, that the queue waits for (2.3.0); null when none is. A run held before
+    /// 2.3.0 says no reason: taken for YouTube's, as then.
+    /// </summary>
+    public async Task<SyncRun?> YouTubeRefusingAsync()
+    {
+        IReadOnlyList<SyncRun> held = await runs.GetOnHoldRunsAsync(CancellationToken.None).ConfigureAwait(false);
+        return held.FirstOrDefault(r => r.HeldFor is null or HoldReason.YouTube);
+    }
+
+    /// <summary>
+    /// Run now (2.3.0): the queued run goes first; the run going on here, a refresh or a YouTube run, is held and put
+    /// back in the queue right after it, to go on once it ends. An import or an index rebuild going on isn't held:
+    /// the run then starts once it ends. Nothing going on: it starts at once (even while YouTube refuses).
+    /// </summary>
+    /// <param name="by">Who asks, for the notes.</param>
+    /// <returns>The run, first in the queue; whether the run going on was held for it.</returns>
+    /// <exception cref="SyncRefusedException">No such run, or it doesn't wait in the queue.</exception>
+    public async Task<(SyncRun Run, bool HeldAnother)> RunNowAsync(
+        string runId,
+        string by,
+        CancellationToken cancellationToken)
+    {
+        SyncRun first;
+        bool heldAnother = false;
+        await _dispatching.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            SyncRun? queued = await state.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
+            if (queued?.Outcome != SyncOutcome.Queued)
+            {
+                throw new SyncRefusedException($"The run {runId} doesn't wait in the queue.");
+            }
+
+            DateTimeOffset now = clock.GetUtcNow();
+            first = queued with
+            {
+                // Before the run held for it (which goes back at now): the latest asked goes first.
+                FirstAt = now.AddMilliseconds(1),
+                Notes = [.. queued.Notes, $"Run now by {by}: first in the queue."],
+            };
+            await state.SaveRunAsync(first, cancellationToken).ConfigureAwait(false);
+            if (RunningId is { } running)
+            {
+                heldAnother = refresh.RequestHold(running, by, backInQueueAt: now);
+            }
+        }
+        finally
+        {
+            _dispatching.Release();
+        }
+
+        // Nothing going on: it starts now; else the end of the run going on (held, or not) starts it.
+        await TryStartNextAsync().ConfigureAwait(false);
+        return (first, heldAnother);
     }
 
     private Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> WorkOf(SyncRun queued) =>
         queued.Mode is SyncMode.Import or SyncMode.IndexRebuild
             ? (progress, token) => sync.RunQueuedAsync(queued, progress, token)
+            : queued.IsResuming()
+            // A run on hold put back in the queue (2.3.0): its turn resumes it, from where it was.
+            ? (progress, token) => refresh.ResumeAsync(queued.Id, queued.Trigger, by: null, progress, token)
             : (progress, token) => refresh.RunQueuedAsync(queued, progress, token);
 
     /// <summary>A queued run is over (or canceled before it started): whoever waits for it is told.</summary>
