@@ -103,7 +103,7 @@ Feature: A refresh on hold when YouTube refuses
     And "left" is "2"
     And "counts.videosRead" is "1"
     And "cancellable" is "true"
-    And "notes[1]" mentions "put on hold by admin. It resumes only with Resume now."
+    And "notes[1]" mentions "put on hold by admin. It resumes only with Resume now; the queue goes on meanwhile."
     When I request "/api/admin/tasks" with my session
     Then "lock" is null
     And "onHold" has 1 items

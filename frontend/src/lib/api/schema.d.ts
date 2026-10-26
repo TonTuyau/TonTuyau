@@ -3571,6 +3571,70 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/runs/{id}/run-now': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Accepted */
+        202: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['RunResponse']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Conflict */
+        409: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/runs/{id}/hold': {
     parameters: {
       query?: never
@@ -4537,6 +4601,8 @@ export interface components {
     ExtensionCookieResponse: {
       cookie: null | components['schemas']['YouTubeCookieResponse']
     }
+    /** @enum {unknown} */
+    HoldReason: 'youTube' | 'hand' | 'diskSpace' | null
     HomeResponse: {
       sections: components['schemas']['HomeSection'][]
     }
@@ -4821,6 +4887,9 @@ export interface components {
       tabs: null | components['schemas']['ChannelTabsResponse']
       /** Format: date-time */
       resumeAt: null | string
+      heldFor: null | components['schemas']['HoldReason']
+      /** Format: date-time */
+      firstAt: null | string
       /** Format: int32 */
       left: number
       indexRebuild: boolean
@@ -4899,6 +4968,7 @@ export interface components {
       tasks: components['schemas']['TaskResponse'][]
       onHold: components['schemas']['RunResponse'][]
       queue: components['schemas']['RunResponse'][]
+      queueWaitsFor: null | string
     }
     Track: {
       kind: components['schemas']['MediaTrackKind']

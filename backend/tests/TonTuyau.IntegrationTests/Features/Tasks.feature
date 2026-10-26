@@ -24,7 +24,7 @@ Feature: The Tasks page's API
     And I request "/api/admin/tasks" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
-    And the answer has exactly the fields "lock, runningHere, tasks, onHold, queue"
+    And the answer has exactly the fields "lock, runningHere, tasks, onHold, queue, queueWaitsFor"
     And "lock" is null
     And "runningHere" is null
     And "tasks" has 4 items
@@ -85,7 +85,7 @@ Feature: The Tasks page's API
     When I log in as the admin
     And I request the latest run's "" with my session
     Then the response status is 200
-    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, queuedAt, position, finishedAt, error, counts, target, tabs, resumeAt, left, indexRebuild, notes, cancellable"
+    And the answer has exactly the fields "id, task, trigger, startedBy, state, startedAt, queuedAt, position, finishedAt, error, counts, target, tabs, resumeAt, heldFor, firstAt, left, indexRebuild, notes, cancellable"
     And "id" is the latest run's id
     And "state" is "succeeded"
     And "trigger" is "cli"

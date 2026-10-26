@@ -469,24 +469,31 @@ export const fr: Dictionary = {
   'run.state.onHold': 'En attente',
   'run.state.queued': 'En attente',
   'tasks.queue': 'En attente',
-  'tasks.queue.order': 'Une à la fois, dans cet ordre',
+  'tasks.queue.order':
+    'Une à la fois, dans cet ordre. « Lancer maintenant » en passe une en premier : une actualisation en cours est mise en attente pour elle, et reprend juste après.',
   'tasks.queue.onHoldUntil': 'En pause jusqu’à {at}',
   'tasks.queue.onHold': 'En pause',
-  'tasks.queue.held':
-    'La file est en pause : {task} est en pause. Elle reprend quand cette tâche reprend ou est annulée.',
+  'tasks.queue.waitsForYouTube':
+    'La file attend : YouTube a refusé {task}, et refuserait aussi les suivantes. Elle reprend quand cette tâche reprend ou est annulée ; « Lancer maintenant » en lance une quand même.',
+  'tasks.queue.runNow': 'Lancer maintenant',
+  'tasks.queue.runNowRefused': 'Pas lancée : {reason}',
+  'tasks.queue.resumes': 'Mise en attente, reprend ici : {left} restants',
   'tasks.queue.asked': '{by} · {ago}',
   'task.addToQueue': 'Mettre dans la file',
   'task.waitsItsTurn': 'Une tâche est en cours : celle-ci attend son tour.',
   'run.queued': 'N° {position} dans la file. Elle démarre d’elle-même à son tour.',
+  'run.queuedToResume': 'Mise en attente, elle reprend là où elle s’était arrêtée : {left} restants.',
   'run.result.queued': 'En attente, n° {position} dans la file',
   'run.result.onHold': "En attente jusqu'au {at} : {read} lus, {left} restants",
   'hold.text':
-    '{read} lus, {left} restants. YouTube a refusé le {at} ; reprise toute seule le {resume}, ou maintenant.',
+    '{read} lus, {left} restants. YouTube a refusé le {at} ; reprise toute seule le {resume}, ou maintenant. La file l’attend.',
   'hold.resume': 'Reprendre maintenant',
   'hold.cancel': "L'annuler",
   'hold.resumeRefused': 'Pas reprise : {reason}',
   'hold.textByHand':
-    '{read} lus, {left} restants. Mise en attente à la main le {at} ; elle attend que vous la repreniez, ou annulez-la.',
+    '{read} lus, {left} restants. Mise en attente à la main le {at} ; elle attend que vous la repreniez, ou annulez-la. La file continue en attendant.',
+  'hold.textDisk':
+    '{read} lus, {left} restants. Trop peu d’espace disque le {at} ; nouvel essai le {resume}, ou maintenant. La file continue en attendant.',
   'hold.put': 'Mettre en attente',
   'hold.confirmTitle': 'Mettre cette actualisation en attente ?',
   'hold.confirm':

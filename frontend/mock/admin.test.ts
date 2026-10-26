@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AdminChannel, ChannelTotals, Dashboard, Page, Run, Subscription, Tasks } from '../src/lib/api/types.ts'
 import { logInAs } from './accounts.ts'
-import { adminMockState, handleAdmin } from './admin.ts'
+import { adminMockState, handleAdmin, seedQueue } from './admin.ts'
 import { loadDb } from './db.ts'
 
 const db = loadDb()
@@ -53,6 +53,29 @@ describe('the admin mock', () => {
     const bytes = db.videos.reduce((sum, video) => sum + video.fileSize, 0)
     expect(dashboard.storage.types.reduce((sum, type) => sum + type.bytes, 0)).toBe(bytes)
     expect(channels.items.reduce((sum, row) => sum + row.size, 0)).toBe(bytes)
+  })
+
+  it('runs a queued run now: the run going on goes back in the queue, first; the queue waits only for YouTube (2.3.0)', () => {
+    const { state, call } = setup()
+    logInAs(state.accounts, 'admin')
+    seedQueue(state, 'youTube', NOW)
+
+    const busy = call<Tasks>('GET', '/api/admin/tasks').body
+    expect(busy.queueWaitsFor).toBe('run-youTubeFullSync-held')
+    expect(busy.queue.map((run) => run.position)).toEqual([1, 2])
+    const last = busy.queue[1]?.id ?? ''
+
+    expect(call<Run>('POST', `/api/admin/runs/${last}/run-now`).status).toBe(202)
+    const after = call<Tasks>('GET', '/api/admin/tasks').body
+    expect(after.runningHere).toBe(last)
+    expect(after.queue[0]?.id).toBe('run-refreshAll-busy')
+    expect(call('POST', `/api/admin/runs/${last}/run-now`).status).toBe(409)
+
+    seedQueue(state, 'hand', NOW)
+    expect(call<Tasks>('GET', '/api/admin/tasks').body.queueWaitsFor).toBeNull()
+    // Resume now while another run goes on: back in the queue, first.
+    expect(call<Run>('POST', '/api/admin/runs/run-youTubeFullSync-held/resume').body.state).toBe('queued')
+    expect(call<Tasks>('GET', '/api/admin/tasks').body.queue[0]?.id).toBe('run-youTubeFullSync-held')
   })
 
   it('holds the YouTube syncs on an almost full disk, saying why as the backend does (2.2.0)', () => {

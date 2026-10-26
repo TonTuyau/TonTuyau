@@ -55,9 +55,16 @@ Feature: The downloads wait for disk space
     And TonTuyau doesn't have the video "alpha-04"
     And the latest run's "left" is "1" within 5 seconds
     And the latest run's notes mention "1 left to read: Under 50 GB free on the videos folder's disk (49.9 GB)"
+    # 2.3.0: held for disk space, it lets the queue go on (a refresh downloads nothing).
+    When I request "/api/admin/tasks" with my session
+    Then "onHold[0].heldFor" is "diskSpace"
+    And "queueWaitsFor" is null
+    Given YouTube has the video "alpha-01": the title "Un", 1 views
+    When I refresh the video "alpha-01" with my session
+    Then the run of the video "alpha-01" is succeeded within 20 seconds
     Given the videos folder's disk has 900 GB free of 1000 GB
-    When I resume the latest run with my session
-    Then the latest run ends succeeded within 60 seconds
+    When I resume the run on hold with my session
+    Then the latest run of "youTubeSync" is succeeded within 60 seconds
     And the media folder has the file of the video "alpha-04" with 4096 bytes
 
   Scenario: Switched off, or at a threshold of 0, the downloads run under it

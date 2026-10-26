@@ -7,7 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Connect, Plugin } from 'vite'
 import { directory, logInAs, sessionAccount } from './accounts.ts'
-import { adminMockState, handleAdmin, type AdminMockState } from './admin.ts'
+import { adminMockState, handleAdmin, seedQueue, type AdminMockState } from './admin.ts'
 import { artFor } from './art.ts'
 import { emptyDb, fixturesDir, loadDb, type MockDb, type VideoFixture } from './db.ts'
 import { handleApi, notFound, problemResponse, type MockResponse } from './handler.ts'
@@ -185,6 +185,10 @@ function controlPage(state: State, url: URL): MockResponse {
   if (disk === 'normal' || disk === 'low' || disk === 'unknown') {
     state.admin.disk = disk
   }
+  const queue = url.searchParams.get('queue')
+  if (queue === 'youTube' || queue === 'hand' || queue === 'none') {
+    seedQueue(state.admin, queue)
+  }
   const delay = url.searchParams.get('delay')
   if (delay !== null && /^\d{1,5}$/.test(delay)) {
     state.delayMs = Number(delay)
@@ -207,6 +211,7 @@ ${link('scenario=down', 'backend down behind the proxy (bare 502)')} ${link('sce
 Its people (password = the name): ${directory.map((person) => `${person.uid} (${person.groups.map((group) => group.split(',')[0]).join(', ') || 'no group'})`).join(', ')}. camille clashes: a local account has that name.</p>
 <p>Who can watch (2.3.0): <b>${state.admin.accounts.access.accountsOnly ? 'logged-in accounts only' : 'everyone'}</b> ${link('private=on', 'accounts only')} ${link('private=off', 'everyone')}</p>
 <p>Disk (2.2.0, the dashboard's storage): <b>${state.admin.disk}</b> ${link('disk=normal', 'roomy')} ${link('disk=low', 'almost full')} ${link('disk=unknown', 'not saying its free space')}</p>
+<p>Tasks page (2.3.0, Run now): ${link('queue=youTube', 'busy, a sync YouTube refused holds the queue')} ${link('queue=hand', 'busy, a sync held by hand')} ${link('queue=none', 'busy, nothing held')}</p>
 <p>Delay: ${link('delay=0', '0')} ${link('delay=300', '300 ms')} ${link('delay=1500', '1.5 s')} ${link('delay=5000', '5 s')}</p>
 <p><a href="/">← back to the app</a></p>`
   return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body }

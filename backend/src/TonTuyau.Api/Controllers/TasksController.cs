@@ -57,8 +57,9 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     }
 
     /// <summary>
-    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. 409 when it
-    /// isn't on hold, or a run is going on.
+    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. While another
+    /// run goes on (contract v2.14), it goes back in the queue, first: it goes on once that one ends. 409 when it isn't
+    /// on hold.
     /// </summary>
     [HttpPost("runs/{id}/resume")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
@@ -73,9 +74,25 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     }
 
     /// <summary>
+    /// Runs a queued run now (contract v2.14): it goes first in the queue; the refresh or YouTube run going on in this
+    /// backend is put on hold to let it go, back in the queue right after it. 409 when it isn't queued.
+    /// </summary>
+    [HttpPost("runs/{id}/run-now")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> RunNowAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .RunNowAsync(id, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
     /// Puts the refresh going on on hold now, by hand (1.5): it stops at once and lets go of the lock, keeps what it has
-    /// left to read (the item it was reading included), and waits for Resume now: no cool-down. 409 when it isn't a
-    /// refresh going on in this backend.
+    /// left to read (the item it was reading included), and waits for Resume now: no cool-down; the queue goes on
+    /// meanwhile (contract v2.14). 409 when it isn't a refresh going on in this backend.
     /// </summary>
     [HttpPost("runs/{id}/hold")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]

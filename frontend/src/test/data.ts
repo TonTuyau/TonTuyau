@@ -245,6 +245,8 @@ export function run(overrides: Partial<Run> = {}): Run {
     target: null,
     tabs: null,
     resumeAt: null,
+    heldFor: null,
+    firstAt: null,
     left: 0,
     indexRebuild: false,
     notes: [],
@@ -265,6 +267,7 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
     ],
     onHold: [],
     queue: [],
+    queueWaitsFor: null,
     ...overrides,
   }
 }

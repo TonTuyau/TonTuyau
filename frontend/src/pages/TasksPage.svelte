@@ -115,6 +115,16 @@
     }
   }
 
+  async function onrunnow(runId: string) {
+    refused = null
+    try {
+      await api.runNow(runId)
+    } catch (error) {
+      refused = t('tasks.queue.runNowRefused', { reason: reasonOf(error) })
+    }
+    refresh()
+  }
+
   async function oncancel(runId: string) {
     refused = null
     try {
@@ -161,7 +171,7 @@
     {#if refused}
       <p class="refused" role="alert">{refused}</p>
     {/if}
-    <RunQueue queue={data.queue} onHold={data.onHold} {now} {oncancel} />
+    <RunQueue queue={data.queue} onHold={data.onHold} queueWaitsFor={data.queueWaitsFor} {now} {onrunnow} {oncancel} />
     <section class="group" aria-labelledby="ta-title">
       <h2 id="ta-title">TubeArchivist</h2>
       <div class="tasks">
@@ -179,9 +189,8 @@
         <p class="warn">{t('tasks.youTube.noCookie')} <a href={href.adminYouTube()}>{t('admin.youTube')}</a></p>
       {/if}
       {#each data.onHold as held (held.id)}
-        <!-- Not held back by the queue (alpha.8): what waits in it waits for this very run, resumed or canceled.
-             Only another run going on (from the command line) holds it. -->
-        <HoldBar run={held} disabled={data.lock != null} {onresume} {oncancel} />
+        <!-- Resume now while another run goes on (2.3.0): back in the queue, first. -->
+        <HoldBar run={held} {onresume} {oncancel} />
       {/each}
       <div class="tasks">
         {#each data.tasks.filter((info) => info.task !== 'import') as info (info.task)}

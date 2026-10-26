@@ -2,8 +2,9 @@
 Feature: The run queue
   One run at a time (the run lock, across processes). Since 2.0 a task asked for while another run goes on isn't
   refused: it's recorded at once, queued, and starts when its turn comes, first come first served. The Tasks page lists
-  the queue, and a queued run can be canceled. While a run is on hold (YouTube refused it, or an admin held it) the
-  queue waits with it, and goes on once it resumes or is canceled. yt-dlp is a fake here.
+  the queue, and a queued run can be canceled. While a run is on hold because YouTube refused it, the queue waits
+  with it, and goes on once it resumes or is canceled (2.3.0: held by hand or for disk space, it lets the queue go on:
+  RunNow.feature). yt-dlp is a fake here.
 
   Background:
     Given TubeArchivist has the channel "alpha" with 5 videos
@@ -41,7 +42,7 @@ Feature: The run queue
     Then "queue" has 0 items
     And the stored YouTube state of the video "alpha-01" is "on YouTube"
 
-  Scenario: A run on hold holds the queue; once it's canceled, the queue goes on
+  Scenario: A run YouTube refused holds the queue; once it's canceled, the queue goes on
     Given YouTube says of the video "alpha-02": "ERROR: [youtube] alpha-02___: Sign in to confirm you’re not a bot"
     And YouTube has the video "alpha-01": the title "Un", 1 views
     When I refresh the video "alpha-02" with my session
@@ -52,6 +53,9 @@ Feature: The run queue
     And I request the latest run's "" with my session
     Then "state" is "queued"
     And "position" is "1"
+    When I request "/api/admin/tasks" with my session
+    Then "onHold[0].heldFor" is "youTube"
+    And "queueWaitsFor" is the id of the run of the video "alpha-02"
     When I cancel the run on hold with my session
     Then the response status is 202
     And the latest run ends succeeded within 20 seconds
