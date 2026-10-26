@@ -32,6 +32,16 @@ Feature: The YouTube syncs
     When I request "/api/admin/dashboard/imports?period=day" with my session
     Then the import history's new videos are 4 videos, 0 shorts and 0 streams
 
+  Scenario: A channel without a videos, shorts or streams tab (a "Topic" channel) is listed from its uploads (2.3.0)
+    Given YouTube has the videos "alpha-05, alpha-04"
+    And YouTube lists "alpha-05, alpha-04, alpha-02" in the uploads of the channel "alpha", which has no tab
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the media folder has the file of the video "alpha-05" with 4096 bytes
+    And the media folder has the file of the video "alpha-04" with 4096 bytes
+    And the latest run's "counts.created" is "2" within 5 seconds
+    And the latest run's notes mention ": 2 videos to download."
+
   Scenario: Another channel's videos listed on a subscribed channel's tab are downloaded once, not at every sync (alpha.5)
     Given YouTube has the videos "beta-02, beta-01"
     And YouTube lists "beta-02, beta-01, alpha-02" on the videos tab of the channel "alpha"

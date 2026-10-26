@@ -41,6 +41,15 @@ if [[ "${@: -1}" =~ /channel/([^/]+)/(videos|shorts|streams)$ ]]; then
   cat "$listed.jsonl"
   exit 0
 fi
+# A channel's own page listed (2.3.0, when it has no videos tab; its metadata is asked with --dump-single-json):
+# without a videos, shorts or live tab (a "Topic" channel), yt-dlp lists its uploads playlist:
+# answers/<channel id>.uploads.jsonl; without it, no video (its tabs).
+if [[ "$*" == *--lazy-playlist* && "${@: -1}" =~ /channel/([^/]+)$ ]]; then
+  if [[ -f "$answers/${BASH_REMATCH[1]}.uploads.jsonl" ]]; then
+    cat "$answers/${BASH_REMATCH[1]}.uploads.jsonl"
+  fi
+  exit 0
+fi
 id="${@: -1}"
 id="${id##*[=/]}"
 # A download (2.0): the video's file and its info dict, in the folder asked for (--paths home:…), as yt-dlp leaves
