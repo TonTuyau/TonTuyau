@@ -198,6 +198,48 @@ internal sealed partial class YouTubeClient(
         ArgumentException.ThrowIfNullOrEmpty(channelId);
         ArgumentNullException.ThrowIfNull(stopAt);
         string page = tab.ToString().ToLowerInvariant();
+        string url = $"https://www.youtube.com/channel/{channelId}/{page}";
+        (YtdlpRun run, List<YouTubeListed> listed) = await ListAsync(url, stopAt, cancellationToken)
+            .ConfigureAwait(false);
+        if (run.Failure is null)
+        {
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+        }
+
+        if (!run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase))
+        {
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                run.Failure.Value.Answer,
+                null,
+                run.Failure.Value.Reason);
+        }
+
+        if (tab != ChannelTab.Videos)
+        {
+            // A channel without this tab (no shorts, never streamed): nothing to list.
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null);
+        }
+
+        // No videos tab (2.3.0): the channel itself, as yt-dlp takes it. Without a videos, shorts or live tab (a
+        // "Topic" channel YouTube makes for an artist: a Home tab only), that's its uploads playlist (UU…); with
+        // shorts or streams only, those tabs, not videos: nothing more is listed (each tab is listed on its own).
+        string channel = $"https://www.youtube.com/channel/{channelId}";
+        (YtdlpRun uploads, List<YouTubeListed> uploaded) = await ListAsync(channel, stopAt, cancellationToken)
+            .ConfigureAwait(false);
+        return uploads.Failure is null
+            ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, uploaded, null)
+            : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                uploads.Failure.Value.Answer,
+                null,
+                uploads.Failure.Value.Reason);
+    }
+
+    /// <summary>The videos a channel's page or a playlist lists, newest first, until <paramref name="stopAt"/>.</summary>
+    private async Task<(YtdlpRun Run, List<YouTubeListed> Listed)> ListAsync(
+        string url,
+        Func<YouTubeListed, bool> stopAt,
+        CancellationToken cancellationToken)
+    {
         List<YouTubeListed> listed = [];
         bool stopped = false;
         YtdlpRun run = await RunDirectAsync(
@@ -210,7 +252,7 @@ internal sealed partial class YouTubeClient(
                 "--lazy-playlist",
                 "--print",
                 "%(.{id,live_status,title})j",
-                $"https://www.youtube.com/channel/{channelId}/{page}",
+                url,
             ],
             ListTimeout,
             cancellationToken,
@@ -226,18 +268,7 @@ internal sealed partial class YouTubeClient(
                 return stopped;
             })
             .ConfigureAwait(false);
-        if (run.Failure is not null)
-        {
-            // A channel without this tab (no shorts, never streamed): nothing to list.
-            return run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
-                ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null)
-                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
-                    run.Failure.Value.Answer,
-                    null,
-                    run.Failure.Value.Reason);
-        }
-
-        return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+        return (run, listed);
     }
 
     /// <summary>A listing's line: an entry with a video id; null otherwise (a warning, a playlist's own line).</summary>
