@@ -437,7 +437,7 @@ are usable (503 otherwise).
 | `backend/` | ASP.NET Core (.NET 10), EF Core on PostgreSQL, Elasticsearch 9; xUnit and Reqnroll tests on Testcontainers |
 | `frontend/` | Svelte 5, Vite, TypeScript, pnpm, Vitest; `server/` is the front container's production server (plain Node) |
 | `docker/` | the compose file, the two Dockerfiles, `compose.dev.yml` (Elasticsearch and PostgreSQL on localhost) |
-| `scripts/` | `check.sh` (everything CI runs), `build-images.sh`, `check-version.sh`, `smoke-image.sh` |
+| `scripts/` | `check.sh` (everything CI runs, stage by stage), `build-images.sh`, `check-version.sh`, `smoke-image.sh` |
 | `docs/` | the API contract, the plans and the design notes |
 
 Prerequisites: .NET 10 SDK, Node 24+, pnpm (`corepack enable`), Docker (your user in the `docker` group), and ffmpeg
@@ -446,6 +446,7 @@ for the streaming tests.
 ```bash
 cp .env.example .env    # fill it in, and uncomment the "Development only" lines
 ./scripts/check.sh      # version, format, build and every test, back and front (--backend / --frontend for one)
+./scripts/check.sh backend:unit   # or some stages only (--list lists them)
 ```
 
 Run it locally:
@@ -466,10 +467,11 @@ for its knobs (empty library, failing API, slow answers, logged in as admin for 
   copy. After a backend change that alters it (a backend test then fails), start the backend and run
   `cd frontend && pnpm run api:openapi`.
 - The version lives in `backend/Directory.Build.props` and `frontend/package.json`; `check.sh` fails when they differ.
-- GitHub Actions runs on pull requests and version tags: `check.sh` (the backend's part only when the backend
-  changed), then both images. A version tag `vX.Y.Z` publishes them to GHCR as `X.Y.Z`, `X.Y` and `latest`, then
-  makes its GitHub Release from `docs/releases/X.Y.Z.md`; a pre-release tag (`v2.1.0-alpha.1`) publishes only its own
-  image tag and a pre-release.
+- GitHub Actions (`.github/workflows/`): `ci.yml` on pull requests runs `checks.yml` (`check.sh`'s stages, a step
+  each; the backend's only when the backend changed), then builds and runs both images (`images.yml`). `release.yml`
+  on a version tag runs the same checks, then publishes the images to GHCR, `vX.Y.Z` as `X.Y.Z`, `X.Y` and `latest`,
+  and makes its GitHub Release from `docs/releases/X.Y.Z.md`; a pre-release tag (`v2.1.0-alpha.1`) publishes only its
+  own image tag and a pre-release. `rebuild.yml` rebuilds the latest release's images every month (`images.yml` too).
 - `scripts/build-images.sh` builds the images locally (tag `dev`): run the stack with `TONTUYAU_VERSION=dev`.
 
 </details>

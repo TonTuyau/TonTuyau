@@ -1,0 +1,91 @@
+# A version tag (2.3.0: out of ci.yml): the tag must name the version in the code, then the checks (checks.yml), then
+# both images built, run and pushed to GHCR (images.yml), then the tag's GitHub Release.
+#   vX.Y.Z                           → images `X.Y.Z`, `X.Y` and `latest`
+#   vX.Y.Z-alpha.N / -beta.N / -rc.N → only `X.Y.Z-alpha.N`: never `latest` nor `X.Y`; a pre-release
+# The release's notes: docs/releases/X.Y.Z.md as scripts/release-notes.sh gives them; a pre-release, without its own
+# notes: GitHub's list of what was merged since the tag before.
+name: Release
+
+on:
+  push:
+    # v1.2.3 and the pre-releases v1.3.0-alpha.1, -beta.1, -rc.1 (a glob: `*` matches the "-alpha" part too).
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  # A tag's run always finishes.
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Version tag matches the code
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      tags: ${{ steps.version.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version, and the images' tags
+        id: version
+        run: |
+          version="$(./scripts/check-version.sh "$GITHUB_REF_NAME")"
+          prerelease="$(./scripts/check-version.sh --prerelease)"
+          tags="$version"
+          if [ "$prerelease" = false ]; then tags="$version ${version%.*} latest"; fi
+          {
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "tags=$tags"
+          } >> "$GITHUB_OUTPUT"
+          echo "TonTuyau $version, images tagged: $tags"
+
+  checks:
+    name: Checks
+    needs: version
+    uses: ./.github/workflows/checks.yml
+
+  images:
+    name: Images
+    needs: [version, checks]
+    uses: ./.github/workflows/images.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      version: ${{ needs.version.outputs.version }}
+      tags: ${{ needs.version.outputs.tags }}
+      push: true
+
+  # Once both images are published: titled "TonTuyau X.Y.Z", its notes docs/releases/X.Y.Z.md unwrapped and without
+  # their title (scripts/release-notes.sh: a release page shows every line break). A pre-release is marked as one, so
+  # it never becomes the latest release.
+  release:
+    name: GitHub Release
+    needs: [version, images]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: The release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          notes=(--generate-notes)
+          if [ -f "docs/releases/$VERSION.md" ]; then
+            scripts/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+            notes=(--notes-file "$RUNNER_TEMP/notes.md")
+          fi
+          kind=()
+          if [ "$PRERELEASE" = true ]; then kind=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" --title "TonTuyau $VERSION" --verify-tag "${notes[@]}" "${kind[@]}"
