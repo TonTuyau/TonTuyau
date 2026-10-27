@@ -1,0 +1,107 @@
+# The checks (2.3.0: called by ci.yml for a pull request, by release.yml for a version tag): scripts/check.sh's
+# stages, each a step of its own, so the run's page says which one failed and how long each took. The version and the
+# compose file, the backend, the front: three jobs side by side. Locally, `scripts/check.sh` runs the same stages.
+name: Checks
+
+on:
+  workflow_call:
+    inputs:
+      backend:
+        description: Check the backend too (a pull request that changes only frontend/ doesn't, C1).
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  repository:
+    name: Version and compose file
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version (backend = frontend)
+        run: ./scripts/check.sh version
+
+      - name: Compose file (renders with .env.example)
+        run: ./scripts/check.sh compose
+
+  # Testcontainers starts Elasticsearch, PostgreSQL and LLDAP on the runner's Docker for the integration tests.
+  backend:
+    name: Backend
+    if: inputs.backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      # The SDK backend/global.json pins (10.0.401, latest feature band allowed).
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: backend/global.json
+
+      - name: NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # The tests of a video played in parts (C3) run the real ffmpeg (the images carry their own).
+      - name: ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
+
+      - name: Format
+        run: ./scripts/check.sh backend:format
+
+      - name: Build
+        run: ./scripts/check.sh backend:build
+
+      - name: Unit tests
+        run: ./scripts/check.sh backend:unit
+
+      - name: Integration tests
+        run: ./scripts/check.sh backend:integration
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      # pnpm at the version frontend/package.json pins ("packageManager").
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install
+        run: ./scripts/check.sh frontend:install
+
+      - name: Lint
+        run: ./scripts/check.sh frontend:lint
+
+      - name: Typecheck
+        run: ./scripts/check.sh frontend:typecheck
+
+      - name: Tests (the app, the mock, the production server)
+        run: ./scripts/check.sh frontend:test
+
+      - name: Build
+        run: ./scripts/check.sh frontend:build
+
+      - name: The built page against the Content-Security-Policy
+        run: ./scripts/check.sh frontend:csp
