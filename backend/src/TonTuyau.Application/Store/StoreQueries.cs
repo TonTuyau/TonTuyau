@@ -151,11 +151,18 @@ public sealed record ChannelListItem(
 /// <summary>
 /// A stored video with the import's "file missing on the share" flag and its thumbnail's recorded versions.
 /// </summary>
-public sealed record StoredVideo(Video Video, bool MediaMissing, ArtVersions? ThumbnailArt = null);
+/// <param name="SyncBlocked">
+/// Its file purged on its own (2.3.0): no sync downloads it again, and it's left out of the library's lists.
+/// </param>
+public sealed record StoredVideo(
+    Video Video,
+    bool MediaMissing,
+    ArtVersions? ThumbnailArt = null,
+    bool SyncBlocked = false);
 
 /// <summary>A video of the library as the YouTube syncs see it (alpha.5): its file, not the rest.</summary>
 /// <param name="Downloaded">When its file came (TubeArchivist's download, or TonTuyau's).</param>
-public sealed record VideoFileState(string Id, DateTimeOffset Downloaded, bool MediaMissing);
+public sealed record VideoFileState(string Id, DateTimeOffset Downloaded, bool MediaMissing, bool SyncBlocked = false);
 
 /// <summary>A stored channel with its pictures' recorded versions (null when not recorded yet).</summary>
 public sealed record StoredChannel(Channel Channel, ArtVersions? ThumbArt, ArtVersions? BannerArt);

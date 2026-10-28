@@ -228,6 +228,17 @@ public sealed class SearchServiceTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<int> SetSyncBlockedAsync(
+            IReadOnlyCollection<string> ids,
+            bool blocked,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StoredVideo>> ListSyncBlockedAsync(
+            string channelId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task SetMediaMissingAsync(
             IReadOnlyCollection<string> ids,
             bool missing,

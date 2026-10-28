@@ -16,6 +16,7 @@ namespace TonTuyau.Api.Contracts;
 /// <param name="Subscribed">
 /// The channels subscribed to (contract v2.3): TubeArchivist's, by an import, or the one "Add a channel" added.
 /// </param>
+/// <param name="Purged">A purge (contract v2.17): the videos deleted from TonTuyau, their files with them.</param>
 public sealed record RunCounts(
     int VideosRead,
     int ChannelsRead,
@@ -36,7 +37,8 @@ public sealed record RunCounts(
     int CheckFailed,
     int DownloadFailed,
     int CommentsRead,
-    int Subscribed)
+    int Subscribed,
+    int Purged)
 {
     public static explicit operator RunCounts(SyncCounts counts)
     {
@@ -61,6 +63,7 @@ public sealed record RunCounts(
             counts.CheckFailed,
             counts.DownloadFailed,
             counts.CommentsRead,
-            counts.Subscribed);
+            counts.Subscribed,
+            counts.Purged);
     }
 }

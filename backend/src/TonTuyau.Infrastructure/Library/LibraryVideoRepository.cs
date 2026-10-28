@@ -31,7 +31,10 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
             return UpsertResult.None;
         }
 
-        IReadOnlyList<StoredVideo> stored = await store.GetStoredAsync(ids, cancellationToken).ConfigureAwait(false);
+        // A video whose file was purged on its own (2.3.0) is left out, as one PostgreSQL doesn't have.
+        IReadOnlyList<StoredVideo> stored = [
+            .. (await store.GetStoredAsync(ids, cancellationToken).ConfigureAwait(false)).Where(s => !s.SyncBlocked),
+        ];
         HashSet<string> found = stored
             .Select(s => s.Video.Id)
             .ToHashSet(StringComparer.Ordinal);
@@ -70,8 +73,32 @@ internal sealed class LibraryVideoRepository(VideoStore store, VideoIndex index)
         return true;
     }
 
+    public async Task<int> SetSyncBlockedAsync(
+        IReadOnlyCollection<string> ids,
+        bool blocked,
+        CancellationToken cancellationToken)
+    {
+        int changed = await store.SetSyncBlockedAsync(ids, blocked, cancellationToken).ConfigureAwait(false);
+        // Blocked: they leave the index; unblocked: they're back in it.
+        await ReindexAsync(ids, cancellationToken).ConfigureAwait(false);
+        return changed;
+    }
+
+    public Task<IReadOnlyList<StoredVideo>> ListSyncBlockedAsync(
+        string channelId,
+        CancellationToken cancellationToken) =>
+        store.ListSyncBlockedAsync(channelId, cancellationToken);
+
     public Task<IReadOnlyList<VideoFileState>> ListFilesAsync(CancellationToken cancellationToken) =>
         store.ListFilesAsync(cancellationToken);
+
+    public async Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken)
+    {
+        int deleted = await store.DeleteAsync(ids, cancellationToken).ConfigureAwait(false);
+        // PostgreSQL doesn't have them any more: they leave the index.
+        await ReindexAsync(ids, cancellationToken).ConfigureAwait(false);
+        return deleted;
+    }
 
     public async Task SetMediaMissingAsync(
         IReadOnlyCollection<string> ids,

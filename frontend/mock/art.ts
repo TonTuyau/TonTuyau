@@ -44,7 +44,7 @@ export function artFor(db: MockDb, path: string): string | null {
   const [, , scope, id, second, third, ...rest] = path.split('/').map((part) => decodeURIComponent(part))
   if (rest.length > 0) return null
   if (scope === 'videos' && id && third === undefined) {
-    const video = db.videos.find((candidate) => candidate.id === id)
+    const video = [...db.videos, ...(db.blocked ?? [])].find((candidate) => candidate.id === id)
     // Ids starting with "mockArt404" announce a thumbnail the server can't find (edge case).
     if (!video || !video.thumbnailUrl || id.startsWith('mockArt404')) return null
     // A resized version (v1.4, /art/videos/<id>/<width>): only the widths the API lists for this video.
