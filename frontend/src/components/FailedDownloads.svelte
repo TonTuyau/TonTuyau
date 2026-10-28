@@ -76,10 +76,12 @@
           {#each list as failure (failure.videoId)}
             <tr>
               <td>
-                <a href={failure.youTubeUrl} target="_blank" rel="noreferrer noopener">
-                  <b>{failure.title ?? failure.videoId}</b>
-                </a>
-                <code>{failure.videoId}</code>
+                <div class="video">
+                  <a href={failure.youTubeUrl} target="_blank" rel="noreferrer noopener">
+                    <b>{failure.title ?? failure.videoId}</b>
+                  </a>
+                  <code>{failure.videoId}</code>
+                </div>
               </td>
               <td class="reason">{failure.reason}</td>
               <td class="tries">
@@ -168,7 +170,8 @@
     vertical-align: top;
   }
 
-  td:first-child {
+  /* Its title over its id, in a box of its own: the cell stays a table cell, its rows' lines aligned with the others'. */
+  .video {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
