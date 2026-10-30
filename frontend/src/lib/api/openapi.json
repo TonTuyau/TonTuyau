@@ -3373,6 +3373,14 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6319,6 +6327,9 @@
           },
           "holdBelowMinFree": {
             "type": ["null", "boolean"]
+          },
+          "retryWithoutCookie": {
+            "type": ["null", "boolean"]
           }
         }
       },
@@ -6333,6 +6344,7 @@
           "defaultTabs",
           "minFreeGb",
           "holdBelowMinFree",
+          "retryWithoutCookie",
           "changedBy",
           "changedAt"
         ],
@@ -6368,6 +6380,9 @@
             "format": "int32"
           },
           "holdBelowMinFree": {
+            "type": "boolean"
+          },
+          "retryWithoutCookie": {
             "type": "boolean"
           },
           "changedBy": {

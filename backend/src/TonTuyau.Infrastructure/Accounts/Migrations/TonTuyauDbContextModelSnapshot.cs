@@ -894,6 +894,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("pause_seconds");
 
+                    b.Property<bool>("RetryWithoutCookie")
+                        .HasColumnType("boolean")
+                        .HasColumnName("retry_without_cookie");
+
                     b.Property<int>("SyncEveryMinutes")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

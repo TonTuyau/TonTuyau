@@ -23,6 +23,10 @@ namespace TonTuyau.Api.Contracts;
 /// never).
 /// </param>
 /// <param name="HoldBelowMinFree">Below it, the downloads don't run (contract v2.12; true by default).</param>
+/// <param name="RetryWithoutCookie">
+/// A download whose format matched none with the YouTube cookie is tried again without it (contract v2.15; true by
+/// default).
+/// </param>
 /// <param name="ChangedBy">The admin who last changed them; null while they're the defaults.</param>
 public sealed record YouTubeSettingsResponse(
     YouTubeCommentsChoice Comments,
@@ -34,6 +38,7 @@ public sealed record YouTubeSettingsResponse(
     ChannelTabsResponse DefaultTabs,
     int MinFreeGb,
     bool HoldBelowMinFree,
+    bool RetryWithoutCookie,
     string? ChangedBy,
     DateTime? ChangedAt)
 {
@@ -50,6 +55,7 @@ public sealed record YouTubeSettingsResponse(
             (ChannelTabsResponse)settings.NewChannelTabs,
             settings.MinFreeGb,
             settings.HoldBelowMinFree,
+            settings.RetryWithoutCookie,
             settings.ChangedBy,
             settings.ChangedAt?.UtcDateTime);
     }

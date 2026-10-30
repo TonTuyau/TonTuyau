@@ -281,6 +281,9 @@ export const en = {
   'youTube.downloads.formatHint':
     "In yt-dlp's own syntax: bestvideo+bestaudio (the best of each, the default), bestvideo[height<=1080]+bestaudio, or with a fallback after a slash: …/best. A format that picks nothing fails the download, saying why.",
   'youTube.downloads.format.invalid': "yt-dlp's format, on one line: 1 to 200 characters.",
+  'youTube.downloads.retryWithoutCookie': "If the format isn't available with the YouTube cookie, try again without it",
+  'youTube.downloads.retryWithoutCookieHint':
+    'Signed in with the cookie, YouTube can give yt-dlp a single format (a 360p one): the download is then done again at once without the cookie. The cookie is still tried first (members-only, age-restricted videos).',
   'youTube.downloads.tabs': 'Tabs of a channel added',
   'youTube.downloads.saved': 'Downloads ask for {format}; a channel added gets: {tabs}.',
   'youTube.sync': 'The YouTube sync',
@@ -586,6 +589,8 @@ export const en = {
     "Videos the YouTube syncs listed and couldn't download, with why. After 3 failures the regular sync leaves one; Try again, Download everything and the full sync still try it.",
   'failed.tryAll': 'Try them all again',
   'failed.tryAgain': 'Try again',
+  'failed.format': "yt-dlp's format for this try",
+  'failed.formatHint': "The video's formats are listed in the failed run's log.",
   'failed.asked': 'Asked: it runs when its turn comes.',
   'failed.video': 'Video',
   'failed.reason': 'Why',

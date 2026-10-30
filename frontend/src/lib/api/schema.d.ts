@@ -3453,6 +3453,8 @@ export interface paths {
           tabs?: string
           /** @description refreshAll only: skip what was read in the last this many days, 0 to 365 (7). */
           days?: number
+          /** @description downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one). */
+          format?: string
         }
         header?: never
         path: {
@@ -5102,6 +5104,7 @@ export interface components {
       /** Format: int32 */
       minFreeGb?: null | number
       holdBelowMinFree?: null | boolean
+      retryWithoutCookie?: null | boolean
     }
     YouTubeSettingsResponse: {
       comments: components['schemas']['YouTubeCommentsChoice']
@@ -5118,6 +5121,7 @@ export interface components {
       /** Format: int32 */
       minFreeGb: number
       holdBelowMinFree: boolean
+      retryWithoutCookie: boolean
       changedBy: null | string
       /** Format: date-time */
       changedAt: null | string
