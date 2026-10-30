@@ -24,8 +24,8 @@ under the real Content-Security-Policy, before the choice is final.
 
 ## Decided (2026-10-30)
 
-1. **An existing design system** rather than our own components: **Skeleton** (5.x, on Tailwind 4), the user's
-   choice, to be confirmed by the trial (below).
+1. **An existing design system** rather than our own components: **Skeleton** (5.x, on Tailwind 4), kept after the
+   trial (below).
 2. **ESLint and Prettier removed; Biome lints and formats everything**, `.svelte` files included (its full support is
    still marked experimental: `html.experimentalFullSupportEnabled` and `html.formatter.enabled`).
 3. **The command line removed**, except **`tontuyau health`**, kept as a normal command (not hidden): the container's
@@ -33,6 +33,9 @@ under the real Content-Security-Policy, before the choice is final.
 4. **Floating UI for every popup's position**, none measured by hand: Skeleton's Popover, Menu, Tooltip, Combobox
    already place theirs with it (Zag.js's positioning is `@floating-ui/dom`); the popups that stay ours use
    `@floating-ui/dom` directly.
+5. **Lucide for the icons** (`@lucide/svelte`), in place of `Icon.svelte` and its Material Symbols.
+6. **The admin pages take Skeleton's look**, as in the trial; the public pages keep YouTube's.
+7. **LaPompe moves to Biome too**, in a release of its own.
 
 ## The Skeleton trial (2026-10-30)
 
@@ -81,11 +84,34 @@ in mockup mode and served by `vite preview` with the production server's policy,
   ("Load more" stays ours), tables, progress bars.
 - **What stays ours** (no such component, or YouTube's own look): the player and its controls, the shorts, the video
   grid and cards, thumbnails, chapters, the import chart. Restyled with the theme's utilities, not Skeleton parts.
-- **The YouTube look stays**, through the theme: radius, the pill buttons, the greys, Roboto/Arial. Skeleton's
-  defaults where YouTube has nothing to copy (the admin pages).
+- **The YouTube look stays on the public pages**, through the theme: radius, the pill buttons, the greys,
+  Roboto/Arial. The admin pages take Skeleton's look (decision 6).
+- **Icons**: Lucide's Svelte components where `<Icon name=…>` is today; `Icon.svelte` and `src/assets/icons` go.
 - **Popups**: positioned by Floating UI (decision 4): Skeleton's own parts, or `@floating-ui/dom` for ours (the player's
   menus in `PlayerControls` and `ShortsControls`, the only ones still measuring the screen by hand).
 - **The policy doesn't change**; `check.sh` checks every build, a browser run under the policy before each PR.
+
+## The components folder after the rework
+
+47 components today. **43 stay**; what changes is what's left inside them.
+
+- **4 go**, Skeleton's or Lucide's parts used where they're used: `Button` (`btn` classes), `Badge` (`badge`), `Icon`
+  (Lucide), `Skeleton` (Skeleton's `placeholder` classes; the name clashes with the library's anyway).
+- **6 thin wrappers** on a Skeleton part, keeping only our labels or our mapping: `HelpButton` (Popover), `RunStatePill`
+  and `YouTubeStateBadge` (a state → a badge colour), `CopyButton` (a button and the clipboard), `Avatar` (Skeleton's
+  Avatar with our `srcset`), `Chips` (chips as links, the choice in the URL).
+- **18 of our own, built from Skeleton's parts**: what they show is ours, their popups, focus, keyboard and
+  positioning are Skeleton's (no hand-made menu, listbox or focus trap left).
+  - Layout: `TopBar`, `Sidebar` and `BottomNav` (Navigation: rail, bar), `AdminShell` (App Bar, Navigation; its drawer
+    a Dialog), `AccountMenu` and `SettingsMenu` (Menu), `SearchBox` and `ChannelFilter` (Combobox).
+  - Admin: `AddChannelCard`, `DownloadSettings`, `FailedDownloads`, `SubscriptionCard`, `TaskCard`, `YouTubeTaskCard`,
+    `StorageCard`, `ChannelTable`, `RunLogView`, `RunQueue` (cards, form fields, switches, tables, toasts).
+- **4 states and messages**, restyled: `ErrorState`, `StateMessage`, `MissingState`, `HoldBar` (Skeleton's progress
+  bar inside).
+- **15 fully ours**, Skeleton has nothing like them (YouTube's own look, or TonTuyau's own job): `Player`,
+  `PlayerControls`, `ShortsControls`, `Chapters`, `Thumbnail`, `VideoCard`, `ShortCard`, `VideoList`, `ChannelRow`,
+  `Comments`, `LinkifiedText`, `ExpandableText`, `LoadMore`, `ImportChart`, `Logo`. Restyled with the theme's
+  utilities; the player's menus placed by `@floating-ui/dom`.
 
 ## Proposed: Biome
 
@@ -121,9 +147,4 @@ in mockup mode and served by `vite preview` with the production server's policy,
 
 ## Open
 
-- **Skeleton confirmed** after seeing the trial (or shadcn-svelte: the same Tailwind base, its code copied into the
-  repo).
-- **Icons**: our `Icon.svelte` (our own SVG paths) or Lucide (`@lucide/svelte`, what Skeleton's examples use).
-- **How close to YouTube** the admin pages stay, or Skeleton's look there.
-- **LaPompe** uses ESLint and Prettier too: Biome there as well, in its own release?
 - **The areas' order** and how many PRs for the public pages.
