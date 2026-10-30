@@ -118,9 +118,8 @@ in mockup mode and served by `vite preview` with the production server's policy,
   - `ExpandableText` (Collapsible: Zag's `collapsedHeight` shows its first lines), `Chapters` and `Comments`
     (Collapsible for the long lists and the answers, Avatar), `VideoCard`, `ShortCard`, `ChannelRow` (card, Avatar,
     badges, `placeholder` while loading), `Thumbnail` (`placeholder`).
-  - `PlayerControls`, `ShortsControls`: the volume a Slider, the seek bar a Slider with the chapters as its markers (what's
-    loaded drawn under it: Zag's slider has no buffered range), the speed, quality and subtitle choices a Menu,
-    the buttons' hints Tooltips.
+  - `PlayerControls`, `ShortsControls`: replaced by Video.js 10's skins (TonTuyau's own skin for the watch page, a
+    vertical one for the shorts), not Skeleton's parts.
 - **6 with no Skeleton part**, Skeleton has nothing for their job (other libraries may: below): `Player` (the `<video>`, hls.js, choosing how to
   play), `VideoList` (the grids), `LoadMore` (infinite scroll), `LinkifiedText` (links and timecodes in text),
   `ImportChart` (the chart), `Logo`.
@@ -135,14 +134,37 @@ maintained, licence, the CSP) before it replaces ours; one that fails keeps our 
 
 | Ours today | Lines | Libraries to check | Chosen (2026-10-30) |
 |---|---|---|---|
-| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome (Mux: web components for a `<video>`, hls.js beside it), Vidstack; else Skeleton's Slider, Menu, Tooltip as above | open |
-| `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | svelte-i18n, Paraglide JS | **svelte-i18n**, but it fails decision 9 as written: no release nor commit since 2024-10-21 (4.0.1, the Svelte 5 peer dependency), 74 issues open. Paraglide JS: 2.29.3, released 2026-10-28, MIT. To settle |
+| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome, Vidstack, Video.js | **Video.js 10** (`@videojs/html` 10.2.0, 2026-10-22, Apache-2.0): its skins (controls, settings menu with speed, quality, captions; chapters, thumbnails, hotkeys, gestures), hls.js through its `hlsjs-video` adapter. The policy: below |
+| `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | svelte-i18n, Paraglide JS | **Paraglide JS** (2.29.3, 2026-10-28, MIT): svelte-i18n was chosen first, then left for Paraglide, svelte-i18n having had no release since 2024-10-21 (decision 9) |
 | `lib/remote.svelte.ts` (an API call's loading state, cursor pages) | 174 | TanStack Query for Svelte | **TanStack Query** (`@tanstack/svelte-query` 6.3.6, 2026-10-26, MIT, Svelte ≥ 5.25) |
 | `lib/api/client.ts` (calls typed from the OpenAPI file) | — | `openapi-fetch` | **Ours kept**, typed by `openapi-typescript` as today |
 | `lib/router` (History API router) | 98 + 214 of routes | a maintained Svelte 5 SPA router, if one passes decision 9 | open |
 | `lib/linkify.ts` (URLs in descriptions as links) | 118 | linkifyjs | **linkifyjs** (4.4.0, 2026-10-23, MIT; the timecodes stay ours) |
 | `ImportChart` (the import history's bars) | 332 | LayerChart, Chart.js | **LayerChart** (2.9.1, 2026-10-23, MIT, Svelte 5) |
 | `LoadMore` (infinite scroll) | 46 | — | **Ours kept** (IntersectionObserver; no Pagination) |
+
+### Video.js 10 under the policy (trial, 2026-10-30)
+
+Its default video skin on a mock video (`vjs-trial.html` in the trial), served with the production policy: it
+**plays, seeks, and its settings menu opens and places itself** (CSS anchor positioning, set through the CSSOM), and
+the skins' own styles pass (constructable stylesheets, `adoptedStyleSheets`, which a CSP doesn't restrict). But the
+policy blocks **6 `<style>` elements and 18 `style=""` attributes** at load (its docs say "some player UI" needs
+`style-src 'unsafe-inline'`):
+- a `<style id="__media-styles">` added to `<head>` (644 characters: `@property` for the sliders' fill and buffer,
+  `display: contents` on its wrappers, the video's size);
+- a `<style>` inside the poster's and the thumbnail preview's shadow roots;
+- its icons, SVG strings with a `<style>` and `style=""` (the spinner's and AirPlay's animations).
+
+Ways through, to choose:
+1. **Keep our policy, give Video.js its styles ourselves**: `__media-styles` as one of our stylesheets, under that id
+   (Video.js adds its own only when no element has it); a TonTuyau skin (Video.js 10's skins are meant to be swapped)
+   with Lucide icons in place of its animated ones; the poster and thumbnail styled from outside, or not used (our
+   `Thumbnail` makes the poster). To check: what the blocked rules change on screen.
+2. **Hashes**: each of those static `<style>` contents allowed by its `sha256` (`style-src-elem`), the attributes by
+   `'unsafe-hashes'` (`style-src-attr`); exact, but the hashes change with each Video.js release (computed by a check
+   from the installed package).
+3. **`style-src 'unsafe-inline'`**, as Video.js documents: simplest, and the end of QA14-3's strict policy for styles
+   (scripts stay strict).
 
 ## Proposed: Biome
 
@@ -179,7 +201,5 @@ maintained, licence, the CSP) before it replaces ours; one that fails keeps our 
 ## Open
 
 - **The areas' order** and how many PRs for the public pages.
-- **The translations**: svelte-i18n (chosen, but unmaintained by decision 9's measure) or Paraglide JS.
-- **The player's controls** (Media Chrome, Vidstack, or Skeleton's parts) and **the router**.
-- **The seek bar**: a Skeleton Slider (chapters as markers, the loaded part drawn by us under it) to be checked
-  against today's (the time shown on hover, dragging on a phone) before `PlayerControls` moves to it.
+- **Video.js and the policy**: one of the three ways above.
+- **The router**.
