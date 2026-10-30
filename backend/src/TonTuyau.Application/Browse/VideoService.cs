@@ -76,8 +76,8 @@ public sealed class VideoService(
     public async Task<VideoDetailView> GetAsync(string id, CancellationToken cancellationToken)
     {
         RequestRules.RequireVideoId(id);
-        StoredVideo stored = await videos.GetStoredAsync(id, cancellationToken).ConfigureAwait(false) is { } found
-            && !found.SyncBlocked
+        StoredVideo? found = await videos.GetStoredAsync(id, cancellationToken).ConfigureAwait(false);
+        StoredVideo stored = found is not null && !found.SyncBlocked
             ? found
             : throw new NotFoundException($"There's no video with the id '{id}'.");
         Video video = stored.Video;

@@ -48,12 +48,14 @@ public sealed partial class YouTubeRefreshService
     private async Task<string?> RedownloadOneAsync(string videoId, YouTubeSettings read, RunContext context)
     {
         CancellationToken ct = context.CancellationToken;
-        if (await space.WhyWaitAsync(ct).ConfigureAwait(false) is { } wait)
+        string? wait = await space.WhyWaitAsync(ct).ConfigureAwait(false);
+        if (wait is not null)
         {
             throw new DiskSpaceLowException(wait);
         }
 
-        if (await videos.GetStoredAsync(videoId, ct).ConfigureAwait(false) is not { } stored)
+        StoredVideo? stored = await videos.GetStoredAsync(videoId, ct).ConfigureAwait(false);
+        if (stored is null)
         {
             // Purged meanwhile.
             return null;
@@ -100,8 +102,8 @@ public sealed partial class YouTubeRefreshService
     private async Task<long> PurgeOneAsync(string videoId, bool filesOnly, RunContext context)
     {
         CancellationToken ct = context.CancellationToken;
-        if (await videos.GetStoredAsync(videoId, ct).ConfigureAwait(false) is not { } stored
-            || (filesOnly && stored.SyncBlocked))
+        StoredVideo? stored = await videos.GetStoredAsync(videoId, ct).ConfigureAwait(false);
+        if (stored is null || (filesOnly && stored.SyncBlocked))
         {
             return 0;
         }

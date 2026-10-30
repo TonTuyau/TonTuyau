@@ -763,8 +763,10 @@ public sealed partial class YouTubeRefreshService(
         if (mode is SyncMode.PurgeVideos or SyncMode.RefreshVideos or SyncMode.RedownloadVideos)
         {
             // Downloading again (2.3.0): under the disk space threshold, set to wait, it doesn't start.
-            if (mode == SyncMode.RedownloadVideos
-                && await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false) is { } full)
+            string? full = mode == SyncMode.RedownloadVideos
+                ? await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false)
+                : null;
+            if (full is not null)
             {
                 throw new SyncRefusedException(full);
             }
