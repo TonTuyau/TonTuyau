@@ -255,8 +255,16 @@ internal sealed partial class YouTubeClient(
             return run.SignedIn;
         }
 
-        string table = string.Join('\n', lines.Skip(heading + 1));
-        LogFormats(videoId, format, how, table);
+        // Under the heading, the columns' names and a rule, then a line per format: none of them, nothing to show.
+        string[] table = [.. lines.Skip(heading + 1)];
+        if (!table.Any(l => l.Length > 0 && !l.StartsWith("ID ", StringComparison.Ordinal) && l[0] != '─'))
+        {
+            LogFormatsNotListed(videoId, how, "yt-dlp listed none.");
+            return run.SignedIn;
+        }
+
+        string formats = string.Join('\n', table);
+        LogFormats(videoId, format, how, formats);
         return run.SignedIn;
     }
 

@@ -297,6 +297,36 @@ public sealed class YouTubeClientTests
     }
 
     [Fact]
+    public async Task A_table_without_any_format_says_none_were_listed()
+    {
+        ListLogger<YouTubeClient> logger = new();
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        await Client(logger: logger)
+            .DownloadVideoAsync("NoFormat003", "bv*[vcodec^=av01]+ba", folder, retryWithoutCookie: true, Token);
+
+        Assert.DoesNotContain(logger.Messages, m => m.StartsWith("The format ", StringComparison.Ordinal));
+        Assert.Contains("NoFormat003's formats couldn't be listed: yt-dlp listed none.", logger.Messages);
+    }
+
+    [Fact]
+    public async Task Formats_that_cant_be_listed_say_why()
+    {
+        ListLogger<YouTubeClient> logger = new();
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        await Client(logger: logger)
+            .DownloadVideoAsync("NoFormat004", "bv*[vcodec^=av01]+ba", folder, retryWithoutCookie: true, Token);
+
+        Assert.DoesNotContain(logger.Messages, m => m.StartsWith("The format ", StringComparison.Ordinal));
+        Assert.Contains(
+            logger.Messages,
+            m => m.StartsWith(
+                "NoFormat004's formats couldn't be listed: Requested format is not available",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Another_download_failure_lists_no_formats()
     {
         ListLogger<YouTubeClient> logger = new();
