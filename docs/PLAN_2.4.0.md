@@ -36,6 +36,8 @@ under the real Content-Security-Policy, before the choice is final.
 5. **Lucide for the icons** (`@lucide/svelte`), in place of `Icon.svelte` and its Material Symbols.
 6. **The admin pages take Skeleton's look**, as in the trial; the public pages keep YouTube's.
 7. **LaPompe moves to Biome too**, in a release of its own.
+8. **As much Skeleton as possible**: wherever Skeleton has a part for something, it's used, inside our own components
+   too (the player's included); our own code only where Skeleton has nothing.
 
 ## The Skeleton trial (2026-10-30)
 
@@ -79,39 +81,47 @@ in mockup mode and served by `vite preview` with the production server's policy,
 - **The theme**: `src/theme/skeleton-tontuyau.css` (generated in the trial; tuned with Skeleton's theme generator).
   `youtube.css`'s tokens become the theme's values or Tailwind `@theme` values, and go once nothing reads them;
   `tokens.test.ts` and `branding.test.ts` follow.
-- **What Skeleton takes over**: buttons, form fields, checkboxes and switches, the help bubbles (Popover), the menus
-  (settings, account: Menu), the dialogs and the drawer (Dialog), toasts, badges and state pills, tabs, pagination
-  ("Load more" stays ours), tables, progress bars.
-- **What stays ours** (no such component, or YouTube's own look): the player and its controls, the shorts, the video
-  grid and cards, thumbnails, chapters, the import chart. Restyled with the theme's utilities, not Skeleton parts.
+- **What Skeleton takes over**: everything it has a part for (decision 8; the list per component below), the player's
+  controls included.
+- **What stays ours**: only what Skeleton has nothing for: the video itself, the grids, infinite scroll, links in
+  text, the import chart, the logo.
 - **The YouTube look stays on the public pages**, through the theme: radius, the pill buttons, the greys,
   Roboto/Arial. The admin pages take Skeleton's look (decision 6).
 - **Icons**: Lucide's Svelte components where `<Icon name=…>` is today; `Icon.svelte` and `src/assets/icons` go.
-- **Popups**: positioned by Floating UI (decision 4): Skeleton's own parts, or `@floating-ui/dom` for ours (the player's
-  menus in `PlayerControls` and `ShortsControls`, the only ones still measuring the screen by hand).
+- **Popups**: positioned by Floating UI (decision 4). With the player's menus on Skeleton's Menu, every popup is a
+  Skeleton part; `@floating-ui/dom` directly only for one Skeleton can't do, if any turns up.
 - **The policy doesn't change**; `check.sh` checks every build, a browser run under the policy before each PR.
 
 ## The components folder after the rework
 
-47 components today. **43 stay**; what changes is what's left inside them.
+47 components today (decision 8: a Skeleton part wherever one exists).
 
-- **4 go**, Skeleton's or Lucide's parts used where they're used: `Button` (`btn` classes), `Badge` (`badge`), `Icon`
-  (Lucide), `Skeleton` (Skeleton's `placeholder` classes; the name clashes with the library's anyway).
-- **6 thin wrappers** on a Skeleton part, keeping only our labels or our mapping: `HelpButton` (Popover), `RunStatePill`
-  and `YouTubeStateBadge` (a state → a badge colour), `CopyButton` (a button and the clipboard), `Avatar` (Skeleton's
-  Avatar with our `srcset`), `Chips` (chips as links, the choice in the URL).
-- **18 of our own, built from Skeleton's parts**: what they show is ours, their popups, focus, keyboard and
-  positioning are Skeleton's (no hand-made menu, listbox or focus trap left).
-  - Layout: `TopBar`, `Sidebar` and `BottomNav` (Navigation: rail, bar), `AdminShell` (App Bar, Navigation; its drawer
-    a Dialog), `AccountMenu` and `SettingsMenu` (Menu), `SearchBox` and `ChannelFilter` (Combobox).
-  - Admin: `AddChannelCard`, `DownloadSettings`, `FailedDownloads`, `SubscriptionCard`, `TaskCard`, `YouTubeTaskCard`,
-    `StorageCard`, `ChannelTable`, `RunLogView`, `RunQueue` (cards, form fields, switches, tables, toasts).
-- **4 states and messages**, restyled: `ErrorState`, `StateMessage`, `MissingState`, `HoldBar` (Skeleton's progress
-  bar inside).
-- **15 fully ours**, Skeleton has nothing like them (YouTube's own look, or TonTuyau's own job): `Player`,
-  `PlayerControls`, `ShortsControls`, `Chapters`, `Thumbnail`, `VideoCard`, `ShortCard`, `VideoList`, `ChannelRow`,
-  `Comments`, `LinkifiedText`, `ExpandableText`, `LoadMore`, `ImportChart`, `Logo`. Restyled with the theme's
-  utilities; the player's menus placed by `@floating-ui/dom`.
+- **6 go**, Skeleton's or Lucide's parts used where they're used: `Button` (`btn`), `Badge` (`badge`), `Icon` (Lucide),
+  `Skeleton` (`placeholder`), `Chips` (Segmented Control, its items rendered as links: the choice stays in the URL),
+  `HoldBar` (Progress, in the task's card).
+- **35 keep their file, made of Skeleton's parts** (what's ours: the data, the labels, the app's rules):
+  - `HelpButton` (Popover), `CopyButton` (button, Tooltip "Copied"), `RunStatePill` and `YouTubeStateBadge` (badge
+    presets: a state → a colour), `Avatar` (Avatar, our `srcset`).
+  - `TopBar` (App Bar), `Sidebar` and `BottomNav` (Navigation: rail, bar, sidebar; its items links),
+    `AdminShell` (App Bar, Navigation; its drawer a Dialog), `AccountMenu` and `SettingsMenu` (Menu; the theme a
+    Segmented Control, the language radio items), `SearchBox` and `ChannelFilter` (Combobox).
+  - `AddChannelCard`, `DownloadSettings`, `SubscriptionCard`, `TaskCard`, `YouTubeTaskCard` (cards, form fields,
+    switches, Dialog to confirm, toasts), `FailedDownloads` and `ChannelTable` (`table`, Pagination where it pages),
+    `StorageCard` (Progress / meter), `RunQueue` (cards, badges, Menu for its actions), `RunLogView` (`table`
+    lines, badges for the levels).
+  - `ErrorState`, `StateMessage`, `MissingState` (card, `btn`).
+  - `ExpandableText` (Collapsible: Zag's `collapsedHeight` shows its first lines), `Chapters` and `Comments`
+    (Collapsible for the long lists and the answers, Avatar), `VideoCard`, `ShortCard`, `ChannelRow` (card, Avatar,
+    badges, `placeholder` while loading), `Thumbnail` (`placeholder`).
+  - `PlayerControls`, `ShortsControls`: the volume a Slider, the seek bar a Slider with the chapters as its markers (what's
+    loaded drawn under it: Zag's slider has no buffered range), the speed, quality and subtitle choices a Menu,
+    the buttons' hints Tooltips.
+- **6 with no Skeleton part**, Skeleton has nothing for their job: `Player` (the `<video>`, hls.js, choosing how to
+  play), `VideoList` (the grids), `LoadMore` (infinite scroll), `LinkifiedText` (links and timecodes in text),
+  `ImportChart` (the chart), `Logo`.
+
+Across the pages too: the 22 `title=""` hints become Tooltips, the 23 inline confirmations (delete a key, an account,
+cancel a run…) Dialogs, the channel page's and admin pages' tabs Tabs (their triggers links: a tab stays a URL).
 
 ## Proposed: Biome
 
@@ -148,3 +158,7 @@ in mockup mode and served by `vite preview` with the production server's policy,
 ## Open
 
 - **The areas' order** and how many PRs for the public pages.
+- **Infinite scroll or pages**: `LoadMore` stays ours (YouTube scrolls forever), or Skeleton's Pagination replaces it
+  (pages: a place to come back to, but not YouTube's way).
+- **The seek bar**: a Skeleton Slider (chapters as markers, the loaded part drawn by us under it) to be checked
+  against today's (the time shown on hover, dragging on a phone) before `PlayerControls` moves to it.
