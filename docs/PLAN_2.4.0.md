@@ -38,6 +38,11 @@ under the real Content-Security-Policy, before the choice is final.
 7. **LaPompe moves to Biome too**, in a release of its own.
 8. **As much Skeleton as possible**: wherever Skeleton has a part for something, it's used, inside our own components
    too (the player's included); our own code only where Skeleton has nothing.
+9. **No reinventing the wheel** (a rule for all of TonTuyau from now on, backend included): **if a maintained
+   library does it, it's used**. Our own code only where none does, or for a few lines of a browser API (Intl,
+   IntersectionObserver, the clipboard). "Maintained", as proposed: a release in the last year, its issues answered,
+   not one person's abandoned repo, a licence that goes with GPL-3.0-or-later, and it works under our
+   Content-Security-Policy (checked in the browser, as Skeleton was).
 
 ## The Skeleton trial (2026-10-30)
 
@@ -116,12 +121,28 @@ in mockup mode and served by `vite preview` with the production server's policy,
   - `PlayerControls`, `ShortsControls`: the volume a Slider, the seek bar a Slider with the chapters as its markers (what's
     loaded drawn under it: Zag's slider has no buffered range), the speed, quality and subtitle choices a Menu,
     the buttons' hints Tooltips.
-- **6 with no Skeleton part**, Skeleton has nothing for their job: `Player` (the `<video>`, hls.js, choosing how to
+- **6 with no Skeleton part**, Skeleton has nothing for their job (other libraries may: below): `Player` (the `<video>`, hls.js, choosing how to
   play), `VideoList` (the grids), `LoadMore` (infinite scroll), `LinkifiedText` (links and timecodes in text),
   `ImportChart` (the chart), `Logo`.
 
 Across the pages too: the 22 `title=""` hints become Tooltips, the 23 inline confirmations (delete a key, an account,
 cancel a run…) Dialogs, the channel page's and admin pages' tabs Tabs (their triggers links: a tab stays a URL).
+
+## Our own code a library may do (decision 9: each checked, the choice yours)
+
+What 2.4.0's frontend still writes itself, and the libraries to look at. Each is checked against decision 9 (still
+maintained, licence, the CSP) before it replaces ours; one that fails keeps our code.
+
+| Ours today | Lines | Libraries to check |
+|---|---|---|
+| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome (Mux: web components for a `<video>`, hls.js beside it), Vidstack; else Skeleton's Slider, Menu, Tooltip as above |
+| `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | Paraglide JS (typed messages, compiled), svelte-i18n |
+| `lib/remote.svelte.ts` (an API call's loading state, cursor pages) | 174 | TanStack Query for Svelte (`@tanstack/svelte-query`: caching, paging, retries) |
+| `lib/api/client.ts` (calls typed from the OpenAPI file) | — | `openapi-fetch` (by `openapi-typescript`'s authors, which we already use) |
+| `lib/router` (History API router) | 98 + 214 of routes | a maintained Svelte 5 SPA router, if one passes decision 9 |
+| `lib/linkify.ts` (URLs in descriptions as links) | 118 | linkifyjs (the timecodes stay ours) |
+| `ImportChart` (the import history's bars) | 332 | LayerChart (Svelte), Chart.js |
+| `LoadMore` (infinite scroll) | 46 | IntersectionObserver is a few lines: ours, unless Pagination is chosen |
 
 ## Proposed: Biome
 
