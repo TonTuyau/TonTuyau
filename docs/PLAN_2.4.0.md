@@ -118,8 +118,8 @@ in mockup mode and served by `vite preview` with the production server's policy,
   - `ExpandableText` (Collapsible: Zag's `collapsedHeight` shows its first lines), `Chapters` and `Comments`
     (Collapsible for the long lists and the answers, Avatar), `VideoCard`, `ShortCard`, `ChannelRow` (card, Avatar,
     badges, `placeholder` while loading), `Thumbnail` (`placeholder`).
-  - `PlayerControls`, `ShortsControls`: replaced by Video.js 10's skins (TonTuyau's own skin for the watch page, a
-    vertical one for the shorts), not Skeleton's parts.
+  - `PlayerControls`, `ShortsControls`: **kept as they are in 2.4.0** (the user, 2026-10-30), only restyled with the
+    theme and given Lucide's icons; Video.js 10 seen again later.
 - **6 with no Skeleton part**, Skeleton has nothing for their job (other libraries may: below): `Player` (the `<video>`, hls.js, choosing how to
   play), `VideoList` (the grids), `LoadMore` (infinite scroll), `LinkifiedText` (links and timecodes in text),
   `ImportChart` (the chart), `Logo`.
@@ -134,7 +134,7 @@ maintained, licence, the CSP) before it replaces ours; one that fails keeps our 
 
 | Ours today | Lines | Libraries to check | Chosen (2026-10-30) |
 |---|---|---|---|
-| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome, Vidstack, Video.js | **Video.js 10** (`@videojs/html` 10.2.0, 2026-10-22, Apache-2.0): its skins (controls, settings menu with speed, quality, captions; chapters, thumbnails, hotkeys, gestures), hls.js through its `hlsjs-video` adapter. The policy: below |
+| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome, Vidstack, Video.js | **Ours kept in 2.4.0** (2026-10-30); Video.js 10 (`@videojs/html` 10.2.0, 2026-10-22, Apache-2.0) looked at, for later: its trial below |
 | `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | svelte-i18n, Paraglide JS | **Paraglide JS** (2.29.3, 2026-10-28, MIT): svelte-i18n was chosen first, then left for Paraglide, svelte-i18n having had no release since 2024-10-21 (decision 9) |
 | `lib/remote.svelte.ts` (an API call's loading state, cursor pages) | 174 | TanStack Query for Svelte | **TanStack Query** (`@tanstack/svelte-query` 6.3.6, 2026-10-26, MIT, Svelte ≥ 5.25) |
 | `lib/api/client.ts` (calls typed from the OpenAPI file) | — | `openapi-fetch` | **Ours kept**, typed by `openapi-typescript` as today |
@@ -143,7 +143,7 @@ maintained, licence, the CSP) before it replaces ours; one that fails keeps our 
 | `ImportChart` (the import history's bars) | 332 | LayerChart, Chart.js | **LayerChart** (2.9.1, 2026-10-23, MIT, Svelte 5) |
 | `LoadMore` (infinite scroll) | 46 | — | **Ours kept** (IntersectionObserver; no Pagination) |
 
-### Video.js 10 under the policy (trial, 2026-10-30)
+### Video.js 10 under the policy (trial, 2026-10-30; for later: our player stays in 2.4.0)
 
 Its default video skin on a mock video (`vjs-trial.html` in the trial), served with the production policy: it
 **plays, seeks, and its settings menu opens and places itself** (CSS anchor positioning, set through the CSSOM), and
@@ -201,5 +201,5 @@ Ways through, to choose:
 ## Open
 
 - **The areas' order** and how many PRs for the public pages.
-- **Video.js and the policy**: one of the three ways above.
+- **Later, not 2.4.0**: Video.js 10 for the player, and then one of the three ways above for the policy.
 - **The router**.
