@@ -29,10 +29,15 @@ public interface IYouTubeClient
     /// <param name="videoId">A YouTube video id (11 characters), already checked.</param>
     /// <param name="format">What to download, in yt-dlp's syntax (<c>bestvideo+bestaudio</c>).</param>
     /// <param name="folder">An empty folder of the download's own, on the media folder's file system.</param>
+    /// <param name="retryWithoutCookie">
+    /// Signed in with the YouTube cookie, the format matching none of the video's: tried again at once without the
+    /// cookie (2.3.0, the YouTube settings' <see cref="YouTubeSettings.RetryWithoutCookie"/>).
+    /// </param>
     Task<YouTubeLookup<YouTubeDownload>> DownloadVideoAsync(
         string videoId,
         string format,
         string folder,
+        bool retryWithoutCookie,
         CancellationToken cancellationToken);
 
     /// <summary>

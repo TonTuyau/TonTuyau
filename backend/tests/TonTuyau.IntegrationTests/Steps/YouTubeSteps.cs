@@ -59,6 +59,7 @@ public sealed class YouTubeSteps(ScenarioState state, AuthSteps auth, ApiKeyStep
         await keys.SendWithKeyAsync(request, name);
     }
 
+    [Given("I sent the YouTube cookie {string} with my session")]
     [When("I send the YouTube cookie {string} with my session")]
     public async Task SendWithSession(string value)
     {

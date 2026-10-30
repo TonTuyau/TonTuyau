@@ -35,6 +35,10 @@ namespace TonTuyau.Application.YouTube;
 /// Below <paramref name="MinFreeGb"/>, the downloads don't run (2.2.0, on by default): a download asked for is refused,
 /// a sync going on waits on hold.
 /// </param>
+/// <param name="RetryWithoutCookie">
+/// A download whose format matched none of the video's, signed in with the YouTube cookie, is tried again at once
+/// without it (2.3.0, on by default): signed in, YouTube can keep its formats from yt-dlp but one.
+/// </param>
 public sealed record YouTubeSettings(
     YouTubeCommentsChoice Comments,
     int CommentsMax,
@@ -46,7 +50,8 @@ public sealed record YouTubeSettings(
     int SyncEveryMinutes = YouTubeSettings.DefaultSyncEveryMinutes,
     ChannelTabs? DefaultTabs = null,
     int MinFreeGb = YouTubeSettings.DefaultMinFreeGb,
-    bool HoldBelowMinFree = true)
+    bool HoldBelowMinFree = true,
+    bool RetryWithoutCookie = true)
 {
     public const int DefaultMinFreeGb = 50;
 
