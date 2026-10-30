@@ -47,6 +47,7 @@ public static class SyncProgressText
         SyncPhase.YouTubeVideos => "yt videos",
         SyncPhase.YouTubeDownload => "download",
         SyncPhase.YouTubeLibrary => "yt library",
+        SyncPhase.Purge => "purge",
         _ => phase.ToString(),
     };
 
@@ -63,6 +64,7 @@ public static class SyncProgressText
         SyncPhase.YouTubeVideos => $"{OutOf(p.Done, p.Total)} read" + YouTube(p.Counts),
         SyncPhase.YouTubeDownload => p.Done == 0 ? "downloading" : "recording it in the library",
         SyncPhase.YouTubeLibrary => $"{OutOf(p.Done, p.Total)} channels and videos read" + YouTube(p.Counts),
+        SyncPhase.Purge => $"{OutOf(p.Done, p.Total)} videos purged",
         _ => Number(p.Done),
     };
 

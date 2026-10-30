@@ -241,6 +241,7 @@ export function run(overrides: Partial<Run> = {}): Run {
       commentsRead: 0,
       subscribed: 0,
       downloadFailed: 0,
+      purged: 0,
     },
     target: null,
     tabs: null,

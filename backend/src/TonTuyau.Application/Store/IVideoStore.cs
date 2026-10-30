@@ -35,7 +35,8 @@ public interface IVideoStore
 
     /// <summary>
     /// Records the file TonTuyau downloaded for a video of the library (B3: its file was missing): its path, size,
-    /// tracks and download date, and clears the "file missing" flag. The rest of the video is left as it is.
+    /// tracks and download date, and clears the "file missing" flag; its syncs aren't blocked any more (2.3.0: asked
+    /// for, it was downloaded). The rest of the video is left as it is.
     /// </summary>
     /// <returns>False when there's no video with this id.</returns>
     Task<bool> SetFileAsync(string id, VideoFile file, CancellationToken cancellationToken);
@@ -45,6 +46,23 @@ public interface IVideoStore
     /// YouTube sync has already, a channel's tab can list another channel's videos).
     /// </returns>
     Task<IReadOnlyList<VideoFileState>> ListFilesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes these videos (2.3.0, a purge): their comments, state on YouTube and keyframes go with them. Unknown ids
+    /// are ignored.
+    /// </summary>
+    /// <returns>How many were deleted.</returns>
+    Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Blocks these videos' syncs (2.3.0, their files purged: the "file missing" flag set too), or unblocks them (the
+    /// flag left: a download gives them a file again). Unknown ids are ignored.
+    /// </summary>
+    /// <returns>How many changed.</returns>
+    Task<int> SetSyncBlockedAsync(IReadOnlyCollection<string> ids, bool blocked, CancellationToken cancellationToken);
+
+    /// <returns>The channel's videos whose syncs are blocked (2.3.0), the latest published first.</returns>
+    Task<IReadOnlyList<StoredVideo>> ListSyncBlockedAsync(string channelId, CancellationToken cancellationToken);
 
     /// <summary>Sets or clears the "file missing on the share" flag. Unknown ids are ignored.</summary>
     Task SetMediaMissingAsync(IReadOnlyCollection<string> ids, bool missing, CancellationToken cancellationToken);

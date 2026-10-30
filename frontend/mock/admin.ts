@@ -40,6 +40,8 @@ export interface AdminMockState {
   cookie: YouTubeOverview['cookie']
   ytdlp: YtdlpState
   nextKey: number
+  /** 2.3.0: the videos whose files were purged on their own, out of the library until unblocked. */
+  blocked: VideoFixture[]
 }
 
 export interface AdminAnswer {
@@ -73,6 +75,7 @@ const noCounts: Run['counts'] = {
   commentsRead: 0,
   subscribed: 0,
   downloadFailed: 0,
+  purged: 0,
 }
 
 function makeRun(task: RunTask, overrides: Partial<Run>, now: number): Run {
@@ -179,6 +182,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
       defaultTabs: allTabs,
       minFreeGb: 50,
       holdBelowMinFree: true,
+      retryWithoutCookie: true,
       changedBy: null,
       changedAt: null,
     },
@@ -199,6 +203,7 @@ export function adminMockState(db: MockDb, now: number = Date.now()): AdminMockS
       error: null,
     },
     nextKey: 2,
+    blocked: [],
   }
 }
 
@@ -476,6 +481,31 @@ function page<T>(items: T[]) {
 }
 
 /**
+ * Deletes a channel's videos from the mock library (2.3.0): those named (ids by commas), or every one. Their files
+ * only: each one kept aside, its syncs blocked, until it's unblocked or downloaded again.
+ */
+function purge(db: MockDb, channelId: string | null, videos: string | null, filesOnly: boolean) {
+  const named = videos?.split(',') ?? null
+  const picked = (video: VideoFixture) => video.channelId === channelId && (named === null || named.includes(video.id))
+  if (filesOnly) {
+    ;(db.blocked ??= []).push(...db.videos.filter(picked))
+  }
+  const kept = db.videos.filter((video) => !picked(video))
+  const purged = db.videos.length - kept.length
+  db.videos.splice(0, db.videos.length, ...kept)
+  return purged
+}
+
+/** Puts the blocked videos named (or all of the channel's) back in the mock library. */
+function unblock(db: MockDb, channelId: string, videos: string[] | null) {
+  const back = (db.blocked ?? []).filter(
+    (video) => video.channelId === channelId && (!videos || videos.includes(video.id)),
+  )
+  db.blocked = (db.blocked ?? []).filter((video) => !back.includes(video))
+  db.videos.push(...back)
+}
+
+/**
  * Answers /api/auth/* and /api/admin/*; null for any other path (the public handler's). Logged out, the admin
  * endpoints answer 401 as the backend's.
  */
@@ -528,12 +558,34 @@ export function handleAdmin(
 
   if (resource === 'tasks' && id === undefined) return { status: 200, body: tasks(state, now) }
   if (resource === 'tasks' && sub === 'runs' && method === 'POST') {
+    // A purge (2.3.0): the channel's videos named, or all of them, leave the mock library. Those downloaded again:
+    // each one's file as it was, counted.
+    const filesOnly = params.get('filesOnly') === 'true'
+    const purged = id === 'purgeVideos' ? purge(db, params.get('target'), params.get('videos'), filesOnly) : 0
+    const picked = params.get('videos')?.split(',').length ?? 0
+    if (id === 'redownloadVideos' || id === 'downloadVideo') {
+      // Downloaded again: unblocked.
+      const named = id === 'downloadVideo' ? [params.get('target') ?? ''] : (params.get('videos')?.split(',') ?? [])
+      for (const blocked of (db.blocked ?? []).filter((video) => named.includes(video.id))) {
+        unblock(db, blocked.channelId, [blocked.id])
+      }
+    }
+    const again = id === 'redownloadVideos' ? picked : 0
     const run = makeRun(
       id as RunTask,
       {
         state: 'succeeded',
         target: params.get('target'),
-        counts: { ...noCounts, created: id === 'downloadVideo' ? 1 : 0 },
+        counts: {
+          ...noCounts,
+          created: id === 'downloadVideo' ? 1 : 0,
+          purged,
+          updated: again,
+          videosRead: id === 'refreshVideos' || again > 0 ? picked : 0,
+          foundOnYouTube: id === 'refreshVideos' || again > 0 ? picked : 0,
+        },
+        notes:
+          id === 'purgeVideos' ? [`${purged} videos purged.`] : again > 0 ? [`${again} videos downloaded again.`] : [],
       },
       now,
     )
@@ -585,8 +637,10 @@ export function handleAdmin(
   if (resource === 'channels' && id !== undefined) {
     if (!channel) return notFound(`No channel ${id}.`)
     const own = db.videos.filter((video) => video.channelId === channel.id)
+    // 2.3.0: those whose syncs are blocked, counted in their states too (the list shows them).
+    const ownBlocked = (db.blocked ?? []).filter((video) => video.channelId === channel.id)
     if (sub === undefined) {
-      const counts = (state: YouTubeState) => own.filter((video) => stateOf(video) === state).length
+      const counts = (state: YouTubeState) => [...own, ...ownBlocked].filter((video) => stateOf(video) === state).length
       const answer: AdminChannel = {
         channel: {
           id: channel.id,
@@ -612,22 +666,47 @@ export function handleAdmin(
           shorts: own.filter((video) => video.type === 'short').reduce((sum, video) => sum + video.fileSize, 0),
           streams: own.filter((video) => video.type === 'stream').reduce((sum, video) => sum + video.fileSize, 0),
         },
+        syncBlocked: ownBlocked.length,
       }
       return { status: 200, body: answer }
     }
     if (sub === 'videos') {
       const wanted = params.get('state')
       const q = (params.get('q') ?? '').toLowerCase()
-      const items: AdminVideo[] = own
-        .filter((video) => (!wanted || stateOf(video) === wanted) && video.title.toLowerCase().includes(q))
-        .sort((a, b) => b.published.localeCompare(a.published))
-        .map((video) => ({
+      const onlyBlocked = params.get('blocked') === 'true'
+      // 2.3.0: those whose syncs are blocked on top, as the backend's first page.
+      const blocked = (db.blocked ?? []).filter((video) => video.channelId === channel.id)
+      const items: AdminVideo[] = [
+        ...blocked.map((video) => ({ video, syncBlocked: true })),
+        ...(onlyBlocked ? [] : own.map((video) => ({ video, syncBlocked: false }))),
+      ]
+        .filter(({ video }) => (!wanted || stateOf(video) === wanted) && video.title.toLowerCase().includes(q))
+        .sort(
+          (a, b) => Number(b.syncBlocked) - Number(a.syncBlocked) || b.video.published.localeCompare(a.video.published),
+        )
+        .map(({ video, syncBlocked }) => ({
           video: card(db, video),
           youTube: { state: stateOf(video), checkedAt: at(0.4, now), reason: null, refreshedAt: at(0.4, now) },
+          syncBlocked,
         }))
       return { status: 200, body: page(items) }
     }
     if (sub === 'failed-downloads') return { status: 200, body: failures(db, channel.id, now) }
+    if (sub === 'blocked-videos' && method === 'DELETE') {
+      unblock(db, channel.id, params.get('videos')?.split(',') ?? null)
+      return { status: 204 }
+    }
+    if (sub === 'blocked-videos') {
+      const items: AdminVideo[] = (db.blocked ?? [])
+        .filter((video) => video.channelId === channel.id)
+        .sort((a, b) => b.published.localeCompare(a.published))
+        .map((video) => ({
+          video: card(db, video),
+          youTube: { state: stateOf(video), checkedAt: at(0.4, now), reason: null, refreshedAt: at(0.4, now) },
+          syncBlocked: true,
+        }))
+      return { status: 200, body: items }
+    }
     if (sub === 'subscription' && method === 'PUT') {
       const tabs = body as ChannelTabs
       const before = state.subscriptions.get(channel.id)

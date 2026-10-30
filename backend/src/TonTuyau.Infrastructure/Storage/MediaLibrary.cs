@@ -85,6 +85,18 @@ internal sealed class MediaLibrary(string root) : IMediaLibrary
         }
     }
 
+    public bool Delete(string mediaPath)
+    {
+        string file = FileFor(mediaPath);
+        if (!File.Exists(file))
+        {
+            return false;
+        }
+
+        Writing(() => File.Delete(file));
+        return true;
+    }
+
     /// <summary>A folder TonTuyau makes is group-writable (whatever the umask); one that's there is left as it is.</summary>
     private static void MakeFolder(string folder)
     {

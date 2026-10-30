@@ -11,6 +11,14 @@ if (typeof window !== 'undefined') {
   HTMLMediaElement.prototype.load = function () {}
   HTMLMediaElement.prototype.pause = function () {}
   HTMLMediaElement.prototype.play = () => Promise.resolve()
+  // Nor a <dialog>'s modal (2.3.0): open and closed as a plain one, closing says so as the browser does.
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true
+  }
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false
+    this.dispatchEvent(new Event('close'))
+  }
 
   beforeEach(() => {
     history.replaceState(null, '', '/')

@@ -68,6 +68,12 @@ public sealed class VideoRow
     /// <summary>True when the import found no file on the media share.</summary>
     public bool MediaMissing { get; set; }
 
+    /// <summary>
+    /// Its file purged on its own (2.3.0): no sync downloads it again, the index leaves it out (the admin pages list it
+    /// apart, to unblock it).
+    /// </summary>
+    public bool SyncBlocked { get; set; }
+
     /// <summary>What the art store holds for the thumbnail (JSON); null until it's recorded.</summary>
     public ArtVersionsRow? ThumbnailArt { get; set; }
 

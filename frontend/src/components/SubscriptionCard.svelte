@@ -2,15 +2,19 @@
   // A channel's subscription on its admin page (2.0, B4): whether TonTuyau is subscribed, since when and by whom (an
   // account, TubeArchivist at the import, the command line), and which tabs the YouTube syncs download. Subscribe,
   // change the tabs, unsubscribe (the channel and its videos stay). Subscribed: "Download everything" (B5), its full
-  // sync alone, asked first (it can take hours), then its run opens. onchange: the page reads the channel again.
+  // sync alone, asked first in a dialog (it can take hours), then its run opens. The dialog (2.3.0) takes yt-dlp's
+  // format and the retry without the cookie for this run, filled in with the YouTube page's settings: only what differs
+  // from them is sent. onchange: the page reads the channel again.
   import { api, ApiError } from '../lib/api/client'
-  import type { ChannelTabs, Subscription } from '../lib/api/types'
+  import type { ChannelTabs, Subscription, YouTubeSettings } from '../lib/api/types'
   import { formatAge } from '../lib/format'
   import { i18n, t } from '../lib/i18n/i18n.svelte'
   import { router } from '../lib/router/router.svelte'
   import { href } from '../lib/router/routes'
   import { channelTabs } from '../lib/runs'
   import Button from './Button.svelte'
+  import Dialog from './Dialog.svelte'
+  import DownloadOnce, { downloadOnce } from './DownloadOnce.svelte'
   import HelpButton from './HelpButton.svelte'
 
   let {
@@ -29,6 +33,10 @@
 
   let pending = $state(false)
   let askingEverything = $state(false)
+  // The YouTube page's download settings, read when the dialog opens: what it's filled in with.
+  let settings = $state<YouTubeSettings | null>(null)
+  let format = $state('')
+  let withoutCookie = $state(true)
   let message = $state<{ kind: 'saved' | 'refused'; text: string } | null>(null)
 
   const changed = $derived(subscription === null || channelTabs.some((tab) => tabs[tab] !== subscription?.tabs[tab]))
@@ -43,11 +51,26 @@
     return current.by ? t('subscription.since', { when, by: current.by }) : t('subscription.sinceCli', { when })
   }
 
+  async function askEverything() {
+    askingEverything = true
+    try {
+      settings = await api.youTubeSettings()
+      format = settings.downloadFormat
+      withoutCookie = settings.retryWithoutCookie
+    } catch {
+      // Not read: the run takes the YouTube page's settings, nothing else is offered.
+      settings = null
+    }
+  }
+
   async function downloadEverything() {
     message = null
     pending = true
+    const once = downloadOnce(settings, format, withoutCookie)
     try {
-      const started = await api.startTask('youTubeFullSync', channelId)
+      const started = await api.startTask('youTubeFullSync', channelId, undefined, undefined, once.format, {
+        retryWithoutCookie: once.retryWithoutCookie,
+      })
       router.navigate(href.adminRun(started.id))
     } catch (error) {
       const reason = error instanceof ApiError ? (error.problem.detail ?? error.problem.title) : String(error)
@@ -107,21 +130,22 @@
       <Button disabled={pending} onclick={() => void act(() => api.unsubscribe(channelId))}>
         {t('subscription.unsubscribe')}
       </Button>
-      <Button disabled={pending || askingEverything} onclick={() => (askingEverything = true)}>
+      <Button disabled={pending || askingEverything} onclick={() => void askEverything()}>
         {t('subscription.everything')}
       </Button>
     {/if}
   </div>
-  {#if subscription && askingEverything}
-    <div class="confirm" role="group" aria-label={t('subscription.everything')}>
+  {#if subscription}
+    <Dialog bind:open={askingEverything} title={t('subscription.everything')}>
       <p>{t('subscription.everythingConfirm')}</p>
-      <div class="actions">
+      <DownloadOnce {settings} bind:format bind:withoutCookie disabled={pending} />
+      {#snippet actions()}
         <Button variant="primary" disabled={pending} onclick={() => void downloadEverything()}>
           {t('subscription.everything')}
         </Button>
         <Button onclick={() => (askingEverything = false)}>{t('task.back')}</Button>
-      </div>
-    </div>
+      {/snippet}
+    </Dialog>
   {/if}
   {#if message}
     <p class={message.kind} role={message.kind === 'refused' ? 'alert' : 'status'}>{message.text}</p>
@@ -168,12 +192,6 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .confirm {
-    display: flex;
-    flex-direction: column;
     gap: var(--space-2);
   }
 

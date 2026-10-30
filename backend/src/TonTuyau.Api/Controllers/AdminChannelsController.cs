@@ -88,6 +88,43 @@ public sealed class AdminChannelsController(ChannelAdminService channels) : Cont
         return [.. failures.Select(f => (DownloadFailureResponse)f)];
     }
 
+    /// <summary>
+    /// Its videos whose files were purged on their own (contract v2.17), the latest published first: no sync downloads
+    /// them, the library's lists leave them out. 404 when the channel is unknown.
+    /// </summary>
+    [HttpGet("{id}/blocked-videos")]
+    [ProducesResponseType<IReadOnlyList<AdminVideoResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<IReadOnlyList<AdminVideoResponse>> GetBlockedVideosAsync(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<AdminVideoView> blocked = await channels
+            .ListSyncBlockedAsync(id, cancellationToken)
+            .ConfigureAwait(false);
+        return [.. blocked.Select(v => (AdminVideoResponse)v)];
+    }
+
+    /// <summary>
+    /// Unblocks some of them, or all of them (contract v2.17): back in the library's lists, without their files. 204;
+    /// 404 when the channel is unknown.
+    /// </summary>
+    [HttpDelete("{id}/blocked-videos")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    public async Task<IActionResult> UnblockVideosAsync(
+        string id,
+        [FromQuery, Description("The videos to unblock, ids by commas; all of them when absent.")] string? videos,
+        CancellationToken cancellationToken)
+    {
+        await channels
+            .UnblockSyncAsync(id, videos, cancellationToken)
+            .ConfigureAwait(false);
+        return NoContent();
+    }
+
     /// <summary>Its videos with their state on YouTube, latest published first. 404 when the channel is unknown.</summary>
     [HttpGet("{id}/videos")]
     [ProducesResponseType<Page<AdminVideoResponse>>(StatusCodes.Status200OK)]
@@ -99,10 +136,11 @@ public sealed class AdminChannelsController(ChannelAdminService channels) : Cont
         [FromQuery, Description("Words of the title, tags or description, 1–100 characters.")] string? q,
         [FromQuery, Description("The previous page's nextCursor.")] string? cursor,
         [FromQuery, Description("1–100 (default 24).")] int? size,
+        [FromQuery, Description("true: only the videos whose syncs are blocked (contract v2.17).")] bool? blocked,
         CancellationToken cancellationToken)
     {
         ResultPage<AdminVideoView> page = await channels
-            .ListVideosAsync(new AdminVideosRequest(id, state, q, cursor, size), cancellationToken)
+            .ListVideosAsync(new AdminVideosRequest(id, state, q, cursor, size, blocked), cancellationToken)
             .ConfigureAwait(false);
         return new Page<AdminVideoResponse>(
             [.. page.Items.Select(v => (AdminVideoResponse)v)],

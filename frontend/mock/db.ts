@@ -23,6 +23,8 @@ export interface MockDb {
   videoCounts?: Record<string, VideoCounts>
   /** Real-channels layer only: folder with `<id>_thumb|banner.jpg`. */
   channelArtDir?: string
+  /** 2.3.0: the videos whose files were purged on their own, out of the lists until unblocked; their art served. */
+  blocked?: VideoFixture[]
 }
 
 export const fixturesDir = fileURLToPath(new URL('./fixtures', import.meta.url))

@@ -30,6 +30,12 @@ public interface ISubscriptionStore
     /// <summary>A YouTube sync listed its tabs (B5). Ignored when TonTuyau isn't subscribed to it (any more).</summary>
     Task MarkSyncedAsync(string channelId, DateTimeOffset at, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Forgets when it was listed last (2.3.0, after a purge): its next sync reads its tabs whole, as a channel never
+    /// synced, and downloads what the library doesn't have. Ignored when TonTuyau isn't subscribed to it.
+    /// </summary>
+    Task ForgetSyncedAsync(string channelId, CancellationToken cancellationToken);
+
     /// <summary>Unsubscribes: the channel and its videos stay.</summary>
     /// <returns>False when TonTuyau wasn't subscribed to it.</returns>
     Task<bool> RemoveAsync(string channelId, CancellationToken cancellationToken);

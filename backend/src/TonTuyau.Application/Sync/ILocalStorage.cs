@@ -92,6 +92,12 @@ public interface IMediaLibrary
 
     /// <summary>Deletes a download's folder and whatever is left in it; nothing when it's gone already.</summary>
     void RemoveDownloadFolder(string folder);
+
+    /// <summary>Deletes a video's file (2.3.0, a purge).</summary>
+    /// <returns>False when it isn't on the share (gone already).</returns>
+    /// <exception cref="ArgumentException">Not a media path.</exception>
+    /// <exception cref="IOException">It can't be deleted.</exception>
+    bool Delete(string mediaPath);
 }
 
 /// <summary>The disk the videos folder is on (2.2.0), as its file system says: its size and what's free, in bytes.</summary>

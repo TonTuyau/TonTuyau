@@ -83,7 +83,7 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
         List<VideoFileState> found = await WithContextAsync(db => db.Videos
             .AsNoTracking()
             .IgnoreAutoIncludes()
-            .Select(v => new VideoFileState(v.Id, v.Downloaded, v.MediaMissing))
+            .Select(v => new VideoFileState(v.Id, v.Downloaded, v.MediaMissing, v.SyncBlocked))
             .ToListAsync(cancellationToken))
             .ConfigureAwait(false);
         return found;
@@ -122,12 +122,65 @@ internal sealed class VideoStore(IServiceScopeFactory scopes) : IVideoStore
             row.Downloaded = file.Downloaded;
             row.Tracks = LibraryRows.ToRows(file.Tracks);
             row.MediaMissing = false;
+            row.SyncBlocked = false;
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);
             return true;
         })
             .ConfigureAwait(false);
+    }
+
+    public async Task<int> DeleteAsync(IReadOnlyCollection<string> ids, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        int deleted = 0;
+        foreach (string[] batch in Batches(ids))
+        {
+            deleted += await WithContextAsync(db => db.Videos
+                .Where(v => batch.Contains(v.Id))
+                .ExecuteDeleteAsync(cancellationToken))
+                .ConfigureAwait(false);
+        }
+
+        return deleted;
+    }
+
+    public async Task<int> SetSyncBlockedAsync(
+        IReadOnlyCollection<string> ids,
+        bool blocked,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        int changed = 0;
+        foreach (string[] batch in Batches(ids))
+        {
+            // Blocked: its file purged, so missing too. Unblocked: still missing until a download.
+            changed += await WithContextAsync(db => db.Videos
+                .Where(v => batch.Contains(v.Id) && v.SyncBlocked != blocked)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(v => v.SyncBlocked, blocked)
+                        .SetProperty(v => v.MediaMissing, v => blocked || v.MediaMissing),
+                    cancellationToken))
+                .ConfigureAwait(false);
+        }
+
+        return changed;
+    }
+
+    public async Task<IReadOnlyList<StoredVideo>> ListSyncBlockedAsync(
+        string channelId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        List<VideoRow> rows = await WithContextAsync(db => db.Videos
+            .AsNoTracking()
+            .Where(v => v.ChannelId == channelId && v.SyncBlocked)
+            .OrderByDescending(v => v.Published)
+            .ToListAsync(cancellationToken))
+            .ConfigureAwait(false);
+        return [.. rows.Select(LibraryRows.ToStored)];
     }
 
     public async Task SetMediaMissingAsync(

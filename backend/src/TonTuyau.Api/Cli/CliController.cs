@@ -67,6 +67,11 @@ public sealed class CliController(SyncRunner runner, TaskService tasks) : Contro
     public Task<IActionResult> RetryAsync(string id) =>
         StartAsync(() => runner.StartRefreshAsync(SyncMode.RetryDownloads, id, SyncTrigger.Cli));
 
+    /// <summary>Every video of a channel purged (2.3.0): deleted from TonTuyau, their files with them.</summary>
+    [HttpPost("youtube/purge/{id}")]
+    public Task<IActionResult> PurgeAsync(string id) =>
+        StartAsync(() => runner.StartChannelVideosAsync(SyncMode.PurgeVideos, id, [], SyncTrigger.Cli));
+
     /// <summary>The run's whole record, for the command line's report.</summary>
     [HttpGet("runs/{id}")]
     public async Task<SyncRun> GetRunAsync(string id, CancellationToken cancellationToken) =>
