@@ -133,16 +133,16 @@ cancel a run…) Dialogs, the channel page's and admin pages' tabs Tabs (their t
 What 2.4.0's frontend still writes itself, and the libraries to look at. Each is checked against decision 9 (still
 maintained, licence, the CSP) before it replaces ours; one that fails keeps our code.
 
-| Ours today | Lines | Libraries to check |
-|---|---|---|
-| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome (Mux: web components for a `<video>`, hls.js beside it), Vidstack; else Skeleton's Slider, Menu, Tooltip as above |
-| `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | Paraglide JS (typed messages, compiled), svelte-i18n |
-| `lib/remote.svelte.ts` (an API call's loading state, cursor pages) | 174 | TanStack Query for Svelte (`@tanstack/svelte-query`: caching, paging, retries) |
-| `lib/api/client.ts` (calls typed from the OpenAPI file) | — | `openapi-fetch` (by `openapi-typescript`'s authors, which we already use) |
-| `lib/router` (History API router) | 98 + 214 of routes | a maintained Svelte 5 SPA router, if one passes decision 9 |
-| `lib/linkify.ts` (URLs in descriptions as links) | 118 | linkifyjs (the timecodes stay ours) |
-| `ImportChart` (the import history's bars) | 332 | LayerChart (Svelte), Chart.js |
-| `LoadMore` (infinite scroll) | 46 | IntersectionObserver is a few lines: ours, unless Pagination is chosen |
+| Ours today | Lines | Libraries to check | Chosen (2026-10-30) |
+|---|---|---|---|
+| `PlayerControls`, `ShortsControls` (the player's controls) | 1,400 | Media Chrome (Mux: web components for a `<video>`, hls.js beside it), Vidstack; else Skeleton's Slider, Menu, Tooltip as above | open |
+| `lib/i18n` (typed dictionaries, plurals) | 75 + the dictionaries | svelte-i18n, Paraglide JS | **svelte-i18n**, but it fails decision 9 as written: no release nor commit since 2024-10-21 (4.0.1, the Svelte 5 peer dependency), 74 issues open. Paraglide JS: 2.29.3, released 2026-10-28, MIT. To settle |
+| `lib/remote.svelte.ts` (an API call's loading state, cursor pages) | 174 | TanStack Query for Svelte | **TanStack Query** (`@tanstack/svelte-query` 6.3.6, 2026-10-26, MIT, Svelte ≥ 5.25) |
+| `lib/api/client.ts` (calls typed from the OpenAPI file) | — | `openapi-fetch` | **Ours kept**, typed by `openapi-typescript` as today |
+| `lib/router` (History API router) | 98 + 214 of routes | a maintained Svelte 5 SPA router, if one passes decision 9 | open |
+| `lib/linkify.ts` (URLs in descriptions as links) | 118 | linkifyjs | **linkifyjs** (4.4.0, 2026-10-23, MIT; the timecodes stay ours) |
+| `ImportChart` (the import history's bars) | 332 | LayerChart, Chart.js | **LayerChart** (2.9.1, 2026-10-23, MIT, Svelte 5) |
+| `LoadMore` (infinite scroll) | 46 | — | **Ours kept** (IntersectionObserver; no Pagination) |
 
 ## Proposed: Biome
 
@@ -179,7 +179,7 @@ maintained, licence, the CSP) before it replaces ours; one that fails keeps our 
 ## Open
 
 - **The areas' order** and how many PRs for the public pages.
-- **Infinite scroll or pages**: `LoadMore` stays ours (YouTube scrolls forever), or Skeleton's Pagination replaces it
-  (pages: a place to come back to, but not YouTube's way).
+- **The translations**: svelte-i18n (chosen, but unmaintained by decision 9's measure) or Paraglide JS.
+- **The player's controls** (Media Chrome, Vidstack, or Skeleton's parts) and **the router**.
 - **The seek bar**: a Skeleton Slider (chapters as markers, the loaded part drawn by us under it) to be checked
   against today's (the time shown on hover, dragging on a phone) before `PlayerControls` moves to it.
