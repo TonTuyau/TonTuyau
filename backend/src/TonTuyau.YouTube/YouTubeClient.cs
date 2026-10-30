@@ -155,8 +155,8 @@ internal sealed partial class YouTubeClient(
         // Signed in, YouTube can keep its formats from yt-dlp but one (a token it asks for): signed out, it gives them.
         if (retryWithoutCookie
             && run.SignedIn
-            && run.Failure is { } signedIn
-            && YtdlpErrors.FormatUnavailable(signedIn.Reason))
+            && run.Failure is not null
+            && YtdlpErrors.FormatUnavailable(run.Failure.Value.Reason))
         {
             LogRetryingWithoutCookie(videoId, format);
             run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken, signedIn: false)
