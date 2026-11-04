@@ -1,0 +1,8 @@
+[youtube] Extracting URL: https://www.youtube.com/watch?v=NoFormat001
+[youtube] NoFormat001: Downloading webpage
+[info] Available formats for NoFormat001:
+ID  EXT   RESOLUTION FPS │   FILESIZE   TBR PROTO │ VCODEC        VBR ACODEC      ABR ASR MORE INFO
+───────────────────────────────────────────────────────────────────────────────────────────────────
+251 webm  audio only     │    7.90MiB  129k https │ audio only        opus       129k 48k medium, webm_dash
+136 mp4   1280x720    25 │   15.32MiB  250k https │ avc1.4d401f  250k video only          720p, mp4_dash
+247 webm  1280x720    25 │   12.10MiB  198k https │ vp9          198k video only          720p, webm_dash

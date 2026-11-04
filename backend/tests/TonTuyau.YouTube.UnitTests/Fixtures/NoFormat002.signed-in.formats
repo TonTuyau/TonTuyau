@@ -1,0 +1,6 @@
+[youtube] Extracting URL: https://www.youtube.com/watch?v=NoFormat002
+[info] Available formats for NoFormat002:
+ID  EXT   RESOLUTION FPS CH │ FILESIZE  TBR PROTO │ VCODEC      ACODEC    ASR MORE INFO
+───────────────────────────────────────────────────────────────────────────────────────
+sb0 mhtml 101x180      1    │               mhtml │ images                    storyboard
+18  mp4   360x640     30  2 │ ≈9.21MiB 677k https │ avc1.42001E mp4a.40.2 44k 360p

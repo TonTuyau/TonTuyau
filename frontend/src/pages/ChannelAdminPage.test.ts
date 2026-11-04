@@ -315,6 +315,59 @@ describe('ChannelAdminPage', () => {
     expect(api.requests('/api/admin/tasks/retryDownloads/runs')[0]?.searchParams.get('target')).toBe(id)
   })
 
+  it('tries a video whose format matched none again with the format typed next to Try again', async () => {
+    const user = userEvent.setup()
+    const asked = run({ id: 'run-20261020T200000Z-eeeeee', task: 'downloadVideo', state: 'queued' })
+    const failure = {
+      title: null,
+      tries: 1,
+      skipped: false,
+      firstFailedAt: '2026-10-20T08:00:00Z',
+      lastFailedAt: '2026-10-20T08:00:00Z',
+    }
+    const api = routes({
+      [`${base}/failed-downloads`]: [
+        {
+          ...failure,
+          videoId: 'fmt00000001',
+          reason: 'Requested format is not available. Use --list-formats for a list of available formats',
+          youTubeUrl: 'https://www.youtube.com/watch?v=fmt00000001',
+        },
+        {
+          ...failure,
+          videoId: 'net00000001',
+          reason: 'Unable to download webpage: timed out',
+          youTubeUrl: 'https://www.youtube.com/watch?v=net00000001',
+        },
+      ],
+      '/api/admin/youtube/settings': { downloadFormat: 'bestvideo+bestaudio' },
+      '/api/admin/tasks/downloadVideo/runs': asked,
+    })
+    render(ChannelAdminPage, { id })
+
+    const failed = await screen.findByRole('region', { name: 'Failed downloads · 2' })
+    const rows = within(failed).getAllByRole('row')
+    const formatRow = rows[1] as HTMLElement
+    const otherRow = rows[2] as HTMLElement
+    expect(within(otherRow).queryByRole('textbox')).toBeNull()
+    const field = within(formatRow).getByRole('textbox', { name: "yt-dlp's format for this try" })
+    await vi.waitFor(() => expect(field).toHaveValue('bestvideo+bestaudio'))
+    expect(formatRow).toHaveTextContent("The video's formats are listed in the failed run's log.")
+
+    // The YouTube page's format: nothing more is asked than without the field.
+    await user.click(within(formatRow).getByRole('button', { name: /^Try again/ }))
+    await vi.waitFor(() => expect(api.requests('/api/admin/tasks/downloadVideo/runs')).toHaveLength(1))
+    expect(api.requests('/api/admin/tasks/downloadVideo/runs')[0]?.searchParams.has('format')).toBe(false)
+
+    await user.clear(field)
+    await user.type(field, ' 398+251 ')
+    await user.click(within(formatRow).getByRole('button', { name: /^Try again/ }))
+    await vi.waitFor(() => expect(api.requests('/api/admin/tasks/downloadVideo/runs')).toHaveLength(2))
+    const sent = api.requests('/api/admin/tasks/downloadVideo/runs')[1]?.searchParams
+    expect(sent?.get('target')).toBe('fmt00000001')
+    expect(sent?.get('format')).toBe('398+251')
+  })
+
   it('says why a refresh was refused', async () => {
     const user = userEvent.setup()
     routes({

@@ -48,10 +48,12 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
         string? tabs,
         [FromQuery, Description("refreshAll only: skip what was read in the last this many days, 0 to 365 (7).")]
         int? days,
+        [FromQuery, Description("downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one).")]
+        string? format,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, target, tabs, Account(), cancellationToken, days)
+            .StartAsync(task, target, tabs, Account(), cancellationToken, days, format)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }

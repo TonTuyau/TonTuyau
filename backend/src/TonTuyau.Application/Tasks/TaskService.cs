@@ -118,13 +118,17 @@ public sealed class TaskService(
     /// file (a download).
     /// </exception>
     /// <param name="days">"Refresh everything" (B8): what was read in the last this many days is skipped, 0 to 365; null: 7.</param>
+    /// <param name="format">
+    /// A download (2.2, "Try again" with a format): yt-dlp's format this once; null: the YouTube settings' one.
+    /// </param>
     public async Task<RunView> StartAsync(
         string task,
         string? target,
         string? tabs,
         string account,
         CancellationToken cancellationToken,
-        int? days = null)
+        int? days = null,
+        string? format = null)
     {
         // An index rebuild starts from the command line only.
         if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild)
@@ -169,6 +173,17 @@ public sealed class TaskService(
             throw RequestRules.Invalid("days", $"is only for refreshAll: 0 to {MaxSkipReadDays}.");
         }
 
+        format = format?.Trim();
+        if (format is not null && mode != SyncMode.DownloadVideo)
+        {
+            throw RequestRules.Invalid("format", "is only for downloadVideo.");
+        }
+
+        if (format is not null && !YouTubeSettings.IsDownloadFormat(format))
+        {
+            throw RequestRules.Invalid("format", YouTubeSettings.DownloadFormatRule);
+        }
+
         if (mode == SyncMode.DownloadVideo)
         {
             target = LibraryIds.VideoIdOf(target)
@@ -198,7 +213,9 @@ public sealed class TaskService(
                         account)
                     .ConfigureAwait(false)
                 : refresh
-                ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
+                ? await runner
+                    .StartRefreshAsync(mode, target!, SyncTrigger.Admin, account, format)
+                    .ConfigureAwait(false)
                 : await runner.StartImportAsync(SyncTrigger.Admin, account).ConfigureAwait(false);
         }
         catch (SyncRefusedException ex)
