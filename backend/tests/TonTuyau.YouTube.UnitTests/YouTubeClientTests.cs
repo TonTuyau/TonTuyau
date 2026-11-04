@@ -329,6 +329,53 @@ public sealed class YouTubeClientTests
     }
 
     [Fact]
+    public async Task Signed_in_a_format_matching_none_is_tried_again_without_the_cookie()
+    {
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        YouTubeLookup<YouTubeDownload> lookup = await Client(cookie: SignedIn)
+            .DownloadVideoAsync("SignedIn001", "bv*+ba", folder, retryWithoutCookie: true, Token);
+
+        // Without the cookie, YouTube's other answer: the second run's.
+        Assert.Equal("Video unavailable", lookup.Reason);
+        string[] calls = DownloadCalls("SignedIn001");
+        Assert.Equal(2, calls.Length);
+        Assert.Contains("--cookies", calls[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("--cookies", calls[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Signed_in_a_format_matching_none_is_not_tried_again_when_the_setting_is_off()
+    {
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        YouTubeLookup<YouTubeDownload> lookup = await Client(cookie: SignedIn)
+            .DownloadVideoAsync("SignedIn002", "bv*+ba", folder, retryWithoutCookie: false, Token);
+
+        Assert.StartsWith("Requested format is not available", lookup.Reason, StringComparison.Ordinal);
+        Assert.Single(DownloadCalls("SignedIn002"));
+    }
+
+    [Fact]
+    public async Task Without_a_cookie_a_failed_download_is_not_tried_again()
+    {
+        string folder = Directory.CreateTempSubdirectory().FullName;
+
+        await Client().DownloadVideoAsync("SignedIn003", "bv*+ba", folder, retryWithoutCookie: true, Token);
+
+        Assert.Single(DownloadCalls("SignedIn003"));
+    }
+
+    /// <summary>The fake's download calls for this video, in order (each test downloads a video of its own).</summary>
+    private static string[] DownloadCalls(string id) =>
+    [
+        .. File
+            .ReadAllLines(Path.Combine(Fixtures, "calls.log"))
+            .Where(l => l.Contains("--write-info-json", StringComparison.Ordinal)
+                && l.Contains($"watch?v={id}", StringComparison.Ordinal)),
+    ];
+
+    [Fact]
     public async Task A_cookie_that_reads_the_liked_videos_works()
     {
         Assert.Equal(

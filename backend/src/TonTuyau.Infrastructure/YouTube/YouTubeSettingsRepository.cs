@@ -54,6 +54,7 @@ internal sealed class YouTubeSettingsRepository(IServiceScopeFactory scopes) : I
             row.DefaultStreams = settings.NewChannelTabs.Streams;
             row.MinFreeGb = settings.MinFreeGb;
             row.HoldBelowMinFree = settings.HoldBelowMinFree;
+            row.RetryWithoutCookie = settings.RetryWithoutCookie;
             await db
                 .SaveChangesAsync(cancellationToken)
                 .ConfigureAwait(false);

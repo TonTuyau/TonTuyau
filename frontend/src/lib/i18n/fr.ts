@@ -284,6 +284,9 @@ export const fr: Dictionary = {
   'youTube.downloads.formatHint':
     'Dans la syntaxe de yt-dlp : bestvideo+bestaudio (le meilleur de chacun, par défaut), bestvideo[height<=1080]+bestaudio, ou avec un repli après une barre : …/best. Un format qui ne choisit rien fait échouer le téléchargement, en disant pourquoi.',
   'youTube.downloads.format.invalid': 'Le format de yt-dlp, sur une ligne : 1 à 200 caractères.',
+  'youTube.downloads.retryWithoutCookie': "Si le format n'est pas disponible avec le cookie YouTube, réessayer sans",
+  'youTube.downloads.retryWithoutCookieHint':
+    "Connecté avec le cookie, YouTube peut ne donner à yt-dlp qu'un seul format (du 360p) : le téléchargement est alors refait tout de suite sans le cookie. Le cookie reste utilisé en premier (vidéos réservées aux membres, limitées par l'âge).",
   'youTube.downloads.tabs': "Onglets d'une chaîne ajoutée",
   'youTube.downloads.saved': 'Les téléchargements demandent {format} ; une chaîne ajoutée reçoit : {tabs}.',
   'youTube.sync': 'La synchronisation YouTube',
