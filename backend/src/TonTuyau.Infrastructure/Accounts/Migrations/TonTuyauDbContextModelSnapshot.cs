@@ -520,6 +520,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published");
 
+                    b.Property<bool>("SyncBlocked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sync_blocked");
+
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
                         .HasColumnType("text[]")

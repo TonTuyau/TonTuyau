@@ -105,6 +105,15 @@ internal sealed class SubscriptionStore(IServiceScopeFactory scopes) : ISubscrip
             .ConfigureAwait(false);
     }
 
+    public async Task ForgetSyncedAsync(string channelId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(channelId);
+        await WithContextAsync(db => db.ChannelSubscriptions
+            .Where(s => s.ChannelId == channelId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.SyncedAt, (DateTimeOffset?)null), cancellationToken))
+            .ConfigureAwait(false);
+    }
+
     public async Task<bool> RemoveAsync(string channelId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(channelId);

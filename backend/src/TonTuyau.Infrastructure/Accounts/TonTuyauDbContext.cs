@@ -486,6 +486,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 track.Property(t => t.Height).HasJsonPropertyName("height");
             });
         video.Property(v => v.MediaMissing).HasColumnName("media_missing");
+        video.Property(v => v.SyncBlocked).HasColumnName("sync_blocked");
         video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
         // Its state on YouTube: its row of video_states, written and read with it, deleted with it.
         video

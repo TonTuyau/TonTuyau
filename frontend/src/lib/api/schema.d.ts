@@ -502,6 +502,119 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/channels/{id}/blocked-videos': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AdminVideoResponse'][]
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete: {
+      parameters: {
+        query?: {
+          /** @description The videos to unblock, ids by commas; all of them when absent. */
+          videos?: string
+        }
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description No Content */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['HttpValidationProblemDetails']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+        /** @description Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/channels/{id}/videos': {
     parameters: {
       query?: never
@@ -520,6 +633,8 @@ export interface paths {
           cursor?: string
           /** @description 1–100 (default 24). */
           size?: number
+          /** @description true: only the videos whose syncs are blocked (contract v2.17). */
+          blocked?: boolean
         }
         header?: never
         path: {
@@ -3447,14 +3562,20 @@ export interface paths {
     post: {
       parameters: {
         query?: {
-          /** @description Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link. */
+          /** @description Refreshes, downloadVideo, addChannel, youTubeFullSync, …Videos: the video or channel id. */
           target?: string
           /** @description addChannel only: videos,shorts,streams or some of them (default: the three). */
           tabs?: string
           /** @description refreshAll only: skip what was read in the last this many days, 0 to 365 (7). */
           days?: number
-          /** @description downloadVideo only: yt-dlp's format this once (default: the YouTube settings' one). */
+          /** @description downloadVideo, redownloadVideos, youTubeFullSync of a channel: yt-dlp's format. */
           format?: string
+          /** @description redownloadVideos, youTubeFullSync of a channel: retry without the cookie. */
+          retryWithoutCookie?: boolean
+          /** @description purge/refresh/redownloadVideos: the videos, ids by commas, 500 at most (purge: all). */
+          videos?: string
+          /** @description purgeVideos only: true, the files only, the videos' syncs blocked (default: false). */
+          filesOnly?: boolean
         }
         header?: never
         path: {
@@ -4448,10 +4569,13 @@ export interface components {
       videos: components['schemas']['YouTubeStateCounts']
       subscription: null | components['schemas']['SubscriptionResponse']
       size: components['schemas']['VideoCounts']
+      /** Format: int64 */
+      syncBlocked: number
     }
     AdminVideoResponse: {
       video: components['schemas']['VideoCard']
       youTube: components['schemas']['YouTubeStatusResponse']
+      syncBlocked: boolean
     }
     /** @enum {string} */
     ApiKeyKind: 'browserExtension'
@@ -4848,6 +4972,8 @@ export interface components {
       commentsRead: number
       /** Format: int32 */
       subscribed: number
+      /** Format: int32 */
+      purged: number
     }
     RunLock: {
       task: components['schemas']['SyncMode']
@@ -4953,6 +5079,9 @@ export interface components {
       | 'youTubeFullSync'
       | 'retryDownloads'
       | 'refreshAll'
+      | 'purgeVideos'
+      | 'refreshVideos'
+      | 'redownloadVideos'
     /** @enum {string} */
     SyncOutcome: 'running' | 'succeeded' | 'failed' | 'canceled' | 'onHold' | 'queued'
     /** @enum {string} */

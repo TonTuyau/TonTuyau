@@ -70,12 +70,16 @@ public sealed class VideoService(
         return await ListAsync("videos", query, request.Cursor, request.Size, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <exception cref="NotFoundException">No video with this id.</exception>
+    /// <exception cref="NotFoundException">
+    /// No video with this id, or its file was purged on its own (2.3.0: its syncs blocked, the admin pages only show it).
+    /// </exception>
     public async Task<VideoDetailView> GetAsync(string id, CancellationToken cancellationToken)
     {
         RequestRules.RequireVideoId(id);
-        StoredVideo stored = await videos.GetStoredAsync(id, cancellationToken).ConfigureAwait(false)
-            ?? throw new NotFoundException($"There's no video with the id '{id}'.");
+        StoredVideo? found = await videos.GetStoredAsync(id, cancellationToken).ConfigureAwait(false);
+        StoredVideo stored = found is not null && !found.SyncBlocked
+            ? found
+            : throw new NotFoundException($"There's no video with the id '{id}'.");
         Video video = stored.Video;
         IReadOnlyList<VideoCardView> card = await cards
             .VideoCardsAsync([CardBuilder.ListItemOf(video, stored.ThumbnailArt)], cancellationToken)

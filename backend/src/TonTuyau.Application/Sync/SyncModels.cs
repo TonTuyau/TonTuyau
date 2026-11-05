@@ -59,6 +59,27 @@ public enum SyncMode
     /// was read in the last <see cref="SyncRun.SkipReadDays"/> days skipped; at the refreshes' pace, held on a refusal.
     /// </summary>
     RefreshAll,
+
+    /// <summary>
+    /// Purges videos of one channel (2.3.0, <see cref="SyncRun.Target"/>): each one's file, its place in the library,
+    /// its comments, failed download and pictures, gone. Its <see cref="SyncRun.Videos"/>, or every video of the
+    /// channel when there are none. Nothing is asked of YouTube; a full sync of the channel can bring them back.
+    /// </summary>
+    PurgeVideos,
+
+    /// <summary>
+    /// Refreshes videos of one channel picked on its admin page (2.3.0, <see cref="SyncRun.Target"/>, its
+    /// <see cref="SyncRun.Videos"/>): each read on YouTube as <see cref="RefreshVideo"/> reads one; the gone ones
+    /// skipped.
+    /// </summary>
+    RefreshVideos,
+
+    /// <summary>
+    /// Downloads videos of one channel again (2.3.0, <see cref="SyncRun.Target"/>, its <see cref="SyncRun.Videos"/>),
+    /// with their files: each new file replaces the one there once it's downloaded; one that fails leaves it. Takes
+    /// <see cref="SyncRun.DownloadFormat"/> and <see cref="SyncRun.RetryWithoutCookie"/> this once.
+    /// </summary>
+    RedownloadVideos,
 }
 
 public enum SyncTrigger
@@ -188,6 +209,9 @@ public sealed record SyncCounts
     /// "Add a channel" added.
     /// </summary>
     public int Subscribed { get; init; }
+
+    /// <summary>A purge (2.3.0): the videos it took out of the library, their files deleted.</summary>
+    public int Purged { get; init; }
 }
 
 /// <summary>One run (an import, an index rebuild, a refresh, a download), as kept in the run history.</summary>
@@ -227,10 +251,29 @@ public sealed record SyncRun
     public int? SkipReadDays { get; init; }
 
     /// <summary>
-    /// A download (2.2, "Try again" with a format): yt-dlp's format for this video this once; null: the YouTube
-    /// settings' one.
+    /// A download (2.2, "Try again" with a format), a full sync of one channel (2.3.0): yt-dlp's format this once;
+    /// null: the YouTube settings' one.
     /// </summary>
     public string? DownloadFormat { get; init; }
+
+    /// <summary>
+    /// A full sync of one channel (2.3.0): whether a download whose format matched none with the YouTube cookie is tried
+    /// again without it, this once; null: the YouTube settings say.
+    /// </summary>
+    public bool? RetryWithoutCookie { get; init; }
+
+    /// <summary>
+    /// A purge, a refresh or a download again of videos picked (2.3.0): the videos of its channel; empty (a purge
+    /// only): every one of them.
+    /// </summary>
+    public IReadOnlyList<string> Videos { get; init; } = [];
+
+    /// <summary>
+    /// A purge (2.3.0): true, only the files go; each video stays, its metadata, thumbnail and comments with it, its
+    /// syncs blocked (none downloads it again) and left out of the library's lists until it's unblocked on its
+    /// channel's page. False or null: the videos go whole.
+    /// </summary>
+    public bool? FilesOnly { get; init; }
 
     /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
     public ChannelTabs? Tabs { get; init; }

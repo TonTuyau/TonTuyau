@@ -1,7 +1,7 @@
 // What the Tasks page shows of a run (1.4), from what the API gave: never a count it didn't send.
 import type { ChannelTabs, Run, RunTask } from './api/types'
 import { formatDateTime, formatNumber } from './format'
-import { i18n, t } from './i18n/i18n.svelte'
+import { i18n, t, tp } from './i18n/i18n.svelte'
 import type { TextKey } from './i18n/types'
 
 /** How long it ran, or has been running (in seconds), at `now`. */
@@ -22,8 +22,8 @@ export function startedBy(run: Run): string {
   return t(`run.by.${run.trigger}`)
 }
 
-/** The command line that does the same as each task. */
-export const taskCommands: Record<RunTask, string> = {
+/** The command line that does the same as each task; the videos picked on a channel's page (2.3.0) have none. */
+export const taskCommands: Partial<Record<RunTask, string>> = {
   import: 'tontuyau import',
   indexRebuild: 'tontuyau index rebuild',
   refreshVideo: 'tontuyau youtube video <id>',
@@ -35,6 +35,7 @@ export const taskCommands: Record<RunTask, string> = {
   youTubeFullSync: 'tontuyau youtube full-sync [<id>]',
   retryDownloads: 'tontuyau youtube retry <id>',
   refreshAll: 'tontuyau youtube refresh-all [days]',
+  purgeVideos: 'tontuyau youtube purge <id>',
 }
 
 /** The tasks whose card says more than its one line, behind its "?" (alpha.4). */
@@ -59,13 +60,20 @@ export function isRefresh(run: Run): boolean {
     run.task === 'refreshVideo' ||
     run.task === 'refreshChannel' ||
     run.task === 'refreshChannelVideos' ||
-    run.task === 'refreshAll'
+    run.task === 'refreshAll' ||
+    run.task === 'refreshVideos'
   )
 }
 
 /** A run that asks YouTube (1.5: a refresh; 2.0: a download): it can be put on hold. */
 export function asksYouTube(run: Run): boolean {
-  return isRefresh(run) || run.task === 'downloadVideo' || run.task === 'addChannel' || isYouTubeSync(run)
+  return (
+    isRefresh(run) ||
+    run.task === 'downloadVideo' ||
+    run.task === 'addChannel' ||
+    run.task === 'redownloadVideos' ||
+    isYouTubeSync(run)
+  )
 }
 
 /** A YouTube sync (2.0): the incremental one or the full one. */
@@ -108,6 +116,12 @@ export function runResult(run: Run): string {
   }
   if (run.task === 'indexRebuild') {
     return t('run.result.rebuild')
+  }
+  if (run.task === 'purgeVideos') {
+    return tp('run.result.purge', counts.purged, n(counts.purged))
+  }
+  if (run.task === 'redownloadVideos') {
+    return t('run.result.redownload', { done: n(counts.updated), failed: n(counts.downloadFailed) })
   }
   if (run.task === 'retryDownloads') {
     return t('run.result.retry', { created: n(counts.created), failed: n(counts.downloadFailed) })

@@ -208,8 +208,10 @@ public sealed partial class YouTubeRefreshService
             // A video twice (a stream listed on the videos tab too): once.
             foreach (YouTubeListed entry in lookup.Item)
             {
-                // Not in the library, whatever its channel; the full sync: its file missing too.
-                bool toDownload = !library.TryGetValue(entry.Id, out VideoFileState? has) || (full && has.MediaMissing);
+                // Not in the library, whatever its channel; the full sync: its file missing too, unless its file was
+                // purged on its own (2.3.0: its syncs blocked).
+                bool toDownload = !library.TryGetValue(entry.Id, out VideoFileState? has)
+                    || (full && has.MediaMissing && !has.SyncBlocked);
                 bool leftAlone = !full && failed.GetValueOrDefault(entry.Id)?.Skipped == true;
                 if (!entry.NotYet && toDownload && !leftAlone && taken.Add(entry.Id))
                 {

@@ -27,7 +27,7 @@ Feature: A channel's admin page
     And I request "/api/admin/channels/{channel:tomcooks}" with my session
     Then the response status is 200
     And the header "Cache-Control" is "no-store, no-cache"
-    And the answer has exactly the fields "channel, youTube, videos, subscription, size"
+    And the answer has exactly the fields "channel, youTube, videos, subscription, size, syncBlocked"
     And "channel.name" is "Tom Cooks"
     And "channel.videoCounts.videos" is "3"
     And "youTube.state" is "onYouTube"
