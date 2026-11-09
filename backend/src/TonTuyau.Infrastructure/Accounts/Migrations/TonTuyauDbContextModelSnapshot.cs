@@ -520,6 +520,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published");
 
+                    b.Property<bool>("SyncBlocked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sync_blocked");
+
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
                         .HasColumnType("text[]")
@@ -893,6 +897,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<int>("PauseSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("pause_seconds");
+
+                    b.Property<bool>("RetryWithoutCookie")
+                        .HasColumnType("boolean")
+                        .HasColumnName("retry_without_cookie");
 
                     b.Property<int>("SyncEveryMinutes")
                         .ValueGeneratedOnAdd()

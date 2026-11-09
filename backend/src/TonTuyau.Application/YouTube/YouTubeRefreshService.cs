@@ -148,17 +148,23 @@ public sealed partial class YouTubeRefreshService(
             : mode == SyncMode.RetryDownloads
             ? [.. (await downloadFailures.ListAsync(target!, cancellationToken).ConfigureAwait(false))
                 .Select(f => f.VideoId)]
+            : mode is SyncMode.PurgeVideos or SyncMode.RedownloadVideos
+            ? [.. (await PickedAsync(target!, queued?.Videos ?? [], cancellationToken).ConfigureAwait(false))
+                .Select(v => v.Id)]
+            : mode == SyncMode.RefreshVideos
+            ? []
             : [target!];
         List<VideoSummary> skipped = [];
-        if (mode == SyncMode.RefreshChannelVideos)
+        if (mode is SyncMode.RefreshChannelVideos or SyncMode.RefreshVideos)
         {
-            IReadOnlyList<VideoSummary> ofChannel = await videos
-                .FindByChannelsAsync([target!], cancellationToken)
+            // A channel's videos, or those picked on its page (2.3.0): latest first.
+            IReadOnlyList<string> asked = mode == SyncMode.RefreshVideos ? queued?.Videos ?? [] : [];
+            IReadOnlyList<VideoSummary> ofChannel = await PickedAsync(target!, asked, cancellationToken)
                 .ConfigureAwait(false);
             IReadOnlyDictionary<string, VideoFacts> known = await facts
                 .GetVideosAsync([.. ofChannel.Select(v => v.Id)], cancellationToken)
                 .ConfigureAwait(false);
-            foreach (VideoSummary video in ofChannel.OrderByDescending(v => v.Downloaded))
+            foreach (VideoSummary video in ofChannel)
             {
                 if (known.GetValueOrDefault(video.Id)?.Status.State == YouTubeState.Gone)
                 {
@@ -538,6 +544,7 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken ct = context.CancellationToken;
         int videosTotal = context.Run.Counts.VideosRead + work.Count(LibraryIds.IsVideoId);
         bool videosBegun = false;
+        long freed = 0;
         for (int index = 0; index < work.Count; index++)
         {
             // Its counts as before it: an item stopped by a hold is read again when the run resumes.
@@ -561,6 +568,28 @@ public sealed partial class YouTubeRefreshService(
                 {
                     refused = await SyncItemAsync(mode == SyncMode.YouTubeFullSync, work, index, read, context)
                         .ConfigureAwait(false);
+                }
+                else if (mode == SyncMode.PurgeVideos)
+                {
+                    if (index == 0)
+                    {
+                        context.BeginPhase(SyncPhase.Purge, work.Count);
+                    }
+
+                    freed += await PurgeOneAsync(id, context.Run.FilesOnly == true, context).ConfigureAwait(false);
+                    refused = null;
+                    context.Progressed(index + 1);
+                }
+                else if (mode == SyncMode.RedownloadVideos)
+                {
+                    // A pause between two downloads.
+                    if (index > 0)
+                    {
+                        await PauseAsync(read.PauseSeconds, ct).ConfigureAwait(false);
+                    }
+
+                    context.BeginPhase(SyncPhase.YouTubeDownload, 1);
+                    refused = await RedownloadOneAsync(id, read, context).ConfigureAwait(false);
                 }
                 else if (mode == SyncMode.RefreshAll)
                 {
@@ -625,6 +654,11 @@ public sealed partial class YouTubeRefreshService(
 
             // The run's page shows the run as saved: its counts so far, after each answer.
             await context.SaveAsync().ConfigureAwait(false);
+        }
+
+        if (mode == SyncMode.PurgeVideos)
+        {
+            await AfterPurgeAsync(freed, context).ConfigureAwait(false);
         }
 
         return true;
@@ -726,6 +760,26 @@ public sealed partial class YouTubeRefreshService(
     /// <exception cref="SyncRefusedException">Why it can't run.</exception>
     public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
+        if (mode is SyncMode.PurgeVideos or SyncMode.RefreshVideos or SyncMode.RedownloadVideos)
+        {
+            // Downloading again (2.3.0): under the disk space threshold, set to wait, it doesn't start.
+            string? full = mode == SyncMode.RedownloadVideos
+                ? await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false)
+                : null;
+            if (full is not null)
+            {
+                throw new SyncRefusedException(full);
+            }
+
+            if (!LibraryIds.IsChannelId(target)
+                || await channels.GetAsync(target, cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new SyncRefusedException($"No channel {target} in the library.");
+            }
+
+            return;
+        }
+
         // The downloads (2.2.0): under the disk space threshold, set to wait, none starts.
         if (mode is SyncMode.DownloadVideo
                 or SyncMode.YouTubeSync
@@ -1138,11 +1192,14 @@ public sealed partial class YouTubeRefreshService(
     {
         CancellationToken ct = context.CancellationToken;
         string folder = media.NewDownloadFolder(videoId);
+        // "Try again" with a format (2.2), "Download everything" with its settings (2.3.0): the run's, this once.
+        string format = context.Run.DownloadFormat ?? read.DownloadFormat;
+        bool withoutCookie = context.Run.RetryWithoutCookie ?? read.RetryWithoutCookie;
         try
         {
-            LogDownloading(videoId, read.DownloadFormat);
+            LogDownloading(videoId, format);
             YouTubeLookup<YouTubeDownload> lookup = await youTube
-                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, ct)
+                .DownloadVideoAsync(videoId, format, folder, withoutCookie, ct)
                 .ConfigureAwait(false);
             if (lookup.Answer == YouTubeAnswer.Refused)
             {
@@ -1288,7 +1345,9 @@ public sealed partial class YouTubeRefreshService(
             .SetFileAsync(known.Id, file, context.CancellationToken)
             .ConfigureAwait(false);
         context.Count(c => c with { Updated = c.Updated + 1 });
-        context.Note($"The video \"{known.Title}\" had no file: it's downloaded now, {mediaPath}.");
+        context.Note(context.Run.Mode == SyncMode.RedownloadVideos
+            ? $"The video \"{known.Title}\" is downloaded again: {mediaPath}."
+            : $"The video \"{known.Title}\" had no file: it's downloaded now, {mediaPath}.");
         return known with
         {
             MediaPath = mediaPath,

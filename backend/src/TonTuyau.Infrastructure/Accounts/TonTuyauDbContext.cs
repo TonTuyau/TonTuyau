@@ -241,6 +241,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultMinFreeGb)
                 .HasSentinel(-1);
             settings.Property(s => s.HoldBelowMinFree).HasColumnName("hold_below_min_free");
+            // 2.3.0: a switch as the one above, the migration fills the row there with true.
+            settings.Property(s => s.RetryWithoutCookie).HasColumnName("retry_without_cookie");
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {
@@ -484,6 +486,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 track.Property(t => t.Height).HasJsonPropertyName("height");
             });
         video.Property(v => v.MediaMissing).HasColumnName("media_missing");
+        video.Property(v => v.SyncBlocked).HasColumnName("sync_blocked");
         video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
         // Its state on YouTube: its row of video_states, written and read with it, deleted with it.
         video

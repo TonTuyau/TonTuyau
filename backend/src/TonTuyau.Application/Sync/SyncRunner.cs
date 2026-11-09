@@ -80,16 +80,23 @@ public sealed partial class SyncRunner(
     /// </summary>
     /// <param name="target">The video's or channel's YouTube id.</param>
     /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <param name="downloadFormat">A download (2.2): yt-dlp's format this once; null: the YouTube settings' one.</param>
     /// <exception cref="SyncRefusedException">Not one of the library (a refresh), one of it already (a download).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public async Task<StartedRun> StartRefreshAsync(
         SyncMode mode,
         string target,
         SyncTrigger trigger,
-        string? startedBy = null)
+        string? startedBy = null,
+        string? downloadFormat = null)
     {
+        if (downloadFormat is not null && mode != SyncMode.DownloadVideo)
+        {
+            throw new ArgumentException("Only a download takes a format.", nameof(downloadFormat));
+        }
+
         await refresh.CheckAsync(mode, target, CancellationToken.None).ConfigureAwait(false);
-        return await QueueAsync(mode, target, trigger, startedBy).ConfigureAwait(false);
+        return await QueueAsync(mode, target, trigger, startedBy, downloadFormat: downloadFormat).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -121,6 +128,13 @@ public sealed partial class SyncRunner(
     /// <param name="channelId">
     /// The full sync of this channel alone ("Download everything" on its page); null: of every subscribed channel.
     /// </param>
+    /// <param name="downloadFormat">
+    /// The full sync of one channel (2.3.0): yt-dlp's format this once; null: the YouTube settings' one.
+    /// </param>
+    /// <param name="retryWithoutCookie">
+    /// The full sync of one channel (2.3.0): a format matching none with the cookie tried again without it, this once;
+    /// null: as the YouTube settings say.
+    /// </param>
     /// <exception cref="SyncRefusedException">
     /// TonTuyau isn't subscribed to that channel; or the disk space is under the threshold, set to wait (2.2.0).
     /// </exception>
@@ -129,7 +143,9 @@ public sealed partial class SyncRunner(
         bool full,
         SyncTrigger trigger,
         string? startedBy = null,
-        string? channelId = null)
+        string? channelId = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null)
     {
         SyncMode mode = full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync;
         if (channelId is not null && !full)
@@ -137,9 +153,75 @@ public sealed partial class SyncRunner(
             throw new ArgumentException("Only the full sync is of one channel.", nameof(channelId));
         }
 
+        if ((downloadFormat is not null || retryWithoutCookie is not null) && channelId is null)
+        {
+            throw new ArgumentException("Only a full sync of one channel takes its settings.", nameof(channelId));
+        }
+
         await refresh.CheckAsync(mode, channelId ?? "", CancellationToken.None).ConfigureAwait(false);
 
-        return await QueueAsync(mode, channelId, trigger, startedBy).ConfigureAwait(false);
+        return await QueueAsync(
+            mode,
+            channelId,
+            trigger,
+            startedBy,
+            downloadFormat: downloadFormat,
+            retryWithoutCookie: retryWithoutCookie)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks for videos of one channel (2.3.0): purged (deleted from TonTuyau, their files, thumbnails, comments and
+    /// failures with them; nothing asked of YouTube), refreshed, or downloaded again.
+    /// </summary>
+    /// <param name="mode"><see cref="SyncMode.PurgeVideos"/>, <see cref="SyncMode.RefreshVideos"/> or
+    /// <see cref="SyncMode.RedownloadVideos"/>.</param>
+    /// <param name="channelId">The channel's YouTube id.</param>
+    /// <param name="videos">Its videos; none (a purge): every one of them.</param>
+    /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <param name="downloadFormat">A download again: yt-dlp's format this once; null: the YouTube settings' one.</param>
+    /// <param name="retryWithoutCookie">A download again: the retry without the cookie this once; null: the settings'.</param>
+    /// <param name="filesOnly">A purge: only the files, the videos' syncs blocked; null or false: the videos whole.</param>
+    /// <exception cref="SyncRefusedException">
+    /// Not a channel of the library; or, to download, the disk space is under the threshold, set to wait.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public async Task<StartedRun> StartChannelVideosAsync(
+        SyncMode mode,
+        string channelId,
+        IReadOnlyList<string> videos,
+        SyncTrigger trigger,
+        string? startedBy = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null,
+        bool? filesOnly = null)
+    {
+        if (mode is not SyncMode.PurgeVideos and not SyncMode.RefreshVideos and not SyncMode.RedownloadVideos)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Not videos of a channel.");
+        }
+
+        if ((downloadFormat is not null || retryWithoutCookie is not null) && mode != SyncMode.RedownloadVideos)
+        {
+            throw new ArgumentException("Only a download again takes download settings.", nameof(downloadFormat));
+        }
+
+        if (filesOnly is not null && mode != SyncMode.PurgeVideos)
+        {
+            throw new ArgumentException("Only a purge takes filesOnly.", nameof(filesOnly));
+        }
+
+        await refresh.CheckAsync(mode, channelId, CancellationToken.None).ConfigureAwait(false);
+        return await QueueAsync(
+            mode,
+            channelId,
+            trigger,
+            startedBy,
+            downloadFormat: downloadFormat,
+            retryWithoutCookie: retryWithoutCookie,
+            videos: videos,
+            filesOnly: filesOnly)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -250,7 +332,11 @@ public sealed partial class SyncRunner(
         SyncTrigger trigger,
         string? startedBy,
         ChannelTabs? tabs = null,
-        int? skipReadDays = null)
+        int? skipReadDays = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null,
+        IReadOnlyList<string>? videos = null,
+        bool? filesOnly = null)
     {
         TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset now = clock.GetUtcNow();
@@ -265,6 +351,10 @@ public sealed partial class SyncRunner(
             Target = target,
             Tabs = tabs,
             SkipReadDays = skipReadDays,
+            DownloadFormat = downloadFormat,
+            RetryWithoutCookie = retryWithoutCookie,
+            Videos = videos ?? [],
+            FilesOnly = filesOnly,
             Outcome = SyncOutcome.Queued,
         };
         lock (_gate)

@@ -32,6 +32,9 @@ public enum SyncPhase
 
     /// <summary>"Refresh everything" (2.0, B8): each channel and video, one by one.</summary>
     YouTubeLibrary,
+
+    /// <summary>A purge (2.3.0): each video deleted, its file and thumbnail with it.</summary>
+    Purge,
 }
 
 /// <summary>

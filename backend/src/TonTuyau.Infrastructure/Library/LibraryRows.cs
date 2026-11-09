@@ -186,7 +186,7 @@ internal static class LibraryRows
     ];
 
     public static StoredVideo ToStored(VideoRow row) =>
-        new(ToVideo(row), row.MediaMissing, ToVersions(row.ThumbnailArt));
+        new(ToVideo(row), row.MediaMissing, ToVersions(row.ThumbnailArt), row.SyncBlocked);
 
     public static StoredChannel ToStored(ChannelRow row) =>
         new(ToChannel(row), ToVersions(row.ThumbArt), ToVersions(row.BannerArt));
