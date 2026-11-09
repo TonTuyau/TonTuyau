@@ -148,6 +148,9 @@ public sealed partial class YouTubeRefreshService
     /// </summary>
     private async Task AfterPurgeAsync(long freed, RunContext context)
     {
+        // The run ended, the lists don't show the purged videos any more (the index's searches see its deletes
+        // after a refresh only): a channel's page read then would count a blocked video twice.
+        await indices.RefreshAsync(context.CancellationToken).ConfigureAwait(false);
         int purged = context.Run.Counts.Purged;
         string what = string.Create(
             CultureInfo.InvariantCulture,

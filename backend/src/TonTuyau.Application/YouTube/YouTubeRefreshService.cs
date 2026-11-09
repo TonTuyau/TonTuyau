@@ -47,6 +47,7 @@ public sealed partial class YouTubeRefreshService(
     IChannelRepository channels,
     ISubscriptionStore subscriptions,
     IDownloadFailureStore downloadFailures,
+    IIndexManager indices,
     ISyncStateStore state,
     StreamingService streaming,
     DownloadSpace space,
