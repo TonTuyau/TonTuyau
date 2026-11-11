@@ -80,16 +80,23 @@ public sealed partial class SyncRunner(
     /// </summary>
     /// <param name="target">The video's or channel's YouTube id.</param>
     /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <param name="downloadFormat">A download (2.2): yt-dlp's format this once; null: the YouTube settings' one.</param>
     /// <exception cref="SyncRefusedException">Not one of the library (a refresh), one of it already (a download).</exception>
     /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
     public async Task<StartedRun> StartRefreshAsync(
         SyncMode mode,
         string target,
         SyncTrigger trigger,
-        string? startedBy = null)
+        string? startedBy = null,
+        string? downloadFormat = null)
     {
+        if (downloadFormat is not null && mode != SyncMode.DownloadVideo)
+        {
+            throw new ArgumentException("Only a download takes a format.", nameof(downloadFormat));
+        }
+
         await refresh.CheckAsync(mode, target, CancellationToken.None).ConfigureAwait(false);
-        return await QueueAsync(mode, target, trigger, startedBy).ConfigureAwait(false);
+        return await QueueAsync(mode, target, trigger, startedBy, downloadFormat: downloadFormat).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -121,6 +128,13 @@ public sealed partial class SyncRunner(
     /// <param name="channelId">
     /// The full sync of this channel alone ("Download everything" on its page); null: of every subscribed channel.
     /// </param>
+    /// <param name="downloadFormat">
+    /// The full sync of one channel (2.3.0): yt-dlp's format this once; null: the YouTube settings' one.
+    /// </param>
+    /// <param name="retryWithoutCookie">
+    /// The full sync of one channel (2.3.0): a format matching none with the cookie tried again without it, this once;
+    /// null: as the YouTube settings say.
+    /// </param>
     /// <exception cref="SyncRefusedException">
     /// TonTuyau isn't subscribed to that channel; or the disk space is under the threshold, set to wait (2.2.0).
     /// </exception>
@@ -129,7 +143,9 @@ public sealed partial class SyncRunner(
         bool full,
         SyncTrigger trigger,
         string? startedBy = null,
-        string? channelId = null)
+        string? channelId = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null)
     {
         SyncMode mode = full ? SyncMode.YouTubeFullSync : SyncMode.YouTubeSync;
         if (channelId is not null && !full)
@@ -137,9 +153,75 @@ public sealed partial class SyncRunner(
             throw new ArgumentException("Only the full sync is of one channel.", nameof(channelId));
         }
 
+        if ((downloadFormat is not null || retryWithoutCookie is not null) && channelId is null)
+        {
+            throw new ArgumentException("Only a full sync of one channel takes its settings.", nameof(channelId));
+        }
+
         await refresh.CheckAsync(mode, channelId ?? "", CancellationToken.None).ConfigureAwait(false);
 
-        return await QueueAsync(mode, channelId, trigger, startedBy).ConfigureAwait(false);
+        return await QueueAsync(
+            mode,
+            channelId,
+            trigger,
+            startedBy,
+            downloadFormat: downloadFormat,
+            retryWithoutCookie: retryWithoutCookie)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks for videos of one channel (2.3.0): purged (deleted from TonTuyau, their files, thumbnails, comments and
+    /// failures with them; nothing asked of YouTube), refreshed, or downloaded again.
+    /// </summary>
+    /// <param name="mode"><see cref="SyncMode.PurgeVideos"/>, <see cref="SyncMode.RefreshVideos"/> or
+    /// <see cref="SyncMode.RedownloadVideos"/>.</param>
+    /// <param name="channelId">The channel's YouTube id.</param>
+    /// <param name="videos">Its videos; none (a purge): every one of them.</param>
+    /// <param name="startedBy">The account starting it from the admin pages; null otherwise.</param>
+    /// <param name="downloadFormat">A download again: yt-dlp's format this once; null: the YouTube settings' one.</param>
+    /// <param name="retryWithoutCookie">A download again: the retry without the cookie this once; null: the settings'.</param>
+    /// <param name="filesOnly">A purge: only the files, the videos' syncs blocked; null or false: the videos whole.</param>
+    /// <exception cref="SyncRefusedException">
+    /// Not a channel of the library; or, to download, the disk space is under the threshold, set to wait.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">The backend is stopping.</exception>
+    public async Task<StartedRun> StartChannelVideosAsync(
+        SyncMode mode,
+        string channelId,
+        IReadOnlyList<string> videos,
+        SyncTrigger trigger,
+        string? startedBy = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null,
+        bool? filesOnly = null)
+    {
+        if (mode is not SyncMode.PurgeVideos and not SyncMode.RefreshVideos and not SyncMode.RedownloadVideos)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Not videos of a channel.");
+        }
+
+        if ((downloadFormat is not null || retryWithoutCookie is not null) && mode != SyncMode.RedownloadVideos)
+        {
+            throw new ArgumentException("Only a download again takes download settings.", nameof(downloadFormat));
+        }
+
+        if (filesOnly is not null && mode != SyncMode.PurgeVideos)
+        {
+            throw new ArgumentException("Only a purge takes filesOnly.", nameof(filesOnly));
+        }
+
+        await refresh.CheckAsync(mode, channelId, CancellationToken.None).ConfigureAwait(false);
+        return await QueueAsync(
+            mode,
+            channelId,
+            trigger,
+            startedBy,
+            downloadFormat: downloadFormat,
+            retryWithoutCookie: retryWithoutCookie,
+            videos: videos,
+            filesOnly: filesOnly)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -160,8 +242,9 @@ public sealed partial class SyncRunner(
         StartAsync((progress, token) => refresh.ResumeAsync(runId, trigger, by, progress, token));
 
     /// <summary>
-    /// Starts the next queued run when this backend runs none, the lock is free, and no run is on hold; then the next
-    /// one again when that one was over at once (canceled meanwhile, refused).
+    /// Starts the next queued run when this backend runs none, the lock is free, and YouTube isn't refusing (a run on
+    /// hold for that, 2.3.0: one held by hand or for disk space lets the queue go on); then the next one again when
+    /// that one was over at once (canceled meanwhile, refused).
     /// </summary>
     public async Task TryStartNextAsync()
     {
@@ -219,7 +302,13 @@ public sealed partial class SyncRunner(
             {
                 Outcome = SyncOutcome.Canceled,
                 FinishedAt = clock.GetUtcNow(),
-                Notes = [.. queued.Notes, $"Canceled by {by} while it waited in the queue: it didn't start."],
+                Notes =
+                [
+                    .. queued.Notes,
+                    queued.IsResuming()
+                        ? $"Canceled by {by} while it waited in the queue: it won't resume."
+                        : $"Canceled by {by} while it waited in the queue: it didn't start.",
+                ],
             };
             await state.SaveRunAsync(canceled, cancellationToken).ConfigureAwait(false);
             using (logger.BeginScope(new RunLogScope(runId)))
@@ -243,7 +332,11 @@ public sealed partial class SyncRunner(
         SyncTrigger trigger,
         string? startedBy,
         ChannelTabs? tabs = null,
-        int? skipReadDays = null)
+        int? skipReadDays = null,
+        string? downloadFormat = null,
+        bool? retryWithoutCookie = null,
+        IReadOnlyList<string>? videos = null,
+        bool? filesOnly = null)
     {
         TaskCompletionSource<SyncRun> finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset now = clock.GetUtcNow();
@@ -258,6 +351,10 @@ public sealed partial class SyncRunner(
             Target = target,
             Tabs = tabs,
             SkipReadDays = skipReadDays,
+            DownloadFormat = downloadFormat,
+            RetryWithoutCookie = retryWithoutCookie,
+            Videos = videos ?? [],
+            FilesOnly = filesOnly,
             Outcome = SyncOutcome.Queued,
         };
         lock (_gate)
@@ -293,19 +390,86 @@ public sealed partial class SyncRunner(
 
         // A lease run out (a crashed process) is free: the run starting takes it over.
         if (await state.GetLockAsync(CancellationToken.None).ConfigureAwait(false) is { } held
-                && held.LeaseUntil > clock.GetUtcNow()
-            || (await runs.GetOnHoldRunsAsync(CancellationToken.None).ConfigureAwait(false)).Count > 0)
+            && held.LeaseUntil > clock.GetUtcNow())
         {
             return null;
         }
 
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(CancellationToken.None).ConfigureAwait(false);
-        return queue.Count > 0 ? queue[0] : null;
+        if (queue.Count == 0)
+        {
+            return null;
+        }
+
+        // YouTube refusing (2.3.0): the next runs would be too, they wait; but what an admin asked to run now.
+        return queue[0].FirstAt is null && await YouTubeRefusingAsync().ConfigureAwait(false) is not null
+            ? null
+            : queue[0];
+    }
+
+    /// <summary>
+    /// The run on hold because YouTube refused, that the queue waits for (2.3.0); null when none is. A run held before
+    /// 2.3.0 says no reason: taken for YouTube's, as then.
+    /// </summary>
+    public async Task<SyncRun?> YouTubeRefusingAsync()
+    {
+        IReadOnlyList<SyncRun> held = await runs.GetOnHoldRunsAsync(CancellationToken.None).ConfigureAwait(false);
+        return held.FirstOrDefault(r => r.HeldFor is null or HoldReason.YouTube);
+    }
+
+    /// <summary>
+    /// Run now (2.3.0): the queued run goes first; the run going on here, a refresh or a YouTube run, is held and put
+    /// back in the queue right after it, to go on once it ends. An import or an index rebuild going on isn't held:
+    /// the run then starts once it ends. Nothing going on: it starts at once (even while YouTube refuses).
+    /// </summary>
+    /// <param name="by">Who asks, for the notes.</param>
+    /// <returns>The run, first in the queue; whether the run going on was held for it.</returns>
+    /// <exception cref="SyncRefusedException">No such run, or it doesn't wait in the queue.</exception>
+    public async Task<(SyncRun Run, bool HeldAnother)> RunNowAsync(
+        string runId,
+        string by,
+        CancellationToken cancellationToken)
+    {
+        SyncRun first;
+        bool heldAnother = false;
+        await _dispatching.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            SyncRun? queued = await state.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
+            if (queued?.Outcome != SyncOutcome.Queued)
+            {
+                throw new SyncRefusedException($"The run {runId} doesn't wait in the queue.");
+            }
+
+            DateTimeOffset now = clock.GetUtcNow();
+            first = queued with
+            {
+                // Before the run held for it (which goes back at now): the latest asked goes first.
+                FirstAt = now.AddMilliseconds(1),
+                Notes = [.. queued.Notes, $"Run now by {by}: first in the queue."],
+            };
+            await state.SaveRunAsync(first, cancellationToken).ConfigureAwait(false);
+            if (RunningId is { } running)
+            {
+                heldAnother = refresh.RequestHold(running, by, backInQueueAt: now);
+            }
+        }
+        finally
+        {
+            _dispatching.Release();
+        }
+
+        // Nothing going on: it starts now; else the end of the run going on (held, or not) starts it.
+        await TryStartNextAsync().ConfigureAwait(false);
+        return (first, heldAnother);
     }
 
     private Func<ISyncProgressReporter, CancellationToken, Task<SyncRun>> WorkOf(SyncRun queued) =>
         queued.Mode is SyncMode.Import or SyncMode.IndexRebuild
             ? (progress, token) => sync.RunQueuedAsync(queued, progress, token)
+            : queued.IsResuming()
+            // A run on hold put back in the queue (2.3.0): its turn resumes it, from where it was.
+            ? (progress, token) => refresh.ResumeAsync(queued.Id, queued.Trigger, by: null, progress, token)
             : (progress, token) => refresh.RunQueuedAsync(queued, progress, token);
 
     /// <summary>A queued run is over (or canceled before it started): whoever waits for it is told.</summary>

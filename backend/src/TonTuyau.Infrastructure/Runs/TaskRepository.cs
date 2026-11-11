@@ -66,15 +66,18 @@ internal sealed class TaskRepository(IServiceScopeFactory scopes) : ITaskReposit
 
     public async Task<IReadOnlyList<SyncRun>> GetQueuedRunsAsync(CancellationToken cancellationToken)
     {
-        // While it's queued, a run's start is when it was asked for: the queue's order, ties by id.
+        // A handful at most. The runs asked to go first (2.3.0: Run now, Resume now), the latest asked first; then the
+        // others as they were asked for (while it's queued, a run's start is when it was asked for), ties by id.
         List<string> found = await WithContextAsync(db => db.Runs
             .Where(r => r.Outcome == SyncOutcome.Queued)
-            .OrderBy(r => r.StartedAt)
-            .ThenBy(r => r.Id)
             .Select(r => r.Run)
             .ToListAsync(cancellationToken))
             .ConfigureAwait(false);
-        return [.. found.Select(RunJson.Read)];
+        return [.. found
+            .Select(RunJson.Read)
+            .OrderByDescending(r => r.FirstAt ?? DateTimeOffset.MinValue)
+            .ThenBy(r => r.StartedAt)
+            .ThenBy(r => r.Id, StringComparer.Ordinal)];
     }
 
     public async Task<IReadOnlyList<SyncRun>> GetPendingRunsAsync(SyncMode mode, CancellationToken cancellationToken)

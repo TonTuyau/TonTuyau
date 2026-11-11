@@ -32,6 +32,16 @@ Feature: The YouTube syncs
     When I request "/api/admin/dashboard/imports?period=day" with my session
     Then the import history's new videos are 4 videos, 0 shorts and 0 streams
 
+  Scenario: A channel without a videos, shorts or streams tab (a "Topic" channel) is listed from its uploads (2.3.0)
+    Given YouTube has the videos "alpha-05, alpha-04"
+    And YouTube lists "alpha-05, alpha-04, alpha-02" in the uploads of the channel "alpha", which has no tab
+    When I start the YouTube sync with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the media folder has the file of the video "alpha-05" with 4096 bytes
+    And the media folder has the file of the video "alpha-04" with 4096 bytes
+    And the latest run's "counts.created" is "2" within 5 seconds
+    And the latest run's notes mention ": 2 videos to download."
+
   Scenario: Another channel's videos listed on a subscribed channel's tab are downloaded once, not at every sync (alpha.5)
     Given YouTube has the videos "beta-02, beta-01"
     And YouTube lists "beta-02, beta-01, alpha-02" on the videos tab of the channel "alpha"
@@ -88,6 +98,23 @@ Feature: The YouTube syncs
     When I request the failed downloads of the channel "alpha" with my session
     Then "[0].tries" is "4"
     And "[0].skipped" is "true"
+
+  Scenario: "Download a video" of a channel's video that fails is listed in that channel's failed downloads (2.3.0)
+    Given YouTube has the video "alpha-07": the title "La septième", 7 views
+    And YouTube says of the video "alpha-07": "ERROR: [youtube] alpha-07___: Requested format is not available"
+    When I download "alpha-07___" with my session
+    Then the response status is 202
+    And the latest run ends failed within 30 seconds
+    And the latest run's notes mention '"La septième" (alpha-07___) not downloaded: Requested format is not available'
+    When I request the failed downloads of the channel "alpha" with my session
+    Then "" has 1 item
+    And "[0].videoId" is "alpha-07___"
+    And "[0].title" is "La septième"
+    And "[0].tries" is "1"
+    When YouTube no longer refuses the video "alpha-07"
+    And I try the failed downloads of the channel "alpha" again with my session
+    Then the latest run ends succeeded within 60 seconds
+    And the media folder has the file of the video "alpha-07" with 4096 bytes
 
   Scenario: Failed downloads are tried again, one or all of them, and leave the list once downloaded
     Given YouTube says of the video "alpha-05": "ERROR: [youtube] alpha-05___: Requested format is not available"

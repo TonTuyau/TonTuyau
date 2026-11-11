@@ -45,6 +45,29 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.ToTable("data_protection_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TonTuyau.Infrastructure.Accounts.AccessSettingsRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AccountsOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("accounts_only");
+
+                    b.Property<DateTimeOffset?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("changed_by");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("access_settings", (string)null);
+                });
+
             modelBuilder.Entity("TonTuyau.Infrastructure.Accounts.AccountRow", b =>
                 {
                     b.Property<int>("Id")
@@ -58,26 +81,135 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("disabled");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Stamp")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("stamp");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("username");
 
+                    b.Property<string>("UsernameKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("username_key");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Username")
                         .IsUnique();
 
+                    b.HasIndex("UsernameKey")
+                        .IsUnique();
+
                     b.ToTable("accounts", (string)null);
+                });
+
+            modelBuilder.Entity("TonTuyau.Infrastructure.Accounts.LdapSettingsRow", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AdminsFilter")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("admins_filter");
+
+                    b.Property<string>("BaseDn")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("base_dn");
+
+                    b.Property<string>("BindDn")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bind_dn");
+
+                    b.Property<string>("BindPassword")
+                        .HasColumnType("text")
+                        .HasColumnName("bind_password");
+
+                    b.Property<string>("CaCertificate")
+                        .HasColumnType("text")
+                        .HasColumnName("ca_certificate");
+
+                    b.Property<DateTimeOffset?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("PasswordAttribute")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("password_attribute");
+
+                    b.Property<string>("PasswordResetUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("password_reset_url");
+
+                    b.Property<bool>("StartTls")
+                        .HasColumnType("boolean")
+                        .HasColumnName("start_tls");
+
+                    b.Property<string>("UidAttribute")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("uid_attribute");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.Property<string>("UsernameAttribute")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("username_attribute");
+
+                    b.Property<string>("UsersFilter")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("users_filter");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ldap_settings", (string)null);
                 });
 
             modelBuilder.Entity("TonTuyau.Infrastructure.ApiKeys.ApiKeyRow", b =>
@@ -387,6 +519,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<DateTimeOffset>("Published")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published");
+
+                    b.Property<bool>("SyncBlocked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sync_blocked");
 
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
@@ -761,6 +897,10 @@ namespace TonTuyau.Infrastructure.Accounts.Migrations
                     b.Property<int>("PauseSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("pause_seconds");
+
+                    b.Property<bool>("RetryWithoutCookie")
+                        .HasColumnType("boolean")
+                        .HasColumnName("retry_without_cookie");
 
                     b.Property<int>("SyncEveryMinutes")
                         .ValueGeneratedOnAdd()

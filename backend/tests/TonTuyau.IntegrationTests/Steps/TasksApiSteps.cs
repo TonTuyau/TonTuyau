@@ -61,6 +61,15 @@ public sealed class TasksApiSteps(ScenarioState state, AuthSteps auth, ApiSteps 
         await auth.PostWithSession($"/api/admin/runs/{id}/cancel");
     }
 
+    /// <summary>The first run on hold of the Tasks page, resumed now.</summary>
+    [When("I resume the run on hold with my session")]
+    public async Task ResumeHeld()
+    {
+        await auth.RequestWithSession("/api/admin/tasks");
+        string id = ApiSteps.Scalar(api.At("onHold[0].id"));
+        await auth.PostWithSession($"/api/admin/runs/{id}/resume");
+    }
+
     [When("I put the latest run on hold with my session")]
     public async Task HoldLatest() =>
         await auth.PostWithSession($"/api/admin/runs/{await LatestRunIdAsync()}/hold");

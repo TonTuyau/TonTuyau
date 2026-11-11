@@ -2,7 +2,8 @@
 // The mock's admin side (2.1.0, 2.2.0): enough of the admin API, shaped as the contract says, to review the admin pages.
 import { describe, expect, it } from 'vitest'
 import type { AdminChannel, ChannelTotals, Dashboard, Page, Run, Subscription, Tasks } from '../src/lib/api/types.ts'
-import { adminMockState, handleAdmin } from './admin.ts'
+import { logInAs } from './accounts.ts'
+import { adminMockState, handleAdmin, seedQueue } from './admin.ts'
 import { loadDb } from './db.ts'
 
 const db = loadDb()
@@ -23,8 +24,13 @@ describe('the admin mock', () => {
 
     expect(call('GET', '/api/auth/me').status).toBe(401)
     expect(call('GET', '/api/admin/dashboard').status).toBe(401)
-    expect(call('POST', '/api/auth/login', { username: 'admin', password: 'x' }).status).toBe(204)
-    expect(call<{ username: string }>('GET', '/api/auth/me').body).toEqual({ username: 'admin' })
+    expect(call('POST', '/api/auth/login', { username: 'admin', password: 'admin' }).status).toBe(204)
+    expect(call<{ username: string }>('GET', '/api/auth/me').body).toEqual({
+      username: 'admin',
+      displayName: null,
+      role: 'admin',
+      source: 'local',
+    })
   })
 
   it('leaves the public API to the public handler', () => {
@@ -35,7 +41,7 @@ describe('the admin mock', () => {
 
   it('counts the dashboard from the fixtures', () => {
     const { state, call } = setup()
-    state.loggedIn = true
+    logInAs(state.accounts, 'admin')
 
     const dashboard = call<Dashboard>('GET', '/api/admin/dashboard').body
     const channels = call<Page<ChannelTotals>>('GET', '/api/admin/dashboard/channels').body
@@ -49,9 +55,32 @@ describe('the admin mock', () => {
     expect(channels.items.reduce((sum, row) => sum + row.size, 0)).toBe(bytes)
   })
 
+  it('runs a queued run now: the run going on goes back in the queue, first; the queue waits only for YouTube (2.3.0)', () => {
+    const { state, call } = setup()
+    logInAs(state.accounts, 'admin')
+    seedQueue(state, 'youTube', NOW)
+
+    const busy = call<Tasks>('GET', '/api/admin/tasks').body
+    expect(busy.queueWaitsFor).toBe('run-youTubeFullSync-held')
+    expect(busy.queue.map((run) => run.position)).toEqual([1, 2])
+    const last = busy.queue[1]?.id ?? ''
+
+    expect(call<Run>('POST', `/api/admin/runs/${last}/run-now`).status).toBe(202)
+    const after = call<Tasks>('GET', '/api/admin/tasks').body
+    expect(after.runningHere).toBe(last)
+    expect(after.queue[0]?.id).toBe('run-refreshAll-busy')
+    expect(call('POST', `/api/admin/runs/${last}/run-now`).status).toBe(409)
+
+    seedQueue(state, 'hand', NOW)
+    expect(call<Tasks>('GET', '/api/admin/tasks').body.queueWaitsFor).toBeNull()
+    // Resume now while another run goes on: back in the queue, first.
+    expect(call<Run>('POST', '/api/admin/runs/run-youTubeFullSync-held/resume').body.state).toBe('queued')
+    expect(call<Tasks>('GET', '/api/admin/tasks').body.queue[0]?.id).toBe('run-youTubeFullSync-held')
+  })
+
   it('holds the YouTube syncs on an almost full disk, saying why as the backend does (2.2.0)', () => {
     const { state, call } = setup()
-    state.loggedIn = true
+    logInAs(state.accounts, 'admin')
     state.disk = 'low'
 
     const sync = call<Tasks>('GET', '/api/admin/tasks').body.tasks.find((task) => task.task === 'youTubeSync')
@@ -63,7 +92,7 @@ describe('the admin mock', () => {
 
   it('keeps what an action changed: a subscription, a run started', () => {
     const { state, call } = setup()
-    state.loggedIn = true
+    logInAs(state.accounts, 'admin')
     const id = db.channels[2]?.id as string
 
     expect(call<AdminChannel>('GET', `/api/admin/channels/${id}`).body.subscription).toBeNull()

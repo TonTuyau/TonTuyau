@@ -1,3 +1,4 @@
+using TonTuyau.Application.Accounts;
 using TonTuyau.Application.ApiKeys;
 using TonTuyau.Application.Comments;
 using TonTuyau.Application.Dashboard;
@@ -108,6 +109,9 @@ public static class ApiValues
         ["youTubeFullSync"] = SyncMode.YouTubeFullSync,
         ["retryDownloads"] = SyncMode.RetryDownloads,
         ["refreshAll"] = SyncMode.RefreshAll,
+        ["purgeVideos"] = SyncMode.PurgeVideos,
+        ["refreshVideos"] = SyncMode.RefreshVideos,
+        ["redownloadVideos"] = SyncMode.RedownloadVideos,
     };
 
     /// <summary>How a video's comments are listed (1.5, the watch page).</summary>
@@ -134,6 +138,22 @@ public static class ApiValues
         ["off"] = YouTubeCommentsChoice.Off,
         ["top"] = YouTubeCommentsChoice.Top,
         ["all"] = YouTubeCommentsChoice.All,
+    };
+
+    /// <summary>An account's role (2.3.0).</summary>
+    public static readonly Table<AccountRole> AccountRoles = new()
+    {
+        ["admin"] = AccountRole.Admin,
+        ["user"] = AccountRole.User,
+    };
+
+    /// <summary>The LDAP page's tests (2.3.0), each on its own.</summary>
+    public static readonly Table<LdapTestKind> LdapTestKinds = new()
+    {
+        ["connection"] = LdapTestKind.Connection,
+        ["admins"] = LdapTestKind.Admins,
+        ["users"] = LdapTestKind.Users,
+        ["name"] = LdapTestKind.Name,
     };
 
     public static readonly Table<ApiKeyKind> ApiKeyKinds = new()

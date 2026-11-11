@@ -1,6 +1,9 @@
-// Who is logged in (1.2). Browsing needs no login. The session is an HttpOnly cookie the page never sees: the app asks
-// /api/auth/me once at start (a 401 means nobody), and the login page and the account menu change it.
+// Who is logged in (1.2), with the role (2.3.0: an admin, or a user who watches). The session is an HttpOnly cookie
+// the page never sees: the app asks /api/auth/me once at start (a 401 means nobody), and the login page and the account
+// menu change it. It also asks whether the library is for logged-in accounts only (2.3.0): then nobody logged in sees
+// the login page instead of any page.
 import { ApiError, api } from './api/client'
+import type { AccountSource, Me, Role } from './api/types'
 
 export type AuthStatus = 'unknown' | 'anonymous' | 'authenticated'
 
@@ -10,14 +13,34 @@ export type LoginResult = 'ok' | 'refused' | 'tooMany' | ApiError
 class Auth {
   status = $state<AuthStatus>('unknown')
   username = $state<string | null>(null)
+  displayName = $state<string | null>(null)
+  role = $state<Role | null>(null)
+  source = $state<AccountSource | null>(null)
+  /** The library is for logged-in accounts only; false until known (and when the backend can't be reached). */
+  accountsOnly = $state(false)
+  /** The directory's page for a forgotten password (`$username`: the name typed), or null. */
+  passwordResetUrl = $state<string | null>(null)
   #loading: Promise<void> | null = null
 
-  /** Asks the backend who is logged in, once. Any failure counts as "nobody". */
+  get isAdmin(): boolean {
+    return this.role === 'admin'
+  }
+
+  /** Asks the backend who is logged in, and whether the library is for accounts only, once. Any failure: nobody. */
   load(): Promise<void> {
-    this.#loading ??= api.me().then(
-      (me) => this.#set(me.username),
-      () => this.#set(null),
-    )
+    this.#loading ??= Promise.all([
+      api.me().then(
+        (me) => this.#set(me),
+        () => this.#set(null),
+      ),
+      api.access().then(
+        (access) => {
+          this.accountsOnly = access.accountsOnly === true
+          this.passwordResetUrl = access.passwordResetUrl ?? null
+        },
+        () => undefined,
+      ),
+    ]).then(() => undefined)
     return this.#loading
   }
 
@@ -30,7 +53,12 @@ class Auth {
       }
       return error.status === 401 ? 'refused' : error.status === 429 ? 'tooMany' : error
     }
-    this.#set(username)
+    // Who it is now: the role decides what the menus offer.
+    try {
+      this.#set(await api.me())
+    } catch {
+      this.#set({ username, displayName: null, role: 'user', source: 'local' })
+    }
     return 'ok'
   }
 
@@ -49,12 +77,21 @@ class Auth {
   reset(): void {
     this.status = 'unknown'
     this.username = null
+    this.displayName = null
+    this.role = null
+    this.source = null
+    this.accountsOnly = false
+    this.passwordResetUrl = null
     this.#loading = null
   }
 
-  #set(username: string | null): void {
-    this.username = username
-    this.status = username === null ? 'anonymous' : 'authenticated'
+  #set(me: Me | null): void {
+    this.username = me?.username ?? null
+    this.displayName = me?.displayName ?? null
+    // A backend before 2.3.0 says no role: every account was an admin then.
+    this.role = me === null ? null : (me.role ?? 'admin')
+    this.source = me === null ? null : (me.source ?? 'local')
+    this.status = me === null ? 'anonymous' : 'authenticated'
   }
 }
 

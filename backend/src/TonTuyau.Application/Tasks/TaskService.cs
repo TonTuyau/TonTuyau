@@ -30,6 +30,9 @@ public sealed class TaskService(
 
     /// <summary>"Refresh everything" skips what was read in the last days: a year at most.</summary>
     public const int MaxSkipReadDays = 365;
+
+    /// <summary>Videos picked on a channel's page (2.3.0): this many at most at a time.</summary>
+    public const int MaxPurgedVideos = 500;
     public const int MaxRunsPerPage = 100;
     public const int DefaultLogLinesPerPage = 500;
     public const int MaxLogLinesPerPage = 2000;
@@ -67,12 +70,14 @@ public sealed class TaskService(
             null);
         IReadOnlyList<SyncRun> onHold = await runs.GetOnHoldRunsAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<SyncRun> queue = await runs.GetQueuedRunsAsync(cancellationToken).ConfigureAwait(false);
+        SyncRun? refusing = await runner.YouTubeRefusingAsync().ConfigureAwait(false);
         return new TasksView(
             holder,
             runningHere,
             [import, youTubeSync, youTubeFullSync, refreshAll],
             [.. onHold.Select(r => new RunView(r, Cancellable: true))],
-            [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))]);
+            [.. queue.Select((r, index) => new RunView(r, Cancellable: true, index + 1))],
+            refusing?.Id);
     }
 
     /// <exception cref="ValidationException">The request isn't valid.</exception>
@@ -116,13 +121,29 @@ public sealed class TaskService(
     /// file (a download).
     /// </exception>
     /// <param name="days">"Refresh everything" (B8): what was read in the last this many days is skipped, 0 to 365; null: 7.</param>
+    /// <param name="format">
+    /// A download (2.2, "Try again" with a format), a full sync of one channel (2.3.0): yt-dlp's format this once;
+    /// null: the YouTube settings' one.
+    /// </param>
+    /// <param name="retryWithoutCookie">
+    /// A full sync of one channel (2.3.0): a download's format matching none with the YouTube cookie tried again
+    /// without it, this once; null: as the YouTube settings say.
+    /// </param>
+    /// <param name="videos">
+    /// A purge (2.3.0): the videos of the channel to purge, their ids by commas; null: every video of the channel.
+    /// </param>
+    /// <param name="filesOnly">A purge (2.3.0): only their files, their syncs blocked; null or false: the videos whole.</param>
     public async Task<RunView> StartAsync(
         string task,
         string? target,
         string? tabs,
         string account,
         CancellationToken cancellationToken,
-        int? days = null)
+        int? days = null,
+        string? format = null,
+        bool? retryWithoutCookie = null,
+        string? videos = null,
+        bool? filesOnly = null)
     {
         // An index rebuild starts from the command line only.
         if (!ApiValues.Tasks.TryGet(task, out SyncMode mode) || mode is SyncMode.IndexRebuild)
@@ -130,7 +151,8 @@ public sealed class TaskService(
             throw RequestRules.Invalid(
                 "task",
                 "must be import, refreshVideo, refreshChannel, refreshChannelVideos, downloadVideo, addChannel, "
-                    + "youTubeSync, youTubeFullSync, retryDownloads or refreshAll.");
+                    + "youTubeSync, youTubeFullSync, retryDownloads, refreshAll, purgeVideos, refreshVideos or "
+                    + "redownloadVideos.");
         }
 
         bool refresh = mode is SyncMode.RefreshVideo
@@ -139,23 +161,29 @@ public sealed class TaskService(
             or SyncMode.DownloadVideo
             or SyncMode.AddChannel
             or SyncMode.RetryDownloads;
-        if (refresh && target is null)
+        // 2.3.0: videos of one channel, picked on its admin page.
+        bool ofChannel = mode is SyncMode.PurgeVideos or SyncMode.RefreshVideos or SyncMode.RedownloadVideos;
+        if ((refresh || ofChannel) && target is null)
         {
             throw RequestRules.Invalid("target", "is required: the video's or channel's id.");
         }
 
         // The full sync takes one too, optional: "Download everything" of one channel.
-        if (!refresh && mode != SyncMode.YouTubeFullSync && target is not null)
+        if (!refresh && !ofChannel && mode != SyncMode.YouTubeFullSync && target is not null)
         {
             throw RequestRules.Invalid(
                 "target",
-                "is only for the refreshes, the downloads, addChannel and youTubeFullSync.");
+                "is only for the refreshes, the downloads, addChannel, youTubeFullSync and the videos of a channel.");
         }
 
-        if (mode == SyncMode.YouTubeFullSync && target is not null && !LibraryIds.IsChannelId(target))
+        if ((ofChannel || mode == SyncMode.YouTubeFullSync)
+            && target is not null
+            && !LibraryIds.IsChannelId(target))
         {
             throw RequestRules.Invalid("target", "must be a YouTube channel's id (UC…).");
         }
+
+        IReadOnlyList<string> picked = VideosOf(mode, videos);
 
         if (mode != SyncMode.AddChannel && tabs is not null)
         {
@@ -165,6 +193,36 @@ public sealed class TaskService(
         if (days is not null && (mode != SyncMode.RefreshAll || days is < 0 or > MaxSkipReadDays))
         {
             throw RequestRules.Invalid("days", $"is only for refreshAll: 0 to {MaxSkipReadDays}.");
+        }
+
+        format = format?.Trim();
+        if (format is not null
+            && mode is not SyncMode.DownloadVideo and not SyncMode.YouTubeFullSync and not SyncMode.RedownloadVideos)
+        {
+            throw RequestRules.Invalid("format", "is only for downloadVideo, youTubeFullSync and redownloadVideos.");
+        }
+
+        if (retryWithoutCookie is not null && mode is not SyncMode.YouTubeFullSync and not SyncMode.RedownloadVideos)
+        {
+            throw RequestRules.Invalid("retryWithoutCookie", "is only for youTubeFullSync and redownloadVideos.");
+        }
+
+        if (filesOnly is not null && mode != SyncMode.PurgeVideos)
+        {
+            throw RequestRules.Invalid("filesOnly", "is only for purgeVideos.");
+        }
+
+        // "Download everything" of one channel only takes them: the settings this once.
+        if ((format is not null || retryWithoutCookie is not null)
+            && mode == SyncMode.YouTubeFullSync
+            && target is null)
+        {
+            throw RequestRules.Invalid("target", "is required with format or retryWithoutCookie: the channel's id.");
+        }
+
+        if (format is not null && !YouTubeSettings.IsDownloadFormat(format))
+        {
+            throw RequestRules.Invalid("format", YouTubeSettings.DownloadFormatRule);
         }
 
         if (mode == SyncMode.DownloadVideo)
@@ -182,7 +240,25 @@ public sealed class TaskService(
                     .ConfigureAwait(false)
                 : mode is SyncMode.YouTubeSync or SyncMode.YouTubeFullSync
                 ? await runner
-                    .StartYouTubeSyncAsync(mode == SyncMode.YouTubeFullSync, SyncTrigger.Admin, account, target)
+                    .StartYouTubeSyncAsync(
+                        mode == SyncMode.YouTubeFullSync,
+                        SyncTrigger.Admin,
+                        account,
+                        target,
+                        format,
+                        retryWithoutCookie)
+                    .ConfigureAwait(false)
+                : ofChannel
+                ? await runner
+                    .StartChannelVideosAsync(
+                        mode,
+                        target!,
+                        picked,
+                        SyncTrigger.Admin,
+                        account,
+                        format,
+                        retryWithoutCookie,
+                        filesOnly)
                     .ConfigureAwait(false)
                 : mode == SyncMode.AddChannel
                 ? await runner
@@ -196,7 +272,9 @@ public sealed class TaskService(
                         account)
                     .ConfigureAwait(false)
                 : refresh
-                ? await runner.StartRefreshAsync(mode, target!, SyncTrigger.Admin, account).ConfigureAwait(false)
+                ? await runner
+                    .StartRefreshAsync(mode, target!, SyncTrigger.Admin, account, format)
+                    .ConfigureAwait(false)
                 : await runner.StartImportAsync(SyncTrigger.Admin, account).ConfigureAwait(false);
         }
         catch (SyncRefusedException ex)
@@ -252,11 +330,10 @@ public sealed class TaskService(
             : "This run is over.");
     }
 
-    /// <summary>Resumes a refresh on hold now (1.5), instead of at the end of its cool-down: the run, going on again.</summary>
-    /// <param name="account">Who asks: the run's notes say it.</param>
-    /// <exception cref="NotFoundException">No such run.</exception>
-    /// <exception cref="ConflictException">It isn't on hold, or a run is going on.</exception>
-    /// <summary>Puts the refresh going on here on hold by hand (1.5): it waits for Resume now.</summary>
+    /// <summary>
+    /// Puts the refresh going on here on hold by hand (1.5): it waits for Resume now, and the queue goes on meanwhile
+    /// (2.3.0).
+    /// </summary>
     /// <exception cref="NotFoundException">No such run.</exception>
     /// <exception cref="ConflictException">Not a refresh, over, or going on in another process.</exception>
     public async Task<RunView> HoldAsync(string id, string account, CancellationToken cancellationToken)
@@ -268,26 +345,34 @@ public sealed class TaskService(
         }
 
         throw new ConflictException(
-            run.Mode is not (SyncMode.RefreshVideo
-                or SyncMode.RefreshChannel
-                or SyncMode.RefreshChannelVideos
-                or SyncMode.DownloadVideo)
-                ? "Only a refresh or a download can be put on hold: the other runs can be canceled."
+            run.Mode is SyncMode.Import or SyncMode.IndexRebuild
+                ? "An import or an index rebuild can't be put on hold: it can be canceled."
                 : run.Outcome == SyncOutcome.Running
                 ? "This run goes on in another process (the command line): stop it there."
                 : "This run isn't going on.");
     }
 
+    /// <summary>
+    /// Resumes a refresh on hold now (1.5), instead of at the end of its cool-down: the run, going on again. While
+    /// another run goes on (2.3.0), it goes back in the queue, first: it goes on once that one ends.
+    /// </summary>
+    /// <param name="account">Who asks: the run's notes say it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It isn't on hold.</exception>
     public async Task<RunView> ResumeAsync(string id, string account, CancellationToken cancellationToken)
     {
         SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
         try
         {
-            await runner.StartResumeAsync(run.Id, SyncTrigger.Admin, account).ConfigureAwait(false);
-        }
-        catch (SyncBusyException ex)
-        {
-            throw new ConflictException(ex.Message, ex);
+            try
+            {
+                await runner.StartResumeAsync(run.Id, SyncTrigger.Admin, account).ConfigureAwait(false);
+            }
+            catch (SyncBusyException)
+            {
+                // Another run goes on: this one waits for it, first in the queue.
+                await refresh.BackInQueueAsync(run.Id, account, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (SyncRefusedException ex)
         {
@@ -295,6 +380,53 @@ public sealed class TaskService(
         }
 
         return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs a queued run now (2.3.0): first in the queue; the refresh going on here, if any, is put on hold to let it
+    /// go, and goes on right after it.
+    /// </summary>
+    /// <param name="account">Who asks: the runs' notes say it.</param>
+    /// <exception cref="NotFoundException">No such run.</exception>
+    /// <exception cref="ConflictException">It isn't queued.</exception>
+    public async Task<RunView> RunNowAsync(string id, string account, CancellationToken cancellationToken)
+    {
+        SyncRun run = await FindAsync(id, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await runner.RunNowAsync(run.Id, account, cancellationToken).ConfigureAwait(false);
+        }
+        catch (SyncRefusedException ex)
+        {
+            throw new ConflictException(ex.Message, ex);
+        }
+
+        return await GetRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The videos picked (2.3.0): ids by commas, each once, <see cref="MaxPurgedVideos"/> at most; required to refresh
+    /// or download them again, none for a purge of the whole channel.
+    /// </summary>
+    private static IReadOnlyList<string> VideosOf(SyncMode mode, string? videos)
+    {
+        bool picks = mode is SyncMode.RefreshVideos or SyncMode.RedownloadVideos;
+        if (videos is null)
+        {
+            return picks
+                ? throw RequestRules.Invalid("videos", "is required: the videos' ids by commas.")
+                : [];
+        }
+
+        if (!picks && mode != SyncMode.PurgeVideos)
+        {
+            throw RequestRules.Invalid("videos", "is only for purgeVideos, refreshVideos and redownloadVideos.");
+        }
+
+        string[] ids = videos.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return ids.Length is > 0 and <= MaxPurgedVideos && ids.All(LibraryIds.IsVideoId)
+            ? [.. ids.Distinct(StringComparer.Ordinal)]
+            : throw RequestRules.Invalid("videos", $"must be 1 to {MaxPurgedVideos} YouTube video ids by commas.");
     }
 
     /// <returns>Null when none is named: the YouTube settings' default ones (B6).</returns>

@@ -32,7 +32,8 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     /// import (2.0) adds what TubeArchivist has and TonTuyau doesn't; the refreshes (1.5) read their target on YouTube;
     /// a download (2.0, "Add a video") downloads a video into the library; "Add a channel" (2.0) subscribes to a channel,
     /// added when it's new. 409 when TubeArchivist isn't set up, the target isn't one of the library (a refresh), or is
-    /// already (a download: with its file; a channel: subscribed to).
+    /// already (a download: with its file; a channel: subscribed to). A purge (2.3.0) deletes videos of a channel from
+    /// TonTuyau, their files with them; a full sync of one channel can take its download settings this once (2.3.0).
     /// </summary>
     [HttpPost("tasks/{task}/runs")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
@@ -42,23 +43,42 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
         [Description("import, refreshVideo, refreshChannel(Videos), downloadVideo, addChannel, the syncs, refreshAll…")]
         string task,
         [FromQuery]
-        [Description("Refreshes, downloadVideo, addChannel, youTubeFullSync: the video's or channel's id, or a link.")]
+        [Description("Refreshes, downloadVideo, addChannel, youTubeFullSync, …Videos: the video or channel id.")]
         string? target,
         [FromQuery, Description("addChannel only: videos,shorts,streams or some of them (default: the three).")]
         string? tabs,
         [FromQuery, Description("refreshAll only: skip what was read in the last this many days, 0 to 365 (7).")]
         int? days,
+        [FromQuery, Description("downloadVideo, redownloadVideos, youTubeFullSync of a channel: yt-dlp's format.")]
+        string? format,
+        [FromQuery, Description("redownloadVideos, youTubeFullSync of a channel: retry without the cookie.")]
+        bool? retryWithoutCookie,
+        [FromQuery, Description("purge/refresh/redownloadVideos: the videos, ids by commas, 500 at most (purge: all).")]
+        string? videos,
+        [FromQuery, Description("purgeVideos only: true, the files only, the videos' syncs blocked (default: false).")]
+        bool? filesOnly,
         CancellationToken cancellationToken)
     {
         RunResponse run = (RunResponse)await tasks
-            .StartAsync(task, target, tabs, Account(), cancellationToken, days)
+            .StartAsync(
+                task,
+                target,
+                tabs,
+                Account(),
+                cancellationToken,
+                days,
+                format,
+                retryWithoutCookie,
+                videos,
+                filesOnly)
             .ConfigureAwait(false);
         return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
     }
 
     /// <summary>
-    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. 409 when it
-    /// isn't on hold, or a run is going on.
+    /// Resumes a refresh on hold now (1.5) instead of at the end of its cool-down: the same run goes on. While another
+    /// run goes on (contract v2.14), it goes back in the queue, first: it goes on once that one ends. 409 when it isn't
+    /// on hold.
     /// </summary>
     [HttpPost("runs/{id}/resume")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
@@ -73,9 +93,25 @@ public sealed class TasksController(TaskService tasks) : ControllerBase
     }
 
     /// <summary>
+    /// Runs a queued run now (contract v2.14): it goes first in the queue; the refresh or YouTube run going on in this
+    /// backend is put on hold to let it go, back in the queue right after it. 409 when it isn't queued.
+    /// </summary>
+    [HttpPost("runs/{id}/run-now")]
+    [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, Problems.ContentType)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, Problems.ContentType)]
+    public async Task<AcceptedResult> RunNowAsync(string id, CancellationToken cancellationToken)
+    {
+        RunResponse run = (RunResponse)await tasks
+            .RunNowAsync(id, Account(), cancellationToken)
+            .ConfigureAwait(false);
+        return Accepted(new Uri($"/api/admin/runs/{run.Id}", UriKind.Relative), run);
+    }
+
+    /// <summary>
     /// Puts the refresh going on on hold now, by hand (1.5): it stops at once and lets go of the lock, keeps what it has
-    /// left to read (the item it was reading included), and waits for Resume now: no cool-down. 409 when it isn't a
-    /// refresh going on in this backend.
+    /// left to read (the item it was reading included), and waits for Resume now: no cool-down; the queue goes on
+    /// meanwhile (contract v2.14). 409 when it isn't a refresh going on in this backend.
     /// </summary>
     [HttpPost("runs/{id}/hold")]
     [ProducesResponseType<RunResponse>(StatusCodes.Status202Accepted)]

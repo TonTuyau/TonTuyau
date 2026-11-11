@@ -2,7 +2,9 @@
   // /login?next=…: username, password (an eye shows it as typed, alpha.3), "Stay logged in" (30 days instead of 8
   // hours). Every refusal shows the same
   // message: nothing tells whether the name exists. Once logged in (or if already), back to `next` when it's a page
-  // of this site, else home.
+  // of this site, else home. 2.3.0: when the library is for accounts only, the app shows it in place of any page
+  // (`gate`), saying so; once logged in, that page shows. The LDAP directory's page for a forgotten password, when
+  // the LDAP page sets one: linked once a name is typed (it goes in the address).
   import Button from '../components/Button.svelte'
   import Icon from '../components/Icon.svelte'
   import Logo from '../components/Logo.svelte'
@@ -13,6 +15,8 @@
   import { href, safeNext } from '../lib/router/routes'
   import { pageTitle } from '../lib/title.svelte'
 
+  let { gate = false }: { gate?: boolean } = $props()
+
   let username = $state('')
   let password = $state('')
   let remember = $state(false)
@@ -21,6 +25,11 @@
   let result = $state<Exclude<LoginResult, 'ok'> | null>(null)
   let usernameInput: HTMLInputElement | undefined = $state()
 
+  const resetHref = $derived(
+    auth.passwordResetUrl && username.trim() !== ''
+      ? auth.passwordResetUrl.replaceAll('$username', encodeURIComponent(username.trim()))
+      : null,
+  )
   const next = $derived(safeNext(router.query.get('next')))
   const message = $derived(
     result === null
@@ -55,7 +64,10 @@
     const outcome = await auth.login(username, password, remember)
     busy = false
     if (outcome === 'ok') {
-      router.navigate(next, { replace: true })
+      // Gated, the page asked for shows by itself once logged in.
+      if (router.route.name === 'login') {
+        router.navigate(next, { replace: true })
+      }
       return
     }
     result = outcome
@@ -67,6 +79,9 @@
   <form class="card" {onsubmit}>
     <div class="brand"><Logo /></div>
     <h1>{t('login.title')}</h1>
+    {#if gate || auth.accountsOnly}
+      <p class="gate"><Icon name="lock" />{t('login.accountsOnly')}</p>
+    {/if}
 
     {#if message}
       <p class="message" role="alert">{message}</p>
@@ -110,13 +125,20 @@
         <Icon name={passwordShown ? 'visibilityOff' : 'visibility'} />
       </button>
     </div>
+    {#if resetHref}
+      <a class="forgot" href={resetHref} target="_blank" rel="noreferrer noopener">{t('login.forgot')}</a>
+    {/if}
     <label class="remember">
       <input type="checkbox" bind:checked={remember} name="remember" />
       <span>{t('login.remember')}</span>
     </label>
 
     <div class="actions">
-      <a class="back" href={href.home()}>{t('login.back')}</a>
+      {#if !(gate || auth.accountsOnly)}
+        <a class="back" href={href.home()}>{t('login.back')}</a>
+      {:else}
+        <span></span>
+      {/if}
       <Button type="submit" variant="primary" disabled={busy}>{t('login.submit')}</Button>
     </div>
   </form>
@@ -138,6 +160,20 @@
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-bg-elevated);
+  }
+
+  .forgot {
+    align-self: flex-start;
+    color: var(--color-link);
+    font-size: var(--font-size-sm);
+  }
+
+  .gate {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
   }
 
   .brand {

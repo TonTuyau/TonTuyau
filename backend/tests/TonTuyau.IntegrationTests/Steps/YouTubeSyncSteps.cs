@@ -31,6 +31,10 @@ public sealed class YouTubeSyncSteps(YouTubeSteps youTube, AuthSteps auth)
         return File.WriteAllLinesAsync(Path.Combine(youTube.Answers, $"{Of(channel)}.{tab}.jsonl"), lines);
     }
 
+    /// <summary>A channel with none of the three tabs (2.3.0: a "Topic" channel): its uploads playlist lists them.</summary>
+    [Given("YouTube lists {string} in the uploads of the channel {string}, which has no tab")]
+    public Task ListsUploads(string names, string channel) => Lists(names, "uploads", channel);
+
     [Given("YouTube says of the {word} tab of the channel {string}: {string}")]
     public Task TabFails(string tab, string channel, string error) =>
         File.WriteAllTextAsync(Path.Combine(youTube.Answers, $"{Of(channel)}.{tab}.err"), error);

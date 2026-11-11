@@ -74,6 +74,31 @@ Feature: Downloading a video from YouTube
       | "bestvideo\nbestaudio"     |
       | "<201 characters>"         |
 
+  Scenario: Signed in, the format matching none: downloaded again at once without the cookie
+    Given YouTube has the video "omega-10": the title "Sans cookie", 8 views
+    And YouTube, signed in, says of the video "omega-10": "ERROR: [youtube] omega-10___: Requested format is not available. Use --list-formats for a list of available formats"
+    And I sent the YouTube cookie "SIGNED_IN" with my session
+    When I download "omega-10___" with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And the media folder has the file of the video "omega-10" with 4096 bytes
+    And the last run's log has, in order, lines with:
+      | level       | text                                                   |
+      | information | Requested format is not available                      |
+      | information | matched none of omega-10___'s: tried again without it  |
+
+  Scenario: Signed in, the format matching none, the retry without the cookie turned off: the download fails
+    Given YouTube has the video "omega-11": the title "Avec cookie seulement", 8 views
+    And YouTube, signed in, says of the video "omega-11": "ERROR: [youtube] omega-11___: Requested format is not available. Use --list-formats for a list of available formats"
+    And I sent the YouTube cookie "SIGNED_IN" with my session
+    When I send the YouTube settings '{"comments": "off", "retryWithoutCookie": false}' with my session
+    Then the response status is 200
+    And "retryWithoutCookie" is "false"
+    When I download "omega-11___" with my session
+    Then the response status is 202
+    And the latest run ends failed within 30 seconds
+    And TonTuyau doesn't have the video "omega-11"
+
   Scenario: A video of the library isn't downloaded again
     When I run "tontuyau youtube download alpha-01___"
     Then the command exits with code 4
@@ -89,6 +114,25 @@ Feature: Downloading a video from YouTube
     And the latest run ends succeeded within 30 seconds
     And the media folder has the file of the video "omega-04" with 4096 bytes
     And the video "omega-04" and its channel "omega" are TonTuyau's own
+
+  Scenario: Try again with a format: this download takes it, the YouTube page's stays as it was
+    Given YouTube has the video "omega-07": the title "Au format choisi", 5 views
+    When I download "omega-07___" with the format "  398+251  " with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "398+251" for the video "omega-07"
+    Given YouTube has the video "omega-08": the title "Au format de la page", 5 views
+    When I download "omega-08___" with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "bestvideo+bestaudio" for the video "omega-08"
+
+  Scenario: A format given this once that is blank counts as none: the YouTube page's
+    Given YouTube has the video "omega-09": the title "Au format vide", 5 views
+    When I download "omega-09___" with the format "   " with my session
+    Then the response status is 202
+    And the latest run ends succeeded within 30 seconds
+    And yt-dlp was asked for the format "bestvideo+bestaudio" for the video "omega-09"
 
   Scenario: From the Tasks page, a video of the library with its file is refused
     When I download "alpha-01___" with my session

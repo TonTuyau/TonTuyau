@@ -1,6 +1,14 @@
 // Typed client for docs/API_CONTRACT.md. Same code in mock mode and real mode: it always calls /api on the
 // page's origin; the dev server decides whether that's the mock or the backend (vite.config.ts).
 import type {
+  Access,
+  AccessSettings,
+  Account,
+  AccountChange,
+  LdapSettings,
+  LdapSettingsChange,
+  LdapTest,
+  LdapTestRequest,
   AdminChannel,
   AdminVideo,
   ApiKey,
@@ -21,6 +29,7 @@ import type {
   ImportPeriod,
   LoginRequest,
   Me,
+  NewAccount,
   Page,
   ProblemDetails,
   Run,
@@ -153,6 +162,15 @@ async function putFor<T>(path: string, body: unknown): Promise<T> {
 }
 
 /** A DELETE (1.5: an API key, the YouTube cookie): 204, no body. */
+/** A PUT of JSON whose answer has no body (204). */
+async function put(path: string, body: unknown): Promise<void> {
+  await send(path, {
+    method: 'PUT',
+    headers: { accept: 'application/json', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 async function remove(path: string): Promise<void> {
   await send(path, { method: 'DELETE', headers: { accept: 'application/json' } })
 }
@@ -217,6 +235,16 @@ export const api = {
     return post('/api/auth/logout')
   },
 
+  /** Whether the library is for logged-in accounts only (2.3.0), open to anyone. */
+  access(): Promise<Access> {
+    return get('/api/auth/access')
+  },
+
+  /** A local account changes its own password (2.3.0): 400 when the current one is wrong, 409 for a directory one. */
+  changeMyPassword(current: string, password: string): Promise<void> {
+    return put('/api/auth/me/password', { current, password })
+  },
+
   /** The admin dashboard (1.2): 401 when nobody is logged in. */
   dashboard(signal?: AbortSignal): Promise<Dashboard> {
     return get('/api/admin/dashboard', {}, signal)
@@ -250,10 +278,19 @@ export const api = {
   /**
    * Asks for a task (2.0: queued, started at once when nothing else goes on): the run. A refresh (1.5) takes its
    * `target`, a video's or channel's id; "Add a channel" (2.0) its id or @handle, and the tabs to subscribe to;
-   * "Refresh everything" (2.0) the days within which what was read is skipped. 409
-   * when the target isn't one of the library (a refresh), or is already (a download, a channel subscribed to).
+   * "Refresh everything" (2.0) the days within which what was read is skipped; a download (2.2) yt-dlp's format this
+   * once; "Download everything" of a channel (2.3.0) the format and the retry without the cookie this once; a purge
+   * (2.3.0) the channel's videos to purge, all of them without. 409 when the target isn't one of the library (a
+   * refresh, a purge), or is already (a download, a channel subscribed to).
    */
-  startTask(task: RunTask, target?: string, tabs?: ChannelTabs, days?: number): Promise<Run> {
+  startTask(
+    task: RunTask,
+    target?: string,
+    tabs?: ChannelTabs,
+    days?: number,
+    format?: string,
+    options: { retryWithoutCookie?: boolean; videos?: string[]; filesOnly?: boolean } = {},
+  ): Promise<Run> {
     const query = new URLSearchParams()
     if (target !== undefined) {
       query.set('target', target)
@@ -263,6 +300,18 @@ export const api = {
     }
     if (days !== undefined) {
       query.set('days', String(days))
+    }
+    if (format !== undefined) {
+      query.set('format', format)
+    }
+    if (options.retryWithoutCookie !== undefined) {
+      query.set('retryWithoutCookie', String(options.retryWithoutCookie))
+    }
+    if (options.videos !== undefined) {
+      query.set('videos', options.videos.join(','))
+    }
+    if (options.filesOnly !== undefined) {
+      query.set('filesOnly', String(options.filesOnly))
     }
     const search = query.size > 0 ? `?${query.toString()}` : ''
     return postFor(`/api/admin/tasks/${segment(task)}/runs${search}`)
@@ -278,9 +327,20 @@ export const api = {
     return postFor(`/api/admin/runs/${segment(id)}/hold`)
   },
 
-  /** Resumes a refresh on hold now (1.5): the same run goes on where it stopped. 409 when it isn't on hold, or busy. */
+  /**
+   * Resumes a refresh on hold now (1.5): the same run goes on where it stopped; while another run goes on (2.3.0), back
+   * in the queue, first. 409 when it isn't on hold.
+   */
   resumeRun(id: string): Promise<Run> {
     return postFor(`/api/admin/runs/${segment(id)}/resume`)
+  },
+
+  /**
+   * Runs a queued run now (2.3.0): first in the queue; the refresh going on is held to let it go, and goes on right
+   * after it. 409 when it isn't queued.
+   */
+  runNow(id: string): Promise<Run> {
+    return postFor(`/api/admin/runs/${segment(id)}/run-now`)
   },
 
   /** A run's log lines after the line `after` (0: from the first), and whether more will come (1.4). */
@@ -358,6 +418,12 @@ export const api = {
     return remove(`/api/admin/channels/${segment(id)}/subscription`)
   },
 
+  /** Unblocks the syncs of its videos named, or all of them (2.3.0): back in the lists without their files. */
+  unblockVideos(id: string, videos?: string[]): Promise<void> {
+    const search = videos === undefined ? '' : `?${new URLSearchParams({ videos: videos.join(',') }).toString()}`
+    return remove(`/api/admin/channels/${segment(id)}/blocked-videos${search}`)
+  },
+
   /** Its videos the YouTube syncs couldn't download (2.0): why, how many times; the latest failed first. */
   failedDownloads(id: string, signal?: AbortSignal): Promise<DownloadFailure[]> {
     return get(`/api/admin/channels/${segment(id)}/failed-downloads`, {}, signal)
@@ -366,7 +432,7 @@ export const api = {
   /** Its videos with their state on YouTube, latest first; by state or words, page by page. */
   adminChannelVideos(
     id: string,
-    query: { state?: YouTubeState; q?: string; cursor?: string },
+    query: { state?: YouTubeState; q?: string; cursor?: string; blocked?: boolean },
     signal?: AbortSignal,
   ): Promise<Page<AdminVideo>> {
     return get(`/api/admin/channels/${segment(id)}/videos`, query, signal)
@@ -394,8 +460,59 @@ export const api = {
     defaultTabs: ChannelTabs,
     // 2.2.0: the disk space settings.
     space: { minFreeGb: number; holdBelowMinFree: boolean },
+    // 2.3.0: a format matching none with the YouTube cookie, tried again without it.
+    retryWithoutCookie: boolean,
   ): Promise<YouTubeSettings> {
-    return putFor('/api/admin/youtube/settings', { comments, downloadFormat, defaultTabs, ...space })
+    return putFor('/api/admin/youtube/settings', {
+      comments,
+      downloadFormat,
+      defaultTabs,
+      ...space,
+      retryWithoutCookie,
+    })
+  },
+
+  // 2.3.0: the accounts (an admin's).
+
+  accounts(signal?: AbortSignal): Promise<Account[]> {
+    return get('/api/admin/accounts', {}, signal)
+  },
+
+  /** A local account: 409 when the name is taken (whatever the case). */
+  createAccount(account: NewAccount): Promise<Account> {
+    return postFor('/api/admin/accounts', account)
+  },
+
+  /** 409 for the last enabled local admin, one's own account disabled, a directory account's role or password. */
+  changeAccount(id: number, change: AccountChange): Promise<Account> {
+    return putFor(`/api/admin/accounts/${id}`, change)
+  },
+
+  deleteAccount(id: number): Promise<void> {
+    return remove(`/api/admin/accounts/${id}`)
+  },
+
+  /** Who can watch (2.3.0): everyone, or the logged-in accounts only. */
+  accessSettings(signal?: AbortSignal): Promise<AccessSettings> {
+    return get('/api/admin/settings/access', {}, signal)
+  },
+
+  saveAccessSettings(accountsOnly: boolean): Promise<AccessSettings> {
+    return putFor('/api/admin/settings/access', { accountsOnly })
+  },
+
+  /** The LDAP directory (2.3.0): its settings, never the service account's password. */
+  ldapSettings(signal?: AbortSignal): Promise<LdapSettings> {
+    return get('/api/admin/settings/ldap', {}, signal)
+  },
+
+  saveLdapSettings(settings: LdapSettingsChange): Promise<LdapSettings> {
+    return putFor('/api/admin/settings/ldap', settings)
+  },
+
+  /** One test of the settings as typed (not saved): the connection, a filter, or a name. */
+  testLdap(request: LdapTestRequest): Promise<LdapTest> {
+    return postFor('/api/admin/settings/ldap/test', request)
   },
 
   /** Chooses which yt-dlp runs: applied in the background, from the next task. */

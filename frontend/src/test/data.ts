@@ -241,10 +241,13 @@ export function run(overrides: Partial<Run> = {}): Run {
       commentsRead: 0,
       subscribed: 0,
       downloadFailed: 0,
+      purged: 0,
     },
     target: null,
     tabs: null,
     resumeAt: null,
+    heldFor: null,
+    firstAt: null,
     left: 0,
     indexRebuild: false,
     notes: [],
@@ -265,6 +268,7 @@ export function tasks(overrides: Partial<Tasks> = {}): Tasks {
     ],
     onHold: [],
     queue: [],
+    queueWaitsFor: null,
     ...overrides,
   }
 }

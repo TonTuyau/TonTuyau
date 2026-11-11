@@ -61,8 +61,49 @@ export type Suggestions = Schemas['SuggestResponse']
 /** `POST /api/auth/login`'s body (1.2): `remember` is "Stay logged in" (30 days instead of 8 hours). */
 export type LoginRequest = Schemas['LoginRequest']
 
-/** `GET /api/auth/me`: who is logged in (a 401 when nobody is). */
+/** `GET /api/auth/me`: who is logged in (a 401 when nobody is); 2.3.0: the role, where from, the directory's name. */
 export type Me = Schemas['MeResponse']
+
+/** An account's role (2.3.0): an admin (everything), or a user (watches the library). */
+export type Role = Schemas['AccountRole']
+
+/** Where an account is from (2.3.0): made here, or the LDAP directory's. */
+export type AccountSource = Schemas['AccountSource']
+
+/** `GET /api/admin/accounts` (2.3.0): each account, never its password. */
+export type Account = Schemas['AccountResponse']
+
+/** `POST /api/admin/accounts` (2.3.0): a local account. */
+export type NewAccount = Schemas['NewAccountRequest']
+
+/** `PUT /api/admin/accounts/{id}` (2.3.0): what changes (a directory account: `disabled` only). */
+export type AccountChange = Schemas['AccountChangeRequest']
+
+/** `GET /api/auth/access` (2.3.0), open to anyone: whether the library is for logged-in accounts only. */
+export type Access = Schemas['AccessResponse']
+
+/** `GET/PUT /api/admin/settings/access` (2.3.0): who can watch, who set it and when. */
+export type AccessSettings = Schemas['AccessSettingsResponse']
+
+/**
+ * `GET /api/admin/settings/ldap` (2.3.0): the LDAP directory, as Jellyfin's LDAP plugin takes it. The service account's
+ * password never comes back (`bindPasswordSet` says whether one is stored).
+ */
+export type LdapSettings = Schemas['LdapSettingsResponse']
+
+/** `PUT /api/admin/settings/ldap` (2.3.0): what the page edits; `bindPassword` absent keeps the one stored. */
+export type LdapSettingsChange = Omit<LdapSettings, 'bindPasswordSet' | 'clashes' | 'changedBy' | 'changedAt'> & {
+  bindPassword?: string
+}
+
+/** The LDAP page's tests (2.3.0), each on its own. */
+export type LdapTestKind = 'connection' | 'admins' | 'users' | 'name'
+
+/** `POST /api/admin/settings/ldap/test` (2.3.0): the settings as typed (not saved), the test, the name for `name`. */
+export type LdapTestRequest = LdapSettingsChange & { test: LdapTestKind; username?: string }
+
+/** What one test found: the connection, who a filter finds (`found`), or a name looked up (`user`). */
+export type LdapTest = Schemas['LdapTestResponse']
 
 /** `GET /api/admin/dashboard` (1.2): the library's totals and play time, and every channel. */
 export type Dashboard = Schemas['DashboardResponse']

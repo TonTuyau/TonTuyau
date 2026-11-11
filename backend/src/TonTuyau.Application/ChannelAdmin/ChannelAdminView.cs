@@ -6,7 +6,9 @@ using TonTuyau.Application.YouTube;
 namespace TonTuyau.Application.ChannelAdmin;
 
 /// <summary>A channel's admin page (1.5): the channel, what TonTuyau knows of it on YouTube, its videos' states.</summary>
-/// <param name="VideoStates">How many of its videos are in each state on YouTube (every state, 0 included).</param>
+/// <param name="VideoStates">
+/// How many of its videos are in each state on YouTube (every state, 0 included), those whose syncs are blocked too.
+/// </param>
 /// <param name="Subscription">TonTuyau's subscription to it (2.0, B4); null: not subscribed.</param>
 /// <param name="Sizes">Its files' sizes by type, in bytes (2.2.0).</param>
 public sealed record ChannelAdminView(
@@ -14,4 +16,8 @@ public sealed record ChannelAdminView(
     YouTubeStatus YouTube,
     IReadOnlyDictionary<YouTubeState, long> VideoStates,
     ChannelSubscription? Subscription,
-    TypeCounts Sizes);
+    TypeCounts Sizes)
+{
+    /// <summary>How many of its videos have their syncs blocked (2.3.0, their files purged on their own).</summary>
+    public long SyncBlocked { get; init; }
+}

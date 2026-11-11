@@ -1,7 +1,7 @@
 <script lang="ts">
   // The top bar's account corner (1.2): a "Log in" link while nobody is logged in (back to this page afterwards; not on
-  // the login page itself); once logged in, the name's initial, opening a small menu with the name, Administration and
-  // Log out. Menu button like the settings menu: Enter / Space / ↓ open on the first item, ↑ / ↓ move between the items;
+  // the login page itself); once logged in, the name's initial, opening a small menu with the name (2.3.0: and
+  // the role), My account, Administration (admins only) and Log out. Menu button like the settings menu: Enter / Space / ↓ open on the first item, ↑ / ↓ move between the items;
   // Esc, Tab or a click outside close; focus back on the button.
   import { tick } from 'svelte'
   import { auth } from '../lib/auth.svelte'
@@ -111,12 +111,21 @@
         aria-label={auth.username}
         onkeydown={onmenukeydown}
       >
-        <p class="name">{auth.username}</p>
+        <p class="name">
+          {auth.displayName ?? auth.username}
+          <small>{t(`accounts.role.${auth.role ?? 'user'}`)}</small>
+        </p>
         <hr />
-        <a href={href.admin()} role="menuitem" class="item" tabindex="-1" onclick={() => hide(false)}>
-          <Icon name="dashboard" />
-          <span>{t('account.admin')}</span>
+        <a href={href.account()} role="menuitem" class="item" tabindex="-1" onclick={() => hide(false)}>
+          <Icon name="person" />
+          <span>{t('account.mine')}</span>
         </a>
+        {#if auth.isAdmin}
+          <a href={href.admin()} role="menuitem" class="item" tabindex="-1" onclick={() => hide(false)}>
+            <Icon name="dashboard" />
+            <span>{t('account.admin')}</span>
+          </a>
+        {/if}
         <button type="button" role="menuitem" class="item" tabindex="-1" onclick={logout}>
           <Icon name="logout" />
           <span>{t('account.logout')}</span>
@@ -185,9 +194,17 @@
   }
 
   .name {
+    display: flex;
+    flex-direction: column;
     padding: var(--space-2) var(--space-4);
     font-weight: var(--font-weight-medium);
     overflow-wrap: anywhere;
+  }
+
+  .name small {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-regular);
   }
 
   hr {

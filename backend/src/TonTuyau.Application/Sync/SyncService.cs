@@ -534,7 +534,8 @@ public sealed partial class SyncService(
 
     /// <summary>
     /// What ends a run, recorded failed (or canceled). PostgreSQL's errors too (alpha.4): a write cut short by a
-    /// cancel can come as one, which left the run "running" for good.
+    /// cancel can come as one, which left the run "running" for good. A cancel a library wraps too (2.3.0: the
+    /// Elasticsearch client's, a response read cut short), which recorded a canceled run as failed.
     /// </summary>
     private static bool IsRunFailure(Exception ex) =>
         ex is TubeArchivistException
@@ -543,7 +544,7 @@ public sealed partial class SyncService(
             or IOException
             or DbException
             or ValidationException
-        || ex.InnerException is DbException;
+        || ex.InnerException is DbException or OperationCanceledException;
 
     // ---------------------------------------------------------------- art
 

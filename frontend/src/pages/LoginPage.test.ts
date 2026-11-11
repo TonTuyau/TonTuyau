@@ -144,4 +144,25 @@ describe('LoginPage', () => {
 
     await vi.waitFor(() => expect(location()).toBe('/channels'))
   })
+
+  it('links the directory’s page for a forgotten password once a name is typed (2.3.0)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = new URL(String(input), 'http://localhost').pathname
+      return path === '/api/auth/access'
+        ? Response.json({ accountsOnly: false, passwordResetUrl: 'http://ldap.lan:17170/$username/password' })
+        : problemResponse(401, 'Nobody is logged in.')
+    })
+    goTo('/login')
+    await auth.load()
+    const user = userEvent.setup()
+    render(LoginPage)
+
+    expect(screen.queryByRole('link', { name: 'Forgot your password?' })).toBeNull()
+    await user.type(screen.getByLabelText('Username'), 'marie d')
+
+    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute(
+      'href',
+      'http://ldap.lan:17170/marie%20d/password',
+    )
+  })
 })

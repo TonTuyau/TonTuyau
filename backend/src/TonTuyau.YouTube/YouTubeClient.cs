@@ -128,6 +128,7 @@ internal sealed partial class YouTubeClient(
         string videoId,
         string format,
         string folder,
+        bool retryWithoutCookie,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(videoId);
@@ -151,8 +152,24 @@ internal sealed partial class YouTubeClient(
         }
 
         YtdlpRun run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken).ConfigureAwait(false);
+        // Signed in, YouTube can keep its formats from yt-dlp but one (a token it asks for): signed out, it gives them.
+        if (retryWithoutCookie
+            && run.SignedIn
+            && run.Failure is not null
+            && YtdlpErrors.FormatUnavailable(run.Failure.Value.Reason))
+        {
+            LogRetryingWithoutCookie(videoId, format);
+            run = await RunDirectAsync(arguments, DownloadTimeout, cancellationToken, signedIn: false)
+                .ConfigureAwait(false);
+        }
+
         if (run.Failure is not null)
         {
+            if (YtdlpErrors.FormatUnavailable(run.Failure.Value.Reason))
+            {
+                await LogFormatsAsync(videoId, format, cancellationToken).ConfigureAwait(false);
+            }
+
             return new YouTubeLookup<YouTubeDownload>(run.Failure.Value.Answer, null, run.Failure.Value.Reason);
         }
 
@@ -185,6 +202,72 @@ internal sealed partial class YouTubeClient(
         return new YouTubeLookup<YouTubeDownload>(YouTubeAnswer.Found, download, null);
     }
 
+    /// <summary>
+    /// The formats YouTube offers for the video, as yt-dlp's <c>--list-formats</c> table, in the run's log: what the
+    /// admin's format can be changed to when it matched none of them. With a cookie, listed signed in with it, then
+    /// without it: signed in, YouTube can keep its formats from yt-dlp but one, so the log shows both.
+    /// </summary>
+    private async Task LogFormatsAsync(string videoId, string format, CancellationToken cancellationToken)
+    {
+        bool signedIn = await LogFormatsAsync(videoId, format, signedIn: true, cancellationToken).ConfigureAwait(false);
+        if (signedIn)
+        {
+            await LogFormatsAsync(videoId, format, signedIn: false, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <returns>Whether yt-dlp was given the cookie (there's one, and <paramref name="signedIn"/>).</returns>
+    private async Task<bool> LogFormatsAsync(
+        string videoId,
+        string format,
+        bool signedIn,
+        CancellationToken cancellationToken)
+    {
+        List<string> lines = [];
+        YtdlpRun run = await RunDirectAsync(
+            [
+                "--ignore-config",
+                "--no-cache-dir",
+                "--color",
+                "never",
+                "--no-playlist",
+                "--list-formats",
+                $"https://www.youtube.com/watch?v={videoId}",
+            ],
+            CallTimeout,
+            cancellationToken,
+            line =>
+            {
+                lines.Add(line);
+                return false;
+            },
+            signedIn)
+            .ConfigureAwait(false);
+        // Said only when there's a cookie (the list without it comes after the one with it): else, a single list.
+        string how = run.SignedIn ? " signed in with the YouTube cookie"
+            : !signedIn ? " without the YouTube cookie"
+            : "";
+        // The table, from its heading on: the "[youtube] Downloading…" lines before it say nothing.
+        int heading = lines.FindIndex(l => l.StartsWith("[info] Available formats", StringComparison.Ordinal));
+        if (run.Failure is not null || heading < 0)
+        {
+            LogFormatsNotListed(videoId, how, run.Failure?.Reason ?? "yt-dlp printed no table.");
+            return run.SignedIn;
+        }
+
+        // Under the heading, the columns' names and a rule, then a line per format: none of them, nothing to show.
+        string[] table = [.. lines.Skip(heading + 1)];
+        if (!table.Any(l => l.Length > 0 && !l.StartsWith("ID ", StringComparison.Ordinal) && l[0] != '─'))
+        {
+            LogFormatsNotListed(videoId, how, "yt-dlp listed none.");
+            return run.SignedIn;
+        }
+
+        string formats = string.Join('\n', table);
+        LogFormats(videoId, format, how, formats);
+        return run.SignedIn;
+    }
+
     /// <remarks>
     /// yt-dlp lists lazily (<c>--lazy-playlist</c>), a line per entry as YouTube pages them: once
     /// <paramref name="stopAt"/> says so, yt-dlp is stopped, so the pages after it are never asked for.
@@ -198,6 +281,48 @@ internal sealed partial class YouTubeClient(
         ArgumentException.ThrowIfNullOrEmpty(channelId);
         ArgumentNullException.ThrowIfNull(stopAt);
         string page = tab.ToString().ToLowerInvariant();
+        string url = $"https://www.youtube.com/channel/{channelId}/{page}";
+        (YtdlpRun run, List<YouTubeListed> listed) = await ListAsync(url, stopAt, cancellationToken)
+            .ConfigureAwait(false);
+        if (run.Failure is null)
+        {
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+        }
+
+        if (!run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase))
+        {
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                run.Failure.Value.Answer,
+                null,
+                run.Failure.Value.Reason);
+        }
+
+        if (tab != ChannelTab.Videos)
+        {
+            // A channel without this tab (no shorts, never streamed): nothing to list.
+            return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null);
+        }
+
+        // No videos tab (2.3.0): the channel itself, as yt-dlp takes it. Without a videos, shorts or live tab (a
+        // "Topic" channel YouTube makes for an artist: a Home tab only), that's its uploads playlist (UU…); with
+        // shorts or streams only, those tabs, not videos: nothing more is listed (each tab is listed on its own).
+        string channel = $"https://www.youtube.com/channel/{channelId}";
+        (YtdlpRun uploads, List<YouTubeListed> uploaded) = await ListAsync(channel, stopAt, cancellationToken)
+            .ConfigureAwait(false);
+        return uploads.Failure is null
+            ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, uploaded, null)
+            : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
+                uploads.Failure.Value.Answer,
+                null,
+                uploads.Failure.Value.Reason);
+    }
+
+    /// <summary>The videos a channel's page or a playlist lists, newest first, until <paramref name="stopAt"/>.</summary>
+    private async Task<(YtdlpRun Run, List<YouTubeListed> Listed)> ListAsync(
+        string url,
+        Func<YouTubeListed, bool> stopAt,
+        CancellationToken cancellationToken)
+    {
         List<YouTubeListed> listed = [];
         bool stopped = false;
         YtdlpRun run = await RunDirectAsync(
@@ -210,7 +335,7 @@ internal sealed partial class YouTubeClient(
                 "--lazy-playlist",
                 "--print",
                 "%(.{id,live_status,title})j",
-                $"https://www.youtube.com/channel/{channelId}/{page}",
+                url,
             ],
             ListTimeout,
             cancellationToken,
@@ -226,18 +351,7 @@ internal sealed partial class YouTubeClient(
                 return stopped;
             })
             .ConfigureAwait(false);
-        if (run.Failure is not null)
-        {
-            // A channel without this tab (no shorts, never streamed): nothing to list.
-            return run.Failure.Value.Reason.Contains($"does not have a {page} tab", StringComparison.OrdinalIgnoreCase)
-                ? new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, [], null)
-                : new YouTubeLookup<IReadOnlyList<YouTubeListed>>(
-                    run.Failure.Value.Answer,
-                    null,
-                    run.Failure.Value.Reason);
-        }
-
-        return new YouTubeLookup<IReadOnlyList<YouTubeListed>>(YouTubeAnswer.Found, listed, null);
+        return (run, listed);
     }
 
     /// <summary>A listing's line: an entry with a video id; null otherwise (a warning, a playlist's own line).</summary>
@@ -560,13 +674,15 @@ internal sealed partial class YouTubeClient(
     /// Given each line yt-dlp writes (a listing, B5); true: enough, yt-dlp is stopped and the run counts as done. Null:
     /// its output isn't read.
     /// </param>
+    /// <param name="signedIn">False: without the cookie, even when there's one (2.3.0).</param>
     private async Task<YtdlpRun> RunDirectAsync(
         IReadOnlyList<string> arguments,
         TimeSpan limit,
         CancellationToken cancellationToken,
-        Func<string, bool>? output = null)
+        Func<string, bool>? output = null,
+        bool signedIn = true)
     {
-        string? cookie = await cookies.GetAsync(cancellationToken).ConfigureAwait(false);
+        string? cookie = signedIn ? await cookies.GetAsync(cancellationToken).ConfigureAwait(false) : null;
         if (cookie is null)
         {
             return await RunProcessAsync(arguments, limit, output, cancellationToken).ConfigureAwait(false);
@@ -576,8 +692,9 @@ internal sealed partial class YouTubeClient(
         try
         {
             await WriteCookieAsync(file, cookie, cancellationToken).ConfigureAwait(false);
-            return await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
+            YtdlpRun run = await RunProcessAsync(["--cookies", file, .. arguments], limit, output, cancellationToken)
                 .ConfigureAwait(false);
+            return run with { SignedIn = true };
         }
         finally
         {
@@ -790,16 +907,34 @@ internal sealed partial class YouTubeClient(
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp ended without leaving {Id}'s file and metadata.")]
     private partial void LogNoDownload(string id);
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Signed in with the YouTube cookie, the format {Format} matched none of {Id}'s: tried again without it.")]
+    private partial void LogRetryingWithoutCookie(string id, string format);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "The format {Format} matched none of {Id}'s; its formats{How} are:\n{Formats}")]
+    private partial void LogFormats(string id, string format, string how, string formats);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Id}'s formats{How} couldn't be listed: {Reason}")]
+    private partial void LogFormatsNotListed(string id, string how, string reason);
+
     [LoggerMessage(Level = LogLevel.Debug, Message = "yt-dlp (download): {Line}")]
     private partial void LogDownloadLine(string line);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "yt-dlp answered, but not with {Id}'s metadata.")]
     private partial void LogUnexpectedAnswer(string id);
 
-    /// <summary>A run's output, or why it failed; <see cref="Silent"/>: it failed without an error line.</summary>
+    /// <summary>
+    /// A run's output, or why it failed; <see cref="Silent"/>: it failed without an error line; <see cref="SignedIn"/>:
+    /// it was given the cookie.
+    /// </summary>
     private readonly record struct YtdlpRun(string Output, (YouTubeAnswer Answer, string Reason)? Failure)
     {
         public bool Silent { get; init; }
+
+        public bool SignedIn { get; init; }
 
         public static YtdlpRun Failed(YouTubeAnswer answer, string reason) => new("", (answer, reason));
     }

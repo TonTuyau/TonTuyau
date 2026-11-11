@@ -22,6 +22,10 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
 {
     public DbSet<AccountRow> Accounts => Set<AccountRow>();
 
+    public DbSet<AccessSettingsRow> AccessSettings => Set<AccessSettingsRow>();
+
+    public DbSet<LdapSettingsRow> LdapSettings => Set<LdapSettingsRow>();
+
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public DbSet<RunLogRow> RunLogLines => Set<RunLogRow>();
@@ -66,12 +70,62 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
             account.ToTable("accounts");
             account.Property(a => a.Id).HasColumnName("id");
             account.Property(a => a.Username).HasColumnName("username");
+            account.Property(a => a.UsernameKey).HasColumnName("username_key");
+            account.Property(a => a.DisplayName).HasColumnName("display_name");
+            // 2.3.0: the accounts made before are local admins, as they were.
+            account
+                .Property(a => a.Role)
+                .HasColumnName("role")
+                .HasConversion<string>();
+            account
+                .Property(a => a.Source)
+                .HasColumnName("source")
+                .HasConversion<string>();
+            account.Property(a => a.Disabled).HasColumnName("disabled");
             account.Property(a => a.PasswordHash).HasColumnName("password_hash");
+            account.Property(a => a.Stamp).HasColumnName("stamp");
             account.Property(a => a.CreatedAt).HasColumnName("created_at");
             account.Property(a => a.LastLoginAt).HasColumnName("last_login_at");
             account
                 .HasIndex(a => a.Username)
                 .IsUnique();
+            account
+                .HasIndex(a => a.UsernameKey)
+                .IsUnique();
+        });
+        modelBuilder.Entity<AccessSettingsRow>(access =>
+        {
+            access.ToTable("access_settings");
+            access
+                .Property(a => a.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            access.Property(a => a.AccountsOnly).HasColumnName("accounts_only");
+            access.Property(a => a.ChangedBy).HasColumnName("changed_by");
+            access.Property(a => a.ChangedAt).HasColumnName("changed_at");
+        });
+        modelBuilder.Entity<LdapSettingsRow>(ldap =>
+        {
+            ldap.ToTable("ldap_settings");
+            ldap
+                .Property(l => l.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+            ldap.Property(l => l.Enabled).HasColumnName("enabled");
+            ldap.Property(l => l.Url).HasColumnName("url");
+            ldap.Property(l => l.StartTls).HasColumnName("start_tls");
+            ldap.Property(l => l.CaCertificate).HasColumnName("ca_certificate");
+            ldap.Property(l => l.BindDn).HasColumnName("bind_dn");
+            ldap.Property(l => l.BindPassword).HasColumnName("bind_password");
+            ldap.Property(l => l.BaseDn).HasColumnName("base_dn");
+            ldap.Property(l => l.UidAttribute).HasColumnName("uid_attribute");
+            ldap.Property(l => l.UsernameAttribute).HasColumnName("username_attribute");
+            ldap.Property(l => l.UsersFilter).HasColumnName("users_filter");
+            ldap.Property(l => l.AdminsFilter).HasColumnName("admins_filter");
+            ldap.Property(l => l.PasswordAttribute).HasColumnName("password_attribute");
+            ldap.Property(l => l.PasswordResetUrl).HasColumnName("password_reset_url");
+            ldap.Property(l => l.ChangedBy).HasColumnName("changed_by");
+            ldap.Property(l => l.ChangedAt).HasColumnName("changed_at");
         });
         modelBuilder.Entity<DataProtectionKey>(key =>
         {
@@ -187,6 +241,8 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 .HasDefaultValue(Application.YouTube.YouTubeSettings.DefaultMinFreeGb)
                 .HasSentinel(-1);
             settings.Property(s => s.HoldBelowMinFree).HasColumnName("hold_below_min_free");
+            // 2.3.0: a switch as the one above, the migration fills the row there with true.
+            settings.Property(s => s.RetryWithoutCookie).HasColumnName("retry_without_cookie");
         });
         modelBuilder.Entity<VideoCommentRow>(comment =>
         {
@@ -430,6 +486,7 @@ public sealed class TonTuyauDbContext(DbContextOptions<TonTuyauDbContext> option
                 track.Property(t => t.Height).HasJsonPropertyName("height");
             });
         video.Property(v => v.MediaMissing).HasColumnName("media_missing");
+        video.Property(v => v.SyncBlocked).HasColumnName("sync_blocked");
         video.OwnsOne(v => v.ThumbnailArt, MapArt<VideoRow>("thumbnail_art"));
         // Its state on YouTube: its row of video_states, written and read with it, deleted with it.
         video

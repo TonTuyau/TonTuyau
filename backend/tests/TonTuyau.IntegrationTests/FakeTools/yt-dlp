@@ -3,7 +3,8 @@
 # reads: they answer a cookie holding SIGNED_IN; BOT_CHECK gets a bot check; anything else, or no cookie, is refused.
 # A video or channel is answered from the scenario's answers/ folder, next to this program (a link to it):
 # <id>.json is its metadata, <id>.err what yt-dlp says when it fails. A download writes a 4 KiB file. A channel's
-# tab is listed from <channel id>.<tab>.jsonl (2.0).
+# tab is listed from <channel id>.<tab>.jsonl (2.0). <id>.signed-in.err is what a download given the cookie gets
+# (2.3.0: signed in, YouTube can keep its formats from yt-dlp).
 if [[ "$*" == *--version* ]]; then
   echo "2026.08.19"
   exit 0
@@ -41,6 +42,15 @@ if [[ "${@: -1}" =~ /channel/([^/]+)/(videos|shorts|streams)$ ]]; then
   cat "$listed.jsonl"
   exit 0
 fi
+# A channel's own page listed (2.3.0, when it has no videos tab; its metadata is asked with --dump-single-json):
+# without a videos, shorts or live tab (a "Topic" channel), yt-dlp lists its uploads playlist:
+# answers/<channel id>.uploads.jsonl; without it, no video (its tabs).
+if [[ "$*" == *--lazy-playlist* && "${@: -1}" =~ /channel/([^/]+)$ ]]; then
+  if [[ -f "$answers/${BASH_REMATCH[1]}.uploads.jsonl" ]]; then
+    cat "$answers/${BASH_REMATCH[1]}.uploads.jsonl"
+  fi
+  exit 0
+fi
 id="${@: -1}"
 id="${id##*[=/]}"
 # A download (2.0): the video's file and its info dict, in the folder asked for (--paths home:…), as yt-dlp leaves
@@ -52,6 +62,10 @@ if [[ "$*" == *--write-info-json* ]]; then
     if [[ "${args[$i]}" == "--paths" && "${args[$((i + 1))]}" == home:* ]]; then folder="${args[$((i + 1))]#home:}"; fi
     if [[ "${args[$i]}" == "--format" ]]; then format="${args[$((i + 1))]}"; fi
   done
+  if [[ -n "$cookies" && -f "$answers/$id.signed-in.err" ]]; then
+    cat "$answers/$id.signed-in.err" >&2
+    exit 1
+  fi
   if [[ -f "$answers/$id.err" ]]; then
     cat "$answers/$id.err" >&2
     exit 1

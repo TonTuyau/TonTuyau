@@ -1,16 +1,47 @@
 #!/usr/bin/env bash
 # Builds and tests everything, front and back. Exit code != 0 on the first failure.
-# `--backend` or `--frontend`: that part only (C1: the CI checks them as two jobs side by side, the backend only when a
-# pull request changes more than frontend/), with the version and compose checks either way.
+#   check.sh                 every stage, in order
+#   check.sh --backend       the version, the compose file, then the backend's stages
+#   check.sh --frontend      the version, the compose file, then the front's stages
+#   check.sh STAGE...        those stages only, in the order given (the CI runs each as a step of its own)
+# The stages (`check.sh --list` lists them):
+#   version, compose
+#   backend:format, backend:build, backend:unit, backend:integration
+#   frontend:install, frontend:lint, frontend:typecheck, frontend:test, frontend:build, frontend:csp
+# A stage expects the ones before it on its side: backend:unit and backend:integration test what backend:build built,
+# the front's stages need frontend:install's packages, frontend:csp reads frontend:build's page.
 set -euo pipefail
 
-backend=true
-frontend=true
+backend_stages=(backend:format backend:build backend:unit backend:integration)
+frontend_stages=(frontend:install frontend:lint frontend:typecheck frontend:test frontend:build frontend:csp)
+all_stages=(version compose "${backend_stages[@]}" "${frontend_stages[@]}")
+
+usage() {
+  echo "usage: $0 [--backend | --frontend | --list | STAGE...]" >&2
+  echo "stages: ${all_stages[*]}" >&2
+  exit 2
+}
+
+done_message="All checks passed."
 case "${1:-}" in
-  "") ;;
-  --backend) frontend=false ;;
-  --frontend) backend=false ;;
-  *) echo "usage: $0 [--backend | --frontend]" >&2; exit 2 ;;
+  "") stages=("${all_stages[@]}") ;;
+  --backend)
+    stages=(version compose "${backend_stages[@]}")
+    done_message="All backend checks passed."
+    ;;
+  --frontend)
+    stages=(version compose "${frontend_stages[@]}")
+    done_message="All front checks passed."
+    ;;
+  --list)
+    printf '%s\n' "${all_stages[@]}"
+    exit 0
+    ;;
+  -*) usage ;;
+  *)
+    stages=("$@")
+    done_message="Passed: $*."
+    ;;
 esac
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,48 +52,68 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 COREPACK_ENABLE_DOWNLOAD_PR
 
 step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 
-step "version (backend = frontend)"
-"$root/scripts/check-version.sh"
+# The backend's commands run from backend/, so its global.json (SDK pin + Microsoft.Testing.Platform runner) applies.
+run_stage() {
+  case "$1" in
+    version)
+      step "version (backend = frontend)"
+      "$root/scripts/check-version.sh"
+      ;;
+    compose)
+      step "compose file (renders with .env.example)"
+      "$root/scripts/check-compose.sh"
+      ;;
+    backend:format)
+      step "backend: format"
+      (cd "$root/backend" && dotnet format --verify-no-changes)
+      ;;
+    backend:build)
+      step "backend: build"
+      (cd "$root/backend" && dotnet build --nologo -v quiet)
+      ;;
+    backend:unit)
+      step "backend: unit tests"
+      (cd "$root/backend" \
+        && dotnet test --no-build --root-directory "$root/backend" \
+          --test-modules "tests/*.UnitTests/bin/Debug/net10.0/*.UnitTests.dll")
+      ;;
+    backend:integration)
+      step "backend: integration tests (Reqnroll; Testcontainers starts Elasticsearch, PostgreSQL, LLDAP)"
+      (cd "$root/backend" && dotnet test --no-build --project tests/TonTuyau.IntegrationTests)
+      ;;
+    frontend:install)
+      step "frontend: install"
+      (cd "$root/frontend" && pnpm install --frozen-lockfile)
+      ;;
+    frontend:lint)
+      step "frontend: lint"
+      (cd "$root/frontend" && pnpm run lint)
+      ;;
+    frontend:typecheck)
+      step "frontend: typecheck"
+      (cd "$root/frontend" && pnpm run check)
+      ;;
+    frontend:test)
+      step "frontend: tests (the app, the mock, the production server in server/)"
+      (cd "$root/frontend" && pnpm run test)
+      ;;
+    frontend:build)
+      step "frontend: build"
+      (cd "$root/frontend" && pnpm run build)
+      ;;
+    frontend:csp)
+      step "frontend: the built page has nothing the Content-Security-Policy would block"
+      (cd "$root/frontend" && pnpm run check:csp)
+      ;;
+    *)
+      echo "unknown stage: $1" >&2
+      usage
+      ;;
+  esac
+}
 
-step "compose file (renders with .env.example)"
-"$root/scripts/check-compose.sh"
+for stage in "${stages[@]}"; do
+  run_stage "$stage"
+done
 
-if [ "$backend" = true ]; then
-  # Run from backend/ so its global.json (SDK pin + Microsoft.Testing.Platform runner) applies.
-  cd "$root/backend"
-  step "backend: format"
-  dotnet format --verify-no-changes
-
-  step "backend: build"
-  dotnet build --nologo -v quiet
-
-  step "backend: tests (unit + Reqnroll)"
-  dotnet test --no-build
-fi
-
-if [ "$frontend" = true ]; then
-  cd "$root/frontend"
-  step "frontend: install"
-  pnpm install --frozen-lockfile
-
-  step "frontend: lint"
-  pnpm run lint
-
-  step "frontend: typecheck"
-  pnpm run check
-
-  step "frontend: tests (the app, the mock, the production server in server/)"
-  pnpm run test
-
-  step "frontend: build"
-  pnpm run build
-
-  step "frontend: the built page has nothing the Content-Security-Policy would block"
-  pnpm run check:csp
-fi
-
-case "${1:-}" in
-  --backend) printf '\n\033[1;32mAll backend checks passed.\033[0m\n' ;;
-  --frontend) printf '\n\033[1;32mAll front checks passed.\033[0m\n' ;;
-  *) printf '\n\033[1;32mAll checks passed.\033[0m\n' ;;
-esac
+printf '\n\033[1;32m%s\033[0m\n' "$done_message"

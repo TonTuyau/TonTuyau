@@ -59,6 +59,27 @@ public enum SyncMode
     /// was read in the last <see cref="SyncRun.SkipReadDays"/> days skipped; at the refreshes' pace, held on a refusal.
     /// </summary>
     RefreshAll,
+
+    /// <summary>
+    /// Purges videos of one channel (2.3.0, <see cref="SyncRun.Target"/>): each one's file, its place in the library,
+    /// its comments, failed download and pictures, gone. Its <see cref="SyncRun.Videos"/>, or every video of the
+    /// channel when there are none. Nothing is asked of YouTube; a full sync of the channel can bring them back.
+    /// </summary>
+    PurgeVideos,
+
+    /// <summary>
+    /// Refreshes videos of one channel picked on its admin page (2.3.0, <see cref="SyncRun.Target"/>, its
+    /// <see cref="SyncRun.Videos"/>): each read on YouTube as <see cref="RefreshVideo"/> reads one; the gone ones
+    /// skipped.
+    /// </summary>
+    RefreshVideos,
+
+    /// <summary>
+    /// Downloads videos of one channel again (2.3.0, <see cref="SyncRun.Target"/>, its <see cref="SyncRun.Videos"/>),
+    /// with their files: each new file replaces the one there once it's downloaded; one that fails leaves it. Takes
+    /// <see cref="SyncRun.DownloadFormat"/> and <see cref="SyncRun.RetryWithoutCookie"/> this once.
+    /// </summary>
+    RedownloadVideos,
 }
 
 public enum SyncTrigger
@@ -80,6 +101,19 @@ public enum SyncTrigger
     /// From the browser extension (2.0, B7: "Add to TonTuyau" on a YouTube page), by the key <see cref="SyncRun.StartedBy"/>.
     /// </summary>
     Extension,
+}
+
+/// <summary>Why a run is on hold (2.3.0): only YouTube refusing makes the queue wait.</summary>
+public enum HoldReason
+{
+    /// <summary>YouTube refused (a bot check, too many requests): the next runs would be too; the queue waits.</summary>
+    YouTube,
+
+    /// <summary>Put on hold by hand: it waits for Resume now; the queue goes on meanwhile.</summary>
+    Hand,
+
+    /// <summary>Under the disk space threshold (2.2.0): it tries again after the cool-down; the queue goes on.</summary>
+    DiskSpace,
 }
 
 public enum SyncOutcome
@@ -175,6 +209,9 @@ public sealed record SyncCounts
     /// "Add a channel" added.
     /// </summary>
     public int Subscribed { get; init; }
+
+    /// <summary>A purge (2.3.0): the videos it took out of the library, their files deleted.</summary>
+    public int Purged { get; init; }
 }
 
 /// <summary>One run (an import, an index rebuild, a refresh, a download), as kept in the run history.</summary>
@@ -213,6 +250,31 @@ public sealed record SyncRun
     /// </summary>
     public int? SkipReadDays { get; init; }
 
+    /// <summary>
+    /// A download (2.2, "Try again" with a format), a full sync of one channel (2.3.0): yt-dlp's format this once;
+    /// null: the YouTube settings' one.
+    /// </summary>
+    public string? DownloadFormat { get; init; }
+
+    /// <summary>
+    /// A full sync of one channel (2.3.0): whether a download whose format matched none with the YouTube cookie is tried
+    /// again without it, this once; null: the YouTube settings say.
+    /// </summary>
+    public bool? RetryWithoutCookie { get; init; }
+
+    /// <summary>
+    /// A purge, a refresh or a download again of videos picked (2.3.0): the videos of its channel; empty (a purge
+    /// only): every one of them.
+    /// </summary>
+    public IReadOnlyList<string> Videos { get; init; } = [];
+
+    /// <summary>
+    /// A purge (2.3.0): true, only the files go; each video stays, its metadata, thumbnail and comments with it, its
+    /// syncs blocked (none downloads it again) and left out of the library's lists until it's unblocked on its
+    /// channel's page. False or null: the videos go whole.
+    /// </summary>
+    public bool? FilesOnly { get; init; }
+
     /// <summary>"Add a channel" (2.0, B4): the tabs it subscribes to; null for the other runs.</summary>
     public ChannelTabs? Tabs { get; init; }
 
@@ -221,6 +283,24 @@ public sealed record SyncRun
 
     /// <summary>A refresh on hold (1.5): the channels and videos left to read, in order (the one refused first).</summary>
     public IReadOnlyList<string> Remaining { get; init; } = [];
+
+    /// <summary>
+    /// Why it's on hold (2.3.0); null otherwise, and for a run held before 2.3.0 (taken for YouTube's: the queue waits).
+    /// </summary>
+    public HoldReason? HeldFor { get; init; }
+
+    /// <summary>
+    /// Queued (2.3.0): when it was asked to go first (Run now; Resume now while another run goes on). The runs asked to
+    /// go first start before the others, the latest asked first; null: its turn, first come first served.
+    /// </summary>
+    public DateTimeOffset? FirstAt { get; init; }
+
+    /// <summary>
+    /// Queued with what it has left to read (<see cref="Remaining"/>, 2.3.0): a run on hold put back in the queue
+    /// (Resume now while another run goes on; Run now of another task while it went on); its turn resumes it.
+    /// </summary>
+    /// <remarks>A method, not a property: only what it's made of is written with the run.</remarks>
+    public bool IsResuming() => Outcome == SyncOutcome.Queued && Remaining.Count > 0;
 
     public SyncCounts Counts { get; init; } = new();
 

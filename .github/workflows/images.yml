@@ -1,0 +1,117 @@
+# Both images, built, run (scripts/smoke-image.sh), then pushed to GHCR under the tags given (2.3.0: one build for
+# ci.yml, release.yml and rebuild.yml). What is pushed is the very image that was run: built into the runner's Docker,
+# run, then tagged and pushed (1.5.1: no shell in TonTuyau's images, so a program missing a library would only show
+# when it runs).
+name: Images
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The sources to build (a tag); empty, those of the run that calls it.
+        type: string
+        default: ""
+      version:
+        description: The version the images say; empty, scripts/check-version.sh's of those sources.
+        type: string
+        default: ""
+      tags:
+        description: Pushed under these tags of ghcr.io/tontuyau/tontuyau-<image>, by spaces (e.g. "2.3.0 2.3 latest").
+        type: string
+        default: ""
+      push:
+        description: Push them (a version tag, the monthly rebuild); false, built and run only (a pull request).
+        type: boolean
+        default: false
+      fresh:
+        description: Fresh base images and no build cache, every layer built again (the monthly rebuild).
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Image ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [backend, frontend]
+    steps:
+      # The calling workflow's own scripts (smoke-image.sh), and the sources to build: the same commit, but for the
+      # monthly rebuild (today's scripts, the release's sources).
+      - uses: actions/checkout@v5
+        with:
+          path: ci
+
+      - uses: actions/checkout@v5
+        with:
+          path: src
+          ref: ${{ inputs.ref }}
+
+      - name: Version
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          {
+            echo "version=${VERSION:-$(src/scripts/check-version.sh)}"
+            echo "revision=$(git -C src rev-parse HEAD)"
+            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Written out rather than taken from the repository (its name and description), so the images say TonTuyau and
+      # point at github.com/TonTuyau/TonTuyau whatever the repository is called when CI runs.
+      - uses: docker/build-push-action@v6
+        with:
+          context: src
+          file: src/docker/${{ matrix.image }}.Dockerfile
+          platforms: linux/amd64
+          pull: ${{ inputs.fresh }}
+          no-cache: ${{ inputs.fresh }}
+          load: true
+          tags: tontuyau-${{ matrix.image }}:built
+          labels: |
+            org.opencontainers.image.title=TonTuyau ${{ matrix.image }}
+            org.opencontainers.image.description=TonTuyau's ${{ matrix.image }}: a self-hosted, YouTube-like video library
+            org.opencontainers.image.source=https://github.com/TonTuyau/TonTuyau
+            org.opencontainers.image.url=https://github.com/TonTuyau/TonTuyau
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.revision }}
+            org.opencontainers.image.created=${{ steps.version.outputs.created }}
+            org.opencontainers.image.licenses=GPL-3.0-or-later
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            REVISION=${{ steps.version.outputs.revision }}
+          cache-from: ${{ !inputs.fresh && format('type=gha,scope={0}', matrix.image) || '' }}
+          cache-to: ${{ !inputs.fresh && format('type=gha,mode=max,scope={0}', matrix.image) || '' }}
+
+      - name: Run what the image carries
+        run: ci/scripts/smoke-image.sh ${{ matrix.image }} tontuyau-${{ matrix.image }}:built
+
+      - uses: docker/login-action@v3
+        if: inputs.push
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push under ${{ inputs.tags }}
+        if: inputs.push
+        env:
+          IMAGE: ghcr.io/tontuyau/tontuyau-${{ matrix.image }}
+          TAGS: ${{ inputs.tags }}
+        run: |
+          [ -n "$TAGS" ] || { echo "No tag to push under." >&2; exit 1; }
+          for tag in $TAGS; do
+            docker tag "tontuyau-${{ matrix.image }}:built" "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done

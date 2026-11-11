@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
@@ -16,9 +18,11 @@ namespace TonTuyau.IntegrationTests.Steps;
 /// requests (until an answer deletes it).
 /// </summary>
 [Binding]
-public sealed class AuthSteps(ScenarioState state)
+public sealed partial class AuthSteps(ScenarioState state)
 {
     private const string AdminName = "admin";
+
+    private readonly Dictionary<string, string?> _kept = new(StringComparer.Ordinal);
 
     private string? _cookie;
     private SetCookieHeaderValue? _lastSetCookie;
@@ -67,8 +71,54 @@ public sealed class AuthSteps(ScenarioState state)
         await SendAsync(request);
     }
 
-    [When("I send POST {string} with my session")]
+
+    /// <summary>A JSON request with the session cookie (2.3.0: the accounts), the body as written.</summary>
+    [When("I send {word} {string} with my session and {string}")]
+    public async Task SendJsonWithSession(string method, string path, string json)
+    {
+        Uri uri = new(await ExpandAsync(path), UriKind.Relative);
+        using HttpRequestMessage request = new(new HttpMethod(method), uri)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+        await SendAsync(request);
+    }
+
     public Task PostWithSession(string path) => PostAsync(TestIds.Expand(path), content: null, from: null);
+
+    /// <summary>A request without a body (POST, DELETE…) with the session cookie.</summary>
+    [When("I send {word} {string} with my session")]
+    public async Task SendWithSession(string method, string path)
+    {
+        Uri uri = new(await ExpandAsync(path), UriKind.Relative);
+        using HttpRequestMessage request = new(new HttpMethod(method), uri);
+        await SendAsync(request);
+    }
+
+    /// <summary>A local user (2.3.0), made as the admin's accounts page makes one.</summary>
+    [Given("there is the user {string} with the password {string}")]
+    public async Task ThereIsTheUser(string username, string password)
+    {
+        await using AsyncServiceScope scope = state.Backend.Services.CreateAsyncScope();
+        await scope.ServiceProvider
+            .GetRequiredService<AccountService>()
+            .CreateAsync(username, password, "user", "test", TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Another browser (2.3.0): this session is kept aside under a name, and the next requests go without one.</summary>
+    [Given("I keep this session as {string}")]
+    [When("I keep this session as {string}")]
+    public void KeepSession(string name)
+    {
+        _kept[name] = _cookie;
+        _cookie = null;
+    }
+
+    [When("I go back to the session {string}")]
+    public void UseSession(string name) =>
+        _cookie = _kept.TryGetValue(name, out string? cookie)
+            ? cookie
+            : throw new InvalidOperationException($"No session kept as {name}.");
 
     [When("I log out")]
     public Task LogOut() => PostAsync("/api/auth/logout", content: null, from: null);
@@ -145,6 +195,25 @@ public sealed class AuthSteps(ScenarioState state)
     {
         Assert.Null((await AccountAsync(username)).LastLoginAt);
     }
+
+    /// <summary>The ids of the scenario (<see cref="TestIds.Expand"/>), and <c>{account:name}</c>: that account's id.</summary>
+    private async Task<string> ExpandAsync(string path)
+    {
+        string expanded = TestIds.Expand(path);
+        foreach (Match match in AccountPlaceholder().Matches(expanded))
+        {
+            Account account = await AccountAsync(match.Groups["name"].Value);
+            expanded = expanded.Replace(
+                match.Value,
+                account.Id.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+        }
+
+        return expanded;
+    }
+
+    [GeneratedRegex("\\{account:(?<name>[^}]+)\\}")]
+    private static partial Regex AccountPlaceholder();
 
     private async Task<Account> AccountAsync(string username)
     {

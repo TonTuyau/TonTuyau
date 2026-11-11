@@ -47,11 +47,12 @@ public sealed partial class YouTubeRefreshService(
     IChannelRepository channels,
     ISubscriptionStore subscriptions,
     IDownloadFailureStore downloadFailures,
+    IIndexManager indices,
     ISyncStateStore state,
     StreamingService streaming,
     DownloadSpace space,
     TimeProvider clock,
-    ILogger<YouTubeRefreshService> logger)
+    ILogger<YouTubeRefreshService> logger) : IDisposable
 {
     /// <summary>"Refresh everything" skips what was read in the last this many days, unless told otherwise (B8).</summary>
     public const int DefaultSkipReadDays = 7;
@@ -148,17 +149,23 @@ public sealed partial class YouTubeRefreshService(
             : mode == SyncMode.RetryDownloads
             ? [.. (await downloadFailures.ListAsync(target!, cancellationToken).ConfigureAwait(false))
                 .Select(f => f.VideoId)]
+            : mode is SyncMode.PurgeVideos or SyncMode.RedownloadVideos
+            ? [.. (await PickedAsync(target!, queued?.Videos ?? [], cancellationToken).ConfigureAwait(false))
+                .Select(v => v.Id)]
+            : mode == SyncMode.RefreshVideos
+            ? []
             : [target!];
         List<VideoSummary> skipped = [];
-        if (mode == SyncMode.RefreshChannelVideos)
+        if (mode is SyncMode.RefreshChannelVideos or SyncMode.RefreshVideos)
         {
-            IReadOnlyList<VideoSummary> ofChannel = await videos
-                .FindByChannelsAsync([target!], cancellationToken)
+            // A channel's videos, or those picked on its page (2.3.0): latest first.
+            IReadOnlyList<string> asked = mode == SyncMode.RefreshVideos ? queued?.Videos ?? [] : [];
+            IReadOnlyList<VideoSummary> ofChannel = await PickedAsync(target!, asked, cancellationToken)
                 .ConfigureAwait(false);
             IReadOnlyDictionary<string, VideoFacts> known = await facts
                 .GetVideosAsync([.. ofChannel.Select(v => v.Id)], cancellationToken)
                 .ConfigureAwait(false);
-            foreach (VideoSummary video in ofChannel.OrderByDescending(v => v.Downloaded))
+            foreach (VideoSummary video in ofChannel)
             {
                 if (known.GetValueOrDefault(video.Id)?.Status.State == YouTubeState.Gone)
                 {
@@ -222,8 +229,8 @@ public sealed partial class YouTubeRefreshService(
     /// <summary>
     /// Resumes a run on hold (<see cref="SyncOutcome.OnHold"/>): the same run, from where YouTube refused it.
     /// </summary>
-    /// <param name="by">Who asks (an account); null: by itself, after the cool-down.</param>
-    /// <exception cref="SyncRefusedException">No such run, or it isn't on hold.</exception>
+    /// <param name="by">Who asks (an account); null: by itself, after the cool-down (or its turn in the queue).</param>
+    /// <exception cref="SyncRefusedException">No such run, or it isn't on hold (nor back in the queue).</exception>
     /// <exception cref="SyncBusyException">Another run holds the lock.</exception>
     public async Task<SyncRun> ResumeAsync(
         string runId,
@@ -233,42 +240,90 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(progress);
-        SyncRun held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
+        SyncRun held = await HeldAsync(runId, cancellationToken, queued: true).ConfigureAwait(false);
         ISyncLease lease = await state.TryAcquireLockAsync(held.Mode, trigger, cancellationToken).ConfigureAwait(false)
             ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
         await using (lease.ConfigureAwait(false))
         {
-            // Again under the lock: it may have been resumed or canceled meanwhile.
-            held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
-            SyncRun run = held with
+            SyncRun run;
+            await _heldGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                Outcome = SyncOutcome.Running,
-                FinishedAt = null,
-                ResumeAt = null,
-                Remaining = [],
-            };
-            return await RunLockedAsync(run, [.. held.Remaining], [], by ?? Itself, lease, progress, cancellationToken)
+                // Again under the lock: it may have been resumed or canceled meanwhile.
+                held = await HeldAsync(runId, cancellationToken, queued: true).ConfigureAwait(false);
+                run = held with
+                {
+                    Outcome = SyncOutcome.Running,
+                    FinishedAt = null,
+                    ResumeAt = null,
+                    Remaining = [],
+                    HeldFor = null,
+                    FirstAt = null,
+                };
+                await state.SaveRunAsync(run, CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                _heldGate.Release();
+            }
+
+            string resumer = by ?? (held.Outcome == SyncOutcome.Queued ? ItsTurn : Itself);
+            return await RunLockedAsync(run, [.. held.Remaining], [], resumer, lease, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
 
-    /// <summary>Cancels a run on hold: it won't resume; what it did stays.</summary>
-    /// <param name="by">Who asks, for its notes.</param>
+    /// <summary>
+    /// Resume now while another run goes on (2.3.0): the run on hold goes back in the queue, first, to go on once that
+    /// one ends.
+    /// </summary>
     /// <exception cref="SyncRefusedException">No such run, or it isn't on hold.</exception>
-    /// <exception cref="SyncBusyException">Another run holds the lock (it may be this one, resuming).</exception>
+    public async Task<SyncRun> BackInQueueAsync(string runId, string by, CancellationToken cancellationToken)
+    {
+        await _heldGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            SyncRun held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
+            SyncRun queued = held with
+            {
+                Outcome = SyncOutcome.Queued,
+                ResumeAt = null,
+                HeldFor = null,
+                FirstAt = clock.GetUtcNow(),
+                Notes =
+                [
+                    .. held.Notes,
+                    $"Resume now by {by} while another run went on: first in the queue, it goes on once that one ends.",
+                ],
+            };
+            await state.SaveRunAsync(queued, CancellationToken.None).ConfigureAwait(false);
+            using IDisposable? scope = logger.BeginScope(new RunLogScope(runId));
+            LogBackInQueue(runId, by, held.Remaining.Count);
+            return queued;
+        }
+        finally
+        {
+            _heldGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Cancels a run on hold: it won't resume; what it did stays. Without the lock (2.3.0: another run may go on
+    /// meanwhile); a resume starting at the same moment is kept apart by <see cref="_heldGate"/>.
+    /// </summary>
+    /// <param name="by">Who asks, for its notes.</param>
+    /// <exception cref="SyncRefusedException">No such run, or it isn't on hold (resumed meanwhile, over).</exception>
     public async Task<SyncRun> CancelHeldAsync(string runId, string by, CancellationToken cancellationToken)
     {
-        SyncRun held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
-        ISyncLease lease = await state.TryAcquireLockAsync(held.Mode, SyncTrigger.Admin, cancellationToken)
-            .ConfigureAwait(false)
-            ?? throw new SyncBusyException(await state.GetLockAsync(cancellationToken).ConfigureAwait(false));
-        await using (lease.ConfigureAwait(false))
+        await _heldGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
+            SyncRun held = await HeldAsync(runId, cancellationToken).ConfigureAwait(false);
             SyncRun canceled = held with
             {
                 Outcome = SyncOutcome.Canceled,
                 ResumeAt = null,
+                HeldFor = null,
                 Notes = [.. held.Notes, $"Canceled by {by} while on hold: it won't resume."],
             };
             await state.SaveRunAsync(canceled, CancellationToken.None).ConfigureAwait(false);
@@ -276,22 +331,38 @@ public sealed partial class YouTubeRefreshService(
             LogCanceledHeld(runId, by);
             return canceled;
         }
+        finally
+        {
+            _heldGate.Release();
+        }
     }
 
     /// <summary>"by itself", in a resumed run's note.</summary>
     private const string Itself = "itself, after the cool-down";
 
-    // The refresh going on here, for a hold by hand (one run at a time): its id, what stops it, who asked.
+    /// <summary>"by itself, its turn come", in the note of a run resumed from the queue (2.3.0).</summary>
+    private const string ItsTurn = "itself, its turn come in the queue";
+
+    // The refresh going on here, for a hold by hand (one run at a time): its id, what stops it, who asked, and (2.3.0)
+    // when it goes back in the queue (Run now of another run).
     private readonly Lock _holdGate = new();
     private string? _runningId;
     private CancellationTokenSource? _holding;
-    private string? _holdBy;
+    private (string By, DateTimeOffset? BackInQueueAt)? _hold;
+
+    // A run on hold resumed, put back in the queue or canceled: one at a time (2.3.0: without the lock, which another run
+    // may hold meanwhile).
+    private readonly SemaphoreSlim _heldGate = new(1, 1);
 
     /// <summary>
     /// Puts the refresh going on here on hold now, by hand (1.5): it stops at once, the item it was reading kept to
     /// read again, and waits for Resume now (no cool-down). False when it isn't the refresh going on here.
     /// </summary>
-    public bool RequestHold(string runId, string by)
+    /// <param name="backInQueueAt">
+    /// 2.3.0, Run now of another run: instead of waiting, it goes back in the queue at once, at this place among the
+    /// runs asked to go first (<see cref="SyncRun.FirstAt"/>); null: on hold.
+    /// </param>
+    public bool RequestHold(string runId, string by, DateTimeOffset? backInQueueAt = null)
     {
         lock (_holdGate)
         {
@@ -300,9 +371,9 @@ public sealed partial class YouTubeRefreshService(
                 return false;
             }
 
-            if (_holdBy is null)
+            if (_hold is null)
             {
-                _holdBy = by;
+                _hold = (by, backInQueueAt);
                 // Under the gate: the run lets go of its source under it too, so it's never canceled once disposed.
                 _holding!.Cancel();
             }
@@ -317,7 +388,7 @@ public sealed partial class YouTubeRefreshService(
         {
             _runningId = runId;
             _holding = holding;
-            _holdBy = null;
+            _hold = null;
         }
     }
 
@@ -327,24 +398,27 @@ public sealed partial class YouTubeRefreshService(
         {
             _runningId = null;
             _holding = null;
-            _holdBy = null;
+            _hold = null;
         }
     }
 
-    /// <summary>Who put the refresh going on on hold by hand; null when nobody did.</summary>
-    private string? HoldRequestedBy()
+    /// <summary>Who put the refresh going on on hold by hand, and whether back in the queue; null when nobody did.</summary>
+    private (string By, DateTimeOffset? BackInQueueAt)? HoldRequestedBy()
     {
         lock (_holdGate)
         {
-            return _holdBy;
+            return _hold;
         }
     }
 
-    private async Task<SyncRun> HeldAsync(string runId, CancellationToken cancellationToken)
+    public void Dispose() => _heldGate.Dispose();
+
+    /// <summary>A run on hold, or (2.3.0) one back in the queue to resume when <paramref name="queued"/>.</summary>
+    private async Task<SyncRun> HeldAsync(string runId, CancellationToken cancellationToken, bool queued = false)
     {
         SyncRun? run = await state.GetRunAsync(runId, cancellationToken).ConfigureAwait(false)
             ?? throw new SyncRefusedException($"No run {runId}.");
-        return run.Outcome == SyncOutcome.OnHold
+        return run.Outcome == SyncOutcome.OnHold || (queued && run.IsResuming())
             ? run
             : throw new SyncRefusedException($"The run {runId} isn't on hold.");
     }
@@ -471,6 +545,7 @@ public sealed partial class YouTubeRefreshService(
         CancellationToken ct = context.CancellationToken;
         int videosTotal = context.Run.Counts.VideosRead + work.Count(LibraryIds.IsVideoId);
         bool videosBegun = false;
+        long freed = 0;
         for (int index = 0; index < work.Count; index++)
         {
             // Its counts as before it: an item stopped by a hold is read again when the run resumes.
@@ -494,6 +569,28 @@ public sealed partial class YouTubeRefreshService(
                 {
                     refused = await SyncItemAsync(mode == SyncMode.YouTubeFullSync, work, index, read, context)
                         .ConfigureAwait(false);
+                }
+                else if (mode == SyncMode.PurgeVideos)
+                {
+                    if (index == 0)
+                    {
+                        context.BeginPhase(SyncPhase.Purge, work.Count);
+                    }
+
+                    freed += await PurgeOneAsync(id, context.Run.FilesOnly == true, context).ConfigureAwait(false);
+                    refused = null;
+                    context.Progressed(index + 1);
+                }
+                else if (mode == SyncMode.RedownloadVideos)
+                {
+                    // A pause between two downloads.
+                    if (index > 0)
+                    {
+                        await PauseAsync(read.PauseSeconds, ct).ConfigureAwait(false);
+                    }
+
+                    context.BeginPhase(SyncPhase.YouTubeDownload, 1);
+                    refused = await RedownloadOneAsync(id, read, context).ConfigureAwait(false);
                 }
                 else if (mode == SyncMode.RefreshAll)
                 {
@@ -549,15 +646,20 @@ public sealed partial class YouTubeRefreshService(
                 HoldForSpace([.. work.Skip(index)], ex.Message, read.HoldMinutes, context);
                 return false;
             }
-            catch (Exception) when (!stopping.IsCancellationRequested && HoldRequestedBy() is { } by)
+            catch (Exception) when (!stopping.IsCancellationRequested && HoldRequestedBy() is { } hold)
             {
                 context.Count(_ => before);
-                HoldByHand([.. work.Skip(index)], by, context);
+                HoldByHand([.. work.Skip(index)], hold.By, hold.BackInQueueAt, context);
                 return false;
             }
 
             // The run's page shows the run as saved: its counts so far, after each answer.
             await context.SaveAsync().ConfigureAwait(false);
+        }
+
+        if (mode == SyncMode.PurgeVideos)
+        {
+            await AfterPurgeAsync(freed, context).ConfigureAwait(false);
         }
 
         return true;
@@ -568,7 +670,14 @@ public sealed partial class YouTubeRefreshService(
     {
         DateTimeOffset now = clock.GetUtcNow();
         DateTimeOffset resumeAt = now.AddMinutes(minutes);
-        context.Update(r => r with { Outcome = SyncOutcome.OnHold, ResumeAt = resumeAt, Remaining = left });
+        context.Update(
+            r => r with
+            {
+                Outcome = SyncOutcome.OnHold,
+                ResumeAt = resumeAt,
+                Remaining = left,
+                HeldFor = HoldReason.YouTube,
+            });
         context.Note(string.Create(
             CultureInfo.InvariantCulture,
             $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: YouTube refused ({reason}). It resumes by itself at {resumeAt:HH:mm} UTC, or with Resume now."));
@@ -583,20 +692,56 @@ public sealed partial class YouTubeRefreshService(
     {
         DateTimeOffset now = clock.GetUtcNow();
         DateTimeOffset resumeAt = now.AddMinutes(minutes);
-        context.Update(r => r with { Outcome = SyncOutcome.OnHold, ResumeAt = resumeAt, Remaining = left });
+        context.Update(
+            r => r with
+            {
+                Outcome = SyncOutcome.OnHold,
+                ResumeAt = resumeAt,
+                Remaining = left,
+                HeldFor = HoldReason.DiskSpace,
+            });
         context.Note(string.Create(
             CultureInfo.InvariantCulture,
             $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: {why} It tries again by itself at {resumeAt:HH:mm} UTC, or with Resume now."));
         LogHeldForSpace(context.Run.Id, resumeAt, left.Length);
     }
 
-    private void HoldByHand(string[] left, string by, RunContext context)
+    /// <summary>
+    /// Put on hold by hand: it waits for Resume now (the queue goes on meanwhile, 2.3.0); or (2.3.0, Run now of another
+    /// run) back in the queue at once, <paramref name="backInQueueAt"/> its place among the runs asked to go first.
+    /// </summary>
+    private void HoldByHand(string[] left, string by, DateTimeOffset? backInQueueAt, RunContext context)
     {
         DateTimeOffset now = clock.GetUtcNow();
-        context.Update(r => r with { Outcome = SyncOutcome.OnHold, ResumeAt = null, Remaining = left });
+        if (backInQueueAt is not null)
+        {
+            context.Update(
+                r => r with
+                {
+                    Outcome = SyncOutcome.Queued,
+                    ResumeAt = null,
+                    Remaining = left,
+                    HeldFor = null,
+                    FirstAt = backInQueueAt,
+                });
+            context.Note(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Held at {now:yyyy-MM-dd HH:mm} UTC by {by}, {left.Length} left to read, to run another task first: it goes on right after it."));
+            LogBackInQueue(context.Run.Id, by, left.Length);
+            return;
+        }
+
+        context.Update(
+            r => r with
+            {
+                Outcome = SyncOutcome.OnHold,
+                ResumeAt = null,
+                Remaining = left,
+                HeldFor = HoldReason.Hand,
+            });
         context.Note(string.Create(
             CultureInfo.InvariantCulture,
-            $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: put on hold by {by}. It resumes only with Resume now."));
+            $"On hold at {now:yyyy-MM-dd HH:mm} UTC, {left.Length} left to read: put on hold by {by}. It resumes only with Resume now; the queue goes on meanwhile."));
         LogHeldByHand(context.Run.Id, by, left.Length);
     }
 
@@ -616,6 +761,26 @@ public sealed partial class YouTubeRefreshService(
     /// <exception cref="SyncRefusedException">Why it can't run.</exception>
     public async Task CheckAsync(SyncMode mode, string target, CancellationToken cancellationToken)
     {
+        if (mode is SyncMode.PurgeVideos or SyncMode.RefreshVideos or SyncMode.RedownloadVideos)
+        {
+            // Downloading again (2.3.0): under the disk space threshold, set to wait, it doesn't start.
+            string? full = mode == SyncMode.RedownloadVideos
+                ? await space.WhyWaitAsync(cancellationToken).ConfigureAwait(false)
+                : null;
+            if (full is not null)
+            {
+                throw new SyncRefusedException(full);
+            }
+
+            if (!LibraryIds.IsChannelId(target)
+                || await channels.GetAsync(target, cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new SyncRefusedException($"No channel {target} in the library.");
+            }
+
+            return;
+        }
+
         // The downloads (2.2.0): under the disk space threshold, set to wait, none starts.
         if (mode is SyncMode.DownloadVideo
                 or SyncMode.YouTubeSync
@@ -1028,11 +1193,14 @@ public sealed partial class YouTubeRefreshService(
     {
         CancellationToken ct = context.CancellationToken;
         string folder = media.NewDownloadFolder(videoId);
+        // "Try again" with a format (2.2), "Download everything" with its settings (2.3.0): the run's, this once.
+        string format = context.Run.DownloadFormat ?? read.DownloadFormat;
+        bool withoutCookie = context.Run.RetryWithoutCookie ?? read.RetryWithoutCookie;
         try
         {
-            LogDownloading(videoId, read.DownloadFormat);
+            LogDownloading(videoId, format);
             YouTubeLookup<YouTubeDownload> lookup = await youTube
-                .DownloadVideoAsync(videoId, read.DownloadFormat, folder, ct)
+                .DownloadVideoAsync(videoId, format, folder, withoutCookie, ct)
                 .ConfigureAwait(false);
             if (lookup.Answer == YouTubeAnswer.Refused)
             {
@@ -1178,7 +1346,9 @@ public sealed partial class YouTubeRefreshService(
             .SetFileAsync(known.Id, file, context.CancellationToken)
             .ConfigureAwait(false);
         context.Count(c => c with { Updated = c.Updated + 1 });
-        context.Note($"The video \"{known.Title}\" had no file: it's downloaded now, {mediaPath}.");
+        context.Note(context.Run.Mode == SyncMode.RedownloadVideos
+            ? $"The video \"{known.Title}\" is downloaded again: {mediaPath}."
+            : $"The video \"{known.Title}\" had no file: it's downloaded now, {mediaPath}.");
         return known with
         {
             MediaPath = mediaPath,
@@ -1350,7 +1520,8 @@ public sealed partial class YouTubeRefreshService(
             or ValidationException
             or YouTubeDownloadException
             or ChannelNotAddedException
-        || ex.InnerException is DbException;
+        // A cancel a library wraps (2.3.0: the Elasticsearch client's) is a cancel too.
+        || ex.InnerException is DbException or OperationCanceledException;
 
     /// <summary>A progress line (<see cref="ProgressLines"/>): in the backend's log and the run's log.</summary>
     [LoggerMessage(Level = LogLevel.Information, Message = "Downloading {VideoId} (format {Format}).")]
@@ -1405,6 +1576,11 @@ public sealed partial class YouTubeRefreshService(
         Level = LogLevel.Warning,
         Message = "Refresh {RunId} put on hold by {By}, {Left} left to read: it resumes only with Resume now.")]
     private partial void LogHeldByHand(string runId, string by, int left);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Run {RunId}: back in the queue by {By}, {Left} left to read; it goes on at its turn.")]
+    private partial void LogBackInQueue(string runId, string by, int left);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Refresh {RunId} canceled by {By} while on hold.")]
     private partial void LogCanceledHeld(string runId, string by);

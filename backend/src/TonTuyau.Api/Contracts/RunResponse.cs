@@ -14,8 +14,8 @@ namespace TonTuyau.Api.Contracts;
 /// </param>
 /// <param name="StartedBy">For <c>admin</c>: the account that started it; null otherwise.</param>
 /// <param name="State">
-/// queued (2.0: waiting its turn in the run queue) | running | succeeded | failed | canceled | onHold (1.5: a refresh
-/// YouTube refused, waiting).
+/// queued (2.0: waiting its turn in the run queue; v2.14: a run held, back in it to resume) | running | succeeded |
+/// failed | canceled | onHold (1.5: a refresh YouTube refused, waiting; v2.14: <see cref="HeldFor"/> says why).
 /// </param>
 /// <param name="StartedAt">When it started; while it's queued, when it was asked for.</param>
 /// <param name="QueuedAt">When it was asked for (2.0); null for a run TonTuyau started at once by itself.</param>
@@ -27,6 +27,15 @@ namespace TonTuyau.Api.Contracts;
 /// </param>
 /// <param name="Tabs"><c>addChannel</c> (v2.3): the tabs it subscribes to; null for the other runs.</param>
 /// <param name="ResumeAt">A refresh on hold (1.5, <c>onHold</c>): when it resumes by itself; null otherwise, and when put on hold by hand (it waits for Resume now).</param>
+/// <param name="HeldFor">
+/// On hold (contract v2.14): why, youTube (YouTube refused: the queue waits for it) | hand (put on hold by hand: the
+/// queue goes on) | diskSpace (too little room for its downloads: the queue goes on); null otherwise, and for a run held
+/// before 2.3.0 (YouTube's).
+/// </param>
+/// <param name="FirstAt">
+/// Queued (v2.14): when it was asked to go first (Run now, Resume now while another run went on, a run held to let
+/// another go); the latest asked goes first, before the runs never asked. Null otherwise.
+/// </param>
 /// <param name="Left">A refresh on hold: how many channels and videos it has left to read; 0 otherwise.</param>
 /// <param name="IndexRebuild">It rebuilt the indices (asked for, or before an import after an upgrade).</param>
 /// <param name="Notes">What a person should know: a rebuild first, capped lists, files missing…</param>
@@ -48,6 +57,8 @@ public sealed record RunResponse(
     string? Target,
     ChannelTabsResponse? Tabs,
     DateTime? ResumeAt,
+    HoldReason? HeldFor,
+    DateTime? FirstAt,
     int Left,
     bool IndexRebuild,
     IReadOnlyList<string> Notes,
@@ -72,6 +83,8 @@ public sealed record RunResponse(
             run.Target,
             run.Tabs is null ? null : (ChannelTabsResponse)run.Tabs,
             run.ResumeAt?.UtcDateTime,
+            run.HeldFor,
+            run.FirstAt?.UtcDateTime,
             run.Remaining.Count,
             run.IndexRebuild,
             run.Notes,

@@ -40,8 +40,8 @@ same watch page, the same search, on your computer and your phone.
   imports its whole library (read-only), then you can shut it down.
 - 🔌 **One click from YouTube.** With [LaPompe](#-lapompe-the-browser-extension), an "Add to TonTuyau" button sits
   next to Subscribe on YouTube itself.
-- 🔒 **Yours.** No sign-up, no tracking, no cloud ([privacy](PRIVACY.md)). Browsing needs no login; one admin account
-  runs the library, from a dashboard, a Tasks page and a command line.
+- 🔒 **Yours.** No sign-up, no tracking, no cloud ([privacy](PRIVACY.md)). Browsing needs no login, or only your
+  accounts watch; admins run the library, from a dashboard, a Tasks page and a command line.
 
 ## A look around
 
@@ -308,12 +308,30 @@ page, not in `.env`.
 
 ## Logging in
 
-Browsing needs no login. At its first start (no account yet) the backend creates the admin, `TONTUYAU_ADMIN_USER`
-with `TONTUYAU_ADMIN_PASSWORD`; later starts never read them again. Passwords are stored as OWASP recommends (Argon2id,
-19 MiB, 2 passes, a random salt each).
+Browsing needs no login, unless the library is for accounts only (below). At its first start (no account yet) the
+backend creates the admin, `TONTUYAU_ADMIN_USER` with `TONTUYAU_ADMIN_PASSWORD`; later starts never read them again.
+Passwords are stored as OWASP recommends (Argon2id, 19 MiB, 2 passes, a random salt each).
 
 **Log in** (top right) opens a session: an HttpOnly, SameSite=Strict, Secure cookie, valid 8 hours and renewed while
 in use, or 30 days with "Stay logged in". A restart keeps everyone logged in.
+
+**Accounts** (2.3.0): an admin makes more on the admin's **Accounts** page, each an **admin** (everything) or a
+**user** (watches the library, no administration), and can change their role or password, disable or delete them. The
+last enabled local admin stays, and nobody disables nor deletes their own account. Each one changes its own password
+on **My account** (the account menu). A session is checked against its account every 5 minutes: an account disabled,
+deleted, or whose role or password changed, is logged out then.
+
+**An LDAP directory** (2.3.0, the admin's **LDAP** page: LLDAP, OpenLDAP…), set as Jellyfin's LDAP plugin is (its
+values copy over): a service account, the base DN, the UID and username attributes, a users filter and an admins filter
+(e.g. `(memberof=cn=tontuyau,ou=groups,dc=example,dc=com)`). A name that isn't a local account's then logs in with its
+directory password: an admin if the admins filter finds it, a user if the users filter does. Its role is read again at
+each login and every few minutes; it changes its password on My account (the service account changes it in the
+directory: on LLDAP, put it in `lldap_password_manager`). The page tests the connection, each filter and a name on
+their own, and lists the local names the directory has too (only the local account logs in with such a name).
+
+**Who can watch** (2.3.0, the Accounts page): everyone who reaches TonTuyau (the default: browsing needs no login), or
+the logged-in accounts only. Then anyone else sees the login page, and the API, thumbnails, videos and streams answer
+only to a session; the browser extension's API key and `/health` keep working.
 
 - **HTTPS**: the cookie is `Secure`, so browsers only keep it over HTTPS (and on `localhost`). Over plain `http://` on
   the LAN, set `TONTUYAU_COOKIE_SECURE=false`.
@@ -419,7 +437,7 @@ are usable (503 otherwise).
 | `backend/` | ASP.NET Core (.NET 10), EF Core on PostgreSQL, Elasticsearch 9; xUnit and Reqnroll tests on Testcontainers |
 | `frontend/` | Svelte 5, Vite, TypeScript, pnpm, Vitest; `server/` is the front container's production server (plain Node) |
 | `docker/` | the compose file, the two Dockerfiles, `compose.dev.yml` (Elasticsearch and PostgreSQL on localhost) |
-| `scripts/` | `check.sh` (everything CI runs), `build-images.sh`, `check-version.sh`, `smoke-image.sh` |
+| `scripts/` | `check.sh` (everything CI runs, stage by stage), `build-images.sh`, `check-version.sh`, `smoke-image.sh` |
 | `docs/` | the API contract, the plans and the design notes |
 
 Prerequisites: .NET 10 SDK, Node 24+, pnpm (`corepack enable`), Docker (your user in the `docker` group), and ffmpeg
@@ -428,6 +446,7 @@ for the streaming tests.
 ```bash
 cp .env.example .env    # fill it in, and uncomment the "Development only" lines
 ./scripts/check.sh      # version, format, build and every test, back and front (--backend / --frontend for one)
+./scripts/check.sh backend:unit   # or some stages only (--list lists them)
 ```
 
 Run it locally:
@@ -448,10 +467,11 @@ for its knobs (empty library, failing API, slow answers, logged in as admin for 
   copy. After a backend change that alters it (a backend test then fails), start the backend and run
   `cd frontend && pnpm run api:openapi`.
 - The version lives in `backend/Directory.Build.props` and `frontend/package.json`; `check.sh` fails when they differ.
-- GitHub Actions runs on pull requests and version tags: `check.sh` (the backend's part only when the backend
-  changed), then both images. A version tag `vX.Y.Z` publishes them to GHCR as `X.Y.Z`, `X.Y` and `latest`, then
-  makes its GitHub Release from `docs/releases/X.Y.Z.md`; a pre-release tag (`v2.1.0-alpha.1`) publishes only its own
-  image tag and a pre-release.
+- GitHub Actions (`.github/workflows/`): `ci.yml` on pull requests runs `checks.yml` (`check.sh`'s stages, a step
+  each; the backend's only when the backend changed), then builds and runs both images (`images.yml`). `release.yml`
+  on a version tag runs the same checks, then publishes the images to GHCR, `vX.Y.Z` as `X.Y.Z`, `X.Y` and `latest`,
+  and makes its GitHub Release from `docs/releases/X.Y.Z.md`; a pre-release tag (`v2.1.0-alpha.1`) publishes only its
+  own image tag and a pre-release. `rebuild.yml` rebuilds the latest release's images every month (`images.yml` too).
 - `scripts/build-images.sh` builds the images locally (tag `dev`): run the stack with `TONTUYAU_VERSION=dev`.
 
 </details>
